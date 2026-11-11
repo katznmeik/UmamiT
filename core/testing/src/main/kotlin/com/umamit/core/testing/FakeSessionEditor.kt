@@ -120,7 +120,7 @@ class FakeSessionEditor(private val s: FakeSessions) : SessionEditor {
         return moved.copy(
             actualSeconds = step.actualSeconds,
             overtimeSeconds = maxOf(0, step.actualSeconds - plannedSeconds),
-            tempC = snap5(step.tempC),
+            tempC = step.tempC?.let(::snap5) ?: tempC,
             endedAtWallMs = moved.startedAtWallMs
                 ?.let { it + (step.actualSeconds + (pausedSeconds ?: 0)) * MS_PER_SECOND }
                 ?: moved.endedAtWallMs,
@@ -136,7 +136,7 @@ class FakeSessionEditor(private val s: FakeSessions) : SessionEditor {
         val leafOk = leafGrams?.let { it >= 0.0 && it <= SessionEditLimits.MAX_LEAF_GRAMS } ?: true
         val waterOk = waterMl?.let { it in SessionEditLimits.WATER_ML } ?: true
         val stepsOk = steps.all {
-            it.actualSeconds in SessionEditLimits.STEP_SECONDS && snap5(it.tempC) in SessionEditLimits.TEMP_C
+            it.actualSeconds in SessionEditLimits.STEP_SECONDS && (it.tempC?.let { t -> snap5(t) in SessionEditLimits.TEMP_C } ?: true)
         }
         return leafOk && waterOk && stepsOk && steps.map { it.position }.distinct().size == steps.size
     }

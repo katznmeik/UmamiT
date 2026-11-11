@@ -127,14 +127,14 @@ internal class SessionEditorCheck(private val session: BrewSession, private val 
     fun edit(): SessionEdit? {
         if (!valid) return null
         val rows = session.steps.associateBy { it.position }
+        val initial = SessionEditorForm.of(session).steps.associateBy { it.position }
         val steps = form.steps.mapNotNull { step ->
             val row = rows[step.position] ?: return@mapNotNull null
             val seconds = checkNotNull(parseClock(step.time))
-            val shownTemp = row.tempC ?: stored.baseTempC
-            StepEdit(step.position, seconds, step.tempC).takeIf {
-                seconds != row.actualSeconds ||
-                    step.tempC != shownTemp
-            }
+            // Against the form's initial value, not the stored one: a step shown with a fallback °C (no recorded
+            // temperature) writes a temperature only when the user changed it.
+            val tempC = step.tempC.takeIf { it != initial[step.position]?.tempC }
+            StepEdit(step.position, seconds, tempC).takeIf { seconds != row.actualSeconds || tempC != null }
         }
         return SessionEdit(
             startedAtMs = form.startedAtMs.takeIf { shift != 0L },

@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -22,29 +20,24 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.SectionHeader
-import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
-import com.umamit.core.model.StepKind
 import com.umamit.core.model.Vessel
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
 import com.umamit.core.ui.EditorScaffold
 import com.umamit.core.ui.GermanFormat
-import com.umamit.core.ui.RepeatingIconButton
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.journal.R
 import java.time.LocalDate
@@ -197,13 +190,19 @@ private fun StartButtons(start: ZonedDateTime, onDate: () -> Unit, onTime: () ->
 
 @Composable
 private fun LabelledButton(label: Int, value: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val name = stringResource(label)
+    val spoken = stringResource(R.string.session_editor_start_field, name, value)
     Column(modifier) {
         Text(
-            text = stringResource(label),
+            text = name,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.clearAndSetSemantics {},
         )
-        OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = spoken },
+        ) {
             Text(value, style = MaterialTheme.typography.bodyLarge.tabular())
         }
     }

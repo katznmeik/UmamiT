@@ -122,6 +122,8 @@
     <string name="session_editor_save">Speichern</string>
     <string name="session_editor_date">Datum</string>
     <string name="session_editor_time">Uhrzeit</string>
+    <!-- TalkBack for the Datum and Uhrzeit buttons: „Datum, 21. Okt. 2026". -->
+    <string name="session_editor_start_field">%1$s, %2$s</string>
     <string name="session_editor_pick_confirm">OK</string>
     <string name="session_editor_pick_cancel">Abbrechen</string>
     <string name="session_editor_vessel">Gefäß</string>

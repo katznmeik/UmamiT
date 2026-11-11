@@ -131,7 +131,7 @@ class RoomSessionEditor @Inject constructor(private val db: UmamiDatabase, priva
 private fun SessionEdit.inBounds(): Boolean {
     val leafOk = leafGrams?.let { it >= 0.0 && it <= SessionEditLimits.MAX_LEAF_GRAMS && !it.isNaN() } ?: true
     val waterOk = waterMl?.let { it in SessionEditLimits.WATER_ML } ?: true
-    val stepsOk = steps.all { it.actualSeconds in SessionEditLimits.STEP_SECONDS && snap5(it.tempC) in TEMP_RANGE } &&
+    val stepsOk = steps.all { it.actualSeconds in SessionEditLimits.STEP_SECONDS && (it.tempC == null || snap5(it.tempC) in TEMP_RANGE) } &&
         steps.map { it.position }.distinct().size == steps.size
     return leafOk && waterOk && stepsOk
 }
@@ -153,7 +153,7 @@ private fun SessionStepEntity.edited(shift: Long, edit: StepEdit?, now: Long): S
         moved.copy(
             actualSeconds = actual,
             overtimeSeconds = maxOf(0, actual - plannedSeconds),
-            tempC = snap5(edit.tempC),
+            tempC = edit.tempC?.let(::snap5) ?: tempC,
             endedAt = moved.startedAt?.let { it + (actual + (pausedSeconds ?: 0)) * MS_PER_SECOND } ?: moved.endedAt,
         )
     }

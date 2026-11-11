@@ -19,9 +19,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -69,7 +69,8 @@ internal fun StepRow(row: SessionEditorStepRow, actions: SessionEditorActions) {
                 } else {
                     null
                 },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                // Ascii, not Number: number pads (Samsung's, Gboard's) have no „:" key for m:ss.
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
                 modifier = Modifier
                     .weight(1f)
                     .widthIn(min = TIME_FIELD_MIN_WIDTH)
@@ -105,7 +106,7 @@ private fun TempStepper(position: Int, step: SessionEditorStepForm, actions: Ses
             modifier = Modifier
                 .heightIn(min = UmamiSpacing.MinTouchTarget)
                 .widthIn(min = TEMP_MIN_WIDTH)
-                .semantics {
+                .clearAndSetSemantics {
                     contentDescription = label
                     liveRegion = LiveRegionMode.Polite
                 },

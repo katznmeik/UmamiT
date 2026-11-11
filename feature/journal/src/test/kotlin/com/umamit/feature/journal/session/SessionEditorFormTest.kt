@@ -61,7 +61,24 @@ class SessionEditorFormTest {
         assertThat(edit.vessel).isEqualTo(VesselChange("v1"))
         assertThat(edit.leafGrams).isEqualTo(4.5)
         assertThat(edit.waterMl).isNull()
-        assertThat(edit.steps).containsExactly(StepEdit(0, 70, 60))
+        assertThat(edit.steps).containsExactly(StepEdit(0, 70))
+    }
+
+    @Test
+    fun `a step without a recorded temperature gets one only when the user changes it`() {
+        val bare = JournalSessions.session(
+            "bare",
+            LocalDateTime.of(2026, 10, 22, 9, 12, 30),
+            baseTempC = null,
+            steps = listOf(JournalSessions.step(0, 60, 62)),
+        ).session
+        val form = SessionEditorForm.of(bare)
+        val check = { f: SessionEditorForm -> checkNotNull(SessionEditorCheck(bare, f, now).edit()) }
+
+        assertThat(check(form.copy(water = "300")).steps).isEmpty()
+        assertThat(check(form.withStep(0) { it.copy(time = "1:10") }).steps).containsExactly(StepEdit(0, 70))
+        assertThat(check(form.withStep(0) { it.withTempStep(up = true) }).steps)
+            .containsExactly(StepEdit(0, 62, 75))
     }
 
     @Test

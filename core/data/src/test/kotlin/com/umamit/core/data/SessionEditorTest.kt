@@ -271,6 +271,18 @@ class SessionEditorTest {
     }
 
     @Test
+    fun `a time-only step edit keeps the recorded temperature`() = runTest {
+        completedSession()
+        val before = session()
+
+        assertThat(editor.editSession("done", SessionEdit(steps = listOf(StepEdit(0, 75)))))
+            .isEqualTo(SessionEditResult.SAVED)
+
+        assertThat(session().steps[0].actualSeconds).isEqualTo(75)
+        assertThat(session().steps[0].tempC).isEqualTo(before.steps[0].tempC)
+    }
+
+    @Test
     fun `a skipped or never started step, a second edit of one step and values out of bounds are refused`() = runTest {
         completedSession()
         val before = session()

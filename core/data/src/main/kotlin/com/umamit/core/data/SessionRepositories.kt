@@ -131,10 +131,11 @@ interface SessionTasting {
 
 /**
  * One brewed step's new recorded values in the session editor (SCR-17, JRN-11): its *tatsächlich* time
- * ([actualSeconds], [SessionEditLimits.STEP_SECONDS]) and its temperature ([tempC], snapped to 5 °C, GEN-12).
- * The step at [position] must have been brewed (an actual time, not skipped).
+ * ([actualSeconds], [SessionEditLimits.STEP_SECONDS]) and its temperature ([tempC], snapped to 5 °C, GEN-12; null
+ * keeps the recorded one, so a time-only edit writes no temperature). The step at [position] must have been brewed
+ * (an actual time, not skipped).
  */
-data class StepEdit(val position: Int, val actualSeconds: Int, val tempC: Int)
+data class StepEdit(val position: Int, val actualSeconds: Int, val tempC: Int? = null)
 
 /**
  * What the session editor changes (05 §3.7 „Edit", JRN-11, D-112): each field null (or a step not listed) stays as
