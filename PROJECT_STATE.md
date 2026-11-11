@@ -5,77 +5,80 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is built**: all eleven build tickets (#222–#232) are merged into `claude/wonderful-davinci-fu8tqi` (draft PR #235) and the full local gate passed on `08796ec4`. **Next phase (fresh session): #233**, the milestone review, the motion review, the fix round and `v0.6.0-rc.1`. The PO answered four questions after the build (D-112 Q19–Q22); one small ticket came of it (#236). [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is built, reviewed and fixed** on `claude/wonderful-davinci-fu8tqi` (draft PR #235): the milestone review (T3), the motion review, #236 and the fix round are merged and the full local gate passed on `efc061b6`. **`v0.6.0-rc.1` is prepared but not dispatched:** GitHub Actions hung, so no CI run on the head has passed yet (see below). After the rc: the PO's on-device checklist and design review, then #234 (merge, final release). [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
 
-## v0.6.0 (built; review and rc next)
+## v0.6.0 (reviewed and fixed; rc.1 waits on CI)
 
-- **Build phase: done** (2026-11-11, one session). Each ticket was built in
-  its own worktree at its tier, reviewed read-only against its criteria,
-  the specs and D-112's rule, fixed, then verified by the orchestrator
-  (diff, goldens, full local gate on the merge) before the push. Build
-  decisions are D-112's „Build notes", one block per ticket.
-  - **Merged:** #222 (T1), #223 (T3), #224 (T2, finished at T3), #231 (T2),
-    #225 (T2), #227 (T2), #226 (T2), #230 (T3), #232 (T2), #228 (T3),
-    #229 (T3). The last gate passed on `08796ec4`.
-  - **No timer code changed:** the diff against `main` is empty for
-    `core/timer`, `core/timer-engine`, `feature/brew` and
-    `app/.../TimerRoutes.kt`; `completeSession` and `SavedSheetRequests`
-    are unchanged; `core/database/schemas` gained only `6.json`. So no T4
-    timer review is due and the rc needs no accuracy run (09 §4a).
-  - **Not fully shown:** #231's criterion „smooth with 10 000 sessions" is
-    met by JVM timing only (its box is unticked); the list is built on the
-    composition thread per repository emission.
-  - **CI:** run 43005004378 failed once in „Emulator tests (API 36)":
-    `ProcessDeathTest` (two brews, process death) reads the diagnostics log
-    once while the timer process writes the recovery line asynchronously.
-    The recovery itself worked; the same test flaked once before
-    (`docs/history.md`). The runs after it were green. The PO's answer
-    (D-112 Q19): it stays a known flake; rerun CI when it fails.
-  - **The PO's answers after the build (D-112 Q19–Q22, 2026-11-11):** the
-    flaky test stays; ← and ⋮ over the session page's hero stay as built
-    (no title „Sitzung"); a step that *Sitzung beenden* ended early keeps
-    counting for the recipe offer; accepting the offer is to keep the
-    recipe's step notes by position. The last one is ticket **#236**
-    (T2, specs 02 PRF-07 AC5 and 05 §3.7 already updated), not built yet.
-- **Next phase, #233 (fresh session, Opus `medium`):**
-  1. Check CI on the head of PR #235.
-  2. One milestone review at T3 over `main...HEAD` (12 §5.3), with the
-     items below; `/review-animations` once by a T2 subagent, notes in
-     `docs/plans/v0.6.0-motion-review.md` (plan „Review, rc, release").
-  3. Build #236 (T2; `core:domain`, `core:data`) with the fix round.
-  4. One fix round by tier, the full gate, then `umamit.version=0.6.0-rc.1`,
-     the renders in `docs/design/review/v0.6.0/` (placeholder images only),
-     `release.yml` from the PR branch, the checklist of 09 §4 „v0.6.0".
-  5. Stop when the rc is published and the PO is notified.
-- **Items for the milestone review (collected while building):**
-  - Journal: the list is built on the composition thread (above);
-    `observeTeaTasting` combines three queries.
-  - Session page: TalkBack cannot move an unset taste slider to 0 and there
-    is no per-axis unset; with reduce motion the GESCHMACK fold keeps its
-    short fade; the hero's view model reads the whole journal to find one
-    tea cover; `RoomSessionPhotos.add` repeats `RoomTeaPhotos`' flow.
-  - Tea screens: `RoomCollectionListRepository` maps the rating aggregate a
-    second time beside `JournalRepository.observeTeaRatings`.
-  - German number helpers are local in two places instead of `GermanFormat`.
-- **Items for the PO's design review (with the rc's renders):**
-  - „Gespeichert" sheet: the empty stars are faint in dark; *Notizen
-    hinzufügen* is a plain text button; the check mark aligns to the top.
-  - Filter sheet: „Mit Notizen" is heading and chip.
-  - GESCHMACK sliders: the label column's width at font 2.0.
-  - Editor: *Zeit* is a text field (m:ss), not a duration picker; the leaf
-    field has the setup's limits (0,1–100 g), so 0 cannot be entered; the
-    out-of-range message „Zwischen 0:01 und 24:00:00." mixes two formats.
-  - Tea detail: the descriptor chips sit close under the radar's bottom
-    label; the edit button covers the third LETZTE SITZUNGEN row's rating;
-    GESCHMACK is absent with one or two axes and no descriptor.
-  - *Meine Tees*: a rated favourite reads „★ 4,5 ★"; archived rows show the
-    rating too.
-  - Session page: two ⋮ on the hero (the page's at the top, the photo's at
-    the bottom); the layout itself is confirmed (Q20).
-  - Recipe offer (Claude's details in D-112's build notes for #228): an
-    archived tea gets no offer; rounding follows the recorded time; a base
-    temperature changed in the setup counts as a change; a rinse ended
-    early counts.
+- **Review and rc phase (#233): review and fix round done, rc pending** (2026-11-11).
+  - **`v0.6.0-rc.1`: not dispatched yet.** `umamit.version=0.6.0-rc.1`
+    (versionCode 60001) is on the branch and the full local gate passed on
+    `efc061b6`, but GitHub Actions hung on 2026-11-11 from about 20:25 UTC:
+    CI run 43096106697 (head `c65bce75`) stayed queued for over an hour and
+    could be neither cancelled nor rerun. `release.yml` needs a passed
+    `pull_request` CI run on the exact commit. Next: wait for a green CI run
+    on the head, then dispatch `release.yml` (`ref` = the PR branch,
+    `version` = `0.6.0-rc.1`), verify the certificate, update PR #235 and
+    #233, notify the PO. No accuracy run for the rc: no timer code changed.
+  - **CI run 43094657346 (head `d902df8c`, superseded) failed** in
+    „Emulator tests (API 35)": the brew-and-quick-timer test of `ProcessDeathTest`
+    (`aBrewStepAndAQuickTimerDueTogetherSurviveTwoKillsAndAlertTheBrewFirst`)
+    saw the held quick-timer alert 2327 ms after
+    *Abgegossen* (tolerance 2 s). This is not the flake of D-112 Q19 (other
+    method, API 35, a timing bound). Timer code is unchanged against `main`
+    and GitHub's runners were degraded at that time (artifact uploads
+    failed), so it is read as runner load: rerun once if it shows again; if
+    it repeats, stop and ask the PO (timer).
+  - **Milestone review (T3):** no blocker. **Motion review (T2):**
+    `docs/plans/v0.6.0-motion-review.md`. What was fixed and what was left
+    is D-112's „Review and fix round".
+  - **Fix round, built at T2:** #236 (accepting the recipe offer keeps the
+    recipe's step notes by position, PRF-07 AC5); round A (the session page
+    reads one session, the session delete is uncancellable, unknown
+    descriptor keys are refused, a dead read removed); round B (the stars
+    keep the tapped value, the journal list is built off the main thread,
+    the radar eases in, the dividers' fade, the average's rounding).
+  - **One failure after the fix round:** the first full gate failed once in
+    `SessionPageFlowTest`: the app's tests clicked a journal row before the
+    off-thread list existed. A sweep found the same race in
+    `TeaDetailSessionsRouteTest` and `ShellNavigationTest`; fixed at T3,
+    test code only (`app/src/test/.../JournalWaits.kt`), and reviewed. The
+    full gate then passed on `efc061b6`.
+  - **No timer code changed:** the diff against `main` is still empty for
+    `core/timer`, `core/timer-engine`, `feature/brew` and the app's timer
+    routes; `core/database/schemas` gained only `6.json`.
+  - **Renders:** `docs/design/review/v0.6.0/` (147, light, dark and font
+    2.0, placeholder images only) with a README that lists the points to
+    judge.
+- **Next phase, #234 (fresh session, after the PO's answer):**
+  1. If the PO approves the checklist (09 §4 „v0.6.0") and the design
+     review: set `umamit.version=0.6.0` (versionCode 60099), run the
+     accuracy check with all three variants (09 §4a), mark PR #235 ready,
+     merge it with a merge commit once CI is green, dispatch `release.yml`
+     from `main`, verify the certificate, close #234, move this section to
+     `docs/history.md`, restart the working branch from `main`.
+  2. If the PO reports problems or answers the open questions with a
+     change: that is input to the process (grilling as options → spec and
+     decision D-113 → tickets → build by tier → `v0.6.0-rc.2`), never
+     straight into code.
+- **Open questions for the PO (not decided, not built; D-112's review
+  notes):**
+  1. TalkBack on an unset taste slider: an action „Auf 0 setzen" / the
+     first swipe sets 0 / leave it. And: should one axis be unsettable on
+     its own (yes / no)?
+  2. How an unset slider looks: as now (thumb at 0, „–") / no thumb and a
+     dimmed track / a hollow thumb.
+  3. Where the radar sits: above the sliders with the eased shift (as
+     built) / below the sliders / its space reserved from the start.
+  4. Optional: the wording of 03's reduce-motion line for the GESCHMACK
+     fold (its 100 ms fade stays; no behaviour change).
+- **Items for the PO's design review** are the „Points to judge" in
+  `docs/design/review/v0.6.0/README.md` (the sheet, the filter sheet,
+  GESCHMACK, the editor, the tea detail, *Meine Tees*, the session page's
+  two ⋮, the recipe offer's details).
+- **Known, not blocking:** #231's „smooth with 10 000 sessions" is shown by
+  JVM timing only. A tab that comes back to the Journal can show the
+  earlier list for a frame (a session just deleted, yesterday's day
+  headings right after midnight) until the next build.
 - **Environment:** Maven Central answered HTTP 429 all day; a local Gradle
   init script (`~/.gradle/init.d`, not in the repository) pointed
   `repo.maven.apache.org` at Google's Maven Central mirror
@@ -106,11 +109,11 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, spec #221, plan `docs/plans/v0.6.0.md`): built (#222–#232), review and rc next (#233). Then v0.6.1 (Statistik, M4 part 2), not yet specified |
+| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, spec #221, plan `docs/plans/v0.6.0.md`): built (#222–#232, #236), reviewed and fixed (#233); `v0.6.0-rc.1` waits on CI. Then v0.6.1 (Statistik, M4 part 2), not yet specified |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `73a97fc5`; v0.6.0's build, last gate on `08796ec4`) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `73a97fc5`; v0.6.0's build and fix round, last full local gate on `efc061b6`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | **#235** (draft): v0.6.0 milestone PR, all build tickets merged |
+| Open PR | **#235** (draft): v0.6.0 milestone PR, all build tickets and the fix round merged |
 | Latest APK | [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (full release, versionCode 50199, from `main` `73a97fc5`, certificate verified); rc `v0.5.1-rc.2` (50102), rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
 | Decision numbers | Up to **D-112** used (its PO answers run to Q22); the next free is **D-113** |
 
@@ -127,7 +130,7 @@
 
 ## Waiting on the PO
 
-1. **v0.6.0:** nothing blocks. Corrections to D-112's details and build notes marked „Claude" are welcome at any time; the items for the design review are listed above and come with the rc's renders.
+1. **v0.6.0:** nothing yet; the rc is not out. Once `v0.6.0-rc.1` is published: the on-device checklist (09 §4 „v0.6.0"), the design review (`docs/design/review/v0.6.0/README.md`) and the four open questions above.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
@@ -146,5 +149,5 @@
 - Live Update / ProgressStyle and the full-screen alert were verified on the Galaxy with `v0.0.2-probe`; the full timer keeps those patterns (D-043, D-044, `docs/plans/M1-android16-api-notes.md`). Now Bar presence is best effort.
 - Tee-Kontor uses Cloudflare; refreshes may get blocked (handled by stopping without changes).
 - After a reboot, alerts fire only once the phone has been unlocked (E2); Samsung's automatic overnight restart should be disabled (ONB-02).
-- `ProcessDeathTest` (two brews, process death; emulator, API 36) can fail on its single read of the diagnostics log; rerun CI (D-112 Q19).
+- `ProcessDeathTest` (two brews, process death; emulator, API 36) can fail on its single read of the diagnostics log; rerun CI (D-112 Q19). Its brew-and-quick-timer test failed once on API 35 on a timing bound (2327 ms against 2 s, run 43094657346, runners degraded).
 - Robolectric fetches its runtime jar at test time; a network hiccup has failed CI before. Rerun once and comment on the PR.
