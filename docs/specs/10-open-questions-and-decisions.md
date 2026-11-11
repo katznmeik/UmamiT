@@ -580,6 +580,62 @@ page).**
 - The check mark aligns to the top of the taller column, which re-recorded
   the sheet's goldens.
 
+**Build notes (Claude, 2026-11-11, #226: BESCHREIBUNGEN and the descriptor
+sheet).**
+- The sheet's search field stays pinned under the title; an empty result
+  reads „Keine Beschreibung gefunden".
+- The count includes stored keys the vocabulary no longer has; they are not
+  shown as chips.
+- On the page the chips look read-only and a tap on the section opens the
+  sheet (TalkBack „Beschreibungen bearbeiten"); in the sheet they are filter
+  chips under uppercase group headings.
+- A tick the data layer refuses (the limit) is dropped from the sheet again.
+
+**Build notes (Claude, 2026-11-11, #230: the session editor).**
+- `SessionEditor` (`core:data`) takes only the changed fields. An unchanged
+  leaf keeps the stored cost; for a tea that is gone the cost is scaled with
+  the leaf (half up).
+- Fields: leaf 0,1–100 g as in the setup (a leaf of 0 exists only in the
+  data layer, where it removes the stock deduction); water 10–3000 ml in
+  5 ml steps, a recorded odd value stays valid while untouched; °C by a
+  stepper, 5–100 in steps of 5; a step without a temperature shows the base
+  temperature and is written only when changed.
+- *Zeit* is a text field in m:ss or h:mm:ss, 1 s to 24 h. Messages (Claude's
+  copy, 03 SCR-17 and §5): „Als m:ss, z. B. 1:35." for a malformed time,
+  „Zwischen 0:01 und 24:00:00." for one out of range. A duration picker
+  instead of the text field is an item for the PO's design review.
+- The date picker offers no day after today; the time picker keeps the
+  seconds. An edit that keeps the start is never refused as „in the future"
+  (a clock set back).
+- Skipped and never brewed steps are listed greyed („· übersprungen",
+  „· nicht gebrüht") and cannot be edited. Errors show inline, not as a
+  snackbar.
+- A session whose vessel was deleted shows the kept name; *Kein Gefäß*
+  clears it.
+- TalkBack: „Zeit, Schritt 2", „Temperatur senken, Schritt 2".
+
+**Build notes (Claude, 2026-11-11, #232: the tea screens).**
+- *Alle anzeigen* switches to the Journal tab's root list with *Tee* set to
+  the tea and the search text and every other filter cleared, so all of the
+  tea's sessions show. No second list is pushed, and it works again for the
+  same tea after the chip was cleared. `JournalTeaRequest` (a counted
+  request held by the app shell) replaces #231's route argument.
+- GESCHMACK shows when the average radar can be drawn (three axes or more)
+  or the tea has a known descriptor; with one or two axes and no descriptor
+  the section is absent.
+- The top five descriptors: by count, then vocabulary order; keys the
+  vocabulary lacks are left out first.
+- The average is the exact mean of the rated finished sessions; *Bewertung*
+  sorts on it (ties by name), the display rounds to one decimal.
+- LETZTE SITZUNGEN rows count like the journal's rows (first infusion's
+  temperature and planned time, poured infusions, „2 von 3 Aufgüssen" for an
+  early end). The date is „8. Juni", with the year for another year than the
+  current one.
+- *Meine Tees* shows the rating on archived rows too. On a rated favourite
+  it stands directly before the favourite star („★ 4,5 ★"); an item for the
+  PO's design review.
+- `CollectionSort.RATING` is stored like the other orders (05 §6).
+
 <a id="d-111"></a>
 ### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
