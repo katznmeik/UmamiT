@@ -35,6 +35,9 @@ class JournalSources @Inject constructor(
      */
     internal var lastSessions: List<JournalSession>? = null
 
+    /** The list built from [lastSessions], shown in the same first frame. */
+    internal var lastList: JournalList? = null
+
     /** The phone's date now, for „Heute" and „Gestern". */
     fun today(): LocalDate = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
 

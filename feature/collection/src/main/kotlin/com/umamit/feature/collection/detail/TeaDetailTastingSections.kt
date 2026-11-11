@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
+import com.umamit.core.designsystem.text.averageRatingText
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.ratingText
 import com.umamit.core.designsystem.text.spokenDuration
@@ -57,7 +58,7 @@ fun teaDetailSessionTag(sessionId: String) = "tea_detail_session_$sessionId"
 /** The header's „★ 4,5 (12)" under the names; TalkBack reads „Bewertung 4,5 von 5, aus 12 Sitzungen". */
 @Composable
 internal fun RatingLine(rating: TeaRating, modifier: Modifier = Modifier) {
-    val value = ratingText(rating.average.toFloat())
+    val value = averageRatingText(rating.average)
     val description = pluralStringResource(
         R.plurals.collection_tea_rating_description,
         rating.count,

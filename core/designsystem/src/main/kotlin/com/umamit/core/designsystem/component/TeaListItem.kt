@@ -36,7 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.R
 import com.umamit.core.designsystem.icon.UmamiIcons
-import com.umamit.core.designsystem.text.ratingText
+import com.umamit.core.designsystem.text.averageRatingText
 import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -66,7 +66,7 @@ fun TeaListItem(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
-    rating: Float? = null,
+    rating: Double? = null,
     thumbnail: Painter? = null,
     placeholderColor: Color = UmamiTheme.extendedColors.teaTypes.other,
     showDivider: Boolean = true,
@@ -196,8 +196,8 @@ fun TeaThumbnail(thumbnail: Painter?, placeholderColor: Color, modifier: Modifie
 }
 
 @Composable
-private fun Rating(rating: Float) {
-    val value = ratingText(rating)
+private fun Rating(rating: Double) {
+    val value = averageRatingText(rating)
     val description = stringResource(R.string.ds_rating_description, value)
     Text(
         text = stringResource(R.string.ds_rating, value),

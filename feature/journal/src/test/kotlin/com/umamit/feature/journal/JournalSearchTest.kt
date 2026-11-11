@@ -14,6 +14,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -302,6 +303,12 @@ class JournalSearchTest {
             }
         }
         compose.waitForIdle()
+        // The list is built off the main thread: wait for it.
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithContentDescription(
+                "Filter entfernen: Gyokuro Asahi",
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
 
         compose.onNodeWithContentDescription("Filter entfernen: Gyokuro Asahi").assertExists()
         compose.onNodeWithText("Bio Sencha Hisui").assertDoesNotExist()
@@ -363,6 +370,9 @@ class JournalSearchTest {
             }
         }
         compose.waitForIdle()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Keine Sitzung passt zu deiner Suche.").fetchSemanticsNodes().isNotEmpty()
+        }
 
         compose.onNodeWithContentDescription("Filter entfernen: Neuer Sencha").assertExists()
         compose.onNodeWithText("Keine Sitzung passt zu deiner Suche.").assertIsDisplayed()

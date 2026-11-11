@@ -144,7 +144,7 @@ class ComponentScreenshotTest(private val dark: Boolean, private val fontScale: 
             TeaListItem(
                 title = "Bio Sencha Hisui",
                 meta = "8. Juni · 3\u00A0Min. · 80\u00A0°C",
-                rating = 4.5f,
+                rating = 4.5,
                 placeholderColor = types.sencha,
                 onClick = {},
             )
@@ -157,7 +157,7 @@ class ComponentScreenshotTest(private val dark: Boolean, private val fontScale: 
             TeaListItem(
                 title = "Genmaicha",
                 meta = "Noch nie gebrüht",
-                rating = 4f,
+                rating = 4.0,
                 placeholderColor = types.genmaicha,
                 showDivider = false,
             )

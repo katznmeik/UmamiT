@@ -3,6 +3,7 @@ package com.umamit.feature.journal
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import com.umamit.core.data.SessionEdit
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -64,15 +65,18 @@ class JournalIntegrationTest {
                 }
             }
         }
+        awaitText("Deine erste Tasse wartet.")
         compose.onNodeWithText("Deine erste Tasse wartet.").assertIsDisplayed()
 
         controller.start("s1", 60, 20, 60)
         controller.pour("s1", 0, 60)
+        awaitText("LÄUFT GERADE")
         compose.onNodeWithText("LÄUFT GERADE").assertIsDisplayed()
         compose.onNodeWithText("55 °C · 1:00 · 1 von 3 Aufgüssen").assertIsDisplayed()
 
         controller.pour("s1", 1, 20)
         controller.finish("s1")
+        awaitText("HEUTE")
 
         compose.onNodeWithText("LÄUFT GERADE").assertDoesNotExist()
         compose.onNodeWithText("HEUTE").assertIsDisplayed()
@@ -90,6 +94,8 @@ class JournalIntegrationTest {
                 JournalRoute(sources = sources, onOpenSettings = {}, onOpenTimer = {})
             }
         }
+        // The list is built off the main thread: wait for it.
+        awaitText("HEUTE")
         compose.onNodeWithText("HEUTE").assertIsDisplayed()
         compose.onNodeWithText("GESTERN").assertDoesNotExist()
 
@@ -97,8 +103,17 @@ class JournalIntegrationTest {
         val start = JournalSessions.ms(LocalDateTime.of(2026, 10, 21, 8, 12))
         runBlocking { FakeSessionEditor(data).editSession("s1", SessionEdit(startedAtMs = start)) }
 
+        awaitText("GESTERN")
         compose.onNodeWithText("GESTERN").assertIsDisplayed()
         compose.onNodeWithText("HEUTE").assertDoesNotExist()
         compose.onNodeWithText("08:12").assertIsDisplayed()
+    }
+
+    private fun awaitText(text: String) {
+        compose.waitUntil(WAIT_MS) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private companion object {
+        const val WAIT_MS = 5_000L
     }
 }

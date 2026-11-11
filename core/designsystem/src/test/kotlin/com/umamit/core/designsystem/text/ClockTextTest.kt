@@ -25,4 +25,13 @@ class ClockTextTest {
         assertThat(ratingText(4.5f)).isEqualTo("4,5")
         assertThat(ratingText(4f)).isEqualTo("4,0")
     }
+
+    @Test
+    fun `an average rounds half up to one decimal from the double`() {
+        assertThat(averageRatingText(4.35)).isEqualTo("4,4")
+        assertThat(averageRatingText(4.45)).isEqualTo("4,5")
+        assertThat(averageRatingText(4.0)).isEqualTo("4,0")
+        assertThat(averageRatingText(3.25)).isEqualTo("3,3")
+        assertThat(averageRatingText(4.34)).isEqualTo("4,3")
+    }
 }
