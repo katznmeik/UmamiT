@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is being built** on `claude/wonderful-davinci-fu8tqi` (draft PR #235), started by the PO with `/implement-spec #221`. Merged so far: #222, #223 (wave 1). Plan and waves: `docs/plans/v0.6.0.md`. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is being built** on `claude/wonderful-davinci-fu8tqi` (draft PR #235), started by the PO with `/implement-spec #221`. Merged so far: #222, #223 (wave 1), #224, #231 (wave 2). Plan and waves: `docs/plans/v0.6.0.md`. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
 
 ## v0.6.0 (build phase in progress)
 
@@ -16,8 +16,14 @@
   „Build notes".
   - **Wave 1, merged (`6e2166e8`, gate passed):** #222 (T1) the vocabulary;
     #223 (T3) umamit.db v6, `SessionTasting`, the per-tea aggregates.
-  - **Next:** waves 2–6 of the plan (#224 ‖ #231, #225 ‖ #227, #226 ‖ #230,
-    #228 ‖ #232, #229).
+  - **Wave 2, merged (`cd9067be`, gate passed):** #224 (T2, finished at T3
+    after the first implementer stopped without a commit) stars and notes
+    on the session page; #231 (T2) journal rows, search, filter sheet, A6.
+    #231's 10 000-session criterion is met by JVM timing only (D-112 build
+    notes); the list build on the composition thread is an item for the
+    milestone review.
+  - **Next:** waves 3–6 of the plan (#225 ‖ #227, #226 ‖ #230, #228 ‖ #232,
+    #229).
   - **Environment:** Maven Central answered HTTP 429 all day; a local Gradle
     init script (`~/.gradle/init.d`, not in the repository) points
     `repo.maven.apache.org` at Google's Maven Central mirror
