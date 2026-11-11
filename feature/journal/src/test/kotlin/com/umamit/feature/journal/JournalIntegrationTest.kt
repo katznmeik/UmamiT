@@ -4,11 +4,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import com.umamit.core.data.SessionEdit
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeSessionEditor
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,8 +30,8 @@ class JournalIntegrationTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private val data = FakeSessions()
     private val clock = FakeClock(wall = JournalSessions.ms(LocalDateTime.of(2026, 10, 22, 9, 30)))
+    private val data = FakeSessions(nowMs = { clock.wall })
     private val requests = SavedSheetRequests(clock)
     private val sources =
         JournalSources(data.journal, data.sessions, requests, clock, FakeCollection().teas, data.tasting)
@@ -67,5 +70,25 @@ class JournalIntegrationTest {
         compose.onNodeWithText("55 °C · 1:00 · 2 von 3 Aufgüssen").assertIsDisplayed()
         compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
         compose.onNodeWithText("2 Aufgüsse · 1:20").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an edited session moves to its new day in the journal`() {
+        controller.brew("s1", 60, 20)
+        compose.setContent {
+            UmamiTheme(darkTheme = false, reduceMotion = true) {
+                JournalRoute(sources = sources, onOpenSettings = {}, onOpenTimer = {})
+            }
+        }
+        compose.onNodeWithText("HEUTE").assertIsDisplayed()
+        compose.onNodeWithText("GESTERN").assertDoesNotExist()
+
+        // JRN-11: the session editor moves the start one day back, to 08:12 the day before.
+        val start = JournalSessions.ms(LocalDateTime.of(2026, 10, 21, 8, 12))
+        runBlocking { FakeSessionEditor(data).editSession("s1", SessionEdit(startedAtMs = start)) }
+
+        compose.onNodeWithText("GESTERN").assertIsDisplayed()
+        compose.onNodeWithText("HEUTE").assertDoesNotExist()
+        compose.onNodeWithText("08:12").assertIsDisplayed()
     }
 }

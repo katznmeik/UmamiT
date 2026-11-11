@@ -1365,7 +1365,10 @@ session's **recorded data** (JRN-11), opened by SCR-16's ⋮ *Bearbeiten*.
   - **SCHRITTE:** each brewed step as a row „1 · Aufguss" with *Zeit*
     (m:ss, the recorded time) and *°C* (5 °C steps, the Schritte-Sheet's
     range). Steps never started („nicht gebrüht") and skipped ones show
-    greyed, without fields.
+    greyed, without fields. A *Zeit* that is not m:ss (or h:mm:ss) shows
+    „Als m:ss, z. B. 1:35." at the field; a well-formed one outside
+    1 s – 24 h (0:00, or over 24 h) shows „Zwischen 0:01 und 24:00:00."
+    (both Claude's copy under D-112, open to the PO in the review).
 - **Not here:** the tea, the recipe, the method, adding or removing steps.
 - ***Speichern*** writes everything in one transaction (05 §3.6), closes the
   editor and shows the page with the new values; a failed write keeps the
@@ -1836,6 +1839,8 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Descriptor limit (v0.6.0, JRN-04) | „Höchstens 20 Beschreibungen" |
 | Recipe offer accepted (v0.6.0, PRF-07) | „Rezept aktualisiert." |
 | Session start in the future (v0.6.0, JRN-11) | „Die Sitzung kann nicht in der Zukunft liegen." |
+| Session editor, step *Zeit* not m:ss (v0.6.0, SCR-17; Claude's copy, D-112) | „Als m:ss, z. B. 1:35." |
+| Session editor, step *Zeit* outside 1 s – 24 h (v0.6.0, SCR-17; Claude's copy, D-112) | „Zwischen 0:01 und 24:00:00." |
 | Journal search without a match (v0.6.0, JRN-09) | „Keine Sitzung passt zu deiner Suche." · Filter zurücksetzen |
 | Delete tea (v0.4.0, TEA-04) | „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." · Stattdessen archivieren / Löschen |
 | Tea archived (v0.4.0, TEA-04; the picker too) | „*Tanabata* archiviert" · Rückgängig |

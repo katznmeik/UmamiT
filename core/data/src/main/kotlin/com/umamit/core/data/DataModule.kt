@@ -50,6 +50,9 @@ abstract class DataModule {
     abstract fun sessionTasting(impl: RoomSessionTasting): SessionTasting
 
     @Binds
+    abstract fun sessionEditor(impl: RoomSessionEditor): SessionEditor
+
+    @Binds
     abstract fun activeBrewStore(impl: RoomActiveBrewStore): ActiveBrewStore
 
     @Binds

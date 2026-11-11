@@ -75,6 +75,7 @@ import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
+import com.umamit.feature.journal.session.SessionEditorHost
 import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
@@ -643,6 +644,19 @@ private fun TabHost(
                     onOpenTea = resumedOnly { navController.navigate(CollectionTeaRoute(it)) },
                     onBrewAgain = resumedOnly(journal.openSetupFromSession),
                     onDeleted = { close() },
+                    onEdit = resumedOnly { navController.navigate(JournalSessionEditorRoute(it)) },
+                    alertKey = alertKey,
+                ),
+            )
+        }
+        // Sitzung bearbeiten (SCR-17, JRN-11): ✕ and *Speichern* return to the session page, which shows the new
+        // values.
+        composable<JournalSessionEditorRoute> { entry ->
+            val closeIfOnTop = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            journal.screens.sessionEditor(
+                SessionEditorHost(
+                    onClose = dropUnlessResumed { navController.popBackStack() },
+                    onSaved = { closeIfOnTop() },
                     alertKey = alertKey,
                 ),
             )

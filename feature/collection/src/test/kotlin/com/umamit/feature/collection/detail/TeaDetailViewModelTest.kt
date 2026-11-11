@@ -3,6 +3,8 @@ package com.umamit.feature.collection.detail
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.SessionEdit
+import com.umamit.core.data.SessionEditResult
 import com.umamit.core.data.TeaPurchase
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.model.BrewMethod
@@ -16,6 +18,7 @@ import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeSessionEditor
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
@@ -51,7 +54,7 @@ class TeaDetailViewModelTest {
 
     private val collection = FakeCollection()
     private val settings = FakeSettingsRepository(UserSettings(lowStockGrams = 15.0))
-    private val sessions = FakeSessions(collection, settings)
+    private val sessions = FakeSessions(collection, settings, nowMs = { clock.wall })
     private val archive = FakeTeaArchive(sessions)
     private val catalog = FakeCatalogRepository(details = listOf(TeaDetailFixture.catalogTea))
 
@@ -100,6 +103,20 @@ class TeaDetailViewModelTest {
         // 50 g bought, 5 g deducted by each session.
         assertThat(tea.stockGrams).isEqualTo(40.0)
         assertThat(tea.stockLevel).isEqualTo(StockLevel.AVAILABLE)
+    }
+
+    @Test
+    fun `the stock chip follows a session edit of the leaf`() = runTest {
+        TeaDetailFixture.seed(collection)
+        TeaDetailFixture.brewed(sessions, "s1", at = LAST_BREW_MS)
+        val vm = viewModel()
+        assertThat(vm.tea.stockGrams).isEqualTo(45.0)
+
+        // JRN-11: the session editor sets the BREW event's deduction from 5 g to 8 g.
+        assertThat(FakeSessionEditor(sessions).editSession("s1", SessionEdit(leafGrams = 8.0)))
+            .isEqualTo(SessionEditResult.SAVED)
+
+        assertThat(vm.tea.stockGrams).isEqualTo(42.0)
     }
 
     @Test
