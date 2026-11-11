@@ -134,6 +134,7 @@
     <string name="session_descriptors">Beschreibungen</string>
     <string name="session_descriptor_add">+ Beschreibung</string>
     <string name="session_descriptor_add_description">Beschreibung hinzufügen</string>
+    <string name="session_descriptor_edit_description">Beschreibungen bearbeiten</string>
     <string name="descriptor_sheet_title">Beschreibungen</string>
     <string name="descriptor_sheet_count" tools:ignore="PluralsCandidate">%1$d von %2$d</string>
     <string name="descriptor_sheet_count_full" tools:ignore="PluralsCandidate">%1$d von %2$d · Höchstens %2$d Beschreibungen</string>

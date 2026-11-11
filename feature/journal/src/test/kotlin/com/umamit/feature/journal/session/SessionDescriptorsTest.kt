@@ -16,6 +16,8 @@ import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SessionStart
+import com.umamit.core.data.SessionTasting
+import com.umamit.core.data.TastingWrite
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
@@ -86,16 +88,16 @@ class SessionDescriptorsTest {
         sessions.sessions.completeSession(PAST, autoFinished = false)
     }
 
-    private fun show() {
+    private fun show(reduceMotion: Boolean = true, tasting: SessionTasting = sessions.tasting) {
         val viewModel = SessionPageViewModel(
             SavedStateHandle(mapOf("sessionId" to PAST)),
             sessions.journal,
             collection.teas,
             archive,
-            sessions.tasting,
+            tasting,
         )
         compose.setContent {
-            UmamiTheme(reduceMotion = true) {
+            UmamiTheme(reduceMotion = reduceMotion) {
                 SessionPageRoute(
                     host = SessionPageHost(onBack = {}, onOpenTea = {}, onBrewAgain = {}, alertKey = alert.value),
                     viewModel = viewModel,
@@ -226,6 +228,44 @@ class SessionDescriptorsTest {
         viewModel.setDescriptor(vocabulary[TastingLimits.MAX_DESCRIPTORS].key, true)
 
         assertThat(keys()).hasSize(TastingLimits.MAX_DESCRIPTORS)
+    }
+
+    @Test
+    fun `a refused tick leaves no chip and no count the repository never stored`() {
+        val refusing = object : SessionTasting by sessions.tasting {
+            override suspend fun setDescriptor(sessionId: String, key: String, ticked: Boolean): TastingWrite =
+                if (key == "marine.nori") {
+                    TastingWrite.DESCRIPTOR_LIMIT
+                } else {
+                    sessions.tasting.setDescriptor(sessionId, key, ticked)
+                }
+        }
+        show(tasting = refusing)
+        openSheet()
+
+        chip(TasteDescriptor.MARINE_NORI).performClick()
+        compose.waitForIdle()
+
+        assertThat(keys()).isEmpty()
+        compose.onNodeWithText("0 von 20").assertIsDisplayed()
+        chip(TasteDescriptor.MARINE_NORI).assert(hasStateDescription("nicht ausgewählt"))
+        compose.onNodeWithTag(DESCRIPTOR_DONE_TAG).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(sessionDescriptorTag(TasteDescriptor.MARINE_NORI)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `Fertig closes the sheet with motion on`() {
+        show(reduceMotion = false)
+        openSheet()
+        chip(TasteDescriptor.FLORAL_JASMIN).performClick()
+
+        compose.onNodeWithTag(DESCRIPTOR_DONE_TAG).performClick()
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(DESCRIPTOR_SHEET_TAG).assertDoesNotExist()
+        assertThat(keys()).containsExactly("floral.jasmin")
     }
 
     @Test

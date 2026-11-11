@@ -76,8 +76,8 @@ class SessionPageActions(
     val notesChanged: (String) -> Unit = {},
     /** The notes field or the page is left (JRN-05): a pending note is saved now. */
     val flushNotes: () -> Unit = {},
-    /** A chip ticked or unticked in the descriptor sheet (JRN-04): saved at once. */
-    val setDescriptor: (key: String, ticked: Boolean) -> Unit = { _, _ -> },
+    /** A chip ticked or unticked in the descriptor sheet (JRN-04): saved at once; `onRefused` runs if not stored. */
+    val setDescriptor: (key: String, ticked: Boolean, onRefused: () -> Unit) -> Unit = { _, _, _ -> },
 )
 
 /**

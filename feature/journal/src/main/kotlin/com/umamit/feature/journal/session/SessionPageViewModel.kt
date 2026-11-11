@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.SessionTasting
+import com.umamit.core.data.TastingWrite
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.model.TasteAxis
@@ -132,9 +133,16 @@ class SessionPageViewModel @Inject constructor(
     /** Descriptor writes run one after another in tap order, so the last tap is the one stored (JRN-04). */
     private val descriptorLock = Mutex()
 
-    /** A chip ticked or unticked in the descriptor sheet (JRN-04): saved at once, after any earlier tick. */
-    fun setDescriptor(key: String, ticked: Boolean) {
-        launchWrite { descriptorLock.withLock { tasting.setDescriptor(sessionId, key, ticked) } }
+    /**
+     * A chip ticked or unticked in the descriptor sheet (JRN-04): saved at once, after any earlier tick. When the
+     * repository does not store it (the 21st key, a session no longer completed), [onRefused] is called so the page
+     * can drop what it showed in advance.
+     */
+    fun setDescriptor(key: String, ticked: Boolean, onRefused: () -> Unit = {}) {
+        launchWrite {
+            val result = descriptorLock.withLock { tasting.setDescriptor(sessionId, key, ticked) }
+            if (result != TastingWrite.SAVED) onRefused()
+        }
     }
 
     /** The notes field changed to [text] (JRN-05): saved 1 s after the last key, or sooner by [flushNotes]. */

@@ -59,6 +59,7 @@ internal fun DescriptorsSection(
     val sheet = rememberAlertGate(alertKey)
     val resources = LocalResources.current
     val addDescription = stringResource(R.string.session_descriptor_add_description)
+    val editDescription = stringResource(R.string.session_descriptor_edit_description)
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(
             title = stringResource(R.string.session_descriptors),
@@ -74,6 +75,7 @@ internal fun DescriptorsSection(
                     label = resources.getString(descriptor.labelRes()),
                     onClick = sheet::open,
                     modifier = Modifier.testTag(sessionDescriptorTag(descriptor)),
+                    onClickLabel = editDescription,
                 )
             }
             AssistChip(
@@ -93,7 +95,7 @@ internal fun DescriptorsSection(
             total = keys.size,
             onToggle = { descriptor, ticked ->
                 pending = pending + (descriptor.key to ticked)
-                actions.setDescriptor(descriptor.key, ticked)
+                actions.setDescriptor(descriptor.key, ticked) { pending = pending - descriptor.key }
             },
             onDismissRequest = sheet::close,
         )

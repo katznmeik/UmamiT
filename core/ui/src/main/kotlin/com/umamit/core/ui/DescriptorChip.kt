@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import androidx.compose.ui.semantics.onClick as semanticsOnClick
 
 private const val CHIP_BORDER_ALPHA = 0.6f
 
@@ -46,10 +47,16 @@ fun DescriptorChip(
 
 /**
  * The read-only form of `DescriptorChip`: the chosen look, with an optional [count] („Nori · 4", the tea detail's
- * most frequent descriptors). With [onClick] it is a button (the session page's chosen chips open the sheet).
+ * most frequent descriptors). With [onClick] it is a button (the session page's chosen chips open the sheet), announced as [onClickLabel].
  */
 @Composable
-fun DescriptorChip(label: String, modifier: Modifier = Modifier, count: Int? = null, onClick: (() -> Unit)? = null) {
+fun DescriptorChip(
+    label: String,
+    modifier: Modifier = Modifier,
+    count: Int? = null,
+    onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
+) {
     val text = if (count == null) label else stringResource(R.string.ui_descriptor_with_count, label, count)
     val content: @Composable () -> Unit = {
         Text(
@@ -67,7 +74,7 @@ fun DescriptorChip(label: String, modifier: Modifier = Modifier, count: Int? = n
     } else {
         Surface(
             onClick = onClick,
-            modifier = modifier,
+            modifier = modifier.semantics { semanticsOnClick(label = onClickLabel, action = null) },
             shape = shape,
             color = color,
             border = border,
