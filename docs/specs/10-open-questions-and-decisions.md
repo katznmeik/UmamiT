@@ -507,6 +507,49 @@ writes).**
 - `observeTeaTasting` combines three observed queries, so one write can
   show a mixed summary for a moment; accepted for a read-only display.
 
+**Build notes (Claude, 2026-11-11, #224: stars and notes on the session
+page).**
+- `RatingStars` (`core:ui`) is stateless (value, change). For TalkBack it is
+  one adjustable control in half steps; a whole rating reads „4 von 5
+  Sternen", a half one „3,5 von 5 Sternen"; the action „Bewertung
+  entfernen" is offered only while a rating is set. The star is 30 dp in a
+  48 dp target; a change gives the segment tick.
+- Rating writes are queued one after another, so the quick second tap for a
+  half star is stored in tap order.
+- Notes are saved 1 s after the last key, when the field loses focus, when
+  the app stops and when the page goes; the write is not cancellable, so a
+  started save lands also when an alert takes the screen (rule 8). The
+  counter reads „4.501 / 5.000" from 4500; pasted text is cut at 5000
+  without a message. An empty or blank note is stored as none.
+- The inputs are in `SessionTastingInputs.kt`; a session in progress would
+  show none (it has no page).
+- Goldens: „rated 3,5" and „long note" are one state.
+
+**Build notes (Claude, 2026-11-11, #231: journal search and filters).**
+- The filter *Tee* is keyed by the tea's id, a deleted tea by its recorded
+  name; an option's label is its newest session's recorded name; only teas
+  with finished sessions are offered. A tea set from outside that has no
+  finished session yet still shows its name on the chip.
+- *Tee* and *Bewertung* take one value each; a tap on the chosen chip
+  unsets it. The sheet's *Zurücksetzen* clears the filters and keeps the
+  search (as the catalog's sheet); the no-match *Filter zurücksetzen*
+  clears both (03 SCR-15).
+- The search row and the chips are pinned above the list. The rating always
+  shows one decimal („★ 4,0"). The result count („12 Sitzungen") is an
+  invisible live region.
+- The tab's route takes an optional tea id (`JournalRoute(teaId)`), which
+  sets *Tee* once per value; #232 uses it.
+- The search matches in memory over words built once per list (tea name,
+  note, descriptor labels; GEN-10's folding).
+- **NFR-PERF-03:** the repository has no frame-time measurement for *Meine
+  Tees* to reuse, so the ticket's criterion is met only by JVM timing:
+  filtering 10 000 rows within one 60 Hz frame at the median, and the list
+  build under a coarse budget (about 100 ms measured on the JVM). The list
+  is lazy. The build runs on the composition thread at each repository
+  emission; whether it moves off it is left to the milestone review (#233).
+- A6 is cut from its source with a motif mask on the theme's background
+  colour, so no paper rectangle shows in light or dark.
+
 <a id="d-111"></a>
 ### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
