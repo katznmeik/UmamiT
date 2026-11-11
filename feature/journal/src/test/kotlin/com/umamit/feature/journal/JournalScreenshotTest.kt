@@ -8,8 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -60,6 +58,8 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
 
         /** Any path: the screenshot's thumbnail loader draws the placeholder illustration for it. */
         private val PLACEHOLDER_PHOTO = File("placeholder.jpg")
+
+        private val HISUI_OPTION = JournalTeaOption("t-hisui", "Bio Sencha Hisui")
     }
 
     @get:Rule
@@ -162,13 +162,15 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                         alerting = false,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
+                    if (openFilterSheet) {
+                        // Composed open, as the catalog's goldens do: the sheet is a window of its own.
+                        JournalFilterSheet(filter, listOf(HISUI_OPTION), onFilterChange = {}, onDismissRequest = {})
+                    }
                 }
             }
         }
-        compose.mainClock.autoAdvance = false
-        compose.mainClock.advanceTimeBy(1_000)
-        if (openFilterSheet) {
-            compose.onNodeWithTag(JOURNAL_FILTER_BUTTON_TAG).performClick()
+        if (!openFilterSheet) {
+            compose.mainClock.autoAdvance = false
             compose.mainClock.advanceTimeBy(1_000)
         }
         compose.waitForIdle()
