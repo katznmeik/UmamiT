@@ -480,6 +480,33 @@ the PO as a breakdown on 2026-11-11; plan `docs/plans/v0.6.0.md`.
 tea picker; changing a session's tea or its number of steps; a filter by
 date range or Sorte; the four ideas of point 11.
 
+**Build notes (Claude, 2026-11-11, #222: the vocabulary).** `TasteDescriptor`
+and `DescriptorGroup` are enums in `core:model` (the order is the
+declaration order; `fromKey` gives nothing for an unknown key). `core:model`
+is pure JVM, so the labels are mapped in `core:ui` (`DescriptorLabels.kt`,
+`labelRes()`, exhaustive). Slugs 08 §4 does not spell out are ASCII
+transliterations of the German label (`gedaempftes_gemuese`,
+`geroestete_nuesse`, `kirschbluete`); a test pins all 69 keys.
+
+**Build notes (Claude, 2026-11-11, #223: umamit.db v6 and the tasting
+writes).**
+- `SessionTasting` answers with `TastingWrite` (`SAVED`, `NOT_COMPLETED`,
+  `INVALID`, `DESCRIPTOR_LIMIT`) and never throws for a bad value. Invalid:
+  a rating off the half steps or outside 0,5–5,0, a taste value outside
+  0–5, notes over 5000 characters after trimming (UTF-16 units, as a text
+  field counts), a blank descriptor key.
+- A tick that is already set and an untick that is not there are `SAVED`.
+  The limit of 20 is checked in the insert's transaction.
+- A session's descriptors are in the order ticked (`created_at`, then key).
+  Keys the app does not know stay stored and counted; the screens leave
+  them out.
+- The per-tea reads (`observeTeaRatings`, `observeTeaTasting`) count the
+  sessions that are no longer in progress, like the journal; the writes act
+  on `COMPLETED` sessions only (05 §3.7). No `MANUAL` session exists yet
+  (JRN-12 is kept for later).
+- `observeTeaTasting` combines three observed queries, so one write can
+  show a mixed summary for a moment; accepted for a read-only display.
+
 <a id="d-111"></a>
 ### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 

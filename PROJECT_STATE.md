@@ -5,10 +5,24 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-11. **M4 is specified and split (D-112): v0.6.0 is the journal, v0.6.1 is Statistik.** v0.6.0 has its spec (#221), tickets (#222–#234), plan (`docs/plans/v0.6.0.md`) and the draft milestone PR #235; **nothing is built: the build starts when the PO starts `/implement-spec #221`.** [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is being built** on `claude/wonderful-davinci-fu8tqi` (draft PR #235), started by the PO with `/implement-spec #221`. Merged so far: #222, #223 (wave 1). Plan and waves: `docs/plans/v0.6.0.md`. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
 
-## v0.6.0 (specified, waiting for the PO's start)
+## v0.6.0 (build phase in progress)
 
+- **Build phase: in progress** (2026-11-11). Each ticket is built in its own
+  worktree at its tier, reviewed read-only against its criteria, the specs
+  and D-112's rule, fixed, then verified by the orchestrator (diff, full
+  local gate on the merge) before the push. Build decisions are D-112's
+  „Build notes".
+  - **Wave 1, merged (`6e2166e8`, gate passed):** #222 (T1) the vocabulary;
+    #223 (T3) umamit.db v6, `SessionTasting`, the per-tea aggregates.
+  - **Next:** waves 2–6 of the plan (#224 ‖ #231, #225 ‖ #227, #226 ‖ #230,
+    #228 ‖ #232, #229).
+  - **Environment:** Maven Central answered HTTP 429 all day; a local Gradle
+    init script (`~/.gradle/init.d`, not in the repository) points
+    `repo.maven.apache.org` at Google's Maven Central mirror
+    (`maven-central.storage-download.googleapis.com`), which the „UmamiT"
+    environment reaches.
 - **Specify phase: done** (2026-11-11). The PO was grilled in five rounds
   (Q1–Q18, all as options); the answers are D-112. The PO's rule for the
   release: every tasting input is optional and skippable with as little
