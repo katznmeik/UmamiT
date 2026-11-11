@@ -65,12 +65,6 @@ object RatingCycle {
         }
     }
 
-    /** One TalkBack step up or down in half stars, clamped at 5,0; below 0,5 it clears. */
-    fun step(current: Double?, up: Boolean): Double? {
-        val next = (current ?: 0.0) + if (up) STEP else -STEP
-        return if (next < TastingLimits.MIN_RATING) null else next.coerceAtMost(TastingLimits.MAX_RATING)
-    }
-
     /** The nearest half step to a TalkBack [progress] target; below a quarter star it clears. */
     fun snap(progress: Float): Double? {
         val halves = (progress * 2f).roundToInt() / 2.0

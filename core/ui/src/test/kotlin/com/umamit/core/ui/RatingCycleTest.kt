@@ -33,16 +33,6 @@ class RatingCycleTest {
     }
 
     @Test
-    fun `TalkBack steps go in halves, clamp at the top and below half clear`() {
-        assertThat(RatingCycle.step(null, up = true)).isEqualTo(0.5)
-        assertThat(RatingCycle.step(3.0, up = true)).isEqualTo(3.5)
-        assertThat(RatingCycle.step(5.0, up = true)).isEqualTo(5.0)
-        assertThat(RatingCycle.step(3.0, up = false)).isEqualTo(2.5)
-        assertThat(RatingCycle.step(0.5, up = false)).isNull()
-        assertThat(RatingCycle.step(null, up = false)).isNull()
-    }
-
-    @Test
     fun `a progress target snaps to the nearest half step and zero clears`() {
         assertThat(RatingCycle.snap(3.3f)).isEqualTo(3.5)
         assertThat(RatingCycle.snap(0.1f)).isNull()

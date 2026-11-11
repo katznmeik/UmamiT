@@ -107,9 +107,12 @@ class SessionPageViewModel @Inject constructor(
     private var notesJob: Job? = null
     private val notesLock = Mutex()
 
-    /** A tap on the stars (JRN-02): [rating] (null for none) is saved at once. */
+    /** Rating writes run one after another in tap order, so the last tap is the one stored (JRN-02). */
+    private val ratingLock = Mutex()
+
+    /** A tap on the stars (JRN-02): [rating] (null for none) is saved at once, after any earlier rating write. */
     fun setRating(rating: Double?) {
-        launchWrite { tasting.setRating(sessionId, rating) }
+        launchWrite { ratingLock.withLock { tasting.setRating(sessionId, rating) } }
     }
 
     /** The notes field changed to [text] (JRN-05): saved 1 s after the last key, or sooner by [flushNotes]. */
