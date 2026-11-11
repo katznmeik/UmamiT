@@ -1,5 +1,6 @@
 package com.umamit.core.data
 
+import androidx.room.withTransaction
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.database.dao.TasteAveragesRow
 import com.umamit.core.model.BrewSession
@@ -30,8 +31,9 @@ interface JournalRepository {
 
     /**
      * *Löschen* on the session page (JRN-10, D-102): deletes a finished session with its steps and its BREW stock
-     * event, so the leaf it deducted is back in the stock (INV-02). A session in progress, or one that is gone
-     * already, is left alone.
+     * event, so the leaf it deducted is back in the stock (INV-02), its descriptors and its photos (JRN-07): their
+     * rows go by CASCADE, their files after the commit. A session in progress, or one that is gone already, is left
+     * alone.
      */
     suspend fun deleteSession(sessionId: String)
 
@@ -46,13 +48,22 @@ interface JournalRepository {
 }
 
 /** [JournalRepository] on Room. */
-class RoomJournalRepository @Inject constructor(db: UmamiDatabase, private val photos: PhotoFiles) :
+class RoomJournalRepository @Inject constructor(private val db: UmamiDatabase, private val photos: PhotoFiles) :
     JournalRepository {
     private val journal = db.journalDao()
     private val sessions = db.sessionDao()
     private val tasting = db.tastingDao()
 
-    override suspend fun deleteSession(sessionId: String) = sessions.deleteFinished(sessionId)
+    override suspend fun deleteSession(sessionId: String) {
+        // The photo ids are collected first: the rows go with the session by CASCADE (05 §3.9).
+        val photoIds = db.withTransaction {
+            val ids = db.sessionPhotoDao().photoIds(sessionId)
+            sessions.deleteFinished(sessionId)
+            if (sessions.get(sessionId) == null) ids else emptyList()
+        }
+        // After the commit: a failed transaction keeps the files its rows still name.
+        photoIds.forEach(photos::delete)
+    }
 
     override fun observeSessions(): Flow<List<JournalSession>> = journal.observeSessions().map { rows ->
         rows.map { row ->

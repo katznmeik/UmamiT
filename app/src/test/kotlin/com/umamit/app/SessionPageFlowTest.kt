@@ -20,6 +20,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.common.truth.Truth.assertThat
 import com.umamit.app.timer.TimerRequest
+import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionStart
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
@@ -37,6 +38,7 @@ import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeRecipeOffers
+import com.umamit.core.testing.FakeSessionPhotos
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
@@ -51,6 +53,7 @@ import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.journal.session.SESSION_BREW_AGAIN_TAG
 import com.umamit.feature.journal.session.SESSION_NOTES_TAG
 import com.umamit.feature.journal.session.SESSION_TEA_TAG
+import com.umamit.feature.journal.session.SessionHeroViewModel
 import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.journal.session.SessionPageRoute
 import com.umamit.feature.journal.session.SessionPageViewModel
@@ -62,6 +65,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
@@ -188,6 +192,14 @@ class SessionPageFlowTest {
                     sessions.tasting,
                 )
             },
+            heroViewModel = viewModel {
+                SessionHeroViewModel(
+                    createSavedStateHandle(),
+                    sessions.journal,
+                    FakeSessionPhotos(sessions),
+                    PhotoFiles(File("no-photos")),
+                )
+            },
         )
     }
 
@@ -217,7 +229,7 @@ class SessionPageFlowTest {
         compose.waitForIdle()
         compose.onNode(hasText("Sencha Morgentau") and hasClickAction()).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Sitzung").assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertIsDisplayed()
     }
 
     private fun brewAgain() {
@@ -287,7 +299,7 @@ class SessionPageFlowTest {
         compose.waitForIdle()
 
         compose.onNodeWithText(TEA_DETAIL).assertDoesNotExist()
-        compose.onNodeWithText("Sitzung").assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertIsDisplayed()
         compose.onNodeWithText("Sencha Morgentau archiviert").assertIsDisplayed()
         compose.onNodeWithText("Rückgängig").performClick()
         compose.waitForIdle()
@@ -321,7 +333,7 @@ class SessionPageFlowTest {
         compose.waitForIdle()
 
         // The page above Sammlung, the sheet gone, the notes field not focused (no keyboard).
-        compose.onNodeWithText("Sitzung").assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertIsDisplayed()
         compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
         compose.onNodeWithTag(SESSION_NOTES_TAG).performScrollTo().assertIsNotFocused()
         assertThat(requests.pending.value).isNull()
@@ -329,7 +341,7 @@ class SessionPageFlowTest {
         // Back returns to the tab it came from.
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.waitForIdle()
-        compose.onNodeWithText("Sitzung").assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertDoesNotExist()
         compose.onNodeWithTag(tabTag(Tab.Collection)).assertIsSelected()
     }
 

@@ -16,6 +16,9 @@ data class Photo(
     companion object {
         /** A tea holds at most 10 photos (TEA-05, SCR-28, D-104). */
         const val MAX_PER_TEA = 10
+
+        /** A session holds at most 6 photos (JRN-07, SCR-16, D-112). */
+        const val MAX_PER_SESSION = 6
     }
 }
 

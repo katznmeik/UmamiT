@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -43,6 +44,7 @@ import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberAlertGate
+import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.feature.journal.R
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -92,8 +94,10 @@ class SessionPageActions(
  * session; for an archived tea it is greyed out with „Tee ist archiviert" and *Wiederherstellen*, for a deleted tea
  * there is neither the link nor the button. ⋮ *Löschen* (D-102) asks „Sitzung löschen?" and removes a finished
  * session with its stock deduction. BEWERTUNG (the stars, JRN-02) and NOTIZEN (JRN-05) sit above the step table and
- * save as they change (D-112), GESCHMACK (JRN-03) follows the step table; descriptors, photos and *Bearbeiten*
- * follow in later tickets.
+ * save as they change (D-112), GESCHMACK (JRN-03) and BESCHREIBUNGEN (JRN-04) follow the step table; ⋮ *Bearbeiten*
+ * opens the editor (JRN-11). The hero (JRN-07) shows the session's photos ([hero], with *+ Foto* and *Löschen*
+ * through [heroActions]), else the tea's cover, else the type leaf; while [hero] is loading (null) only its tint;
+ * ← and ⋮ sit over it.
  *
  * The menu and the question give way to another alert than the one they were opened in ([alertKey], rule 8); the
  * host opens the alerting timer in place of the setup or the tea during an alert.
@@ -104,30 +108,42 @@ fun SessionPageScreen(
     modifier: Modifier = Modifier,
     actions: SessionPageActions = SessionPageActions(),
     alertKey: String? = null,
+    hero: SessionHero? = SessionHero(),
+    heroActions: SessionHeroActions = SessionHeroActions(),
+    photo: @Composable (path: String) -> Painter? = { rememberPhotoPainter(it) },
 ) {
     val deleteAsk = rememberAlertGate(alertKey)
-    val deletable = state is SessionPageUiState.Ready && !state.page.inProgress
-    ScreenScaffold(
-        title = stringResource(R.string.session_title),
-        modifier = modifier,
-        navigationIcon = { BackAction(actions.back) },
-        actions = {
-            val sessionId = (state as? SessionPageUiState.Ready)?.page?.sessionId
-            if (deletable && sessionId != null) {
-                SessionMenu(alertKey, onEdit = { actions.edit(sessionId) }, onDelete = deleteAsk::open)
+    if (state is SessionPageUiState.Ready) {
+        val page = state.page
+        // The hero carries ← and ⋮ on their translucent surfaces (SCR-16, D-112), as the tea detail does.
+        SessionHeroLayout(
+            onBack = actions.back,
+            menu = if (page.inProgress) {
+                null
+            } else {
+                { SessionMenu(alertKey, onEdit = { actions.edit(page.sessionId) }, onDelete = deleteAsk::open) }
+            },
+            hero = {
+                SessionHeroPager(hero, page.styleKey, canAdd = page.canTaste, heroActions, alertKey, photo)
+                Spacer(Modifier.height(UmamiSpacing.Small))
+            },
+            modifier = modifier,
+        ) {
+            SessionContent(page, actions, alertKey)
+        }
+    } else {
+        ScreenScaffold(
+            title = stringResource(R.string.session_title),
+            modifier = modifier,
+            navigationIcon = { BackAction(actions.back) },
+            verticalArrangement = Arrangement.Center,
+        ) {
+            if (state == SessionPageUiState.NotFound) {
+                EmptyState(
+                    title = stringResource(R.string.session_not_found_title),
+                    body = stringResource(R.string.session_not_found_body),
+                )
             }
-        },
-        verticalArrangement = if (state is SessionPageUiState.Ready) Arrangement.Top else Arrangement.Center,
-    ) {
-        when (state) {
-            SessionPageUiState.Loading -> Unit
-
-            SessionPageUiState.NotFound -> EmptyState(
-                title = stringResource(R.string.session_not_found_title),
-                body = stringResource(R.string.session_not_found_body),
-            )
-
-            is SessionPageUiState.Ready -> SessionContent(state.page, actions, alertKey)
         }
     }
     AlertGated(deleteAsk) {

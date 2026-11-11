@@ -30,18 +30,21 @@ import java.io.InputStream
 import java.util.UUID
 import javax.inject.Inject
 
-/** How [TeaPhotos.add] ended. */
+/** How [TeaPhotos.add] or [SessionPhotos.add] ended. */
 sealed interface AddPhotoResult {
-    /** The photo [photoId] was stored; the tea's first photo is its cover. */
+    /** The photo [photoId] was stored; a tea's first photo is its cover (a session has none). */
     data class Added(val photoId: String) : AddPhotoResult
 
-    /** The tea already has [Photo.MAX_PER_TEA] photos; nothing was written („Höchstens 10 Fotos"). */
+    /**
+     * The tea already has [Photo.MAX_PER_TEA] photos („Höchstens 10 Fotos"), the session [Photo.MAX_PER_SESSION]
+     * („Höchstens 6 Fotos"); nothing was written.
+     */
     data object LimitReached : AddPhotoResult
 
     /** The picked image could not be read or decoded; nothing was written. */
     data object Unreadable : AddPhotoResult
 
-    /** The tea is gone or the write failed; nothing was written. */
+    /** The tea or session is gone (or the session isn't `COMPLETED`), or the write failed; nothing was written. */
     data object Failed : AddPhotoResult
 }
 

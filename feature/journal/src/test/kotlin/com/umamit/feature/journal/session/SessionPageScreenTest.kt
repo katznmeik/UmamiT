@@ -128,6 +128,7 @@ class SessionPageScreenTest {
                             onDeleted = { deleted++ },
                         ),
                         viewModel = viewModel,
+                        heroViewModel = heroViewModel(sessions, PAST),
                     )
                 }
             }
