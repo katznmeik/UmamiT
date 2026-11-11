@@ -3,6 +3,7 @@ package com.umamit.core.data
 import com.umamit.core.model.ActiveBrewSnapshot
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionSnapshot
+import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
@@ -86,6 +87,46 @@ interface SessionRepository {
      * its steps: *Zuletzt gebrüht* and *Nochmal brühen* on Start (SCR-02, BRW-11).
      */
     fun observeRecentSessions(limit: Int): Flow<List<BrewSession>>
+}
+
+/** What a tasting write did (05 §3.7 „Tasting writes"). Anything but [SAVED] wrote nothing. */
+enum class TastingWrite {
+    /** Written, with the session's `updated_at`; an unchanged value is written again. */
+    SAVED,
+
+    /** No such session, or it is not `COMPLETED` (one in progress, D-112): nothing changes. */
+    NOT_COMPLETED,
+
+    /** A value out of its bounds (a rating off the half steps, a taste value beyond 0–5, notes over 5000). */
+    INVALID,
+
+    /** A 21st descriptor (JRN-04): „Höchstens 20 Beschreibungen". */
+    DESCRIPTOR_LIMIT,
+}
+
+/**
+ * The tasting inputs of the session page and the „Gespeichert" sheet (05 §3.7, JRN-02–JRN-05, D-112): one small
+ * write per input, each its own transaction on a `COMPLETED` session only. Every input is optional: each can be
+ * cleared again. None touches steps, stock, cost or `active_brew`, and none runs inside a timer transition.
+ */
+interface SessionTasting {
+    /** The rating, 0,5–5,0 in half steps (JRN-02), or null to remove it. */
+    suspend fun setRating(sessionId: String, rating: Double?): TastingWrite
+
+    /** One taste value, 0–5 (JRN-03), or null to unset that axis; the other five stay. */
+    suspend fun setTaste(sessionId: String, axis: TasteAxis, value: Int?): TastingWrite
+
+    /** *Zurücksetzen* (JRN-03): all six taste values unset. */
+    suspend fun clearTaste(sessionId: String): TastingWrite
+
+    /** The notes (JRN-05): trimmed, blank stored as null, at most 5000 characters after trimming. */
+    suspend fun setNotes(sessionId: String, notes: String?): TastingWrite
+
+    /**
+     * Ticks or unticks descriptor [key] (JRN-04, 05 §3.8). Ticking a ticked key and unticking an absent one write
+     * nothing new; a 21st key is refused ([TastingWrite.DESCRIPTOR_LIMIT]), checked in the write's transaction.
+     */
+    suspend fun setDescriptor(sessionId: String, key: String, ticked: Boolean): TastingWrite
 }
 
 /**

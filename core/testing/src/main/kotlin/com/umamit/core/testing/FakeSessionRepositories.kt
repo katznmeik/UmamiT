@@ -9,8 +9,11 @@ import com.umamit.core.data.JournalSession
 import com.umamit.core.data.OpenedDateChange
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
+import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.SettingsRepository
+import com.umamit.core.data.TastingWrite
 import com.umamit.core.model.BrewSession
+import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionSnapshot
@@ -18,6 +21,11 @@ import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockSummary
+import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TastingLimits
+import com.umamit.core.model.TeaRating
+import com.umamit.core.model.TeaTasting
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
@@ -61,6 +69,7 @@ class FakeSessions(
     val sessions = FakeSessionRepository(this)
     val activeBrew = FakeActiveBrewStore(this)
     val journal = FakeJournalRepository(this)
+    val tasting = FakeSessionTasting(this)
     val transactions: DatabaseTransactions = FakeDatabaseTransactions
 
     init {
@@ -241,12 +250,110 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
         }
     }
 
-    /** As on Room: a finished session goes with its stock event; one in progress stays (D-102). */
+    /** As on Room: a finished session goes with its stock event and its descriptors; one in progress stays (D-102). */
     override suspend fun deleteSession(sessionId: String) {
         val session = s.sessionRows.value[sessionId] ?: return
         if (session.status == SessionStatus.IN_PROGRESS) return
         s.collection.eventRows.update { map -> map.filterValues { it.sessionId != sessionId } }
         s.sessionRows.update { it - sessionId }
+    }
+
+    override fun observeTeaRatings(): Flow<Map<String, TeaRating>> = s.sessionRows.map { rows ->
+        finished(rows).filter { it.snapshot.teaId != null }.groupBy { checkNotNull(it.snapshot.teaId) }
+            .mapNotNull { (teaId, sessions) -> ratingOf(sessions)?.let { teaId to it } }
+            .toMap()
+    }
+
+    override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = s.sessionRows.map { rows ->
+        val sessions = finished(rows).filter { it.snapshot.teaId == teaId }
+        TeaTasting(
+            rating = ratingOf(sessions),
+            tasteAverages = TasteAxis.entries.mapNotNull { axis ->
+                sessions.mapNotNull { it.taste[axis] }.takeIf { it.isNotEmpty() }?.let { axis to it.average() }
+            }.toMap(),
+            descriptorCounts = sessions.flatMap { it.descriptorKeys }.groupingBy { it }.eachCount()
+                .map { (key, count) -> DescriptorCount(key, count) }
+                .sortedWith(compareByDescending<DescriptorCount> { it.count }.thenBy { it.key }),
+        )
+    }
+
+    private fun finished(rows: Map<String, BrewSession>) = rows.values.filter { it.status != SessionStatus.IN_PROGRESS }
+
+    private fun ratingOf(sessions: List<BrewSession>): TeaRating? =
+        sessions.mapNotNull { it.rating }.takeIf { it.isNotEmpty() }?.let { TeaRating(it.average(), it.size) }
+}
+
+/**
+ * Fake [SessionTasting] on the fake session rows, with Room's rules (05 §3.7): a `COMPLETED` session only, the
+ * bounds, trimmed notes and at most 20 descriptors; create it through [FakeSessions]. [writes] counts the calls,
+ * written or refused, so a screen test can check that nothing was saved.
+ */
+class FakeSessionTasting internal constructor(private val s: FakeSessions) : SessionTasting {
+    var writes = 0
+        private set
+
+    override suspend fun setRating(sessionId: String, rating: Double?): TastingWrite =
+        write(sessionId, invalid = rating != null && !TastingLimits.isValidRating(rating)) { it.copy(rating = rating) }
+
+    override suspend fun setTaste(sessionId: String, axis: TasteAxis, value: Int?): TastingWrite =
+        write(sessionId, invalid = value != null && !TastingLimits.isValidTaste(value)) { session ->
+            session.copy(taste = session.taste.with(axis, value))
+        }
+
+    override suspend fun clearTaste(sessionId: String): TastingWrite =
+        write(sessionId) { it.copy(taste = TasteProfile.EMPTY) }
+
+    override suspend fun setNotes(sessionId: String, notes: String?): TastingWrite {
+        val trimmed = notes?.trim()?.takeIf { it.isNotEmpty() }
+        val tooLong = trimmed != null && trimmed.length > TastingLimits.MAX_NOTES_LENGTH
+        return write(sessionId, invalid = tooLong) { it.copy(notes = trimmed) }
+    }
+
+    override suspend fun setDescriptor(sessionId: String, key: String, ticked: Boolean): TastingWrite {
+        val session = s.sessionRows.value[sessionId]
+        val keys = session?.descriptorKeys.orEmpty()
+        val full = ticked && key !in keys && keys.size >= TastingLimits.MAX_DESCRIPTORS
+        return if (key.isNotBlank() && full && session?.status == SessionStatus.COMPLETED) {
+            writes++
+            TastingWrite.DESCRIPTOR_LIMIT
+        } else {
+            write(sessionId, invalid = key.isBlank()) {
+                val chosen = if (ticked) (it.descriptorKeys + key).distinct() else it.descriptorKeys - key
+                it.copy(descriptorKeys = chosen)
+            }
+        }
+    }
+
+    /**
+     * Applies [change] to a completed session; [invalid] is [TastingWrite.INVALID] and is checked before the
+     * session, as on Room.
+     */
+    private fun write(
+        sessionId: String,
+        invalid: Boolean = false,
+        change: (BrewSession) -> BrewSession,
+    ): TastingWrite {
+        writes++
+        val session = s.sessionRows.value[sessionId]?.takeIf { it.status == SessionStatus.COMPLETED }
+        return when {
+            invalid -> TastingWrite.INVALID
+
+            session == null -> TastingWrite.NOT_COMPLETED
+
+            else -> {
+                s.updateSession(sessionId, change)
+                TastingWrite.SAVED
+            }
+        }
+    }
+
+    private fun TasteProfile.with(axis: TasteAxis, value: Int?) = when (axis) {
+        TasteAxis.UMAMI -> copy(umami = value)
+        TasteAxis.SWEETNESS -> copy(sweetness = value)
+        TasteAxis.BITTERNESS -> copy(bitterness = value)
+        TasteAxis.ASTRINGENCY -> copy(astringency = value)
+        TasteAxis.BODY -> copy(body = value)
+        TasteAxis.AROMA -> copy(aroma = value)
     }
 }
 

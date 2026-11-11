@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import java.io.File
 import javax.inject.Singleton
 
+@Suppress("TooManyFunctions") // one binding per repository of core:data
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DataModule {
@@ -44,6 +45,9 @@ abstract class DataModule {
 
     @Binds
     abstract fun journalRepository(impl: RoomJournalRepository): JournalRepository
+
+    @Binds
+    abstract fun sessionTasting(impl: RoomSessionTasting): SessionTasting
 
     @Binds
     abstract fun activeBrewStore(impl: RoomActiveBrewStore): ActiveBrewStore

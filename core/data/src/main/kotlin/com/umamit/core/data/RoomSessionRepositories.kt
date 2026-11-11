@@ -6,10 +6,13 @@ import com.umamit.core.common.WallClock
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.database.entity.ActiveBrewEntity
 import com.umamit.core.database.entity.BrewSessionEntity
+import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TastingLimits
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.engine.BrewTimerEngine
@@ -41,6 +44,7 @@ class RoomSessionRepository @Inject constructor(
     private val openedDates: OpenedDateChanges = OpenedDateChanges(),
 ) : SessionRepository {
     private val sessions = db.sessionDao()
+    private val tasting = db.tastingDao()
 
     override suspend fun startSession(start: SessionStart) {
         val now = time.nowMs()
@@ -158,15 +162,72 @@ class RoomSessionRepository @Inject constructor(
         .deductStock
 
     override suspend fun getSession(id: String): BrewSession? = db.withTransaction {
-        sessions.get(id)?.toModel(sessions.steps(id))
+        sessions.get(id)?.toModel(sessions.steps(id), tasting.descriptors(id))
     }
 
     override suspend fun inProgressSessionIds(): List<String> = sessions.inProgressIds()
 
     override fun observeRecentSessions(limit: Int): Flow<List<BrewSession>> = sessions.observeFinished().map { rows ->
-        // The rows are small; only the shown ones load their steps.
-        db.withTransaction { rows.take(limit).map { it.toModel(sessions.steps(it.id)) } }
+        // The rows are small; only the shown ones load their steps and descriptors.
+        db.withTransaction {
+            rows.take(limit).map { it.toModel(sessions.steps(it.id), tasting.descriptors(it.id)) }
+        }
     }
+}
+
+/**
+ * [SessionTasting] on Room (05 §3.7 „Tasting writes", §3.8): each write one transaction, on a `COMPLETED` session
+ * only, setting its `updated_at`. Steps, stock, cost and `active_brew` are never read or written here.
+ */
+class RoomSessionTasting @Inject constructor(private val db: UmamiDatabase, private val time: WallClock) :
+    SessionTasting {
+    private val tasting = db.tastingDao()
+
+    override suspend fun setRating(sessionId: String, rating: Double?): TastingWrite {
+        if (rating != null && !TastingLimits.isValidRating(rating)) return TastingWrite.INVALID
+        return tasting.setRating(sessionId, rating, time.nowMs()).written()
+    }
+
+    override suspend fun setTaste(sessionId: String, axis: TasteAxis, value: Int?): TastingWrite {
+        if (value != null && !TastingLimits.isValidTaste(value)) return TastingWrite.INVALID
+        return tasting.setTaste(sessionId, axis.name, value, time.nowMs()).written()
+    }
+
+    override suspend fun clearTaste(sessionId: String): TastingWrite =
+        tasting.clearTaste(sessionId, time.nowMs()).written()
+
+    override suspend fun setNotes(sessionId: String, notes: String?): TastingWrite {
+        val trimmed = notes?.trim()?.takeIf { it.isNotEmpty() }
+        if (trimmed != null && trimmed.length > TastingLimits.MAX_NOTES_LENGTH) return TastingWrite.INVALID
+        return tasting.setNotes(sessionId, trimmed, time.nowMs()).written()
+    }
+
+    override suspend fun setDescriptor(sessionId: String, key: String, ticked: Boolean): TastingWrite {
+        if (key.isBlank()) return TastingWrite.INVALID
+        val now = time.nowMs()
+        return db.withTransaction {
+            when {
+                !tasting.isCompleted(sessionId) -> TastingWrite.NOT_COMPLETED
+
+                !ticked -> {
+                    tasting.deleteDescriptor(sessionId, key)
+                    tasting.touch(sessionId, now).written()
+                }
+
+                tasting.hasDescriptor(sessionId, key) -> tasting.touch(sessionId, now).written()
+
+                tasting.descriptorCount(sessionId) >= TastingLimits.MAX_DESCRIPTORS -> TastingWrite.DESCRIPTOR_LIMIT
+
+                else -> {
+                    tasting.insertDescriptor(SessionDescriptorEntity(sessionId, key, createdAt = now))
+                    tasting.touch(sessionId, now).written()
+                }
+            }
+        }
+    }
+
+    /** A single-row UPDATE's count as the write's outcome: 0 rows means no completed session of that id. */
+    private fun Int.written(): TastingWrite = if (this > 0) TastingWrite.SAVED else TastingWrite.NOT_COMPLETED
 }
 
 private const val TAG = "SessionRepository"
