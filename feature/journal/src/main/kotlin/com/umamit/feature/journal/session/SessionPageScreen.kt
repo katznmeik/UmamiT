@@ -38,6 +38,7 @@ import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.TasteAxis
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.GermanFormat
@@ -67,6 +68,10 @@ class SessionPageActions(
     val delete: () -> Unit = {},
     /** A tap on the stars (JRN-02): the new rating, null for none; saved at once. */
     val setRating: (Double?) -> Unit = {},
+    /** A taste slider released on a value (JRN-03): saved at once. */
+    val setTaste: (TasteAxis, Int) -> Unit = { _, _ -> },
+    /** *Zurücksetzen* (JRN-03): all six taste values are unset. */
+    val clearTaste: () -> Unit = {},
     /** The notes field changed (JRN-05): saved 1 s after the last key. */
     val notesChanged: (String) -> Unit = {},
     /** The notes field or the page is left (JRN-05): a pending note is saved now. */
@@ -80,7 +85,8 @@ class SessionPageActions(
  * session; for an archived tea it is greyed out with „Tee ist archiviert" and *Wiederherstellen*, for a deleted tea
  * there is neither the link nor the button. ⋮ *Löschen* (D-102) asks „Sitzung löschen?" and removes a finished
  * session with its stock deduction. BEWERTUNG (the stars, JRN-02) and NOTIZEN (JRN-05) sit above the step table and
- * save as they change (D-112); taste, descriptors, photos and *Bearbeiten* follow in later tickets.
+ * save as they change (D-112), GESCHMACK (JRN-03) follows the step table;
+ * descriptors, photos and *Bearbeiten* follow in later tickets.
  *
  * The menu and the question give way to another alert than the one they were opened in ([alertKey], rule 8); the
  * host opens the alerting timer in place of the setup or the tea during an alert.
@@ -188,6 +194,7 @@ private fun SessionContent(page: SessionPage, actions: SessionPageActions) {
             modifier = Modifier.padding(top = UmamiSpacing.Medium),
         )
         SessionSteps(page.steps)
+        if (page.canTaste) TasteSection(page, actions)
         BrewAgain(page, actions)
     }
 }

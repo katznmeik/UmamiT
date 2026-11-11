@@ -110,4 +110,17 @@
     <string name="ui_rating_value">%1$s von 5 Sternen</string>
     <string name="ui_rating_none">keine</string>
     <string name="ui_rating_remove">Bewertung entfernen</string>
+    <!-- TasteSlider and TasteRadar (03 §3.8, JRN-03). -->
+    <string name="ui_taste_umami">Umami</string>
+    <string name="ui_taste_sweetness">Süße</string>
+    <string name="ui_taste_bitterness">Bitterkeit</string>
+    <string name="ui_taste_astringency">Adstringenz</string>
+    <string name="ui_taste_body">Körper</string>
+    <string name="ui_taste_aroma">Aroma</string>
+    <!-- The value of an untouched slider (unset is not 0). -->
+    <string name="ui_taste_unset">–</string>
+    <string name="ui_taste_not_set">nicht gesetzt</string>
+    <string name="ui_taste_slider_value">%1$s von 5</string>
+    <string name="ui_taste_radar_label">Geschmacksprofil: %1$s</string>
+    <string name="ui_taste_radar_item">%1$s %2$s von 5</string>
 </resources>

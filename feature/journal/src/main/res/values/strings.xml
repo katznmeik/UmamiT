@@ -76,6 +76,10 @@
     <string name="session_notes">Notizen</string>
     <string name="session_notes_placeholder">Notizen …</string>
     <string name="session_notes_counter">%1$s / %2$s</string>
+    <!-- GESCHMACK of the session page (SCR-16, JRN-03, D-112). -->
+    <string name="session_taste">Geschmack</string>
+    <string name="session_taste_add">Geschmack hinzufügen</string>
+    <string name="session_taste_reset">Zurücksetzen</string>
     <string name="session_steps">Aufgüsse</string>
     <string name="session_column_step">Schritt</string>
     <string name="session_column_planned">geplant</string>

@@ -7,6 +7,7 @@ import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TastingLimits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineStart
@@ -52,7 +53,8 @@ sealed interface SessionPageEvent {
  * nochmal brühen* at once and a deleted tea drops the link. Nothing here starts a brew: *So nochmal brühen* is the
  * host's way to the setup (BRW-01). *Löschen* (D-102) removes a finished session and tells the host.
  *
- * The rating and the notes are saved at once through [SessionTasting] (JRN-02, JRN-05, D-112): the stars on each tap,
+ * The rating, the taste and the notes are saved at once through [SessionTasting] (JRN-02, JRN-03, JRN-05,
+ * D-112): the stars on each tap,
  * the notes 1 s after the last key and when the field or the page is left ([flushNotes]). A write started always
  * completes, also when the page is left or an alert takes the screen (rule 8).
  */
@@ -113,6 +115,19 @@ class SessionPageViewModel @Inject constructor(
     /** A tap on the stars (JRN-02): [rating] (null for none) is saved at once, after any earlier rating write. */
     fun setRating(rating: Double?) {
         launchWrite { ratingLock.withLock { tasting.setRating(sessionId, rating) } }
+    }
+
+    /** Taste writes run one after another in release order, so the last one is the one stored (JRN-03). */
+    private val tasteLock = Mutex()
+
+    /** A slider released on [value] (JRN-03): saved at once, after any earlier taste write. */
+    fun setTaste(axis: TasteAxis, value: Int) {
+        launchWrite { tasteLock.withLock { tasting.setTaste(sessionId, axis, value) } }
+    }
+
+    /** *Zurücksetzen* (JRN-03): all six taste values are unset, in order with the slider writes. */
+    fun clearTaste() {
+        launchWrite { tasteLock.withLock { tasting.clearTaste(sessionId) } }
     }
 
     /** The notes field changed to [text] (JRN-05): saved 1 s after the last key, or sooner by [flushNotes]. */

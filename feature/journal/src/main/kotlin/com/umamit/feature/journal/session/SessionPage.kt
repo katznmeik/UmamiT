@@ -4,6 +4,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TasteProfile
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.DateTimeException
@@ -68,6 +69,8 @@ data class SessionPage(
     val rating: Double? = null,
     /** The notes as stored (trimmed); null without (JRN-05). */
     val notes: String? = null,
+    /** The six taste values, each null while unset (JRN-03). */
+    val taste: TasteProfile = TasteProfile.EMPTY,
 ) {
     /** The tasting inputs are offered for a finished session only (05 §3.7: the writes refuse one in progress). */
     val canTaste: Boolean get() = !inProgress
@@ -118,6 +121,7 @@ fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
         inProgress = session.status == SessionStatus.IN_PROGRESS,
         rating = session.rating,
         notes = session.notes,
+        taste = session.taste,
     )
 }
 
