@@ -2,8 +2,10 @@ package com.umamit.core.data
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.WallClock
+import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.test.runTest
@@ -124,31 +126,43 @@ class SessionTastingTest {
 
     @Test
     fun `descriptors are ticked in order, ticked twice once, and unticked`() = runTest {
-        listOf("vegetal.spinach", "marine.nori", "vegetal.spinach").forEach {
+        listOf("vegetal.spinat", "marine.nori", "vegetal.spinat").forEach {
             now += 1_000
             assertThat(tasting.setDescriptor("done", it, ticked = true)).isEqualTo(TastingWrite.SAVED)
         }
-        assertThat(session().descriptorKeys).containsExactly("vegetal.spinach", "marine.nori").inOrder()
+        assertThat(session().descriptorKeys).containsExactly("vegetal.spinat", "marine.nori").inOrder()
 
-        assertThat(tasting.setDescriptor("done", "vegetal.spinach", ticked = false)).isEqualTo(TastingWrite.SAVED)
+        assertThat(tasting.setDescriptor("done", "vegetal.spinat", ticked = false)).isEqualTo(TastingWrite.SAVED)
         assertThat(tasting.setDescriptor("done", "never.ticked", ticked = false)).isEqualTo(TastingWrite.SAVED)
         assertThat(session().descriptorKeys).containsExactly("marine.nori")
         assertThat(tasting.setDescriptor("done", " ", ticked = true)).isEqualTo(TastingWrite.INVALID)
     }
 
     @Test
+    fun `a tick of a key the vocabulary lacks is refused, an untick of a stored unknown key is not`() = runTest {
+        data.db.tastingDao().insertDescriptor(SessionDescriptorEntity("done", "future.thing", createdAt = 1))
+
+        assertThat(tasting.setDescriptor("done", "future.other", ticked = true)).isEqualTo(TastingWrite.INVALID)
+        assertThat(session().descriptorKeys).containsExactly("future.thing")
+
+        assertThat(tasting.setDescriptor("done", "future.thing", ticked = false)).isEqualTo(TastingWrite.SAVED)
+        assertThat(session().descriptorKeys).isEmpty()
+    }
+
+    @Test
     fun `a 21st descriptor is refused, while a ticked one and a freed place still work`() = runTest {
-        (1..20).forEach {
-            assertThat(tasting.setDescriptor("done", "key.$it", ticked = true)).isEqualTo(TastingWrite.SAVED)
+        val keys = TasteDescriptor.entries.map { it.key }
+        keys.take(20).forEach {
+            assertThat(tasting.setDescriptor("done", it, ticked = true)).isEqualTo(TastingWrite.SAVED)
         }
 
-        assertThat(tasting.setDescriptor("done", "key.21", ticked = true)).isEqualTo(TastingWrite.DESCRIPTOR_LIMIT)
-        assertThat(tasting.setDescriptor("done", "key.20", ticked = true)).isEqualTo(TastingWrite.SAVED)
+        assertThat(tasting.setDescriptor("done", keys[20], ticked = true)).isEqualTo(TastingWrite.DESCRIPTOR_LIMIT)
+        assertThat(tasting.setDescriptor("done", keys[19], ticked = true)).isEqualTo(TastingWrite.SAVED)
         assertThat(session().descriptorKeys).hasSize(20)
-        assertThat(session().descriptorKeys).doesNotContain("key.21")
+        assertThat(session().descriptorKeys).doesNotContain(keys[20])
 
-        tasting.setDescriptor("done", "key.1", ticked = false)
-        assertThat(tasting.setDescriptor("done", "key.21", ticked = true)).isEqualTo(TastingWrite.SAVED)
+        tasting.setDescriptor("done", keys[0], ticked = false)
+        assertThat(tasting.setDescriptor("done", keys[20], ticked = true)).isEqualTo(TastingWrite.SAVED)
         assertThat(session().descriptorKeys).hasSize(20)
     }
 

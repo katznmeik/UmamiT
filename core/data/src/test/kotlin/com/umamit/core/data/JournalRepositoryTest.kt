@@ -107,6 +107,27 @@ class JournalRepositoryTest {
         )
     }
 
+    @Test
+    fun `one session is read with its steps and its tea's cover, and is null once deleted`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        data.teas.savePhoto(photo("p1", "t1"))
+        data.teas.setCoverPhoto("t1", "p1")
+        val clocks = TestClocks()
+        fun driver() = TimerDriver(data, clocks) { id, steps, pre ->
+            sessionStart(id, steps, pre, clocks, snapshotOf("t1"))
+        }
+        driver().send(startEvent(infusion(60), infusion(20), id = "mine"))
+        clocks.advanceSeconds(10)
+        driver().send(startEvent(infusion(45), id = "other"))
+
+        val mine = journal.observeSession("mine").first()
+
+        assertThat(mine?.session?.id).isEqualTo("mine")
+        assertThat(mine?.session?.steps).hasSize(2)
+        assertThat(mine?.coverPhoto).isEqualTo(photos.file("p1"))
+        assertThat(journal.observeSession("gone").first()).isNull()
+    }
+
     private fun photo(id: String, teaId: String) = Photo(
         id = id,
         owner = PhotoOwner.OfTea(teaId),

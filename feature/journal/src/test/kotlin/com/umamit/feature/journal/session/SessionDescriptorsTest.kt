@@ -315,7 +315,7 @@ class SessionDescriptorsTest {
 
     @Test
     fun `a key the vocabulary lacks is kept, not shown, and counts towards the 20`() {
-        runBlocking { sessions.tasting.setDescriptor(PAST, "future.thing", true) }
+        sessions.storeDescriptorKey(PAST, "future.thing")
         show()
         openSheet()
 

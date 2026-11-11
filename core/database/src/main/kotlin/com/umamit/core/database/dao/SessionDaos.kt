@@ -208,6 +208,14 @@ interface JournalDao {
             "LEFT JOIN tea ON tea.id = brew_session.tea_id ORDER BY brew_session.started_at DESC",
     )
     fun observeSessions(): Flow<List<JournalSessionRow>>
+
+    /** [sessionId]'s row as [observeSessions] has it; null while there is no such session. */
+    @Transaction
+    @Query(
+        "SELECT brew_session.*, tea.cover_photo_id AS tea_cover_photo_id FROM brew_session " +
+            "LEFT JOIN tea ON tea.id = brew_session.tea_id WHERE brew_session.id = :sessionId",
+    )
+    fun observeSession(sessionId: String): Flow<JournalSessionRow?>
 }
 
 /** The `active_brew` rows (05 §3.12), from schema v4 one per [TimerSlot] (D-098). */

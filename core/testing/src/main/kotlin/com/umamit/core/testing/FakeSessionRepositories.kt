@@ -22,6 +22,7 @@ import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockSummary
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TastingLimits
 import com.umamit.core.model.TeaRating
@@ -93,6 +94,13 @@ class FakeSessions(
         )
         activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(ready))
     }
+
+    /**
+     * Stores [key] as ticked on [sessionId] without the vocabulary check of [FakeSessionTasting], as a database
+     * written by a later version holds it (05 §3.8): the key stays stored and counted, though no chip shows it.
+     */
+    fun storeDescriptorKey(sessionId: String, key: String) =
+        updateSession(sessionId) { it.copy(descriptorKeys = (it.descriptorKeys + key).distinct()) }
 
     internal fun updateSession(id: String, transform: (BrewSession) -> BrewSession) = sessionRows.update { map ->
         map[id]?.let { map + (id to transform(it)) } ?: map
@@ -258,10 +266,10 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
         s.sessionRows.update { it - sessionId }
     }
 
-    override fun observeTeaRatings(): Flow<Map<String, TeaRating>> = s.sessionRows.map { rows ->
-        finished(rows).filter { it.snapshot.teaId != null }.groupBy { checkNotNull(it.snapshot.teaId) }
-            .mapNotNull { (teaId, sessions) -> ratingOf(sessions)?.let { teaId to it } }
-            .toMap()
+    override fun observeSession(sessionId: String): Flow<JournalSession?> = s.sessionRows.map { rows ->
+        rows[sessionId]?.let { session ->
+            JournalSession(session, session.snapshot.teaId?.let { coverPhotos.value[it] })
+        }
     }
 
     override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = s.sessionRows.map { rows ->
@@ -313,11 +321,12 @@ class FakeSessionTasting internal constructor(private val s: FakeSessions) : Ses
         val session = s.sessionRows.value[sessionId]
         val keys = session?.descriptorKeys.orEmpty()
         val full = ticked && key !in keys && keys.size >= TastingLimits.MAX_DESCRIPTORS
-        return if (key.isNotBlank() && full && session?.status == SessionStatus.COMPLETED) {
+        val unknown = key.isBlank() || (ticked && TasteDescriptor.fromKey(key) == null)
+        return if (!unknown && full && session?.status == SessionStatus.COMPLETED) {
             writes++
             TastingWrite.DESCRIPTOR_LIMIT
         } else {
-            write(sessionId, invalid = key.isBlank()) {
+            write(sessionId, invalid = unknown) {
                 val chosen = if (ticked) (it.descriptorKeys + key).distinct() else it.descriptorKeys - key
                 it.copy(descriptorKeys = chosen)
             }
