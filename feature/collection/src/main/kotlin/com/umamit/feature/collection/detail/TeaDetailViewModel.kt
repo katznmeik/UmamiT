@@ -10,6 +10,7 @@ import com.umamit.core.data.AddPhotoResult
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.DeleteResult
 import com.umamit.core.data.JournalRepository
+import com.umamit.core.data.PhotoFileContext
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.SettingsRepository

@@ -57,6 +57,20 @@
     <string name="session_title">Sitzung</string>
     <string name="session_not_found_title">Diese Sitzung ist nicht mehr da</string>
     <string name="session_not_found_body">Sie wurde gelöscht.</string>
+    <!-- The session page's hero (SCR-16, JRN-07, D-112): the session's photos, else the tea's cover, else the leaf. -->
+    <string name="session_photos_description">Fotos der Sitzung</string>
+    <string name="session_photo_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d</string>
+    <string name="session_photo_add">+ Foto</string>
+    <string name="session_photo_limit">Höchstens 6 Fotos</string>
+    <string name="session_photo_more">Foto-Optionen</string>
+    <string name="session_photo_delete">Löschen</string>
+    <string name="session_photo_delete_title">Foto löschen?</string>
+    <string name="session_photo_delete_body">Das Foto wird aus der App entfernt.</string>
+    <string name="session_photo_delete_cancel">Abbrechen</string>
+    <string name="session_photo_delete_confirm">Löschen</string>
+    <string name="session_photo_unreadable">Das Foto konnte nicht gelesen werden.</string>
+    <string name="session_photo_failed">Das Foto konnte nicht gespeichert werden.</string>
+    <string name="session_photo_change_failed">Das Foto konnte nicht geändert werden.</string>
     <!-- TalkBack on the tea's name: „doppeltippen zum Tee öffnen". -->
     <string name="session_open_tea">Tee öffnen</string>
     <!-- „22. Okt. 2026 · 09:12". -->

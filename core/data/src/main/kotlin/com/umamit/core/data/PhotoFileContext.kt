@@ -1,4 +1,4 @@
-package com.umamit.feature.collection.detail
+package com.umamit.core.data
 
 import dagger.Module
 import dagger.Provides
@@ -8,7 +8,10 @@ import kotlinx.coroutines.Dispatchers
 import javax.inject.Qualifier
 import kotlin.coroutines.CoroutineContext
 
-/** Where the tea detail checks that its photo files exist: off the main thread; a test leaves it empty. */
+/**
+ * Where a screen checks that its photo files exist (the tea detail, the session page's hero): off the main thread; a
+ * test leaves it empty.
+ */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class PhotoFileContext
