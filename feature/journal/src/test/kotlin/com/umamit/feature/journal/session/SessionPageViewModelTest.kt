@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -48,8 +49,13 @@ class SessionPageViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(id: String = PAST) =
-        SessionPageViewModel(SavedStateHandle(mapOf("sessionId" to id)), sessions.journal, collection.teas, archive)
+    private fun viewModel(id: String = PAST) = SessionPageViewModel(
+        SavedStateHandle(mapOf("sessionId" to id)),
+        sessions.journal,
+        collection.teas,
+        archive,
+        sessions.tasting,
+    )
 
     private val SessionPageViewModel.page get() = (state.value as SessionPageUiState.Ready).page
 
@@ -182,6 +188,63 @@ class SessionPageViewModelTest {
     @Test
     fun `an unknown session shows the not-found state`() {
         assertThat(viewModel("nothing").state.value).isEqualTo(SessionPageUiState.NotFound)
+    }
+
+    @Test
+    fun `the rating is saved at once and shown on the page`() = runTest {
+        brewed()
+        val vm = viewModel()
+        assertThat(vm.page.rating).isNull()
+
+        vm.setRating(3.5)
+        assertThat(vm.page.rating).isEqualTo(3.5)
+        assertThat(sessions.sessions.getSession(PAST)!!.rating).isEqualTo(3.5)
+
+        vm.setRating(null)
+        assertThat(vm.page.rating).isNull()
+    }
+
+    @Test
+    fun `the notes are saved 1 s after the last key, not before`() = runTest {
+        brewed()
+        val vm = viewModel()
+
+        vm.onNotesChanged("Mild")
+        advanceTimeBy(900)
+        vm.onNotesChanged("Mild und cremig")
+        advanceTimeBy(900)
+        assertThat(sessions.tasting.writes).isEqualTo(0)
+        advanceTimeBy(200)
+
+        assertThat(sessions.tasting.writes).isEqualTo(1)
+        assertThat(vm.page.notes).isEqualTo("Mild und cremig")
+    }
+
+    @Test
+    fun `leaving the field saves a pending note at once and a second flush writes nothing`() = runTest {
+        brewed()
+        val vm = viewModel()
+
+        vm.onNotesChanged("Frisch")
+        vm.flushNotes()
+        vm.flushNotes()
+        advanceTimeBy(2_000)
+
+        assertThat(sessions.tasting.writes).isEqualTo(1)
+        assertThat(vm.page.notes).isEqualTo("Frisch")
+    }
+
+    @Test
+    fun `clearing the note removes it`() = runTest {
+        brewed()
+        val vm = viewModel()
+        vm.onNotesChanged("Frisch")
+        vm.flushNotes()
+
+        vm.onNotesChanged("")
+        vm.flushNotes()
+
+        assertThat(vm.page.notes).isNull()
     }
 
     private companion object {

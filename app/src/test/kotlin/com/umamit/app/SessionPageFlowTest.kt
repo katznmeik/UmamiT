@@ -170,7 +170,13 @@ class SessionPageFlowTest {
         SessionPageRoute(
             host = host,
             viewModel = viewModel {
-                SessionPageViewModel(createSavedStateHandle(), sessions.journal, collection.teas, archive)
+                SessionPageViewModel(
+                    createSavedStateHandle(),
+                    sessions.journal,
+                    collection.teas,
+                    archive,
+                    sessions.tasting,
+                )
             },
         )
     }

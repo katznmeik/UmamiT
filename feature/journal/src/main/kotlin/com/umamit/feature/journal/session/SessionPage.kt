@@ -64,7 +64,14 @@ data class SessionPage(
     val steps: List<SessionPageStep>,
     /** The session still runs: the page offers no *Löschen* (JRN-10, D-102). */
     val inProgress: Boolean = false,
+    /** The rating, 0,5–5,0 in half steps; null when unrated (JRN-02). */
+    val rating: Double? = null,
+    /** The notes as stored (trimmed); null without (JRN-05). */
+    val notes: String? = null,
 ) {
+    /** The tasting inputs are offered for a finished session only (05 §3.7: the writes refuse one in progress). */
+    val canTaste: Boolean get() = !inProgress
+
     /** Leaf per 100 ml, to 0,1 g („2,5 g / 100 ml", as in the setup); null without leaf or water. */
     val ratioPer100Ml: Double?
         get() {
@@ -109,6 +116,8 @@ fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
         waterMl = snapshot.waterMl,
         steps = steps,
         inProgress = session.status == SessionStatus.IN_PROGRESS,
+        rating = session.rating,
+        notes = session.notes,
     )
 }
 

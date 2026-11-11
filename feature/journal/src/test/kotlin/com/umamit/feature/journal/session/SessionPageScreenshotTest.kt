@@ -16,8 +16,8 @@ import org.robolectric.annotation.GraphicsMode
 import java.time.LocalDateTime
 
 /**
- * The session page (SCR-16 read-only, D-100) in light and dark at font scale 1.0 and 2.0 (03 §6): a tea of the
- * collection with a rinse, an infusion run into overtime, a skipped one and one never started; an archived tea (the
+ * The session page (SCR-16, D-100, D-112) in light and dark at font scale 1.0 and 2.0 (03 §6): a tea of the
+ * collection (unrated, empty note) with a rinse, an infusion run into overtime, a skipped one and one never started; an archived tea (the
  * button greyed out with *Wiederherstellen*); a deleted tea (no link, no button). Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -68,6 +68,20 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
 
     @Test
     fun available() = capture("available", SessionPageUiState.Ready(page))
+
+    /** Rated 3,5 (a half star) with a long note that wraps (JRN-02, JRN-05). */
+    @Test
+    fun ratedWithLongNote() = capture(
+        "ratedWithLongNote",
+        SessionPageUiState.Ready(
+            page.copy(
+                rating = 3.5,
+                notes = "Mild und cremig, kaum Bitterkeit. Beim zweiten Aufguss kommt eine leichte Süße dazu, " +
+                    "beim dritten wird er grasiger. Nächstes Mal etwas kühler und kürzer ziehen lassen, " +
+                    "dann bleibt der Umami-Körper länger erhalten.",
+            ),
+        ),
+    )
 
     @Test
     fun archivedTea() = capture("archivedTea", SessionPageUiState.Ready(page.copy(tea = SessionTea.ARCHIVED)))
