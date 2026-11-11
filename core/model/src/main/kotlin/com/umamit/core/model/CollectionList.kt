@@ -5,9 +5,10 @@ enum class CollectionSegment { MY_TEAS, CATALOG }
 
 /**
  * How *Meine Tees* is ordered (TEA-11, D-100), remembered as `collectionSort` (05 §6): *Zuletzt gebrüht*
- * (the default), *Name*, *Zuletzt hinzugefügt*, *Vorrat* (low → high). Empty teas are last in each (INV-05).
+ * (the default), *Name*, *Zuletzt hinzugefügt*, *Vorrat* (low → high) and, from v0.6.0 (D-112), *Bewertung* (the
+ * highest average first, unrated teas after the rated ones). Empty teas are last in each (INV-05).
  */
-enum class CollectionSort { LAST_BREWED, NAME, RECENTLY_ADDED, STOCK }
+enum class CollectionSort { LAST_BREWED, NAME, RECENTLY_ADDED, STOCK, RATING }
 
 /**
  * One tea of *Meine Tees* with what its search, filters and sort read (TEA-08–TEA-11, D-100). Build it with
@@ -18,6 +19,7 @@ enum class CollectionSort { LAST_BREWED, NAME, RECENTLY_ADDED, STOCK }
  * @property lastBrewedAtMillis the start of the tea's latest session; null when never brewed.
  * @property remainingGrams the remaining stock; null when the tea has no stock events.
  * @property stockLevel INV-05's *Leer* / *Knapp* / *Vorrätig*; null when the tea has no stock events.
+ * @property rating the average of the tea's rated sessions and their count (TEA-08, D-112); null without a rating.
  */
 data class CollectionRow(
     val tea: Tea,
@@ -25,6 +27,7 @@ data class CollectionRow(
     val lastBrewedAtMillis: Long? = null,
     val remainingGrams: Double? = null,
     val stockLevel: StockLevel? = null,
+    val rating: TeaRating? = null,
 ) {
     /** *Leer* (INV-05): last in every order. */
     val isEmpty: Boolean get() = stockLevel == StockLevel.EMPTY
@@ -40,12 +43,14 @@ data class CollectionRow(
             lastBrewedAtMillis: Long?,
             remainingGrams: Double?,
             lowStockGrams: Double,
+            rating: TeaRating? = null,
         ): CollectionRow = CollectionRow(
             tea = tea,
             addedAtMillis = addedAtMillis,
             lastBrewedAtMillis = lastBrewedAtMillis,
             remainingGrams = remainingGrams,
             stockLevel = remainingGrams?.let { StockLevel.of(it, tea.lowStockGrams ?: lowStockGrams) },
+            rating = rating,
         )
     }
 }

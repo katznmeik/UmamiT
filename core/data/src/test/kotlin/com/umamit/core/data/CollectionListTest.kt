@@ -8,6 +8,7 @@ import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.TeaRating
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.flow.first
@@ -37,7 +38,7 @@ class CollectionListTest {
         override fun zone(): ZoneId = ZoneOffset.UTC
     }
     private val teas = RoomTeaRepository(data.db.teaDao(), clock)
-    private val list = RoomCollectionListRepository(data.db.teaDao(), settings)
+    private val list = RoomCollectionListRepository(data.db.teaDao(), data.db.tastingDao(), settings)
 
     @After
     fun tearDown() = data.close()
@@ -119,6 +120,25 @@ class CollectionListTest {
 
         assertThat(rows.getValue("t1").row.lastBrewedAtMillis).isEqualTo(7_000L)
         assertThat(rows.getValue("t2").row.lastBrewedAtMillis).isNull()
+    }
+
+    @Test
+    fun `a row carries the average of the tea's rated finished sessions, none without a rating`() = runTest {
+        teas.saveTea(tea("t1"))
+        teas.saveTea(tea("t2"))
+        val tasting = RoomSessionTasting(data.db, data.time)
+        listOf("s1" to 4.0, "s2" to 3.5, "s3" to null).forEach { (id, rating) ->
+            data.sessions.startSession(
+                SessionStart(id, snapshotOf("t1"), listOf(infusion(60)), 10, 2_000L, "Europe/Berlin"),
+            )
+            data.sessions.completeSession(id, autoFinished = false)
+            rating?.let { tasting.setRating(id, it) }
+        }
+
+        val rows = rows()
+
+        assertThat(rows.getValue("t1").row.rating).isEqualTo(TeaRating(average = 3.75, count = 2))
+        assertThat(rows.getValue("t2").row.rating).isNull()
     }
 
     @Test

@@ -161,7 +161,7 @@ internal fun MyTeasChips(state: MyTeasUiState, actions: MyTeasActions, alertKey:
 
 private fun <T> Set<T>.toggle(value: T): Set<T> = if (value in this) this - value else this + value
 
-/** The sort (TEA-11): the chip names the order; its menu offers the four. */
+/** The sort (TEA-11): the chip names the order; its menu offers the five (*Bewertung* from v0.6.0, D-112). */
 @Composable
 private fun SortChip(sort: CollectionSort, onSortChange: (CollectionSort) -> Unit, alertKey: String?) {
     val menu = rememberAlertGate(alertKey)
@@ -274,9 +274,10 @@ private fun CheckMark(checked: Boolean) {
 
 /**
  * A tea's row (TEA-08): cover, display name, secondary name, Sorte, the stock chip, the freshness chip (INV-06) and
- * „Rezept prüfen", the favourite's star; an archived tea ends with *Wiederherstellen*. TalkBack reads the row as
- * one item, the stock as „38 g übrig" / „Knapp, 8 g übrig" / „Leer", the freshness as „Frische: Bald genießen",
- * the star as „Favorit".
+ * „Rezept prüfen", the tea's average rating as „★ 4,5" in the trailing slot (v0.6.0, also on archived rows), the
+ * favourite's star; an archived tea ends with *Wiederherstellen*. TalkBack reads the row as one item, the stock as
+ * „38 g übrig" / „Knapp, 8 g übrig" / „Leer", the freshness as „Frische: Bald genießen", the rating as
+ * „Bewertung 4,5 von 5", the star as „Favorit".
  */
 @Composable
 internal fun MyTeaItem(
@@ -295,6 +296,7 @@ internal fun MyTeaItem(
         onClick = onClick,
         thumbnail = thumbnail,
         placeholderColor = placeholderColor(row.sorte),
+        rating = row.rating?.toFloat(),
         badges = if (hasBadges) {
             {
                 StockChip(row)
@@ -415,4 +417,5 @@ private val CollectionSort.label: Int
         CollectionSort.NAME -> R.string.my_teas_sort_name
         CollectionSort.RECENTLY_ADDED -> R.string.my_teas_sort_recently_added
         CollectionSort.STOCK -> R.string.my_teas_sort_stock
+        CollectionSort.RATING -> R.string.my_teas_sort_rating
     }

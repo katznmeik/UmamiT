@@ -324,9 +324,15 @@ internal val HarvestSeason.label: Int?
     }
 
 @Composable
-private fun Section(title: String, padded: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(top = UmamiSpacing.Large)) {
-        SectionHeader(title = title, modifier = Modifier.fillMaxWidth())
+internal fun Section(
+    title: String,
+    modifier: Modifier = Modifier,
+    padded: Boolean = true,
+    onShowAll: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier = modifier.fillMaxWidth().padding(top = UmamiSpacing.Large)) {
+        SectionHeader(title = title, modifier = Modifier.fillMaxWidth(), onShowAll = onShowAll)
         Column(
             modifier = if (padded) Modifier.padding(horizontal = UmamiSpacing.SideMargin) else Modifier,
             content = content,

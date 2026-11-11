@@ -295,7 +295,8 @@ class JournalSearchTest {
         )
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
-                JournalRoute(sources = sources, onOpenSettings = {}, onOpenTimer = {}, initialTeaKey = "t-gyokuro")
+                JournalRoute(sources = sources, onOpenSettings = {
+                }, onOpenTimer = {}, teaRequest = JournalTeaRequest("t-gyokuro", 1))
             }
         }
         compose.waitForIdle()
@@ -353,7 +354,8 @@ class JournalSearchTest {
             )
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
-                JournalRoute(sources = sources, onOpenSettings = {}, onOpenTimer = {}, initialTeaKey = "t-neu")
+                JournalRoute(sources = sources, onOpenSettings = {
+                }, onOpenTimer = {}, teaRequest = JournalTeaRequest("t-neu", 1))
             }
         }
         compose.waitForIdle()

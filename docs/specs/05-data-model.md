@@ -613,7 +613,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lastManualBackupAt` | Long? | null | BAK-01 |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
 | `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 (v0.4.0, D-100): the *Sammlung* segment used last |
-| `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100): *Zuletzt gebrüht*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*; empty teas last in each |
+| `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK/RATING | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100; `RATING` v0.6.0, D-112): *Zuletzt gebrüht*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*, *Bewertung* (highest average first, unrated after rated); empty teas last in each |
 | `statsRange` | enum | DAYS_90 | INS-07 |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |

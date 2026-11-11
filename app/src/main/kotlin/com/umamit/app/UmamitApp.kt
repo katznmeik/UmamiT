@@ -193,6 +193,14 @@ internal fun UmamitApp(
         controllers.getValue(Tab.Start).popToRoot(Tab.Start)
         select(Tab.Start)
     }
+    // LETZTE SITZUNGEN's *Alle anzeigen* (TEA-13): the Journal tab's root, filtered to the tea.
+    val journalRequests = rememberSaveable(saver = JournalTeaRequests.Saver) { JournalTeaRequests() }
+    val showInJournal: (String) -> Unit = { teaId ->
+        journalRequests.ask(teaId)
+        brewFlow.leaveFor(Tab.Journal)
+        controllers.getValue(Tab.Journal).popToRoot(Tab.Journal)
+        select(Tab.Journal)
+    }
     val reselection = remember { TabReselection() }
     val brewBarHold = remember { BrewBarHold() }
     // While Start hands off to the timer, a bar not shown before stays away (D-111).
@@ -278,7 +286,11 @@ internal fun UmamitApp(
                             segment = segments.segment,
                             onSegmentChange = chooseSegment,
                             journalSources = journalSources,
-                            journal = JournalWiring(journalScreens, startNavigation.openSetupFromSession),
+                            journal = JournalWiring(
+                                journalScreens,
+                                startNavigation.openSetupFromSession,
+                                teaRequest = journalRequests.current,
+                            ),
                             onOpenTimer = onOpenTimer,
                             settings = settings,
                             alertKey = alertKey,
@@ -287,6 +299,7 @@ internal fun UmamitApp(
                                 screens = collectionScreens,
                                 onArchivedChange = onArchivedTeaChange,
                                 openSetup = startNavigation.openSetupWith,
+                                showInJournal = showInJournal,
                             ),
                             catalog = { catalogModifier, scrollToTop ->
                                 catalogScreen(
@@ -628,7 +641,7 @@ private fun TabHost(
                 scrollToTopRequest = scrollToTopRequest,
                 // Only from the resumed list: a double tap opens one page (D-090).
                 onOpenSession = resumedOnly { navController.navigate(JournalSessionRoute(it)) },
-                initialTeaKey = entry.toRoute<JournalRoute>().teaId,
+                teaRequest = journal.teaRequest,
                 // An alert plays: the filter sheet gives way (rule 8).
                 alerting = alertKey != null,
             )
@@ -709,6 +722,8 @@ private fun TabHost(
                     onOpenSession = resumedOnly { sessionId: String ->
                         navController.navigate(JournalSessionRoute(sessionId))
                     },
+                    // LETZTE SITZUNGEN's *Alle anzeigen*: the Journal tab at its root, not a list in this stack.
+                    onShowAllSessions = dropUnlessResumed { collection.showInJournal(teaId) },
                 ),
             )
         }

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -24,8 +25,9 @@ import kotlinx.coroutines.delay
  * A past entry's tap calls [onOpenSession] with its id (SCR-16, D-100).
  *
  * The search and filters (JRN-09) live here: they survive a tab switch and a visit to a session page, and not an
- * app restart. [initialTeaKey], a tea's id, opens the tab with *Tee* set to it (the tea detail's *Alle anzeigen*,
- * TEA-13); it is applied once per value. [alerting]: an alert plays, so the filter sheet gives way (rule 8).
+ * app restart. [teaRequest] shows the list with *Tee* set to a tea and the search and every other filter cleared (the
+ * tea detail's *Alle anzeigen*, TEA-13); it is applied once per request ([JournalTeaRequest.token]), so the user's
+ * later changes to the filter stand. [alerting]: an alert plays, so the filter sheet gives way (rule 8).
  */
 @Composable
 fun JournalRoute(
@@ -35,7 +37,7 @@ fun JournalRoute(
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     onOpenSession: (sessionId: String) -> Unit = {},
-    initialTeaKey: String? = null,
+    teaRequest: JournalTeaRequest? = null,
     alerting: Boolean = false,
 ) {
     val sessionsFlow = remember(sources) { sources.journal.observeSessions() }
@@ -50,12 +52,16 @@ fun JournalRoute(
         delay(sources.millisUntilTomorrow())
         today = sources.today()
     }
-    var filter by rememberSaveable(stateSaver = JournalFilter.Saver) { mutableStateOf(JournalFilter()) }
-    var appliedTeaKey by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(initialTeaKey) {
-        if (initialTeaKey != null && initialTeaKey != appliedTeaKey) {
-            appliedTeaKey = initialTeaKey
-            filter = filter.copy(teaKey = initialTeaKey)
+    // A request seeds the first composition, so the first frame is already filtered; the effect handles later ones.
+    val firstRequest = teaRequest?.takeIf { it.token != 0 }
+    var filter by rememberSaveable(stateSaver = JournalFilter.Saver) {
+        mutableStateOf(JournalFilter(teaKey = firstRequest?.teaKey))
+    }
+    var appliedToken by rememberSaveable { mutableIntStateOf(firstRequest?.token ?: 0) }
+    LaunchedEffect(teaRequest) {
+        if (teaRequest != null && teaRequest.token != appliedToken) {
+            appliedToken = teaRequest.token
+            filter = JournalFilter(teaKey = teaRequest.teaKey)
         }
     }
     // Keyed by the locale, not by the label list: the labels change only with it, and a list key is rebuilt per frame.

@@ -3,7 +3,11 @@ package com.umamit.feature.collection
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -17,10 +21,14 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.SessionStart
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.SessionSnapshot
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
@@ -31,6 +39,8 @@ import com.umamit.core.testing.FakeCollectionList
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
+import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -318,6 +328,52 @@ class MyTeasScreenTest {
             .assert(hasContentDescription("Frische: Bald genießen"))
         compose.onNodeWithTag(myTeaRowTag("u")).onChildAt(0)
             .assert(hasContentDescription("Frische:", substring = true).not())
+    }
+
+    /** A finished session of [teaId] rated [rating]. */
+    private fun rate(teaId: String, id: String, rating: Double) = runBlocking {
+        val snapshot = SessionSnapshot(
+            teaId, teaId, null, null, null, null, null, null, BrewMethod.KYUSU, null, null, null, null, null,
+        )
+        sessions.sessions.startSession(
+            SessionStart(id, snapshot, listOf(PlannedStep(StepKind.INFUSION, 60, 70)), 10, 2_000L, "Europe/Berlin"),
+        )
+        sessions.sessions.recordStep(id, 0, StepRecord(60, 60, 0, 0, 2_000L, 62_000L, false, false))
+        sessions.sessions.completeSession(id, autoFinished = false)
+        sessions.tasting.setRating(id, rating)
+    }
+
+    @Test
+    fun aRatedTeaShowsItsAverageAtTheRowsEndAndTalkBackReadsIt() {
+        rate("a", "s1", 4.0)
+        rate("a", "s2", 5.0)
+        show(tea("a", "Asamushi"), tea("b", "Bancha"))
+
+        compose.onNodeWithText("★ 4,5", useUnmergedTree = true).assertExists()
+        compose.onNode(hasContentDescription("Bewertung 4,5 von 5"), useUnmergedTree = true).assertExists()
+        // The unrated tea shows nothing.
+        compose.onAllNodesWithText("★", substring = true, useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    @Test
+    fun bewertungIsOfferedAndSortsTheRatedTeasFirstAndIsRemembered() {
+        rate("b", "s1", 3.0)
+        rate("c", "s2", 4.5)
+        show(tea("a", "Asamushi"), tea("b", "Bancha"), tea("c", "Cha"))
+
+        compose.onNodeWithTag(MY_TEAS_SORT_TAG).performClick()
+        compose.onNodeWithText("Bewertung").performClick()
+        compose.waitForIdle()
+
+        assertThat(runBlocking { settings.settings.first().collectionSort }).isEqualTo(CollectionSort.RATING)
+        compose.onNodeWithContentDescription("Sortierung: Bewertung").assertExists()
+        val order = compose.onAllNodes(hasTestTagPrefix("my_tea_"), useUnmergedTree = true)
+            .fetchSemanticsNodes().map { it.config[SemanticsProperties.TestTag] }
+        assertThat(order).containsExactly(myTeaRowTag("c"), myTeaRowTag("b"), myTeaRowTag("a")).inOrder()
+    }
+
+    private fun hasTestTagPrefix(prefix: String) = SemanticsMatcher("has a test tag starting with $prefix") {
+        it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(prefix) == true
     }
 
     private fun tea(

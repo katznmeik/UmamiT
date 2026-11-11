@@ -50,6 +50,11 @@ object CollectionBrowser {
 
             // Low → high; teas without stock events follow the teas with stock (D-100).
             CollectionSort.STOCK -> compareBy<CollectionRow, Double?>(nullsLast()) { it.remainingGrams }.then(byName)
+
+            // The highest average first; unrated teas follow the rated ones (D-112).
+            CollectionSort.RATING -> compareBy<CollectionRow, Double?>(nullsLast(reverseOrder())) {
+                it.rating?.average
+            }.then(byName)
         }
         return compareBy<CollectionRow> { it.isEmpty }.then(order)
     }

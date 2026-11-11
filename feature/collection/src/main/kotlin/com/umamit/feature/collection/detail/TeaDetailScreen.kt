@@ -76,6 +76,8 @@ const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
  * The stock history's confirmed *Löschen* of a purchase or correction, and a brew row's session page (SCR-29;
  * [openSession] null: brew rows open nothing).
  * The confirmed ⋮ *Aus Katalog zurücksetzen* (PRF-06). VORRAT's *Warnung* and *Knapp ab* (D-108).
+ * LETZTE SITZUNGEN (TEA-13, D-112): a row opens its session page through [openSession] (null: the rows open
+ * nothing), and the header's *Alle anzeigen* [showAllSessions] the Journal filtered to the tea (null: hidden).
  */
 class TeaDetailActions(
     val back: () -> Unit = {},
@@ -98,6 +100,7 @@ class TeaDetailActions(
     val resetFromCatalog: () -> Unit = {},
     val setStockWarning: (on: Boolean) -> Unit = {},
     val setLowStockGrams: (grams: Int?) -> Unit = {},
+    val showAllSessions: (() -> Unit)? = null,
 )
 
 /**
@@ -191,6 +194,8 @@ private fun Detail(
                         )
                     }
                     FreshnessSection(tea.freshness)
+                    TasteSection(tea.taste)
+                    RecentSessions(tea, actions.openSession, actions.showAllSessions)
                     TextSection(R.string.collection_tea_section_description, tea.description)
                     TextSection(R.string.collection_tea_section_notes, tea.notes)
                     Details(tea.details)

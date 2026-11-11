@@ -18,6 +18,7 @@ internal object MyTeasStates {
         isFavorite: Boolean = false,
         checkRecipe: Boolean = false,
         isArchived: Boolean = false,
+        rating: Double? = null,
     ) = MyTeaRow(
         id = id,
         name = name,
@@ -31,6 +32,7 @@ internal object MyTeasStates {
         checkRecipe = checkRecipe,
         isArchived = isArchived,
         photoPath = null,
+        rating = rating,
     )
 
     private val rows = listOf(
@@ -43,12 +45,22 @@ internal object MyTeasStates {
             StockLevel.AVAILABLE,
             Freshness.FRESH,
             isFavorite = true,
+            rating = 4.5,
         ),
-        row("2", "Mondschatten", "Gyokuro", "Beschattet, 21 Tage", 8.0, StockLevel.LOW, Freshness.DRINK_SOON),
+        row(
+            "2",
+            "Mondschatten",
+            "Gyokuro",
+            "Beschattet, 21 Tage",
+            8.0,
+            StockLevel.LOW,
+            Freshness.DRINK_SOON,
+            rating = 4.0,
+        ),
         row("3", "Flusskiesel", "Kabusecha", grams = 0.0, level = StockLevel.EMPTY, checkRecipe = true),
         row("4", "Herbstwind", "Hojicha", "Geröstet", 120.0, StockLevel.AVAILABLE, Freshness.PAST_PEAK),
         row("5", "Bergnebel", "Genmaicha", isFavorite = true),
-        row("6", "Kirschblüte", "Sencha", "Aromatisiert", 55.5, StockLevel.AVAILABLE),
+        row("6", "Kirschblüte", "Sencha", "Aromatisiert", 55.5, StockLevel.AVAILABLE, rating = 3.5),
     )
 
     val list = MyTeasUiState(

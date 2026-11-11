@@ -943,7 +943,8 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   offer only values present in the collection. *Archiviert* shows only
   archived teas, each with *Wiederherstellen*.
 - **Sort** (TEA-11): *Zuletzt gebrüht* (default), *Name*, *Zuletzt
-  hinzugefügt*, *Vorrat*; remembered (`collectionSort`); empty teas last.
+  hinzugefügt*, *Vorrat*, *Bewertung* (v0.6.0: highest average first, unrated
+  after rated); remembered (`collectionSort`); empty teas last.
 - **Adding (⋮, D-102):** *Tee aus dem Katalog hinzufügen* switches to the
   *Katalog* segment (SCR-19), where a tea is added as before (SCR-23); *Tee
   ohne Katalog hinzufügen* opens SCR-11. Both show only while *Meine Tees*
