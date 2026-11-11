@@ -5,19 +5,42 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-10. **[`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is released** (from `main` `73a97fc5`; D-110, D-111; the PO's feedback on v0.5.0: one list on Start, *Knapp ab* shows its value, *Fertig* in reach in the filter sheet, the display sans Alegreya Sans, Start holds still while *Nochmal brühen* opens the timer). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+**Last updated:** 2026-11-11. **M4 is specified and split (D-112): v0.6.0 is the journal, v0.6.1 is Statistik.** v0.6.0 has its spec (#221), tickets (#222–#234), plan (`docs/plans/v0.6.0.md`) and a draft milestone PR; **nothing is built: the build starts when the PO starts `/implement-spec #221`.** [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
+
+## v0.6.0 (specified, waiting for the PO's start)
+
+- **Specify phase: done** (2026-11-11). The PO was grilled in five rounds
+  (Q1–Q18, all as options); the answers are D-112. The PO's rule for the
+  release: every tasting input is optional and skippable with as little
+  friction as possible.
+- **Scope:** rating, notes, taste sliders with radar, descriptors and session
+  photos in place on the session page; five stars and both actions on the
+  „Gespeichert" sheet; *Zeiten ins Rezept übernehmen* after deliberate
+  changes only (SET-18 retired); the session editor; journal search with
+  three filters and the A6 empty state; ratings, GESCHMACK and LETZTE
+  SITZUNGEN on the tea screens; umamit.db v6. No timer code changes.
+- **Specs written** (commit `b4d2aae7` and the plan commit): 02, 03, 05, 06,
+  08, 09, 10 (D-112), 12, the specs README.
+- **Tickets:** the PO approved the breakdown of thirteen (2026-11-11). One
+  refinement after the approval: #232 is also blocked by #231 (it uses the
+  Journal's tea-filter argument).
+- **Next phase (fresh session, Opus `medium`): the build,** started by the
+  PO with `/implement-spec #221`. Waves and verification:
+  `docs/plans/v0.6.0.md`. It will take more than one session; a session
+  that stops part-way writes `docs/plans/v0.6.0-resume.md`.
+- **After v0.6.0:** v0.6.1 (Statistik) gets its own specify session.
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **M4 → v0.6.0** (Journal & statistics, 09 §M4): not yet specified or planned. v0.5.1 is done: [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) from `main` `73a97fc5` |
+| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, spec #221, plan `docs/plans/v0.6.0.md`): specified, not built. Then v0.6.1 (Statistik, M4 part 2), not yet specified |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `73a97fc5` after the merge of #219) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `73a97fc5`; docs commits only so far) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | None (the handover commit on the working branch is docs only and goes into `main` with the next PR) |
+| Open PR | **#PRNUM** (draft): v0.6.0 milestone PR |
 | Latest APK | [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (full release, versionCode 50199, from `main` `73a97fc5`, certificate verified); rc `v0.5.1-rc.2` (50102), rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-111** used; the next free is **D-112** |
+| Decision numbers | Up to **D-112** used; the next free is **D-113** |
 
 ## Working agreements in effect
 
@@ -32,17 +55,18 @@
 
 ## Waiting on the PO
 
-1. **M4 → v0.6.0:** nothing blocking; the next step is specifying M4 (e.g. `/to-spec`) when the PO wants to start.
+1. **v0.6.0:** the start of the build with `/implement-spec #221` in a fresh session (the prompt is at the end of the specify session's last message). Corrections to D-112's details marked „Claude" are welcome before or during the build.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
 
 ## Open for later
 
-- **M4 → v0.6.0** (Journal & statistics, 09 §M4; was v0.5.0 until D-108). Known starting points: A6 (Journal) and A9 (Statistik) empty states; v0.4.1's setup and session page show no tea photo yet (02 TEA-05).
+- **v0.6.1** (Statistik, M4 part 2, D-112): its own grilling and spec after v0.6.0; INS-01–INS-07 are the starting point, not yet confirmed by the PO; the A9 empty state comes with it.
+- **Ideas the PO kept for later (D-112, 09 §5):** custom descriptors, notes per infusion, manual journal entries, brew coach tips.
 - **Parked from v0.3.0:** the two *Pause* buttons and the shortened tea name in the brew row at font 2.0.
 - **#58:** its remaining optional review findings stay open for later milestones.
-- **Images:** all delivered. A6 (Journal) and A9 (Statistik) empty states are built in with M4.
+- **Images:** all delivered. A6 (Journal) is built in with v0.6.0 (#231), A9 (Statistik) with v0.6.1.
 
 ## Known caveats
 

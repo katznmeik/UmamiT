@@ -473,6 +473,9 @@ possible"**.
   needed only before the final release (09 §4a) and the milestone review has
   no T4 timer part.
 
+**Spec and tickets.** Issue #221 with the tickets #222–#234, approved by
+the PO as a breakdown on 2026-11-11; plan `docs/plans/v0.6.0.md`.
+
 **Not in v0.6.0.** Statistik (v0.6.1); the rating on Start's rows and in the
 tea picker; changing a session's tea or its number of steps; a filter by
 date range or Sorte; the four ideas of point 11.
