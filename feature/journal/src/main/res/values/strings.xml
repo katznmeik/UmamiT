@@ -140,6 +140,7 @@
     <!-- A step never started or skipped: „2 · Aufguss · übersprungen". -->
     <string name="session_editor_step_greyed">%1$s · %2$s</string>
     <string name="session_editor_step_time">Zeit</string>
+    <string name="session_editor_step_time_field">Zeit, Schritt %1$d</string>
     <string name="session_editor_step_cooler">Temperatur senken, Schritt %1$d</string>
     <string name="session_editor_step_warmer">Temperatur erhöhen, Schritt %1$d</string>
     <string name="session_editor_error_leaf">0,1 bis 100 g, z. B. 4,5.</string>

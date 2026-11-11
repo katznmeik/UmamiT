@@ -151,7 +151,7 @@ class SessionEditorViewModel @Inject constructor(
             zone = zone,
             today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate(),
             vessels = choices,
-            vesselName = vesselName(f.vesselId, session, choices),
+            vesselName = vesselName(f, session, choices),
             steps = stepRows(session, f, check),
             errors = errors,
             stockChangeGrams = check.leafChange?.takeIf { withTea && stored != null }
@@ -164,11 +164,12 @@ class SessionEditorViewModel @Inject constructor(
     }
 
     /** The chosen vessel's label; a session whose vessel was deleted keeps showing its snapshot name. */
-    private fun vesselName(id: String?, session: BrewSession, choices: List<Vessel>): String? = when (id) {
-        null -> session.snapshot.vesselName?.takeIf { session.snapshot.vesselId == null }
-        session.snapshot.vesselId -> choices.firstOrNull { it.id == id }?.name ?: session.snapshot.vesselName
-        else -> choices.firstOrNull { it.id == id }?.name
-    }
+    private fun vesselName(f: SessionEditorForm, session: BrewSession, choices: List<Vessel>): String? =
+        when (val id = f.vesselId) {
+            null -> session.snapshot.vesselName?.takeIf { f.keepsVesselName }
+            session.snapshot.vesselId -> choices.firstOrNull { it.id == id }?.name ?: session.snapshot.vesselName
+            else -> choices.firstOrNull { it.id == id }?.name
+        }
 
     private fun stepRows(
         session: BrewSession,

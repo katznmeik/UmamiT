@@ -40,6 +40,9 @@ data class SessionEditorStepForm(val position: Int, val time: String, val tempC:
  * The session editor's fields as typed (SCR-17, JRN-11): the start, the vessel, leaf and water as text (so a
  * half-typed number stays as it is) and the brewed steps. It lives in the `SavedStateHandle`, so the unsaved values
  * survive an alert, a configuration change and a process death (rule 8).
+ *
+ * @property keepsVesselName the vessel is still the recorded one of a session whose vessel was deleted (`vessel_id`
+ *   null, its name kept): [vesselId] null then means „as recorded", not *Kein Gefäß*. Any pick clears it.
  */
 data class SessionEditorForm(
     val startedAtMs: Long,
@@ -47,7 +50,11 @@ data class SessionEditorForm(
     val leaf: String,
     val water: String,
     val steps: List<SessionEditorStepForm>,
+    val keepsVesselName: Boolean = false,
 ) : Serializable {
+    /** *Gefäß* picked [id] (null: *Kein Gefäß*). */
+    fun withVessel(id: String?): SessionEditorForm = copy(vesselId = id, keepsVesselName = false)
+
     /** The form with the start on [date], at the same time of day in [zone]. */
     fun withDate(date: LocalDate, zone: ZoneId): SessionEditorForm {
         val start = startIn(zone)
@@ -73,6 +80,7 @@ data class SessionEditorForm(
         fun of(session: BrewSession): SessionEditorForm = SessionEditorForm(
             startedAtMs = session.startedAtMs,
             vesselId = session.snapshot.vesselId,
+            keepsVesselName = session.snapshot.vesselId == null && session.snapshot.vesselName != null,
             leaf = session.snapshot.leafGrams?.let(GermanFormat::gramsOneDecimal).orEmpty(),
             water = session.snapshot.waterMl?.toString().orEmpty(),
             steps = session.steps.filter { it.isEditable() }.map { row ->
@@ -99,6 +107,10 @@ enum class SessionEditorError { Leaf, Water, InFuture }
 internal class SessionEditorCheck(private val session: BrewSession, private val form: SessionEditorForm, nowMs: Long) {
     private val stored = session.snapshot
 
+    /** *Kein Gefäß* picked for a session whose vessel was deleted: the kept name goes too (05 §3.7: both null). */
+    private val clearsVesselName =
+        form.vesselId == null && !form.keepsVesselName && stored.vesselId == null && stored.vesselName != null
+
     /** The parsed leaf; null when the field is not valid. An empty field is valid only for a session without leaf. */
     val leaf: Double? = parseLeaf(form.leaf)
     private val leafValid = leaf != null || (form.leaf.isBlank() && stored.leafGrams == null)
@@ -107,7 +119,9 @@ internal class SessionEditorCheck(private val session: BrewSession, private val 
     private val waterValid = water != null || (form.water.isBlank() && stored.waterMl == null)
 
     private val shift = form.startedAtMs - session.startedAtMs
-    private val inFuture = (session.endedAtMs ?: session.startedAtMs) + shift > nowMs
+
+    // Only a moved start is refused: an unmoved one stays valid even after the clock was set back.
+    private val inFuture = shift != 0L && (session.endedAtMs ?: session.startedAtMs) + shift > nowMs
 
     /** The positions of the steps whose time is not a valid entry. */
     val invalidSteps: Set<Int> = form.steps.filter { parseClock(it.time) == null }.map { it.position }.toSet()
@@ -142,7 +156,7 @@ internal class SessionEditorCheck(private val session: BrewSession, private val 
         }
         return SessionEdit(
             startedAtMs = form.startedAtMs.takeIf { shift != 0L },
-            vessel = VesselChange(form.vesselId).takeIf { form.vesselId != stored.vesselId },
+            vessel = VesselChange(form.vesselId).takeIf { form.vesselId != stored.vesselId || clearsVesselName },
             leafGrams = leafChange,
             waterMl = water?.takeIf { it != stored.waterMl },
             steps = steps,

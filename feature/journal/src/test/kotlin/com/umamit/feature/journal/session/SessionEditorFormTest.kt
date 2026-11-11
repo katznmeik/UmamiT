@@ -115,6 +115,14 @@ class SessionEditorFormTest {
     }
 
     @Test
+    fun `an unmoved start is not refused when the recorded end is after now`() {
+        val clockSetBack = SessionEditorCheck(session, SessionEditorForm.of(session).copy(water = "300"), 0L)
+
+        assertThat(clockSetBack.errors).isEmpty()
+        assertThat(clockSetBack.edit()?.waterMl).isEqualTo(300)
+    }
+
+    @Test
     fun `the recorded water stays valid, a new one needs 5-ml steps`() {
         assertThat(SessionEditorCheck.parseWater("133", stored = 133)).isEqualTo(133)
         assertThat(SessionEditorCheck.parseWater("134", stored = 133)).isNull()

@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -55,6 +56,7 @@ internal fun StepRow(row: SessionEditorStepRow, actions: SessionEditorActions) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Small),
         ) {
+            val timeDescription = stringResource(R.string.session_editor_step_time_field, row.position + 1)
             OutlinedTextField(
                 value = step.time,
                 onValueChange = { text ->
@@ -81,6 +83,8 @@ internal fun StepRow(row: SessionEditorStepRow, actions: SessionEditorActions) {
                 modifier = Modifier
                     .weight(1f)
                     .widthIn(min = TIME_FIELD_MIN_WIDTH)
+                    // TalkBack names the step: the row's label is a separate Text.
+                    .semantics { contentDescription = timeDescription }
                     .testTag(SessionEditorTags.STEP_TIME + row.position),
             )
             TempStepper(row.position, step, actions)

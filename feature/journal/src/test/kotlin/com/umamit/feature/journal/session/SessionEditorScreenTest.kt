@@ -5,6 +5,8 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -59,7 +61,10 @@ class SessionEditorScreenTest {
     private var saved = 0
     private val alertKey = mutableStateOf<String?>(null)
 
-    private fun setUp(deductStock: Boolean = true): Pair<FakeSessions, FakeSessionEditor> = runBlocking {
+    private fun setUp(
+        deductStock: Boolean = true,
+        keptVesselName: String? = null,
+    ): Pair<FakeSessions, FakeSessionEditor> = runBlocking {
         val sessions = FakeSessions(
             collection,
             FakeSettingsRepository(UserSettings(deductStock = deductStock)),
@@ -76,7 +81,9 @@ class SessionEditorScreenTest {
             PlannedStep(StepKind.INFUSION, 20, 70),
             PlannedStep(StepKind.INFUSION, 30, 75),
         )
-        sessions.sessions.startSession(SessionStart(PAST, snapshot(), steps, 10, STARTED, "Europe/Berlin"))
+        sessions.sessions.startSession(
+            SessionStart(PAST, snapshot(keptVesselName), steps, 10, STARTED, "Europe/Berlin"),
+        )
         sessions.sessions.recordStep(PAST, 0, StepRecord(10, 10, 0, 0, STARTED, STARTED + 10_000, false, false))
         sessions.sessions.recordStep(
             PAST,
@@ -88,7 +95,7 @@ class SessionEditorScreenTest {
         sessions to FakeSessionEditor(sessions)
     }
 
-    private fun snapshot() = SessionSnapshot(
+    private fun snapshot(keptVesselName: String?) = SessionSnapshot(
         teaId = TEA,
         teaName = "Sencha Morgentau",
         teaSecondaryName = null,
@@ -99,7 +106,7 @@ class SessionEditorScreenTest {
         profileName = "Kyusu",
         method = BrewMethod.KYUSU,
         vesselId = null,
-        vesselName = null,
+        vesselName = keptVesselName,
         leafGrams = 4.0,
         waterMl = 180,
         baseTempC = 65,
@@ -193,6 +200,27 @@ class SessionEditorScreenTest {
         assertThat(session.steps[1].tempC).isEqualTo(70)
         val stock = runBlocking { collection.stock.observeStock(TEA).first() }
         assertThat(stock.remainingGrams).isWithin(1e-9).of(94.5)
+    }
+
+    @Test
+    fun `Kein Gefaess clears the kept name of a session whose vessel was deleted`() {
+        val (sessions, editor) = setUp(keptVesselName = "Alte Kyusu")
+        show(editor)
+        compose.onNodeWithText("Alte Kyusu").assertExists()
+        save().assertIsNotEnabled()
+
+        compose.onNodeWithTag(SessionEditorTags.VESSEL).performClick()
+        compose.onAllNodesWithText("Kein Gefäß").onLast().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Alte Kyusu").assertDoesNotExist()
+        compose.onNodeWithText("Kein Gefäß").assertExists()
+        save().assertIsEnabled().performClick()
+        compose.waitForIdle()
+
+        assertThat(saved).isEqualTo(1)
+        val session = runBlocking { checkNotNull(sessions.sessions.getSession(PAST)) }
+        assertThat(session.snapshot.vesselId).isNull()
+        assertThat(session.snapshot.vesselName).isNull()
     }
 
     @Test

@@ -40,12 +40,13 @@ class RoomSessionEditor @Inject constructor(private val db: UmamiDatabase, priva
             val shift = edit.startedAtMs?.let { it - stored.startedAt } ?: 0L
             val brewed = rows.filter { it.actualSeconds != null && !it.skipped }.map { it.position }.toSet()
             when {
-                (stored.endedAt ?: stored.startedAt) + shift > now -> SessionEditResult.IN_FUTURE
+                // Only a moved start is refused: an unmoved one stays valid even after the clock was set back.
+                shift != 0L && (stored.endedAt ?: stored.startedAt) + shift > now -> SessionEditResult.IN_FUTURE
 
                 edit.steps.any { it.position !in brewed } -> SessionEditResult.INVALID
 
                 else -> {
-                    val vessel = edit.vessel?.takeIf { it.vesselId != stored.vesselId }
+                    val vessel = edit.vessel?.takeIf { it.changes(stored) }
                     val vesselName = vessel?.vesselId?.let { id -> db.vesselDao().get(id)?.name }
                     if (vessel?.vesselId != null && vesselName == null) {
                         SessionEditResult.INVALID
@@ -126,6 +127,13 @@ class RoomSessionEditor @Inject constructor(private val db: UmamiDatabase, priva
         }
     }
 }
+
+/**
+ * Whether this vessel differs from [stored]'s; VesselChange(null) also clears the name kept for a deleted vessel
+ * (05 §3.7: both null).
+ */
+private fun VesselChange.changes(stored: BrewSessionEntity): Boolean =
+    vesselId != stored.vesselId || (vesselId == null && stored.vesselName != null)
 
 /** Whether every given value is within [SessionEditLimits]. */
 private fun SessionEdit.inBounds(): Boolean {

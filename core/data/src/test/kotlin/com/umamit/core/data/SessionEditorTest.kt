@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.common.WallClock
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
@@ -25,6 +26,8 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.ZoneId
+import java.time.ZoneOffset
 
 /**
  * `EditSession` (05 §3.7 „Edit", JRN-11, D-112, #230): each field's effect, the shift that keeps every duration, the
@@ -130,6 +133,36 @@ class SessionEditorTest {
             assertThat(session().snapshot.vesselId).isNull()
             assertThat(session().snapshot.vesselName).isNull()
         }
+
+    @Test
+    fun `Kein Gefaess clears the name kept for a deleted vessel`() = runTest {
+        completedSession()
+        data.vessels.saveVessel(Vessel("v1", "Shiboridashi", VesselType.SHIBORIDASHI, 120))
+        editor.editSession("done", SessionEdit(vessel = VesselChange("v1")))
+        data.vessels.deleteVessel("v1")
+        assertThat(session().snapshot.vesselId).isNull()
+        assertThat(session().snapshot.vesselName).isEqualTo("Shiboridashi")
+
+        assertThat(editor.editSession("done", SessionEdit(vessel = VesselChange(null))))
+            .isEqualTo(SessionEditResult.SAVED)
+        assertThat(session().snapshot.vesselId).isNull()
+        assertThat(session().snapshot.vesselName).isNull()
+    }
+
+    @Test
+    fun `an edit that keeps the start is not refused when the end is after now`() = runTest {
+        completedSession()
+        val clockSetBack = RoomSessionEditor(
+            data.db,
+            object : WallClock {
+                override fun nowMs(): Long = START
+                override fun zone(): ZoneId = ZoneOffset.UTC
+            },
+        )
+
+        assertThat(clockSetBack.editSession("done", SessionEdit(waterMl = 300))).isEqualTo(SessionEditResult.SAVED)
+        assertThat(session().snapshot.waterMl).isEqualTo(300)
+    }
 
     @Test
     fun `the session's own vessel keeps its snapshot name when it is chosen again`() = runTest {

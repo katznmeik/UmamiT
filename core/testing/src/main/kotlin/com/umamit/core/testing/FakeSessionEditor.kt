@@ -7,6 +7,7 @@ import com.umamit.core.data.SessionEditLimits
 import com.umamit.core.data.SessionEditResult
 import com.umamit.core.data.SessionEditor
 import com.umamit.core.data.StepEdit
+import com.umamit.core.data.VesselChange
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
@@ -44,14 +45,14 @@ class FakeSessionEditor(private val s: FakeSessions) : SessionEditor {
         val stored = s.sessionRows.value[sessionId]?.takeIf { it.status == SessionStatus.COMPLETED }
         val shift = stored?.let { edit.startedAtMs?.minus(it.startedAtMs) } ?: 0L
         val brewed = stored?.steps.orEmpty().filter { it.actualSeconds != null && !it.skipped }.map { it.position }
-        val vessel = edit.vessel?.takeIf { it.vesselId != stored?.snapshot?.vesselId }
+        val vessel = edit.vessel?.takeIf { stored != null && it.changes(stored) }
         val vesselName = vessel?.vesselId?.let { s.collection.vesselRows.value[it]?.name }
         return when {
             !edit.inBounds() -> SessionEditResult.INVALID
 
             stored == null -> SessionEditResult.NOT_COMPLETED
 
-            (stored.endedAtMs ?: stored.startedAtMs) + shift > s.nowMs() -> SessionEditResult.IN_FUTURE
+            stored.inFutureAfter(shift) -> SessionEditResult.IN_FUTURE
 
             edit.steps.any { it.position !in brewed } -> SessionEditResult.INVALID
 
@@ -63,6 +64,14 @@ class FakeSessionEditor(private val s: FakeSessions) : SessionEditor {
             }
         }
     }
+
+    /** As on Room: VesselChange(null) also clears the name kept for a deleted vessel. */
+    private fun VesselChange.changes(stored: BrewSession): Boolean =
+        vesselId != stored.snapshot.vesselId || (vesselId == null && stored.snapshot.vesselName != null)
+
+    /** As on Room: only a moved start is refused. */
+    private fun BrewSession.inFutureAfter(shift: Long): Boolean =
+        shift != 0L && (endedAtMs ?: startedAtMs) + shift > s.nowMs()
 
     private fun apply(stored: BrewSession, edit: SessionEdit, shift: Long, newVessel: Boolean, vesselName: String?) {
         val leaf = edit.leafGrams?.takeIf { it != stored.snapshot.leafGrams }
@@ -87,12 +96,14 @@ class FakeSessionEditor(private val s: FakeSessions) : SessionEditor {
             when {
                 leaf != null && leaf <= 0.0 -> rows - brew.id
 
-                else -> rows + (
+                leaf != null || shift != 0L -> rows + (
                     brew.id to brew.copy(
                         deltaGrams = -(leaf ?: -brew.deltaGrams),
                         occurredAtMillis = endedAt ?: brew.occurredAtMillis,
                     )
                     )
+
+                else -> rows
             }
         }
     }
@@ -133,7 +144,7 @@ class FakeSessionEditor(private val s: FakeSessions) : SessionEditor {
     }
 
     private fun SessionEdit.inBounds(): Boolean {
-        val leafOk = leafGrams?.let { it >= 0.0 && it <= SessionEditLimits.MAX_LEAF_GRAMS } ?: true
+        val leafOk = leafGrams?.let { it >= 0.0 && it <= SessionEditLimits.MAX_LEAF_GRAMS && !it.isNaN() } ?: true
         val waterOk = waterMl?.let { it in SessionEditLimits.WATER_ML } ?: true
         val stepsOk = steps.all {
             it.actualSeconds in SessionEditLimits.STEP_SECONDS &&

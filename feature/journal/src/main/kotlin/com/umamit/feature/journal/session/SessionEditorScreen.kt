@@ -235,7 +235,7 @@ private fun VesselField(state: SessionEditorUiState.Ready, actions: SessionEdito
                     text = { Text(vessel?.name ?: none) },
                     onClick = {
                         menu.close()
-                        actions.update { it.copy(vesselId = vessel?.id) }
+                        actions.update { it.withVessel(vessel?.id) }
                     },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                 )
