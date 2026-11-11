@@ -24,6 +24,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
@@ -33,7 +34,9 @@ import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.ui.RATING_STARS_TAG
+import com.umamit.core.ui.TASTE_RADAR_TAG
 import com.umamit.core.ui.ratingStarTag
+import com.umamit.core.ui.tasteSliderTag
 import com.umamit.feature.journal.JournalSessions
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -297,6 +300,90 @@ class SessionPageScreenTest {
         compose.onNodeWithText("4.501 / 5.000").assertExists()
         compose.onNodeWithTag(SESSION_NOTES_TAG).performTextInput("c".repeat(600))
         compose.onNodeWithText("5.000 / 5.000").assertExists()
+    }
+
+    private fun slider(axis: TasteAxis) = compose.onNodeWithTag(tasteSliderTag(axis)).performScrollTo()
+
+    private fun release(axis: TasteAxis, value: Float) {
+        slider(axis).performSemanticsAction(SemanticsActions.SetProgress) { it(value) }
+        compose.waitForIdle()
+    }
+
+    private fun openTaste() {
+        compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `GESCHMACK starts as one row and opening it writes nothing, untouched sliders stay unset`() {
+        show()
+        compose.onNodeWithText("Geschmack hinzufügen").performScrollTo().assertExists()
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
+
+        openTaste()
+        release(TasteAxis.UMAMI, 4f)
+
+        slider(TasteAxis.SWEETNESS).assert(hasStateDescription("nicht gesetzt"))
+        slider(TasteAxis.UMAMI).assert(hasStateDescription("4 von 5"))
+        assertThat(session().taste.umami).isEqualTo(4)
+        assertThat(session().taste.sweetness).isNull()
+        assertThat(session().taste.setCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `a taste value persists and the page shows it again when it opens, already unfolded`() {
+        runBlocking { sessions.tasting.setTaste(PAST, TasteAxis.BODY, 3) }
+        show()
+
+        slider(TasteAxis.BODY).assert(hasStateDescription("3 von 5"))
+        compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the radar appears with the third axis and not before`() {
+        show()
+        openTaste()
+
+        release(TasteAxis.UMAMI, 4f)
+        release(TasteAxis.AROMA, 2f)
+        compose.onNodeWithTag(TASTE_RADAR_TAG).assertDoesNotExist()
+
+        release(TasteAxis.BODY, 1f)
+        compose.onNodeWithTag(TASTE_RADAR_TAG).performScrollTo().assertExists()
+        compose.onNodeWithTag(TASTE_RADAR_TAG)
+            .assert(hasContentDescription("Geschmacksprofil: Umami 4 von 5, Körper 1 von 5, Aroma 2 von 5"))
+    }
+
+    @Test
+    fun `a release followed at once by Zuruecksetzen ends folded with nothing set`() {
+        show()
+        openTaste()
+        slider(TasteAxis.UMAMI).performSemanticsAction(SemanticsActions.SetProgress) { it(3f) }
+        compose.onNodeWithTag(SESSION_TASTE_RESET_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        assertThat(session().taste.setCount).isEqualTo(0)
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).performScrollTo().assertExists()
+    }
+
+    @Test
+    fun `Zuruecksetzen clears all six and folds back to the one row`() {
+        runBlocking {
+            sessions.tasting.setTaste(PAST, TasteAxis.UMAMI, 5)
+            sessions.tasting.setTaste(PAST, TasteAxis.BODY, 3)
+            sessions.tasting.setTaste(PAST, TasteAxis.AROMA, 1)
+        }
+        show()
+        compose.onNodeWithTag(TASTE_RADAR_TAG).performScrollTo().assertExists()
+
+        compose.onNodeWithTag(SESSION_TASTE_RESET_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        assertThat(session().taste.setCount).isEqualTo(0)
+        compose.onNodeWithTag(TASTE_RADAR_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).performScrollTo().assertExists()
     }
 
     @Test

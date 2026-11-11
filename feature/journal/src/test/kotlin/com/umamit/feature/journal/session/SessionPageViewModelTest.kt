@@ -14,6 +14,7 @@ import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
@@ -234,6 +235,22 @@ class SessionPageViewModelTest {
 
         vm.setRating(null)
         assertThat(vm.page.rating).isNull()
+    }
+
+    @Test
+    fun `taste values are saved at once, Zuruecksetzen clears them in order with the writes`() = runTest {
+        brewed()
+        val vm = viewModel()
+        assertThat(vm.page.taste.setCount).isEqualTo(0)
+
+        vm.setTaste(TasteAxis.UMAMI, 4)
+        vm.setTaste(TasteAxis.BODY, 0)
+        assertThat(vm.page.taste.umami).isEqualTo(4)
+        assertThat(vm.page.taste.body).isEqualTo(0)
+        assertThat(vm.page.taste.aroma).isNull()
+
+        vm.clearTaste()
+        assertThat(vm.page.taste.setCount).isEqualTo(0)
     }
 
     /** The half-step gesture is a quick second tap (4,0 then 3,5): a slow first write never overtakes it. */

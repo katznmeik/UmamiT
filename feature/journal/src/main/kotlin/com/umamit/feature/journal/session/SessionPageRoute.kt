@@ -33,6 +33,8 @@ fun SessionPageRoute(
             restore = viewModel::restore,
             delete = viewModel::delete,
             setRating = viewModel::setRating,
+            setTaste = viewModel::setTaste,
+            clearTaste = viewModel::clearTaste,
             notesChanged = viewModel::onNotesChanged,
             flushNotes = viewModel::flushNotes,
         )

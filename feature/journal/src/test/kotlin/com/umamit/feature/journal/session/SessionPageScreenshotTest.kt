@@ -1,11 +1,14 @@
 package com.umamit.feature.journal.session
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TasteProfile
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,7 +20,8 @@ import java.time.LocalDateTime
 
 /**
  * The session page (SCR-16, D-100, D-112) in light and dark at font scale 1.0 and 2.0 (03 §6): a tea of the
- * collection (unrated, empty note) with a rinse, an infusion run into overtime, a skipped one and one never started;
+ * collection (unrated, empty note, GESCHMACK folded to its one row)
+ * with a rinse, an infusion run into overtime, a skipped one and one never started;
  * the same rated 3,5 with a long note; an archived tea (the
  * button greyed out with *Wiederherstellen*); a deleted tea (no link, no button). Goldens: `src/test/screenshots/`.
  */
@@ -60,9 +64,11 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, state: SessionPageUiState) {
+    private fun capture(name: String, state: SessionPageUiState, scrollToTag: String? = null) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent { UmamiTheme(darkTheme = dark, reduceMotion = true) { SessionPageScreen(state) } }
+        compose.waitForIdle()
+        if (scrollToTag != null) compose.onNodeWithTag(scrollToTag).performScrollTo()
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/SessionPage_${name}_$variant.png")
     }
@@ -83,6 +89,30 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
             ),
         ),
     )
+
+    /** Two axes set: the sliders are open, no radar yet (JRN-03). */
+    @Test
+    fun tasteTwoAxes() = capture(
+        "tasteTwoAxes",
+        SessionPageUiState.Ready(page.copy(taste = TasteProfile(umami = 4, aroma = 2))),
+        scrollToTag = SESSION_TASTE_RESET_TAG,
+    )
+
+    /** All six axes set: the radar above the six sliders. */
+    @Test
+    fun tasteAllSix() = capture(
+        "tasteAllSix",
+        SessionPageUiState.Ready(
+            page.copy(
+                taste = TasteProfile(umami = 5, sweetness = 3, bitterness = 1, astringency = 2, body = 4, aroma = 3),
+            ),
+        ),
+        scrollToTag = SESSION_TASTE_RESET_TAG,
+    )
+
+    /** GESCHMACK folded to its one row, scrolled into view below the step table. */
+    @Test
+    fun tasteFolded() = capture("tasteFolded", SessionPageUiState.Ready(page), scrollToTag = SESSION_TASTE_ADD_TAG)
 
     @Test
     fun archivedTea() = capture("archivedTea", SessionPageUiState.Ready(page.copy(tea = SessionTea.ARCHIVED)))
