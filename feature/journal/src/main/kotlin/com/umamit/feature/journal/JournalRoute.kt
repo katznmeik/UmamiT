@@ -5,10 +5,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,8 +59,19 @@ fun JournalRoute(
         }
     }
     val descriptorLabels = TasteDescriptor.entries.associate { it.key to stringResource(it.labelRes()) }
-    val list = remember(sessions, today, descriptorLabels.values.toList()) {
+    // Keyed by the locale, not by the label list: the labels change only with it, and a list key is rebuilt per frame.
+    val locale = LocalConfiguration.current.locales.toLanguageTags()
+    val list = remember(sessions, today, locale) {
         sessions?.let { journalList(it, today, descriptorLabels::get) }
+    }
+    // A tea without finished sessions is no filter option, so its name is looked up (a deleted tea carries it).
+    val teaKey = filter.teaKey
+    val teaNameFallback by produceState<String?>(null, sources, teaKey) {
+        value = when {
+            teaKey == null -> null
+            teaKey.startsWith(DELETED_TEA_PREFIX) -> teaKey.removePrefix(DELETED_TEA_PREFIX)
+            else -> sources.teas.getTea(teaKey)?.name
+        }
     }
     JournalScreen(
         list = list,
@@ -70,5 +83,6 @@ fun JournalRoute(
         filter = filter,
         onFilterChange = { filter = it },
         alerting = alerting,
+        teaNameFallback = teaNameFallback,
     )
 }

@@ -20,11 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -52,8 +47,8 @@ private val DotSize = 8.dp
 private const val CHIP_BORDER_ALPHA = 0.6f
 
 /**
- * „Tees, Notizen …" with the filter icon beside it (JRN-09). The field keeps its own text, so typing never waits
- * for the list, and follows the filter when it is reset. The icon carries a dot while a filter is set.
+ * „Tees, Notizen …" with the filter icon beside it (JRN-09). The field shows [JournalFilter.search] itself, so a
+ * reset and a keystroke can never disagree. The icon carries a dot while a filter is set.
  */
 @Composable
 internal fun JournalSearchRow(
@@ -61,13 +56,9 @@ internal fun JournalSearchRow(
     onFilterChange: (JournalFilter) -> Unit,
     onOpenFilter: () -> Unit,
 ) {
-    var text by remember { mutableStateOf(filter.search) }
-    LaunchedEffect(filter.search) { if (filter.search != text) text = filter.search }
+    val text = filter.search
     val focus = LocalFocusManager.current
-    val change = { value: String ->
-        text = value
-        onFilterChange(filter.copy(search = value))
-    }
+    val change = { value: String -> onFilterChange(filter.copy(search = value)) }
     Row(
         modifier = Modifier
             .fillMaxWidth()

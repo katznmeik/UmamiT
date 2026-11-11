@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
@@ -17,11 +19,15 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.JournalSession
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.Tea
+import com.umamit.core.model.TeaCategory
+import com.umamit.core.model.TeaForm
 import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
 import com.umamit.core.testing.FakeClock
@@ -33,6 +39,7 @@ import com.umamit.feature.journal.JournalSessions.session
 import com.umamit.feature.journal.JournalSessions.step
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -294,5 +301,67 @@ class JournalSearchTest {
 
         compose.onNodeWithContentDescription("Filter entfernen: Gyokuro Asahi").assertExists()
         compose.onNodeWithText("Bio Sencha Hisui").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a journal with only a running session shows it and no empty match state`() {
+        show(journalList(listOf(sessions[0]), TODAY))
+
+        compose.onNodeWithText("LÄUFT GERADE").assertIsDisplayed()
+        compose.onNodeWithText("Sencha Tanabata").assertIsDisplayed()
+        compose.onNodeWithText("Keine Sitzung passt zu deiner Suche.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the search field stays pinned while the list scrolls`() {
+        val many = List(60) { session("s$it", at(TODAY.minusDays(it.toLong()), 9), teaName = "Tee $it") }
+        show(journalList(many, TODAY))
+
+        compose.onNodeWithTag(JOURNAL_LIST_TAG).performScrollToIndex(100)
+
+        compose.onNodeWithTag(JOURNAL_SEARCH_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a tea key without finished sessions reads as the tea's name`() {
+        val clock = FakeClock(wall = JournalSessions.ms(LocalDateTime.of(2026, 10, 22, 12, 0)))
+        val onlyRunning = listOf(sessions[0])
+        val journal = object : JournalRepository {
+            override fun observeSessions(): Flow<List<JournalSession>> = flowOf(onlyRunning)
+
+            override suspend fun deleteSession(sessionId: String) = Unit
+
+            override fun observeTeaRatings(): Flow<Map<String, TeaRating>> = flowOf(emptyMap())
+
+            override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = flowOf(TeaTasting.EMPTY)
+        }
+        val collection = FakeCollection()
+        runBlocking {
+            collection.teas.saveTea(
+                Tea(id = "t-neu", name = "Neuer Sencha", category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF),
+            )
+        }
+        val sources =
+            JournalSources(journal, FakeSessions().sessions, SavedSheetRequests(clock), clock, collection.teas)
+        compose.setContent {
+            UmamiTheme(darkTheme = false, reduceMotion = true) {
+                JournalRoute(sources = sources, onOpenSettings = {}, onOpenTimer = {}, initialTeaKey = "t-neu")
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithContentDescription("Filter entfernen: Neuer Sencha").assertExists()
+        compose.onNodeWithText("Keine Sitzung passt zu deiner Suche.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the result count is announced in place and empty without a search`() {
+        show()
+        compose.onNode(hasText("", substring = false) and SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion))
+            .assertExists()
+
+        compose.onNodeWithTag(JOURNAL_SEARCH_TAG).performTextInput("sencha")
+
+        compose.onNodeWithText("1 Sitzung").assertExists()
     }
 }

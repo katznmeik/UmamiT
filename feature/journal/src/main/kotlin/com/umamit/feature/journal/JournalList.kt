@@ -48,8 +48,10 @@ data class JournalEntry(
     val finishedEarly: Boolean get() = infusions < plannedInfusions
 }
 
+internal const val DELETED_TEA_PREFIX = "name:"
+
 /** The tea filter's key of a session's tea: its id, or its recorded name once the tea is deleted (JRN-09). */
-fun teaKeyOf(teaId: String?, teaName: String): String = teaId ?: "name:$teaName"
+fun teaKeyOf(teaId: String?, teaName: String): String = teaId ?: "$DELETED_TEA_PREFIX$teaName"
 
 /** A day group's header: „Heute", „Gestern", or the date („Montag, 12. Oktober"). */
 sealed interface JournalDay {

@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
@@ -77,6 +78,7 @@ const val JOURNAL_LIST_TAG = "journal_list"
  * @param list the journal, unfiltered; null while the first read is running (nothing is shown, not the empty state).
  * @param filter the search and filters; [onFilterChange] reports a change (the host keeps it, JRN-09).
  * @param alerting an alert plays: the filter sheet gives way (rule 8).
+ * @param teaNameFallback the name of the filtered tea when it has no finished session (so it is no sheet option).
  * @param thumbnail loads a tea's cover photo; tests pass a placeholder.
  * @param onOpenSession a past entry's tap: its session page (SCR-16) by the session's id.
  */
@@ -92,6 +94,7 @@ fun JournalScreen(
     filter: JournalFilter = JournalFilter(),
     onFilterChange: (JournalFilter) -> Unit = {},
     alerting: Boolean = false,
+    teaNameFallback: String? = null,
 ) {
     ScreenScaffold(
         title = stringResource(R.string.journal_title),
@@ -110,6 +113,7 @@ fun JournalScreen(
                 filter = filter,
                 onFilterChange = onFilterChange,
                 alerting = alerting,
+                teaNameFallback = teaNameFallback,
                 scrollToTopRequest = scrollToTopRequest,
                 thumbnail = thumbnail,
                 onOpenTimer = onOpenTimer,
@@ -152,6 +156,7 @@ private fun JournalContent(
     filter: JournalFilter,
     onFilterChange: (JournalFilter) -> Unit,
     alerting: Boolean,
+    teaNameFallback: String?,
     scrollToTopRequest: Int,
     thumbnail: @Composable (File) -> Painter?,
     onOpenTimer: () -> Unit,
@@ -173,38 +178,47 @@ private fun JournalContent(
     val openLabel = stringResource(R.string.journal_open_session)
     val timerLabel = stringResource(R.string.journal_open_timer)
     val inProgressTitle = stringResource(R.string.journal_in_progress)
-    val teaName = teas.firstOrNull { it.key == filter.teaKey }?.name ?: stringResource(R.string.journal_filter_tea)
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag(JOURNAL_LIST_TAG),
-        state = listState,
-        contentPadding = PaddingValues(bottom = UmamiSpacing.Large),
-    ) {
-        item(key = "search") { JournalSearchRow(filter, onFilterChange) { sheetOpen = true } }
-        item(key = "chips") { JournalFilterChips(filter, teaName, onFilterChange) }
-        if (filter.isActive) {
-            item(key = "count") { ResultCount(visible.sessionCount) }
-        }
-        if (visible.days.isEmpty()) {
-            item(key = "no_match") {
-                EmptyState(
-                    title = stringResource(R.string.journal_no_match_title),
-                    body = null,
-                    actionLabel = stringResource(R.string.journal_no_match_action),
-                    onAction = { onFilterChange(JournalFilter()) },
-                    illustration = painterResource(
-                        if (UmamiTheme.isDark) UmamiIcons.NoResultsDark else UmamiIcons.NoResultsLight,
-                    ),
-                    illustrationTint = null,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+    // A tea without finished sessions is no option: its name comes from the host (teaNameFallback), else the label.
+    val teaName = teas.firstOrNull { it.key == filter.teaKey }?.name
+        ?: teaNameFallback
+        ?: stringResource(R.string.journal_filter_tea)
+    // The search row and the chips stay pinned under the title, so a scrolled journal can still be refined or
+    // cleared and the field keeps its focus and the keyboard.
+    Column(modifier = Modifier.fillMaxSize()) {
+        JournalSearchRow(filter, onFilterChange) { sheetOpen = true }
+        JournalFilterChips(filter, teaName, onFilterChange)
+        ResultCount(if (filter.isActive) visible.sessionCount else null)
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .testTag(JOURNAL_LIST_TAG),
+            state = listState,
+            contentPadding = PaddingValues(bottom = UmamiSpacing.Large),
+        ) {
+            // Only a search or filter can fail to match; a journal with just a running session is not "no match".
+            if (filter.isActive && visible.days.isEmpty()) {
+                item(key = "no_match") {
+                    EmptyState(
+                        title = stringResource(R.string.journal_no_match_title),
+                        body = null,
+                        actionLabel = stringResource(R.string.journal_no_match_action),
+                        onAction = { onFilterChange(JournalFilter()) },
+                        illustration = painterResource(
+                            if (UmamiTheme.isDark) UmamiIcons.NoResultsDark else UmamiIcons.NoResultsLight,
+                        ),
+                        illustrationTint = null,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
-        }
-        groups("running", { inProgressTitle }, visible.inProgress, thumbnail, timerLabel) { onOpenTimer() }
-        visible.days.forEach { group ->
-            val key = "day-${group.entries.first().startedAt.toLocalDate()}"
-            groups(key, { dayTitle(group.day) }, group.entries, thumbnail, openLabel) { onOpenSession(it.sessionId) }
+            groups("running", { inProgressTitle }, visible.inProgress, thumbnail, timerLabel) { onOpenTimer() }
+            visible.days.forEach { group ->
+                val key = "day-${group.entries.first().startedAt.toLocalDate()}"
+                groups(key, { dayTitle(group.day) }, group.entries, thumbnail, openLabel) {
+                    onOpenSession(it.sessionId)
+                }
+            }
         }
     }
     if (sheetOpen && !alerting) {
@@ -218,20 +232,21 @@ private fun JournalContent(
 }
 
 /**
- * The count of matching sessions, announced by TalkBack after a search or filter change (JRN-09). It takes no
- * space: the text is for the live region only.
+ * The count of matching sessions, announced by TalkBack after a search or filter change (JRN-09). The node stays
+ * mounted and its text changes in place (empty while no search or filter is set, [count] null). It is a real,
+ * invisible [Text] one dp high, so TalkBack does not skip it.
  */
 @Composable
-private fun ResultCount(count: Int) {
-    val text = pluralStringResource(R.plurals.journal_result_count, count, count)
-    Spacer(
-        Modifier
+private fun ResultCount(count: Int?) {
+    val text = if (count == null) "" else pluralStringResource(R.plurals.journal_result_count, count, count)
+    Text(
+        text = text,
+        modifier = Modifier
             .fillMaxWidth()
             .height(1.dp)
-            .semantics {
-                liveRegion = LiveRegionMode.Polite
-                contentDescription = text
-            },
+            .clipToBounds()
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        color = Color.Transparent,
     )
 }
 

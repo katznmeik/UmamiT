@@ -200,4 +200,15 @@ class JournalFilterTest {
         assertThat(filter.hasFilters).isTrue()
         assertThat(filter.withoutFilters().hasFilters).isFalse()
     }
+
+    @Test
+    fun `a journal with only a running session keeps it pinned and has no finished days`() {
+        val runningOnly = journalList(listOf(sessions.last()), TODAY, labels::get)
+
+        val shown = runningOnly.filtered(JournalFilter())
+
+        assertThat(shown.inProgress.map { it.sessionId }).containsExactly("running")
+        assertThat(shown.days).isEmpty()
+        assertThat(JournalFilter().isActive).isFalse()
+    }
 }
