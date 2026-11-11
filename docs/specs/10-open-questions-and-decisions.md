@@ -743,7 +743,13 @@ at T3 over the whole diff found no blocker; `/review-animations` once
   built off the main thread (`Dispatchers.Default`); the last list stays
   shown while a new one is built and in the first frame of a tab that comes
   back, so nothing flashes. The 10 000-session criterion is still shown by
-  JVM timing only.
+  JVM timing only. Until the first list is built, the Journal shows its top
+  bar over an empty body (never the empty state). A tab that comes back
+  can show the earlier list for a frame: a session just deleted, or
+  yesterday's day headings right after midnight; the next build corrects
+  it. The app's tests wait for the built list before they use it (the
+  first gate run failed once on that race, in `SessionPageFlowTest`; fixed
+  at T3, test code only).
 - **Motion (M1, M2, M4).** The radar eases in above the sliders when the
   third axis is set (03 SCR-16); the sheets' divider fade is read in the
   draw phase; the hero's glide to a new photo uses the `sheet` token.
