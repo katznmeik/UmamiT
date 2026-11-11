@@ -123,4 +123,9 @@
     <string name="ui_taste_slider_value">%1$s von 5</string>
     <string name="ui_taste_radar_label">Geschmacksprofil: %1$s</string>
     <string name="ui_taste_radar_item">%1$s %2$s von 5</string>
+    <!-- DescriptorChip toggle state for TalkBack: „Nori, ausgewählt" (03 §3.8, JRN-04). -->
+    <string name="ui_descriptor_selected">ausgewählt</string>
+    <string name="ui_descriptor_not_selected">nicht ausgewählt</string>
+    <!-- Read-only DescriptorChip with a count: „Nori · 4". -->
+    <string name="ui_descriptor_with_count">%1$s · %2$d</string>
 </resources>
