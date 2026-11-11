@@ -5,8 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -21,6 +27,7 @@ import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
+import com.umamit.core.ui.ratingStarTag
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -45,6 +52,7 @@ class SavedSheetTest {
     private val requests = SavedSheetRequests(clock)
     private val controller = FakeBrewController(data.sessions, requests)
     private var alerting by mutableStateOf(false)
+    private val opened = mutableListOf<String>()
 
     /** Whether the shell, and with it the sheet's host, is composed (the timer route covers it otherwise). */
     private var hostComposed by mutableStateOf(true)
@@ -57,6 +65,8 @@ class SavedSheetTest {
                         requests = requests,
                         sessions = data.sessions,
                         teas = collection.teas,
+                        tasting = data.tasting,
+                        onOpenNotes = { opened += it },
                         alerting = alerting,
                     )
                 }
@@ -182,6 +192,115 @@ class SavedSheetTest {
         compose.onNodeWithText("Rezept passt").assertDoesNotExist()
         assertThat(runBlocking { collection.teas.getTea("flagged") }?.recipeCheckReason)
             .isEqualTo(RecipeCheckReason.FROM_TEXT)
+    }
+
+    private fun star(n: Int) = compose.onNodeWithTag(ratingStarTag(n), useUnmergedTree = true)
+
+    private fun rating(id: String) = runBlocking { data.sessions.getSession(id) }?.rating
+
+    @Test
+    fun `a star tap rates the session at once and restarts the 10 s`() {
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(1_000)
+
+        // 8 s in, a tap: the 10 s start again.
+        compose.mainClock.advanceTimeBy(7_000)
+        star(4).performClick()
+        compose.mainClock.advanceTimeBy(500)
+        compose.waitForIdle()
+        assertThat(rating("s1")).isEqualTo(4.0)
+
+        compose.mainClock.advanceTimeBy(8_000)
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+        compose.mainClock.advanceTimeBy(3_000)
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+        assertThat(rating("s1")).isEqualTo(4.0)
+    }
+
+    @Test
+    fun `a second and a third tap on the same star take half off and clear`() {
+        show()
+        controller.brew("s1", 60)
+
+        star(3).performClick()
+        compose.waitForIdle()
+        assertThat(rating("s1")).isEqualTo(3.0)
+        star(3).performClick()
+        compose.waitForIdle()
+        assertThat(rating("s1")).isEqualTo(2.5)
+        star(3).performClick()
+        compose.waitForIdle()
+        assertThat(rating("s1")).isNull()
+    }
+
+    @Test
+    fun `the stars stay one adjustable node of their own for TalkBack`() {
+        show()
+        controller.brew("s1", 60)
+
+        // Exactly one node adjusts, and it is not the sheet itself.
+        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress))
+            .assert(hasContentDescription("Bewertung"))
+    }
+
+    @Test
+    fun `ignoring the sheet leaves the session unrated and it dismisses after 10 s`() {
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(11_000)
+
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+        assertThat(rating("s1")).isNull()
+        assertThat(opened).isEmpty()
+    }
+
+    @Test
+    fun `an alert removes the sheet and the started rating write still lands`() {
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(1_000)
+
+        star(5).performClick()
+        alerting = true
+        Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+        compose.mainClock.autoAdvance = true
+        compose.waitForIdle()
+        assertThat(rating("s1")).isEqualTo(5.0)
+    }
+
+    @Test
+    fun `Notizen hinzufuegen closes the sheet and opens the session page`() {
+        show()
+        controller.brew("s1", 60)
+
+        compose.onNodeWithText("Notizen hinzufügen").assertIsDisplayed().performClick()
+        compose.waitForIdle()
+
+        assertThat(opened).containsExactly("s1")
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+        assertThat(requests.pending.value).isNull()
+        assertThat(rating("s1")).isNull()
+    }
+
+    @Test
+    fun `the stars come before Notizen hinzufuegen, before the opened line and Rezept passt`() {
+        saveTea("flagged", RecipeCheckReason.FROM_TEXT)
+        show()
+
+        controller.brew("s1", 60, teaId = "flagged")
+
+        val stars = star(1).fetchSemanticsNode().boundsInRoot.top
+        val notes = compose.onNodeWithText("Notizen hinzufügen").fetchSemanticsNode().boundsInRoot.top
+        val ok = compose.onNodeWithText("Rezept passt").fetchSemanticsNode().boundsInRoot.top
+        assertThat(stars).isLessThan(notes)
+        assertThat(notes).isLessThan(ok)
     }
 
     @Test

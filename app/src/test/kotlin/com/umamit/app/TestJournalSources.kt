@@ -12,4 +12,4 @@ fun testJournalSources(
     sessions: FakeSessions = FakeSessions(),
     teas: TeaRepository = FakeCollection().teas,
     requests: SavedSheetRequests = SavedSheetRequests(FakeClock()),
-): JournalSources = JournalSources(sessions.journal, sessions.sessions, requests, FakeClock(), teas)
+): JournalSources = JournalSources(sessions.journal, sessions.sessions, requests, FakeClock(), teas, sessions.tasting)

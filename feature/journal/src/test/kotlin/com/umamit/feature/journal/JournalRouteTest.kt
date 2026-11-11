@@ -30,7 +30,7 @@ class JournalRouteTest {
         // A session brewed at 09:12 today.
         FakeBrewController(data.sessions, requests).brew("s1", 60)
         requests.dismiss("s1")
-        val sources = JournalSources(data.journal, data.sessions, requests, clock, FakeCollection().teas)
+        val sources = JournalSources(data.journal, data.sessions, requests, clock, FakeCollection().teas, data.tasting)
         compose.mainClock.autoAdvance = false
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {

@@ -4,6 +4,7 @@ import com.umamit.core.common.WallClock
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.JournalSession
 import com.umamit.core.data.SessionRepository
+import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.timer.controller.SavedSheetRequests
 import java.time.Duration
@@ -23,6 +24,7 @@ class JournalSources @Inject constructor(
     val savedSheets: SavedSheetRequests,
     val clock: WallClock,
     val teas: TeaRepository,
+    val tasting: SessionTasting,
 ) {
     /**
      * The journal's last read: a tab that comes back shows it in its first frame, so the
