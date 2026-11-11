@@ -43,6 +43,7 @@ import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.HeroAddPhoto
 import com.umamit.core.ui.HeroImage
 import com.umamit.core.ui.HeroLeaf
+import com.umamit.core.ui.HeroPlaceholder
 import com.umamit.core.ui.PhotoHero
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.journal.R
@@ -55,6 +56,9 @@ const val SESSION_HERO_COVER_TAG = "session_hero_cover"
 
 /** The hero's type leaf, without session photos and tea cover. */
 const val SESSION_HERO_LEAF_TAG = "session_hero_leaf"
+
+/** The hero's tinted box while it doesn't know yet what to show (no leaf, no controls). */
+const val SESSION_HERO_LOADING_TAG = "session_hero_loading"
 
 /** *+ Foto* over the hero. */
 const val SESSION_ADD_PHOTO_TAG = "session_add_photo"
@@ -125,12 +129,13 @@ internal fun SessionHeroLayout(
  * leaf). *+ Foto* (only for a finished session, [canAdd]) opens the photo picker; at 6 it is greyed out with
  * „Höchstens 6 Fotos". The shown photo's ⋮ („Foto-Optionen", only with session photos) offers *Löschen* after „Foto
  * löschen?"; the menu and the question close in the frame an alert starts ([alertKey], rule 8). TalkBack reads
- * „Fotos der Sitzung" and each photo as „Foto 1 von 3".
+ * „Fotos der Sitzung" and each photo as „Foto 1 von 3". While [hero] is still loading (null) only the 4:3 tinted
+ * box shows, so a session with photos or a cover never flashes the leaf first.
  */
 @Composable
 @Suppress("LongParameterList") // the hero's state, its actions and the painter seam
 internal fun SessionHeroPager(
-    hero: SessionHero,
+    hero: SessionHero?,
     styleKey: String?,
     canAdd: Boolean,
     actions: SessionHeroActions,
@@ -138,6 +143,10 @@ internal fun SessionHeroPager(
     photo: @Composable (path: String) -> Painter?,
 ) {
     val color = UmamiTheme.extendedColors.teaTypes.forStyle(styleKey)
+    if (hero == null) {
+        HeroPlaceholder(color, Modifier.testTag(SESSION_HERO_LOADING_TAG))
+        return
+    }
     PhotoHero(
         photos = hero.photos,
         key = SessionHeroPhoto::id,

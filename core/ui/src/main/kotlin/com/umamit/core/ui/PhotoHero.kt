@@ -140,6 +140,12 @@ private fun PagerPhoto(
     }
 }
 
+/** A 4:3 hero's bare tint, without leaf or controls: what a hero shows while it doesn't know yet what it shows. */
+@Composable
+fun HeroPlaceholder(color: Color, modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().aspectRatio(HERO_ASPECT_RATIO).background(color.copy(alpha = PLACEHOLDER_ALPHA)))
+}
+
 /** A hero's still image (a session's tea cover, SCR-16): cropped on the style's tint, read by TalkBack as nothing. */
 @Composable
 fun HeroImage(painter: Painter, placeholderColor: Color, modifier: Modifier = Modifier) {

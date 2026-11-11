@@ -94,7 +94,8 @@ class SessionPageActions(
  * session with its stock deduction. BEWERTUNG (the stars, JRN-02) and NOTIZEN (JRN-05) sit above the step table and
  * save as they change (D-112), GESCHMACK (JRN-03) and BESCHREIBUNGEN (JRN-04) follow the step table; ⋮ *Bearbeiten*
  * opens the editor (JRN-11). The hero (JRN-07) shows the session's photos ([hero], with *+ Foto* and *Löschen*
- * through [heroActions]), else the tea's cover, else the type leaf; ← and ⋮ sit over it.
+ * through [heroActions]), else the tea's cover, else the type leaf; while [hero] is loading (null) only its tint;
+ * ← and ⋮ sit over it.
  *
  * The menu and the question give way to another alert than the one they were opened in ([alertKey], rule 8); the
  * host opens the alerting timer in place of the setup or the tea during an alert.
@@ -105,7 +106,7 @@ fun SessionPageScreen(
     modifier: Modifier = Modifier,
     actions: SessionPageActions = SessionPageActions(),
     alertKey: String? = null,
-    hero: SessionHero = SessionHero(),
+    hero: SessionHero? = SessionHero(),
     heroActions: SessionHeroActions = SessionHeroActions(),
     photo: @Composable (path: String) -> Painter? = { rememberPhotoPainter(it) },
 ) {

@@ -93,13 +93,16 @@ class SessionHeroScreenTest {
         sessions.sessions.completeSession(PAST, autoFinished = false)
     }
 
-    private fun showScreen(hero: SessionHero) {
+    private val heroState = mutableStateOf<SessionHero?>(null)
+
+    private fun showScreen(hero: SessionHero?) {
+        heroState.value = hero
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 SessionPageScreen(
                     state = SessionPageUiState.Ready(page),
                     alertKey = alert.value,
-                    hero = hero,
+                    hero = heroState.value,
                     heroActions = SessionHeroActions(deletePhoto = { deleted += it }),
                     photo = { PLACEHOLDER },
                 )
@@ -176,6 +179,36 @@ class SessionHeroScreenTest {
         compose.onNodeWithTag(SESSION_HERO_LEAF_TAG).assertIsDisplayed()
         compose.onNodeWithTag(SESSION_HERO_COVER_TAG).assertDoesNotExist()
         compose.onNodeWithText("Höchstens 6 Fotos").assertDoesNotExist()
+    }
+
+    @Test
+    fun `while the hero loads it shows the tinted box without leaf, then the photos that arrive after the page`() {
+        showScreen(null)
+
+        compose.onNodeWithTag(SESSION_HERO_LOADING_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_HERO_LEAF_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_HERO_COVER_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_ADD_PHOTO_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertExists()
+
+        heroState.value = SessionHero(photos = photos(2), coverPath = "/photos/cover.jpg")
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(SESSION_HERO_LOADING_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_HERO_LEAF_TAG).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Foto 1 von 2").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a loading hero shows the leaf only once it knows there is neither photo nor cover`() {
+        showScreen(null)
+        compose.onNodeWithTag(SESSION_HERO_LEAF_TAG).assertDoesNotExist()
+
+        heroState.value = SessionHero()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(SESSION_HERO_LOADING_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_HERO_LEAF_TAG).assertIsDisplayed()
     }
 
     @Test

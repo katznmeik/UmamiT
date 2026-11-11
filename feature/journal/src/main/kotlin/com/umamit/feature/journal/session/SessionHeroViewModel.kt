@@ -61,7 +61,8 @@ class SessionHeroViewModel @Inject constructor(
     /** [SessionHeroEvent]s for the page, each delivered once. */
     val events: Flow<SessionHeroEvent> = _events.receiveAsFlow()
 
-    val state: StateFlow<SessionHero> = combine(
+    /** The hero; null until its first read, so the page draws the bare tint rather than the leaf meanwhile. */
+    val state: StateFlow<SessionHero?> = combine(
         journal.observeSessions()
             .map { list -> list.firstOrNull { it.session.id == sessionId }?.coverPhoto }
             .distinctUntilChanged(),
@@ -77,7 +78,7 @@ class SessionHeroViewModel @Inject constructor(
     }
         .distinctUntilChanged()
         .flowOn(photoFileContext) // the photo files are checked off the main thread (the app provides IO)
-        .stateIn(viewModelScope, SharingStarted.Eagerly, SessionHero())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** *+ Foto*: adds the image the photo picker returned (JRN-07); a refusal or failure is said once. */
     fun addPhoto(uri: String) {
