@@ -227,7 +227,9 @@ class SessionPageFlowTest {
     private fun openSessionPage() {
         compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
         compose.waitForIdle()
-        compose.onNode(hasText("Sencha Morgentau") and hasClickAction()).performClick()
+        val row = hasText("Sencha Morgentau") and hasClickAction()
+        compose.awaitNode(row)
+        compose.onNode(row).performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(SESSION_TEA_TAG).assertIsDisplayed()
     }

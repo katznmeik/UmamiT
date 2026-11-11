@@ -193,6 +193,8 @@ class TeaDetailSessionsRouteTest {
         compose.onNodeWithContentDescription("Alle anzeigen: Letzte Sitzungen").performScrollTo()
             .performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
+        // The Journal builds its list off the main thread; its filter chip shows once the list is there.
+        compose.awaitDescription(CHIP)
     }
 
     private fun back() {
@@ -222,7 +224,7 @@ class TeaDetailSessionsRouteTest {
         showAll()
 
         compose.onNodeWithTag(tabTag(Tab.Journal)).assertIsSelected()
-        compose.onNodeWithContentDescription("Filter entfernen: Sencha Morgentau").assertExists()
+        compose.onNodeWithContentDescription(CHIP).assertExists()
         compose.onNodeWithText("Gyokuro Abendrot").assertDoesNotExist()
     }
 
@@ -243,7 +245,7 @@ class TeaDetailSessionsRouteTest {
         show()
         openDetail()
         showAll()
-        compose.onNodeWithContentDescription("Filter entfernen: Sencha Morgentau").performClick()
+        compose.onNodeWithContentDescription(CHIP).performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Gyokuro Abendrot").assertIsDisplayed()
 
@@ -252,7 +254,7 @@ class TeaDetailSessionsRouteTest {
         showAll()
 
         compose.onNodeWithTag(tabTag(Tab.Journal)).assertIsSelected()
-        compose.onNodeWithContentDescription("Filter entfernen: Sencha Morgentau").assertExists()
+        compose.onNodeWithContentDescription(CHIP).assertExists()
         compose.onNodeWithText("Gyokuro Abendrot").assertDoesNotExist()
     }
 
@@ -262,6 +264,7 @@ class TeaDetailSessionsRouteTest {
         // The journal tab has a session page open when the request arrives.
         compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
         compose.waitForIdle()
+        compose.awaitText("Gyokuro Abendrot")
         compose.onNodeWithText("Gyokuro Abendrot").performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(SESSION_BREW_AGAIN_TAG).assertExists()
@@ -270,13 +273,14 @@ class TeaDetailSessionsRouteTest {
         showAll()
 
         compose.onNodeWithTag(tabTag(Tab.Journal)).assertIsSelected()
-        compose.onNodeWithContentDescription("Filter entfernen: Sencha Morgentau").assertExists()
+        compose.onNodeWithContentDescription(CHIP).assertExists()
         compose.onNodeWithTag(SESSION_BREW_AGAIN_TAG).assertDoesNotExist()
     }
 
     private companion object {
         const val TEA = "morgentau"
         const val OTHER = "abendrot"
+        const val CHIP = "Filter entfernen: Sencha Morgentau"
         const val ROW = "Sencha Morgentau (Liste)"
         const val SETUP = "SETUP"
         const val TIMER = "TIMER"
