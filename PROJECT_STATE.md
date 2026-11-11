@@ -5,29 +5,30 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is built, reviewed and fixed** on `claude/wonderful-davinci-fu8tqi` (draft PR #235): the milestone review (T3), the motion review, #236 and the fix round are merged and the full local gate passed on `efc061b6`. **`v0.6.0-rc.1` is prepared but not dispatched:** GitHub Actions hung, so no CI run on the head has passed yet (see below). After the rc: the PO's on-device checklist and design review, then #234 (merge, final release). [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-11. **[`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) is out** (the journal, M4 part 1; D-112; versionCode 60001, from `74237151` on `claude/wonderful-davinci-fu8tqi`, draft PR #235). The milestone review (T3), the motion review, #236 and the fix round are merged; CI is green on the rc's commit. **Waiting on the PO:** the on-device checklist (09 §4 „v0.6.0"), the design review (`docs/design/review/v0.6.0/`) and four open questions (below). **Next phase (fresh session, after the PO's answer): #234**, the merge and the final release, or a feedback round. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest full release (from `main` `73a97fc5`); details in `docs/history.md`.
 
-## v0.6.0 (reviewed and fixed; rc.1 waits on CI)
+## v0.6.0 (rc.1 out; waiting on the PO)
 
-- **Review and rc phase (#233): review and fix round done, rc pending** (2026-11-11).
-  - **`v0.6.0-rc.1`: not dispatched yet.** `umamit.version=0.6.0-rc.1`
-    (versionCode 60001) is on the branch and the full local gate passed on
-    `efc061b6`, but GitHub Actions hung on 2026-11-11 from about 20:25 UTC:
-    CI run 43096106697 (head `c65bce75`) stayed queued for over an hour and
-    could be neither cancelled nor rerun. `release.yml` needs a passed
-    `pull_request` CI run on the exact commit. Next: wait for a green CI run
-    on the head, then dispatch `release.yml` (`ref` = the PR branch,
-    `version` = `0.6.0-rc.1`), verify the certificate, update PR #235 and
-    #233, notify the PO. No accuracy run for the rc: no timer code changed.
-  - **CI run 43094657346 (head `d902df8c`, superseded) failed** in
-    „Emulator tests (API 35)": the brew-and-quick-timer test of `ProcessDeathTest`
+- **Review and rc phase (#233): done** (2026-11-11, one session).
+  - **[`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1)**
+    is published (pre-release, versionCode 60001, from `74237151` on the PR
+    branch; release run 43106966020; APK SHA-256 `7f9530bb…30a7`;
+    certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`). CI
+    was green on that commit (run 43103655084: checks, build, emulator
+    tests on API 35 and 36). No accuracy run for the rc: no timer code
+    changed.
+  - **CI on the way there.** Run 43094657346 (head `d902df8c`) failed in
+    „Emulator tests (API 35)": the brew-and-quick-timer test of
+    `ProcessDeathTest`
     (`aBrewStepAndAQuickTimerDueTogetherSurviveTwoKillsAndAlertTheBrewFirst`)
-    saw the held quick-timer alert 2327 ms after
-    *Abgegossen* (tolerance 2 s). This is not the flake of D-112 Q19 (other
-    method, API 35, a timing bound). Timer code is unchanged against `main`
-    and GitHub's runners were degraded at that time (artifact uploads
-    failed), so it is read as runner load: rerun once if it shows again; if
-    it repeats, stop and ask the PO (timer).
+    saw the held quick-timer alert 2327 ms after *Abgegossen* (tolerance
+    2 s). This is not the flake of D-112 Q19 (other method, API 35, a
+    timing bound). Timer code is unchanged against `main`, GitHub's runners
+    were degraded at that time (artifact uploads failed, and the next run,
+    43096106697, hung in the queue for an hour), and the test passed on
+    both API levels in run 43103655084. Nothing was changed; the PO knows.
+    If it shows again: rerun once; if it repeats, stop and ask the PO
+    (timer).
   - **Milestone review (T3):** no blocker. **Motion review (T2):**
     `docs/plans/v0.6.0-motion-review.md`. What was fixed and what was left
     is D-112's „Review and fix round".
@@ -109,12 +110,12 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, spec #221, plan `docs/plans/v0.6.0.md`): built (#222–#232, #236), reviewed and fixed (#233); `v0.6.0-rc.1` waits on CI. Then v0.6.1 (Statistik, M4 part 2), not yet specified |
+| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, spec #221, plan `docs/plans/v0.6.0.md`): built (#222–#232, #236), reviewed and fixed (#233), **`v0.6.0-rc.1` out**; the PO's test, then #234. Then v0.6.1 (Statistik, M4 part 2), not yet specified |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `73a97fc5`; v0.6.0's build and fix round, last full local gate on `efc061b6`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | **#235** (draft): v0.6.0 milestone PR, all build tickets and the fix round merged |
-| Latest APK | [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (full release, versionCode 50199, from `main` `73a97fc5`, certificate verified); rc `v0.5.1-rc.2` (50102), rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
+| Open PR | **#235** (draft): v0.6.0 milestone PR, all build tickets and the fix round merged, rc.1 published |
+| Latest APK | rc [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (pre-release, versionCode 60001, from `74237151`, certificate verified); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (full release, versionCode 50199, from `main` `73a97fc5`, certificate verified); rc `v0.5.1-rc.2` (50102), rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
 | Decision numbers | Up to **D-112** used (its PO answers run to Q22); the next free is **D-113** |
 
 ## Working agreements in effect
@@ -130,7 +131,7 @@
 
 ## Waiting on the PO
 
-1. **v0.6.0:** nothing yet; the rc is not out. Once `v0.6.0-rc.1` is published: the on-device checklist (09 §4 „v0.6.0"), the design review (`docs/design/review/v0.6.0/README.md`) and the four open questions above.
+1. **v0.6.0:** test `v0.6.0-rc.1` with the on-device checklist (09 §4 „v0.6.0", also in PR #235), judge the renders (`docs/design/review/v0.6.0/README.md`, „Points to judge") and answer the four open questions above. The approval (in a session or as a PR comment) starts #234; anything else is input to a feedback round.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
