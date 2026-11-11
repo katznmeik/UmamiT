@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is built**: all eleven build tickets (#222–#232) are merged into `claude/wonderful-davinci-fu8tqi` (draft PR #235) and the full local gate passed on `08796ec4`. **Next phase (fresh session): #233**, the milestone review, the motion review, the fix round and `v0.6.0-rc.1`. Four questions wait for the PO (below). [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is built**: all eleven build tickets (#222–#232) are merged into `claude/wonderful-davinci-fu8tqi` (draft PR #235) and the full local gate passed on `08796ec4`. **Next phase (fresh session): #233**, the milestone review, the motion review, the fix round and `v0.6.0-rc.1`. The PO answered four questions after the build (D-112 Q19–Q22); one small ticket came of it (#236). [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
 
 ## v0.6.0 (built; review and rc next)
 
@@ -29,16 +29,20 @@
     `ProcessDeathTest` (two brews, process death) reads the diagnostics log
     once while the timer process writes the recovery line asynchronously.
     The recovery itself worked; the same test flaked once before
-    (`docs/history.md`). The runs after it were green. A fix is test-only
-    but under `core/timer/src/androidTest`, so it waits for the PO
-    (question 1 below).
+    (`docs/history.md`). The runs after it were green. The PO's answer
+    (D-112 Q19): it stays a known flake; rerun CI when it fails.
+  - **The PO's answers after the build (D-112 Q19–Q22, 2026-11-11):** the
+    flaky test stays; ← and ⋮ over the session page's hero stay as built
+    (no title „Sitzung"); a step that *Sitzung beenden* ended early keeps
+    counting for the recipe offer; accepting the offer is to keep the
+    recipe's step notes by position. The last one is ticket **#236**
+    (T2, specs 02 PRF-07 AC5 and 05 §3.7 already updated), not built yet.
 - **Next phase, #233 (fresh session, Opus `medium`):**
   1. Check CI on the head of PR #235.
   2. One milestone review at T3 over `main...HEAD` (12 §5.3), with the
      items below; `/review-animations` once by a T2 subagent, notes in
      `docs/plans/v0.6.0-motion-review.md` (plan „Review, rc, release").
-  3. The PO's answers to the four questions go through the process (D-112
-     addendum or a new decision, spec, ticket) before any code.
+  3. Build #236 (T2; `core:domain`, `core:data`) with the fix round.
   4. One fix round by tier, the full gate, then `umamit.version=0.6.0-rc.1`,
      the renders in `docs/design/review/v0.6.0/` (placeholder images only),
      `release.yml` from the PR branch, the checklist of 09 §4 „v0.6.0".
@@ -67,7 +71,7 @@
   - *Meine Tees*: a rated favourite reads „★ 4,5 ★"; archived rows show the
     rating too.
   - Session page: two ⋮ on the hero (the page's at the top, the photo's at
-    the bottom).
+    the bottom); the layout itself is confirmed (Q20).
   - Recipe offer (Claude's details in D-112's build notes for #228): an
     archived tea gets no offer; rounding follows the recorded time; a base
     temperature changed in the setup counts as a change; a rinse ended
@@ -108,7 +112,7 @@
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | **#235** (draft): v0.6.0 milestone PR, all build tickets merged |
 | Latest APK | [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (full release, versionCode 50199, from `main` `73a97fc5`, certificate verified); rc `v0.5.1-rc.2` (50102), rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-112** used; the next free is **D-113** |
+| Decision numbers | Up to **D-112** used (its PO answers run to Q22); the next free is **D-113** |
 
 ## Working agreements in effect
 
@@ -123,13 +127,7 @@
 
 ## Waiting on the PO
 
-1. **v0.6.0, four questions** (asked as options at the end of the build session; an answer goes through the process before any code):
-   1. **`ProcessDeathTest`'s log read (see „CI" above):** (a) leave it as a known flake and rerun; (b) fix the test in v0.6.0, a test-only change under `core/timer`; (c) fix it after v0.6.0. Until answered nothing under `core/timer` changes.
-   2. **Session page, ← and ⋮ (SCR-16, #229):** built over the hero on translucent surfaces as on the tea detail, so a loaded page has no title „Sitzung". (a) Keep it; (b) a solid top bar with ← · „Sitzung" · ⋮ above the hero; (c) as built, with the title appearing in a bar once the hero has scrolled away.
-   3. **Recipe offer after *Sitzung beenden* in the middle of an infusion (PRF-07, #228):** the stored steps cannot tell it from *Aufguss jetzt beenden*, so today it offers the shorter time. (a) Keep it; (b) leave out the step that *Sitzung beenden* ended (recognised by its end time, not exact in every case).
-   4. **Recipe offer and step notes (PRF-07, #228):** accepting replaces the recipe's steps as *Im Rezept speichern* does, which drops the recipe's step notes. (a) Keep it; (b) keep each step's note at its position when the kind matches; (c) keep the notes only when the number of steps is unchanged.
-
-   Corrections to D-112's details and build notes marked „Claude" are welcome at any time.
+1. **v0.6.0:** nothing blocks. Corrections to D-112's details and build notes marked „Claude" are welcome at any time; the items for the design review are listed above and come with the rc's renders.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
@@ -148,4 +146,5 @@
 - Live Update / ProgressStyle and the full-screen alert were verified on the Galaxy with `v0.0.2-probe`; the full timer keeps those patterns (D-043, D-044, `docs/plans/M1-android16-api-notes.md`). Now Bar presence is best effort.
 - Tee-Kontor uses Cloudflare; refreshes may get blocked (handled by stopping without changes).
 - After a reboot, alerts fire only once the phone has been unlocked (E2); Samsung's automatic overnight restart should be disabled (ONB-02).
+- `ProcessDeathTest` (two brews, process death; emulator, API 36) can fail on its single read of the diagnostics log; rerun CI (D-112 Q19).
 - Robolectric fetches its runtime jar at test time; a network hiccup has failed CI before. Rerun once and comment on the PR.
