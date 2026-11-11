@@ -108,6 +108,9 @@ class ShellNavigationTest {
 
     private fun tab(tab: Tab) = compose.onNodeWithTag(tabTag(tab))
 
+    /** The Journal builds its list, the empty one too, off the main thread: wait for its empty state. */
+    private fun awaitEmptyJournal() = compose.awaitText(str(JournalR.string.journal_empty_title))
+
     private fun openSettingsFromStart() =
         compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_settings)).performClick()
 
@@ -129,6 +132,7 @@ class ShellNavigationTest {
     fun settingsOpensFromOtherTabsMenu() {
         start()
         tab(Tab.Journal).performClick()
+        awaitEmptyJournal()
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()
         compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_more_options)).performClick()
         compose.onNodeWithText(str(DesignSystemR.string.ds_settings)).performClick()
@@ -140,6 +144,7 @@ class ShellNavigationTest {
         start()
         openSettingsFromStart()
         tab(Tab.Journal).performClick()
+        awaitEmptyJournal()
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()
 
         tab(Tab.Start).performClick()
@@ -220,6 +225,7 @@ class ShellNavigationTest {
     fun returningFromAPushedScreenDoesNotReplayItsScroll() {
         start()
         tab(Tab.Journal).performClick()
+        awaitEmptyJournal()
         scrollDown()
         val journalPosition = scrollPosition()
         compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_more_options)).performClick()
@@ -276,6 +282,7 @@ class ShellNavigationTest {
     fun eachTabKeepsItsScrollPosition() {
         start()
         tab(Tab.Journal).performClick()
+        awaitEmptyJournal()
         scrollDown()
         val journalPosition = scrollPosition()
 
@@ -291,11 +298,13 @@ class ShellNavigationTest {
     fun backLeavesTheTabStackThenReturnsToStart() {
         start()
         tab(Tab.Journal).performClick()
+        awaitEmptyJournal()
         compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_more_options)).performClick()
         compose.onNodeWithText(str(DesignSystemR.string.ds_settings)).performClick()
         compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertIsDisplayed()
 
         pressBack()
+        awaitEmptyJournal()
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()
 
         pressBack()
@@ -308,6 +317,7 @@ class ShellNavigationTest {
         start(reduceMotion = false)
         tab(Tab.Journal).performClick()
         compose.waitForIdle()
+        awaitEmptyJournal()
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()
         compose.onNodeWithText(str(HomeR.string.home_empty_title)).assertDoesNotExist()
     }

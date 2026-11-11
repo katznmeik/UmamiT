@@ -71,6 +71,9 @@ class JournalRouteTest {
             Thread.sleep(STEP_MS)
             compose.mainClock.advanceTimeBy(FRAME_MS)
         }
+        check(compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()) {
+            "\"$text\" did not show within $WAIT_MS ms"
+        }
     }
 
     private companion object {
