@@ -103,6 +103,7 @@ class SessionDescriptorsTest {
                 SessionPageRoute(
                     host = SessionPageHost(onBack = {}, onOpenTea = {}, onBrewAgain = {}, alertKey = alert.value),
                     viewModel = viewModel,
+                    heroViewModel = heroViewModel(sessions, PAST),
                 )
             }
         }

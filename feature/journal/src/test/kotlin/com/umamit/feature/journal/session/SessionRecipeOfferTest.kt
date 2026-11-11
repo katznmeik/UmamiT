@@ -2,8 +2,9 @@ package com.umamit.feature.journal.session
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -92,6 +93,7 @@ class SessionRecipeOfferTest {
                         host = SessionPageHost(onBack = {
                         }, onOpenTea = {}, onBrewAgain = {}),
                         viewModel = viewModel,
+                        heroViewModel = remember(viewModel) { heroViewModel(sessions, PAST) },
                     )
                 }
             }
@@ -123,9 +125,10 @@ class SessionRecipeOfferTest {
         offers.proposals[PAST] = PROPOSAL
         show()
 
-        val button = offerButton().performScrollTo().assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val steps = compose.onNode(hasContentDescription("Aufgüsse")).fetchSemanticsNode().boundsInRoot
-        val taste = compose.onNode(hasContentDescription("Geschmack")).fetchSemanticsNode().boundsInRoot
+        // Unclipped: with the hero above, GESCHMACK can sit below the viewport once the button is scrolled to.
+        val button = offerButton().performScrollTo().assertIsDisplayed().getUnclippedBoundsInRoot()
+        val steps = compose.onNode(hasContentDescription("Aufgüsse")).getUnclippedBoundsInRoot()
+        val taste = compose.onNode(hasContentDescription("Geschmack")).getUnclippedBoundsInRoot()
         assertThat(button.top).isGreaterThan(steps.bottom)
         assertThat(button.bottom).isAtMost(taste.top)
     }

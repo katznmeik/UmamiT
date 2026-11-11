@@ -29,6 +29,7 @@ import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeRecipeOffers
+import com.umamit.core.testing.FakeSessionPhotos
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
@@ -41,6 +42,7 @@ import com.umamit.feature.collection.detail.TeaDetailRoute
 import com.umamit.feature.collection.detail.TeaDetailViewModel
 import com.umamit.feature.collection.detail.teaDetailSessionTag
 import com.umamit.feature.journal.session.SESSION_BREW_AGAIN_TAG
+import com.umamit.feature.journal.session.SessionHeroViewModel
 import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.journal.session.SessionPageRoute
 import com.umamit.feature.journal.session.SessionPageViewModel
@@ -53,6 +55,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -164,6 +167,14 @@ class TeaDetailSessionsRouteTest {
                     collection.teas,
                     archive,
                     sessions.tasting,
+                )
+            },
+            heroViewModel = viewModel {
+                SessionHeroViewModel(
+                    createSavedStateHandle(),
+                    sessions.journal,
+                    FakeSessionPhotos(sessions),
+                    PhotoFiles(File("no-photos")),
                 )
             },
         )
