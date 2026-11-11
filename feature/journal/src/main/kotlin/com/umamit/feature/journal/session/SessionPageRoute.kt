@@ -32,6 +32,9 @@ fun SessionPageRoute(
             brewAgain = { currentHost.onBrewAgain(it) },
             restore = viewModel::restore,
             delete = viewModel::delete,
+            setRating = viewModel::setRating,
+            notesChanged = viewModel::onNotesChanged,
+            flushNotes = viewModel::flushNotes,
         )
     }
     SessionPageScreen(state = state, modifier = modifier, actions = actions, alertKey = host.alertKey)

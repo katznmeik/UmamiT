@@ -71,6 +71,11 @@
     <string name="session_ml">%1$d ml</string>
     <string name="session_ratio_value">%1$s g / 100 ml</string>
     <string name="session_unknown">–</string>
+    <!-- BEWERTUNG and NOTIZEN of the session page (SCR-16, JRN-02, JRN-05, D-112). -->
+    <string name="session_rating">Bewertung</string>
+    <string name="session_notes">Notizen</string>
+    <string name="session_notes_placeholder">Notizen …</string>
+    <string name="session_notes_counter">%1$s / %2$s</string>
     <string name="session_steps">Aufgüsse</string>
     <string name="session_column_step">Schritt</string>
     <string name="session_column_planned">geplant</string>

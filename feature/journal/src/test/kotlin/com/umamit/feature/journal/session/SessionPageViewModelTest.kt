@@ -1,8 +1,14 @@
 package com.umamit.feature.journal.session
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SessionStart
+import com.umamit.core.data.SessionTasting
+import com.umamit.core.data.TastingWrite
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
@@ -17,10 +23,13 @@ import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.feature.journal.JournalSessions
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -30,8 +39,9 @@ import org.junit.Test
 import java.time.LocalDateTime
 
 /**
- * The session page's view model (SCR-16 read-only, BRW-06, D-100) on the fakes of core:testing: the session as
- * stored (05 §3.6, §3.7) with its step table, and the four states of its tea and recipe. An invented tea (D-016).
+ * The session page's view model (SCR-16, BRW-06, D-100; the rating and notes writes of D-112) on the fakes of
+ * core:testing: the session as stored (05 §3.6, §3.7) with its step table, and the four states of its tea and recipe.
+ * An invented tea (D-016).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionPageViewModelTest {
@@ -48,8 +58,36 @@ class SessionPageViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(id: String = PAST) =
-        SessionPageViewModel(SavedStateHandle(mapOf("sessionId" to id)), sessions.journal, collection.teas, archive)
+    private fun viewModel(id: String = PAST, tasting: SessionTasting = sessions.tasting) = SessionPageViewModel(
+        SavedStateHandle(mapOf("sessionId" to id)),
+        sessions.journal,
+        collection.teas,
+        archive,
+        tasting,
+    )
+
+    /** The fake's writes, the first rating and the first notes write held at [gate] like a slow Room transaction. */
+    private class SlowFirstWrite(private val delegate: SessionTasting) : SessionTasting by delegate {
+        val gate = CompletableDeferred<Unit>()
+        private var ratingHeld = false
+        private var notesHeld = false
+
+        override suspend fun setRating(sessionId: String, rating: Double?): TastingWrite {
+            if (!ratingHeld) {
+                ratingHeld = true
+                gate.await()
+            }
+            return delegate.setRating(sessionId, rating)
+        }
+
+        override suspend fun setNotes(sessionId: String, notes: String?): TastingWrite {
+            if (!notesHeld) {
+                notesHeld = true
+                gate.await()
+            }
+            return delegate.setNotes(sessionId, notes)
+        }
+    }
 
     private val SessionPageViewModel.page get() = (state.value as SessionPageUiState.Ready).page
 
@@ -182,6 +220,113 @@ class SessionPageViewModelTest {
     @Test
     fun `an unknown session shows the not-found state`() {
         assertThat(viewModel("nothing").state.value).isEqualTo(SessionPageUiState.NotFound)
+    }
+
+    @Test
+    fun `the rating is saved at once and shown on the page`() = runTest {
+        brewed()
+        val vm = viewModel()
+        assertThat(vm.page.rating).isNull()
+
+        vm.setRating(3.5)
+        assertThat(vm.page.rating).isEqualTo(3.5)
+        assertThat(sessions.sessions.getSession(PAST)!!.rating).isEqualTo(3.5)
+
+        vm.setRating(null)
+        assertThat(vm.page.rating).isNull()
+    }
+
+    /** The half-step gesture is a quick second tap (4,0 then 3,5): a slow first write never overtakes it. */
+    @Test
+    fun `rating writes are stored in tap order even when the first write is slow`() = runTest {
+        brewed()
+        val slow = SlowFirstWrite(sessions.tasting)
+        val vm = viewModel(tasting = slow)
+
+        vm.setRating(4.0)
+        vm.setRating(3.5)
+        assertThat(sessions.sessions.getSession(PAST)!!.rating).isNull()
+        slow.gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertThat(sessions.sessions.getSession(PAST)!!.rating).isEqualTo(3.5)
+        assertThat(vm.page.rating).isEqualTo(3.5)
+    }
+
+    @Test
+    fun `the notes are saved 1 s after the last key, not before`() = runTest {
+        brewed()
+        val vm = viewModel()
+
+        vm.onNotesChanged("Mild")
+        advanceTimeBy(900)
+        vm.onNotesChanged("Mild und cremig")
+        advanceTimeBy(900)
+        assertThat(sessions.tasting.writes).isEqualTo(0)
+        advanceTimeBy(200)
+
+        assertThat(sessions.tasting.writes).isEqualTo(1)
+        assertThat(vm.page.notes).isEqualTo("Mild und cremig")
+    }
+
+    @Test
+    fun `leaving the field saves a pending note at once and a second flush writes nothing`() = runTest {
+        brewed()
+        val vm = viewModel()
+
+        vm.onNotesChanged("Frisch")
+        vm.flushNotes()
+        vm.flushNotes()
+        advanceTimeBy(2_000)
+
+        assertThat(sessions.tasting.writes).isEqualTo(1)
+        assertThat(vm.page.notes).isEqualTo("Frisch")
+    }
+
+    @Test
+    fun `clearing the note removes it`() = runTest {
+        brewed()
+        val vm = viewModel()
+        vm.onNotesChanged("Frisch")
+        vm.flushNotes()
+
+        vm.onNotesChanged("")
+        vm.flushNotes()
+
+        assertThat(vm.page.notes).isNull()
+    }
+
+    @Test
+    fun `a pending note is saved when the view model is cleared, the write completes (rule 8)`() = runTest {
+        brewed()
+        val store = ViewModelStore()
+        val vm = ViewModelProvider.create(store, viewModelFactory { initializer { viewModel() } })[
+            SessionPageViewModel::class,
+        ]
+
+        vm.onNotesChanged("Kurz vor dem Verlassen")
+        store.clear()
+
+        assertThat(sessions.sessions.getSession(PAST)!!.notes).isEqualTo("Kurz vor dem Verlassen")
+    }
+
+    /** Like Room, the write suspends; the cleared scope does not cancel it on the way (NonCancellable, rule 8). */
+    @Test
+    fun `a note write suspended when the view model is cleared still completes (rule 8)`() = runTest {
+        brewed()
+        val slow = SlowFirstWrite(sessions.tasting)
+        val store = ViewModelStore()
+        val vm = ViewModelProvider.create(store, viewModelFactory { initializer { viewModel(tasting = slow) } })[
+            SessionPageViewModel::class,
+        ]
+
+        vm.onNotesChanged("Kurz vor dem Verlassen")
+        store.clear()
+        assertThat(sessions.sessions.getSession(PAST)!!.notes).isNull()
+        slow.gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertThat(sessions.sessions.getSession(PAST)!!.notes).isEqualTo("Kurz vor dem Verlassen")
     }
 
     private companion object {

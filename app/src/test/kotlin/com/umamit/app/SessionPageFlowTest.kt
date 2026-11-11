@@ -14,9 +14,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.common.truth.Truth.assertThat
+import com.umamit.app.timer.TimerRequest
 import com.umamit.core.data.SessionStart
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
@@ -43,6 +45,7 @@ import com.umamit.feature.brew.setup.SETUP_START_TAG
 import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.journal.session.SESSION_BREW_AGAIN_TAG
+import com.umamit.feature.journal.session.SESSION_NOTES_TAG
 import com.umamit.feature.journal.session.SESSION_TEA_TAG
 import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.journal.session.SessionPageRoute
@@ -79,6 +82,7 @@ class SessionPageFlowTest {
     private val archive = FakeTeaArchive(sessions)
     private val starter = FakeBrewStarter()
     private val alertKey = MutableStateFlow<String?>(null)
+    private val timerRequest = MutableStateFlow(TimerRequest(0L))
 
     @Before
     fun seed(): Unit = runBlocking {
@@ -142,6 +146,7 @@ class SessionPageFlowTest {
                     activeBrewSource = NoActiveBrewSource,
                     journalSources = testJournalSources(sessions, collection.teas),
                     alertKey = alertKey,
+                    timerRequest = timerRequest,
                     journalScreens = JournalStackScreens(session = { host -> Page(host) }),
                     collectionScreens = CollectionStackScreens(
                         tea = { host ->
@@ -170,7 +175,13 @@ class SessionPageFlowTest {
         SessionPageRoute(
             host = host,
             viewModel = viewModel {
-                SessionPageViewModel(createSavedStateHandle(), sessions.journal, collection.teas, archive)
+                SessionPageViewModel(
+                    createSavedStateHandle(),
+                    sessions.journal,
+                    collection.teas,
+                    archive,
+                    sessions.tasting,
+                )
             },
         )
     }
@@ -290,6 +301,42 @@ class SessionPageFlowTest {
         compose.onNodeWithTag(SETUP_START_TAG).assertDoesNotExist()
         compose.onNodeWithText(TIMER).assertIsDisplayed()
         assertThat(starter.starts).isEmpty()
+    }
+
+    private fun typeNote(text: String) {
+        compose.onNodeWithTag(SESSION_NOTES_TAG).performScrollTo().performTextInput(text)
+        compose.waitForIdle()
+    }
+
+    private fun storedNotes() = runBlocking { sessions.sessions.getSession(PAST)!!.notes }
+
+    @Test
+    fun `a note typed is saved when another tab is chosen, and shown again on the page (JRN-05)`() {
+        show()
+        openSessionPage()
+        typeNote("Mild und cremig")
+
+        compose.onNodeWithTag(tabTag(Tab.Start)).performClick()
+        compose.waitForIdle()
+
+        assertThat(storedNotes()).isEqualTo("Mild und cremig")
+        compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Mild und cremig").assertExists()
+    }
+
+    @Test
+    fun `a note typed is saved when an alert brings the timer over the page (rule 8, JRN-05)`() {
+        show()
+        openSessionPage()
+        typeNote("Vor dem Alarm")
+
+        alertKey.value = "brew-1"
+        timerRequest.value = TimerRequest(1L)
+        compose.waitForIdle()
+
+        compose.onNodeWithText(TIMER).assertIsDisplayed()
+        assertThat(storedNotes()).isEqualTo("Vor dem Alarm")
     }
 
     private companion object {

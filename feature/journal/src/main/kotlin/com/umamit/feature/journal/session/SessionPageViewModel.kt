@@ -4,11 +4,17 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.JournalRepository
+import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.model.TastingLimits
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +25,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /** What the session page (SCR-16) shows. */
@@ -42,6 +51,10 @@ sealed interface SessionPageEvent {
  * the journal's read and its tea's state from the collection, both as flows, so *Wiederherstellen* enables *So
  * nochmal brühen* at once and a deleted tea drops the link. Nothing here starts a brew: *So nochmal brühen* is the
  * host's way to the setup (BRW-01). *Löschen* (D-102) removes a finished session and tells the host.
+ *
+ * The rating and the notes are saved at once through [SessionTasting] (JRN-02, JRN-05, D-112): the stars on each tap,
+ * the notes 1 s after the last key and when the field or the page is left ([flushNotes]). A write started always
+ * completes, also when the page is left or an alert takes the screen (rule 8).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -50,6 +63,7 @@ class SessionPageViewModel @Inject constructor(
     private val journal: JournalRepository,
     private val teas: TeaRepository,
     private val archive: TeaArchive,
+    private val tasting: SessionTasting,
 ) : ViewModel() {
     private val sessionId: String = checkNotNull(savedState[SESSION_ID]) { "the session page needs a sessionId" }
 
@@ -89,6 +103,46 @@ class SessionPageViewModel @Inject constructor(
         viewModelScope.launch { archive.restore(teaId) }
     }
 
+    private var pendingNotes: String? = null
+    private var notesJob: Job? = null
+    private val notesLock = Mutex()
+
+    /** Rating writes run one after another in tap order, so the last tap is the one stored (JRN-02). */
+    private val ratingLock = Mutex()
+
+    /** A tap on the stars (JRN-02): [rating] (null for none) is saved at once, after any earlier rating write. */
+    fun setRating(rating: Double?) {
+        launchWrite { ratingLock.withLock { tasting.setRating(sessionId, rating) } }
+    }
+
+    /** The notes field changed to [text] (JRN-05): saved 1 s after the last key, or sooner by [flushNotes]. */
+    fun onNotesChanged(text: String) {
+        pendingNotes = text.take(TastingLimits.MAX_NOTES_LENGTH)
+        notesJob?.cancel()
+        notesJob = viewModelScope.launch {
+            delay(NOTES_DEBOUNCE_MS)
+            flushNotes()
+        }
+    }
+
+    /** The field or the page is left: a pending note is saved now (JRN-05). Nothing pending, nothing written. */
+    fun flushNotes() {
+        val text = pendingNotes ?: return
+        pendingNotes = null
+        notesJob?.cancel()
+        notesJob = null
+        launchWrite { notesLock.withLock { tasting.setNotes(sessionId, text) } }
+    }
+
+    override fun onCleared() {
+        flushNotes()
+    }
+
+    /** A write that completes even when the page is left meanwhile (rule 8); a failed one changes nothing else. */
+    private fun launchWrite(write: suspend () -> Unit) {
+        viewModelScope.launch(start = CoroutineStart.ATOMIC) { withContext(NonCancellable) { write() } }
+    }
+
     private fun teaOf(id: String?): Flow<SessionTea> = if (id == null) {
         flowOf(SessionTea.DELETED)
     } else {
@@ -104,5 +158,8 @@ class SessionPageViewModel @Inject constructor(
     companion object {
         /** The navigation argument (the route's property name). */
         const val SESSION_ID = "sessionId"
+
+        /** The notes are saved this long after the last key (SCR-16). */
+        const val NOTES_DEBOUNCE_MS = 1_000L
     }
 }

@@ -65,6 +65,12 @@ class SessionPageActions(
     val restore: () -> Unit = {},
     /** *Löschen*, confirmed in its dialog (JRN-10, D-102). */
     val delete: () -> Unit = {},
+    /** A tap on the stars (JRN-02): the new rating, null for none; saved at once. */
+    val setRating: (Double?) -> Unit = {},
+    /** The notes field changed (JRN-05): saved 1 s after the last key. */
+    val notesChanged: (String) -> Unit = {},
+    /** The notes field or the page is left (JRN-05): a pending note is saved now. */
+    val flushNotes: () -> Unit = {},
 )
 
 /**
@@ -73,7 +79,8 @@ class SessionPageActions(
  * never started reads „nicht gebrüht", Q-19). *So nochmal brühen* (BRW-06) opens the setup prefilled with the
  * session; for an archived tea it is greyed out with „Tee ist archiviert" and *Wiederherstellen*, for a deleted tea
  * there is neither the link nor the button. ⋮ *Löschen* (D-102) asks „Sitzung löschen?" and removes a finished
- * session with its stock deduction. Rating, taste, notes, photos and *Bearbeiten* come with M4.
+ * session with its stock deduction. BEWERTUNG (the stars, JRN-02) and NOTIZEN (JRN-05) sit above the step table and
+ * save as they change (D-112); taste, descriptors, photos and *Bearbeiten* follow in later tickets.
  *
  * The menu and the question give way to another alert than the one they were opened in ([alertKey], rule 8); the
  * host opens the alerting timer in place of the setup or the tea during an alert.
@@ -175,6 +182,7 @@ private fun SessionContent(page: SessionPage, actions: SessionPageActions) {
             page.ratioPer100Ml?.let { stringResource(R.string.session_ratio_value, GermanFormat.gramsOneDecimal(it)) }
                 ?: unknown(),
         )
+        if (page.canTaste) TastingInputs(page, actions)
         SectionHeader(
             title = stringResource(R.string.session_steps),
             modifier = Modifier.padding(top = UmamiSpacing.Medium),
