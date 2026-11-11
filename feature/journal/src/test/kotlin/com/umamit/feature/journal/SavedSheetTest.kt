@@ -22,11 +22,14 @@ import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TastingWrite
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.model.RecipeStep
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.core.ui.ratingStarTag
@@ -60,6 +63,9 @@ class SavedSheetTest {
     /** The tasting writes the sheet gets; a test swaps in a failing or a gated one. */
     private var tasting: SessionTasting = data.tasting
 
+    /** The recipe offers (PRF-07): a test puts a session's proposal in when the offer applies. */
+    private val offers = FakeRecipeOffers()
+
     /** Whether the shell, and with it the sheet's host, is composed (the timer route covers it otherwise). */
     private var hostComposed by mutableStateOf(true)
 
@@ -72,6 +78,7 @@ class SavedSheetTest {
                         sessions = data.sessions,
                         teas = collection.teas,
                         tasting = tasting,
+                        offers = offers,
                         onOpenNotes = { opened += it },
                         alerting = alerting,
                     )
@@ -386,6 +393,102 @@ class SavedSheetTest {
     }
 
     @Test
+    fun `without an offer the sheet shows no Zeiten ins Rezept uebernehmen`() {
+        show()
+
+        controller.brew("s1", 60)
+
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+        compose.onNodeWithText("Zeiten ins Rezept übernehmen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `when the offer applies, Zeiten ins Rezept uebernehmen sits below Notizen and above Rezept passt`() {
+        saveTea("flagged", RecipeCheckReason.FROM_TEXT)
+        offers.proposals["s1"] = PROPOSAL
+        show()
+
+        controller.brew("s1", 60, teaId = "flagged")
+
+        val notes = compose.onNodeWithText("Notizen hinzufügen").fetchSemanticsNode().boundsInRoot.top
+        val offer = compose.onNodeWithText("Zeiten ins Rezept übernehmen").fetchSemanticsNode().boundsInRoot.top
+        val ok = compose.onNodeWithText("Rezept passt").fetchSemanticsNode().boundsInRoot.top
+        assertThat(notes).isLessThan(offer)
+        assertThat(offer).isLessThan(ok)
+    }
+
+    @Test
+    fun `a tap accepts the offer and the line reads Rezept aktualisiert in the same height`() {
+        offers.proposals["s1"] = PROPOSAL
+        show()
+        controller.brew("s1", 60)
+        val line = compose.onNodeWithText("Zeiten ins Rezept übernehmen").fetchSemanticsNode().boundsInRoot
+
+        compose.onNodeWithText("Zeiten ins Rezept übernehmen").performClick()
+        compose.waitForIdle()
+
+        assertThat(offers.accepted).containsExactly("s1")
+        compose.onNodeWithText("Zeiten ins Rezept übernehmen").assertDoesNotExist()
+        // The text's own node: the sheet merges its plain lines into one.
+        val done = compose.onNodeWithText("Rezept aktualisiert.", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .fetchSemanticsNode()
+            .boundsInRoot
+        assertThat(done.top).isAtLeast(line.top)
+        assertThat(done.bottom).isAtMost(line.bottom)
+        // Nothing else happens: the sheet stays and asks nothing.
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a refused accept removes the line`() {
+        offers.proposals["s1"] = PROPOSAL
+        show()
+        controller.brew("s1", 60)
+        compose.onNodeWithText("Zeiten ins Rezept übernehmen").assertIsDisplayed()
+        // The offer stops applying before the tap (the recipe changed meanwhile).
+        offers.proposals.clear()
+
+        compose.onNodeWithText("Zeiten ins Rezept übernehmen").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Zeiten ins Rezept übernehmen").assertDoesNotExist()
+        compose.onNodeWithText("Rezept aktualisiert.").assertDoesNotExist()
+        assertThat(offers.accepted).isEmpty()
+    }
+
+    @Test
+    fun `a failing offer read shows the sheet without the line (D-090)`() {
+        offers.proposals["s1"] = PROPOSAL
+        offers.failure = IllegalStateException("disk full")
+        show()
+
+        controller.brew("s1", 60)
+
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+        compose.onNodeWithText("Zeiten ins Rezept übernehmen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes the sheet and the started accept still lands`() {
+        offers.proposals["s1"] = PROPOSAL
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(1_000)
+
+        compose.onNodeWithText("Zeiten ins Rezept übernehmen").performClick()
+        alerting = true
+        Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+        compose.mainClock.autoAdvance = true
+        compose.waitForIdle()
+        assertThat(offers.accepted).containsExactly("s1")
+    }
+
+    @Test
     fun `a swipe down dismisses it`() {
         show()
         controller.brew("s1", 60)
@@ -545,5 +648,9 @@ class SavedSheetTest {
         )
 
         assertThat(summary).isEqualTo(SavedSummary(infusions = 2, steepSeconds = 145))
+    }
+
+    private companion object {
+        val PROPOSAL = listOf(RecipeStep(StepKind.INFUSION, 50))
     }
 }

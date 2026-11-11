@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /** The session page route; its argument is the view model's `sessionId` ([SessionPageViewModel.SESSION_ID]). */
@@ -18,6 +19,11 @@ fun SessionPageRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentHost by rememberUpdatedState(host)
+    // Back from Tee or Rezept (SCR-09, SCR-12): the recipe offer is read again (PRF-07 AC3).
+    LifecycleResumeEffect(viewModel) {
+        viewModel.recipeOffer.refresh()
+        onPauseOrDispose {}
+    }
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -39,6 +45,7 @@ fun SessionPageRoute(
             notesChanged = viewModel::onNotesChanged,
             flushNotes = viewModel::flushNotes,
             setDescriptor = viewModel::setDescriptor,
+            acceptRecipeOffer = viewModel.recipeOffer::accept,
         )
     }
     SessionPageScreen(state = state, modifier = modifier, actions = actions, alertKey = host.alertKey)

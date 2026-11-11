@@ -3,6 +3,7 @@ package com.umamit.app
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.feature.journal.JournalSources
@@ -12,4 +13,12 @@ fun testJournalSources(
     sessions: FakeSessions = FakeSessions(),
     teas: TeaRepository = FakeCollection().teas,
     requests: SavedSheetRequests = SavedSheetRequests(FakeClock()),
-): JournalSources = JournalSources(sessions.journal, sessions.sessions, requests, FakeClock(), teas, sessions.tasting)
+): JournalSources = JournalSources(
+    sessions.journal,
+    sessions.sessions,
+    requests,
+    FakeClock(),
+    teas,
+    sessions.tasting,
+    FakeRecipeOffers(),
+)

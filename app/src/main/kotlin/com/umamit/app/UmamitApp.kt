@@ -390,6 +390,7 @@ internal fun UmamitApp(
                     sessions = journalSources.sessions,
                     teas = journalSources.teas,
                     tasting = journalSources.tasting,
+                    offers = journalSources.recipeOffers,
                     // *Notizen hinzufügen*: the session's page above the tab in use (SCR-06, SCR-16).
                     onOpenNotes = { sessionId ->
                         controllers.getValue(selected).navigate(JournalSessionRoute(sessionId))

@@ -81,6 +81,8 @@ class SessionPageActions(
     val flushNotes: () -> Unit = {},
     /** A chip ticked or unticked in the descriptor sheet (JRN-04): saved at once; `onRefused` runs if not stored. */
     val setDescriptor: (key: String, ticked: Boolean, onRefused: () -> Unit) -> Unit = { _, _, _ -> },
+    /** *Zeiten ins Rezept übernehmen* (PRF-07, D-112): the session's changes into its recipe. */
+    val acceptRecipeOffer: () -> Unit = {},
 )
 
 /**
@@ -212,6 +214,7 @@ private fun SessionContent(page: SessionPage, actions: SessionPageActions, alert
             modifier = Modifier.padding(top = UmamiSpacing.Medium),
         )
         SessionSteps(page.steps)
+        page.recipeOffer?.let { SessionRecipeOffer(it, actions.acceptRecipeOffer) }
         if (page.canTaste) TasteSection(page, actions)
         if (page.canTaste) DescriptorsSection(page, actions, alertKey)
         BrewAgain(page, actions)

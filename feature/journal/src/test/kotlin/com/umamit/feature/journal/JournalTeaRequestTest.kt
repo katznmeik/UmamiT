@@ -19,6 +19,7 @@ import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.feature.journal.JournalSessions.TODAY
@@ -69,6 +70,7 @@ class JournalTeaRequestTest {
             clock,
             FakeCollection().teas,
             FakeSessions().tasting,
+            FakeRecipeOffers(),
         )
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {

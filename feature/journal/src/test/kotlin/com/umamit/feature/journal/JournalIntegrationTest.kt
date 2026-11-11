@@ -8,6 +8,7 @@ import com.umamit.core.data.SessionEdit
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessionEditor
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
@@ -34,7 +35,15 @@ class JournalIntegrationTest {
     private val data = FakeSessions(nowMs = { clock.wall })
     private val requests = SavedSheetRequests(clock)
     private val sources =
-        JournalSources(data.journal, data.sessions, requests, clock, FakeCollection().teas, data.tasting)
+        JournalSources(
+            data.journal,
+            data.sessions,
+            requests,
+            clock,
+            FakeCollection().teas,
+            data.tasting,
+            FakeRecipeOffers(),
+        )
     private val controller = FakeBrewController(data.sessions, requests)
 
     @Test
@@ -48,6 +57,7 @@ class JournalIntegrationTest {
                         sessions = data.sessions,
                         teas = sources.teas,
                         tasting = sources.tasting,
+                        offers = sources.recipeOffers,
                         onOpenNotes = {},
                         alerting = false,
                     )

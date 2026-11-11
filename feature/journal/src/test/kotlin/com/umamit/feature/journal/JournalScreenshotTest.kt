@@ -13,12 +13,15 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.feature.journal.JournalSessions.TODAY
@@ -108,7 +111,7 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
 
     /**
      * [flaggedTea]: the sheet's session is of a tea flagged „Rezept prüfen", opened before. [newPackage]: of a
-     * tea not yet opened, which the session opens.
+     * tea not yet opened, which the session opens. [recipeOffer]: the recipe offer applies (PRF-07).
      */
     private fun capture(
         name: String,
@@ -116,6 +119,7 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         sheetFor: String? = null,
         flaggedTea: Boolean = false,
         newPackage: Boolean = false,
+        recipeOffer: Boolean = false,
         filter: JournalFilter = JournalFilter(),
         openFilterSheet: Boolean = false,
     ) {
@@ -160,6 +164,7 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                         sessions = data.sessions,
                         teas = collection.teas,
                         tasting = data.tasting,
+                        offers = offersFor(sheetFor.takeIf { recipeOffer }),
                         onOpenNotes = {},
                         alerting = false,
                         modifier = Modifier.align(Alignment.BottomCenter),
@@ -177,6 +182,11 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         }
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/Journal_${name}_$variant.png")
+    }
+
+    /** The recipe offers: [sessionId], if any, has a proposal (PRF-07). */
+    private fun offersFor(sessionId: String?) = FakeRecipeOffers().apply {
+        if (sessionId != null) proposals[sessionId] = listOf(RecipeStep(StepKind.INFUSION, 50))
     }
 
     @Test
@@ -230,7 +240,10 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         flaggedTea = true,
     )
 
-    /** Every line of the sheet: stars, *Notizen hinzufügen*, the opened date and *Rezept passt* (D-112). */
+    /**
+     * Every line of the sheet: stars, *Notizen hinzufügen*, *Zeiten ins Rezept übernehmen*, the opened date and
+     * *Rezept passt* (D-112).
+     */
     @Test
     fun savedSheetAllLines() = capture(
         "savedSheetAllLines",
@@ -238,6 +251,16 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         sheetFor = "sheet",
         flaggedTea = true,
         newPackage = true,
+        recipeOffer = true,
+    )
+
+    /** A session with deliberate changes: *Zeiten ins Rezept übernehmen* below *Notizen hinzufügen* (PRF-07). */
+    @Test
+    fun savedSheetRecipeOffer() = capture(
+        "savedSheetRecipeOffer",
+        journalList(sessions.drop(1), TODAY),
+        sheetFor = "sheet",
+        recipeOffer = true,
     )
 
     /** The session that opened a new package: „Packung als geöffnet markiert" · *Rückgängig* (INV-06, D-104). */

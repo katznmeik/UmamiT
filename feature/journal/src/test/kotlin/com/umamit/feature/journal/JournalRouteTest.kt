@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import org.junit.Rule
@@ -30,7 +31,16 @@ class JournalRouteTest {
         // A session brewed at 09:12 today.
         FakeBrewController(data.sessions, requests).brew("s1", 60)
         requests.dismiss("s1")
-        val sources = JournalSources(data.journal, data.sessions, requests, clock, FakeCollection().teas, data.tasting)
+        val sources =
+            JournalSources(
+                data.journal,
+                data.sessions,
+                requests,
+                clock,
+                FakeCollection().teas,
+                data.tasting,
+                FakeRecipeOffers(),
+            )
         compose.mainClock.autoAdvance = false
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
