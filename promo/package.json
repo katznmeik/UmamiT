@@ -1,0 +1,12 @@
+{
+  "name": "umamit-promo",
+  "private": true,
+  "description": "Promo video for UmamiT: HTML scenes rendered frame by frame (Playwright + ffmpeg).",
+  "scripts": {
+    "music": "node music.js",
+    "render": "node render.js"
+  },
+  "devDependencies": {
+    "@fontsource/roboto": "5.3.0"
+  }
+}

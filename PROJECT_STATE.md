@@ -135,6 +135,23 @@ a sans in place of the serif font. Spec issue #212, plan
 - **#58:** its remaining optional review findings stay open for later milestones.
 - **Images:** all delivered. A6 (Journal) and A9 (Statistik) empty states are built in with M4.
 
+## Side track: promo video (waiting on the PO)
+
+Not part of a milestone and no app change. On 2026-11-11 the PO asked for a
+storyboard and a five-second test scene of a promotional video, with music
+and without voiceover. Both are in `promo/` on the branch
+`claude/keen-hamilton-ek7hlx` (no PR yet):
+
+- `promo/storyboard.md`: draft 1, nine scenes in 44 s; its §5 lists the open
+  points for the PO (now or after M4, length, captions, naming Tee-Kontor,
+  formats, the music's direction). None of them is decided.
+- `promo/scenes/timer.html`, `promo/render.js`, `promo/music.js`: the test
+  scene (the running timer, rebuilt from the app's screen and checked against
+  its golden), the renderer and the music sketch; `promo/README.md` says how
+  to render. Renders are not committed (`promo/out/`).
+- **Next:** the PO's feedback on the test scene, the music and the
+  storyboard's open points. Only then are further scenes built.
+
 ## Known caveats
 
 - Mockup images still show the old name „UmamiTea".

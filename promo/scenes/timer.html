@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>UmamiT promo: timer scene</title>
+<!--
+  Scene 3 of promo/storyboard.md (its first five seconds): the running timer.
+
+  The app screen is rebuilt here from the real one, with the app's own colours,
+  fonts, icons and artwork (03 §3.1, §3.2; TimerRing.kt, TimerBand.kt), so the
+  ring, the liquor and the digits can move. Compare it with the golden:
+  `node render.js timer --compare` (README.md).
+
+  Nothing here runs on its own clock. `window.seek(t)` draws the frame at
+  second `t`, so the renderer gets the same picture for the same time.
+-->
+<style>
+  @font-face { font-family: "Alegreya Sans"; font-weight: 300; src: url("/core/designsystem/src/main/res/font/alegreya_sans_light.ttf"); }
+  @font-face { font-family: "Alegreya Sans"; font-weight: 400; src: url("/core/designsystem/src/main/res/font/alegreya_sans_regular.ttf"); }
+  @font-face { font-family: "Alegreya Sans"; font-weight: 500; src: url("/core/designsystem/src/main/res/font/alegreya_sans_medium.ttf"); }
+  @font-face { font-family: "Roboto"; font-weight: 400; src: url("/promo/node_modules/@fontsource/roboto/files/roboto-latin-400-normal.woff2"); }
+  @font-face { font-family: "Roboto"; font-weight: 500; src: url("/promo/node_modules/@fontsource/roboto/files/roboto-latin-500-normal.woff2"); }
+
+  :root {
+    /* Light scheme (03 §3.1): the stage. */
+    --washi: #F3F0E9;
+    --ink: #2B2D27;
+    --ink-soft: #6B6A62;
+    --matcha: #4A5643;
+    /* Dark scheme (03 §3.1): the timer screen. */
+    --d-background: #1C231D;
+    --d-on-surface: #ECE8DE;
+    --d-on-surface-variant: #A9A99D;
+    --d-outline: #4A544A;
+    --d-primary: #B9C8A6;
+    --d-pill: #E5DFCF;
+    --d-on-pill: #2B2D27;
+    --liquor-green: #C9D58F;
+    /* The phone: 411 × 891 dp, drawn at this many px per dp. */
+    --dp: 1.75;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--washi); }
+  body { font-family: "Roboto", sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* ---------- Stage ---------- */
+  .stage { position: absolute; inset: 0; background: var(--washi); overflow: hidden; }
+  .light {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(1200px 900px at 50% 8%, rgba(255, 253, 246, 0.9), transparent 70%),
+      radial-gradient(1400px 1200px at 50% 110%, rgba(138, 123, 94, 0.16), transparent 70%);
+  }
+  .branch {
+    position: absolute; right: -350px; top: -340px; width: 1240px;
+    /* The artwork's own paper turns white, so multiply leaves only the ink on the washi. */
+    filter: brightness(1.22) contrast(1.05);
+    mix-blend-mode: multiply;
+    opacity: 0.5;
+    transform-origin: 100% 30%;
+    -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent 100%);
+  }
+  .grain { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.09; mix-blend-mode: multiply; pointer-events: none; }
+
+  .caption { position: absolute; left: 0; right: 0; top: 118px; text-align: center; color: var(--ink); }
+  .overline {
+    font: 500 25px/32px "Roboto", sans-serif; letter-spacing: 0.24em; text-indent: 0.24em;
+    color: var(--matcha);
+  }
+  .headline { margin-top: 20px; font: 300 88px/98px "Alegreya Sans", sans-serif; letter-spacing: -0.005em; }
+  .headline span { display: block; }
+
+  /* ---------- Phone ---------- */
+  .phone {
+    position: absolute; left: 50%; top: 404px;
+    width: calc(411px * var(--dp) + 22px); height: calc(891px * var(--dp) + 22px);
+    margin-left: calc((411px * var(--dp) + 22px) / -2);
+    padding: 11px; border-radius: 74px;
+    background: linear-gradient(160deg, #2a302b, #0f1310 40%, #171c18);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+      0 90px 140px -40px rgba(43, 45, 39, 0.42),
+      0 30px 50px -24px rgba(43, 45, 39, 0.34);
+    transform-origin: 50% 46%;
+    will-change: transform;
+  }
+  .glass { width: 100%; height: 100%; border-radius: 63px; overflow: hidden; position: relative; background: var(--d-background); }
+  .screen {
+    position: absolute; left: 0; top: 0; width: 411px; height: 891px;
+    transform: scale(var(--dp)); transform-origin: 0 0;
+    background: var(--d-background); color: var(--d-on-surface);
+  }
+
+  /* ---------- The timer screen, in dp (1 CSS px = 1 dp) ---------- */
+  .band {
+    position: absolute; left: 0; top: 0; width: 411px; height: 210px;
+    background: url("/core/designsystem/src/main/res/drawable-nodpi/illustration_timer_band.webp") center / cover;
+  }
+  .band::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 35%, var(--d-background) 100%);
+  }
+  .icon-button {
+    position: absolute; top: 4px; width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(35, 43, 36, 0.6); display: grid; place-items: center;
+  }
+  .icon-button svg { width: 24px; height: 24px; fill: var(--d-on-surface); }
+  .seal {
+    position: absolute; left: 161.5px; top: 166px; width: 88px; height: 88px; border-radius: 50%;
+    background: #F3F0E9;
+  }
+  .seal::before {
+    content: ""; position: absolute; inset: 3px; border-radius: 50%;
+    border: 1px solid rgba(43, 45, 39, 0.3);
+  }
+  .seal .photo {
+    position: absolute; inset: 6px; border-radius: 50%;
+    background: url("/docs/design/assets/source/A1-logo-sprig.png") 50% 52% / 150%;
+  }
+  .title {
+    position: absolute; left: 24px; right: 24px; top: 262px; text-align: center;
+    font: 400 28px/36px "Alegreya Sans", sans-serif;
+  }
+  .subtitle { position: absolute; left: 24px; right: 24px; top: 295px; text-align: center; font: 400 16px/24px "Roboto", sans-serif; }
+  .dots { position: absolute; left: 0; right: 0; top: 328px; display: flex; justify-content: center; gap: 8px; }
+  .dots i { width: 12px; height: 12px; display: grid; place-items: center; }
+  .dots i::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(236, 232, 222, 0.6); }
+  .dots i.current::before { background: var(--d-on-surface); border-color: var(--d-on-surface); }
+
+  .ring { position: absolute; left: 73.5px; top: 364px; width: 264px; height: 264px; }
+  .ring svg { position: absolute; inset: 0; width: 264px; height: 264px; overflow: visible; }
+  .ring-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-content svg { position: relative; top: 6.5px; width: 28px; height: 28px; }
+  .digits {
+    font: 300 80px/88px "Alegreya Sans", sans-serif;
+    font-feature-settings: "lnum", "tnum";
+    white-space: nowrap; position: relative; top: 2.5px;
+  }
+  .ring-caption { font: 400 16px/24px "Roboto", sans-serif; position: relative; top: -3.5px; }
+
+  .pill {
+    position: absolute; left: 105.5px; top: 739px; width: 200px; height: 72px; border-radius: 36px;
+    background: var(--d-pill); color: var(--d-on-pill);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font: 500 14px/20px "Roboto", sans-serif; letter-spacing: 0.1px;
+  }
+  .pill svg { width: 18px; height: 18px; fill: var(--d-on-pill); }
+
+  /* Compare mode: only the screen, at 2 px per dp like the Roborazzi goldens. */
+  body.compare { width: 822px; height: 1782px; }
+  body.compare .stage > :not(.phone) { display: none; }
+  body.compare .phone { left: 0; top: 0; margin: 0; padding: 0; border-radius: 0; width: 822px; height: 1782px; --dp: 2; box-shadow: none; transform: none !important; opacity: 1 !important; }
+  body.compare .glass { border-radius: 0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="light"></div>
+  <img class="branch" id="branch" src="/docs/design/assets/source/A13-timer-band-bamboo-light.png" alt="">
+  <svg class="grain" xmlns="http://www.w3.org/2000/svg">
+    <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/><feColorMatrix values="0 0 0 0 0.2  0 0 0 0 0.19  0 0 0 0 0.15  0 0 0 0.9 0"/></filter>
+    <rect width="100%" height="100%" filter="url(#paper)"/>
+  </svg>
+
+  <div class="caption">
+    <div class="overline" id="overline">DER TIMER</div>
+    <div class="headline"><span id="line1">Jeder Aufguss</span><span id="line2">auf die Sekunde.</span></div>
+  </div>
+
+  <div class="phone" id="phone">
+    <div class="glass">
+      <div class="screen">
+        <div class="band"></div>
+        <div class="icon-button" style="left: 8px">
+          <svg viewBox="0 -960 960 960"><path d="m294.92-450 227.85 227.85L480-180 180-480l300-300 42.77 42.15L294.92-510H780v60H294.92Z"/></svg>
+        </div>
+        <div class="icon-button" style="right: 8px">
+          <svg viewBox="0 -960 960 960"><path d="M480-189.23q-24.75 0-42.37-17.63Q420-224.48 420-249.23q0-24.75 17.63-42.38 17.62-17.62 42.37-17.62 24.75 0 42.37 17.62Q540-273.98 540-249.23q0 24.75-17.63 42.37-17.62 17.63-42.37 17.63ZM480-420q-24.75 0-42.37-17.63Q420-455.25 420-480q0-24.75 17.63-42.37Q455.25-540 480-540q24.75 0 42.37 17.63Q540-504.75 540-480q0 24.75-17.63 42.37Q504.75-420 480-420Zm0-230.77q-24.75 0-42.37-17.62Q420-686.02 420-710.77q0-24.75 17.63-42.37 17.62-17.63 42.37-17.63 24.75 0 42.37 17.63Q540-735.52 540-710.77q0 24.75-17.63 42.38-17.62 17.62-42.37 17.62Z"/></svg>
+        </div>
+        <div class="seal"><div class="photo"></div></div>
+        <div class="title" id="tea-name">Gyokuro Schattenhain</div>
+        <div class="subtitle">55 °C · Aufguss 1 von 3</div>
+        <div class="dots"><i class="current"></i><i></i><i></i></div>
+
+        <div class="ring">
+          <svg viewBox="0 0 264 264">
+            <path id="liquor" fill="#C9D58F" fill-opacity="0.32"/>
+            <circle cx="132" cy="132" r="118" fill="none" stroke="#4A544A" stroke-width="3"/>
+            <path id="progress" fill="none" stroke="#B9C8A6" stroke-width="3" stroke-linecap="round"/>
+            <line id="marker" stroke="#A9A99D" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <div class="ring-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ECE8DE" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12,21V11M12,14C12,9 8,6 4,6C4,11 7,14 12,14ZM12,12C12,7 15,4 20,4C20,9 17,12 12,12Z"/></svg>
+            <div class="digits" id="digits">0:48</div>
+            <div class="ring-caption">Zieht …</div>
+          </div>
+        </div>
+
+        <div class="pill">
+          <svg viewBox="0 -960 960 960"><path d="M530-220v-520h210v520H530Zm-310 0v-520h210v520H220Zm370-60h90v-400h-90v400Zm-310 0h90v-400h-90v400Zm0-400v400-400Zm310 0v400-400Z"/></svg>
+          Pause
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  'use strict';
+  const params = new URLSearchParams(location.search);
+  const COMPARE = params.has('compare');
+  if (COMPARE) document.body.classList.add('compare');
+  if (params.get('name')) document.getElementById('tea-name').textContent = params.get('name');
+
+  /** Scene length in seconds; the renderer reads it. */
+  window.DURATION = 5;
+
+  // The brew: a 60 s step with the pre-alert 10 s before its end, 48 s left when the scene opens.
+  const STEP_SECONDS = 60;
+  const PRE_ALERT_AT = 50 / 60;
+  const REMAINING_AT_START = 48;
+  /** The count starts here, so every new digit falls on a beat of the music (60 BPM, first beat at 0.5 s). */
+  const COUNT_FROM = 0.5;
+
+  // Ring geometry (TimerRing.kt): radius = box / 2 − 14 dp, liquor 6 dp + half the stroke inside it.
+  const C = 132, R = 118, LIQUOR_R = R - (1.5 + 6), MARKER_HALF = 6;
+
+  const clamp = (x) => Math.min(1, Math.max(0, x));
+  const span = (t, from, to) => clamp((t - from) / (to - from));
+  const outQuart = (x) => 1 - Math.pow(1 - x, 4);
+  const outExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+  const inOutSine = (x) => -(Math.cos(Math.PI * x) - 1) / 2;
+  const polar = (radius, fraction) => {
+    const a = (-90 + 360 * fraction) * Math.PI / 180;
+    return [C + radius * Math.cos(a), C + radius * Math.sin(a)];
+  };
+
+  const el = (id) => document.getElementById(id);
+  const phone = el('phone'), branch = el('branch'), digits = el('digits');
+  const liquor = el('liquor'), progress = el('progress'), marker = el('marker');
+
+  {
+    const [x1, y1] = polar(R - MARKER_HALF, PRE_ALERT_AT), [x2, y2] = polar(R + MARKER_HALF, PRE_ALERT_AT);
+    marker.setAttribute('x1', x1); marker.setAttribute('y1', y1);
+    marker.setAttribute('x2', x2); marker.setAttribute('y2', y2);
+  }
+
+  /** Track and progress arc from the top, clockwise (drawRing); the segment below the water line (drawLiquor). */
+  function drawRing(level) {
+    if (level <= 0) { progress.setAttribute('d', ''); liquor.setAttribute('d', ''); return; }
+    const [px, py] = polar(R, Math.min(level, 0.9999));
+    progress.setAttribute('d', `M ${C} ${C - R} A ${R} ${R} 0 ${level > 0.5 ? 1 : 0} 1 ${px} ${py}`);
+    const half = Math.acos(1 - 2 * Math.min(level, 1));
+    const dx = LIQUOR_R * Math.sin(half), y = C + LIQUOR_R * Math.cos(half);
+    liquor.setAttribute('d', `M ${C + dx} ${y} A ${LIQUOR_R} ${LIQUOR_R} 0 ${half > Math.PI / 2 ? 1 : 0} 1 ${C - dx} ${y} Z`);
+  }
+
+  function rise(node, p, distance) {
+    node.style.opacity = clamp(p * 1.6);
+    node.style.transform = `translateY(${(1 - p) * distance}px)`;
+    node.style.filter = p < 1 ? `blur(${(1 - p) * 10}px)` : 'none';
+  }
+
+  window.seek = (t) => {
+    // The brew itself runs in real time.
+    const remaining = REMAINING_AT_START - Math.max(0, t - COUNT_FROM);
+    const shown = Math.ceil(remaining - 1e-6);
+    digits.textContent = `${Math.floor(shown / 60)}:${String(shown % 60).padStart(2, '0')}`;
+    const level = (STEP_SECONDS - remaining) / STEP_SECONDS;
+    // Opening flourish: ring and liquor run up to the brew's level while the phone arrives.
+    const reveal = COMPARE ? 1 : outQuart(span(t, 0.55, 1.75));
+    drawRing(level * reveal);
+    if (COMPARE) return;
+
+    // Caption: three lines rise one after the other.
+    rise(el('overline'), outQuart(span(t, 0.10, 0.80)), 18);
+    rise(el('line1'), outQuart(span(t, 0.22, 1.05)), 34);
+    rise(el('line2'), outQuart(span(t, 0.36, 1.25)), 34);
+
+    // Phone: arrives from below, then drifts closer for the rest of the scene.
+    const arrive = outExpo(span(t, 0.15, 1.45));
+    const drift = 1 + 0.035 * inOutSine(span(t, 0.3, window.DURATION + 1.5));
+    phone.style.opacity = clamp(span(t, 0.15, 0.40));
+    phone.style.transform = `translateY(${(1 - arrive) * 190}px) scale(${(0.955 + 0.045 * arrive) * drift})`;
+
+    // The ink branch on the stage sways a little.
+    const sway = Math.sin(t * 0.8 + 0.6);
+    branch.style.transform = `translate(${sway * 5}px, ${Math.cos(t * 0.63) * 3}px) rotate(${sway * 0.5}deg)`;
+    branch.style.opacity = 0.5 * span(t, 0, 0.9);
+  };
+
+  window.ready = (async () => {
+    await Promise.all([
+      '300 80px "Alegreya Sans"', '400 28px "Alegreya Sans"', '500 20px "Alegreya Sans"',
+      '400 16px "Roboto"', '500 14px "Roboto"',
+    ].map((font) => document.fonts.load(font)));
+    await document.fonts.ready;
+    await Promise.all([...document.images].map((img) => img.decode()));
+    window.seek(0);
+  })();
+</script>
+</body>
+</html>
