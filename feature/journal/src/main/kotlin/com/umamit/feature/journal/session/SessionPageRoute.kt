@@ -32,6 +32,7 @@ fun SessionPageRoute(
             brewAgain = { currentHost.onBrewAgain(it) },
             restore = viewModel::restore,
             delete = viewModel::delete,
+            edit = { currentHost.onEdit(it) },
             setRating = viewModel::setRating,
             setTaste = viewModel::setTaste,
             clearTaste = viewModel::clearTaste,

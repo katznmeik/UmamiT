@@ -115,6 +115,36 @@
     <string name="session_method_cold_brew">Kaltaufguss</string>
     <string name="session_method_ice_brew">Eisaufguss</string>
     <string name="session_method_custom">Eigene</string>
+    <!-- ⋮ Bearbeiten on the session page and the editor SCR-17 (JRN-11, D-112). -->
+    <string name="session_edit">Bearbeiten</string>
+    <string name="session_editor_title">Sitzung bearbeiten</string>
+    <string name="session_editor_close">Schließen</string>
+    <string name="session_editor_save">Speichern</string>
+    <string name="session_editor_date">Datum</string>
+    <string name="session_editor_time">Uhrzeit</string>
+    <string name="session_editor_pick_confirm">OK</string>
+    <string name="session_editor_pick_cancel">Abbrechen</string>
+    <string name="session_editor_vessel">Gefäß</string>
+    <string name="session_editor_leaf">Blattmenge</string>
+    <string name="session_editor_water">Wasser</string>
+    <string name="session_editor_unit_g">g</string>
+    <string name="session_editor_unit_ml">ml</string>
+    <!-- While the leaf differs from the recorded one: the BREW deduction follows (05 §3.7). -->
+    <string name="session_editor_stock_line">Dein Vorrat wird um %1$s\u00A0g angepasst.</string>
+    <string name="session_editor_steps">Schritte</string>
+    <!-- „1 · Aufguss": the step's place in the session and its kind. -->
+    <string name="session_editor_step">%1$d · %2$s</string>
+    <string name="session_editor_kind_infusion">Aufguss</string>
+    <!-- A step never started or skipped: „2 · Aufguss · übersprungen". -->
+    <string name="session_editor_step_greyed">%1$s · %2$s</string>
+    <string name="session_editor_step_time">Zeit</string>
+    <string name="session_editor_step_cooler">Temperatur senken, Schritt %1$d</string>
+    <string name="session_editor_step_warmer">Temperatur erhöhen, Schritt %1$d</string>
+    <string name="session_editor_error_leaf">0,1 bis 100 g, z. B. 4,5.</string>
+    <string name="session_editor_error_water">10 bis 3000 ml, in 5-ml-Schritten.</string>
+    <string name="session_editor_error_step_time">Als m:ss, z. B. 1:35.</string>
+    <string name="session_editor_error_future">Die Sitzung kann nicht in der Zukunft liegen.</string>
+    <string name="session_editor_save_failed">Die Änderungen konnten nicht gespeichert werden.</string>
     <string name="journal_saved_title">Gespeichert im Journal</string>
     <!-- „3 Aufgüsse · 2:20": the infusions and the total steep time. -->
     <string name="journal_saved_summary">%1$s · %2$s</string>

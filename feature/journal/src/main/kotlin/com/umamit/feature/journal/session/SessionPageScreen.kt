@@ -52,6 +52,7 @@ const val SESSION_TEA_TAG = "session_tea"
 const val SESSION_BREW_AGAIN_TAG = "session_brew_again"
 const val SESSION_RESTORE_TAG = "session_restore"
 const val SESSION_MENU_TAG = "session_menu"
+const val SESSION_EDIT_TAG = "session_edit"
 
 private val CHEVRON_SIZE = 20.dp
 
@@ -66,6 +67,8 @@ class SessionPageActions(
     val restore: () -> Unit = {},
     /** *Löschen*, confirmed in its dialog (JRN-10, D-102). */
     val delete: () -> Unit = {},
+    /** ⋮ *Bearbeiten* (JRN-11, D-112): the session editor (SCR-17) of this session, by its id. */
+    val edit: (sessionId: String) -> Unit = {},
     /** A tap on the stars (JRN-02): the new rating, null for none; saved at once. */
     val setRating: (Double?) -> Unit = {},
     /** A taste slider released on a value (JRN-03): saved at once. */
@@ -104,7 +107,12 @@ fun SessionPageScreen(
         title = stringResource(R.string.session_title),
         modifier = modifier,
         navigationIcon = { BackAction(actions.back) },
-        actions = { if (deletable) SessionMenu(alertKey, onDelete = deleteAsk::open) },
+        actions = {
+            val sessionId = (state as? SessionPageUiState.Ready)?.page?.sessionId
+            if (deletable && sessionId != null) {
+                SessionMenu(alertKey, onEdit = { actions.edit(sessionId) }, onDelete = deleteAsk::open)
+            }
+        },
         verticalArrangement = if (state is SessionPageUiState.Ready) Arrangement.Top else Arrangement.Center,
     ) {
         when (state) {
@@ -129,9 +137,9 @@ fun SessionPageScreen(
     }
 }
 
-/** ⋮ with *Löschen* (JRN-10, D-102); the menu gives way to another alert (rule 8). */
+/** ⋮ with *Bearbeiten* (JRN-11) above *Löschen* (JRN-10, D-102); the menu gives way to another alert (rule 8). */
 @Composable
-private fun SessionMenu(alertKey: String?, onDelete: () -> Unit) {
+private fun SessionMenu(alertKey: String?, onEdit: () -> Unit, onDelete: () -> Unit) {
     val menu = rememberAlertGate(alertKey)
     Box {
         IconButton(onClick = menu::open, modifier = Modifier.testTag(SESSION_MENU_TAG)) {
@@ -141,6 +149,14 @@ private fun SessionMenu(alertKey: String?, onDelete: () -> Unit) {
             )
         }
         AlertGatedDropdownMenu(menu) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.session_edit)) },
+                onClick = {
+                    menu.close()
+                    onEdit()
+                },
+                modifier = Modifier.testTag(SESSION_EDIT_TAG),
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.session_delete)) },
                 onClick = {

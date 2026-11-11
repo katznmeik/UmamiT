@@ -296,9 +296,9 @@ private val PACKAGE_TYPES = setOf(InventoryEventType.INITIAL, InventoryEventType
 /**
  * Leaf × Σ price ÷ Σ grams of the priced INITIAL/PURCHASE events (INV-08), in exact decimals
  * and rounded half up once, so an exact half is never a cent low (D-054); null without leaf
- * or priced stock.
+ * or priced stock. The session editor's leaf change uses it too (05 §3.7 „Edit").
  */
-private fun costCents(leafGrams: Double?, events: List<InventoryEvent>?): Long? {
+internal fun costCents(leafGrams: Double?, events: List<InventoryEvent>?): Long? {
     val priced = events.orEmpty().filter { it.type in PACKAGE_TYPES && it.priceCents != null }
     val grams = priced.fold(BigDecimal.ZERO) { sum, event -> sum + event.deltaGrams.toBigDecimal() }
     if (leafGrams == null || grams.signum() <= 0) return null
