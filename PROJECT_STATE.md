@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-11. **M4 is specified and split (D-112): v0.6.0 is the journal, v0.6.1 is Statistik.** v0.6.0 has its spec (#221), tickets (#222–#234), plan (`docs/plans/v0.6.0.md`) and a draft milestone PR; **nothing is built: the build starts when the PO starts `/implement-spec #221`.** [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-11. **M4 is specified and split (D-112): v0.6.0 is the journal, v0.6.1 is Statistik.** v0.6.0 has its spec (#221), tickets (#222–#234), plan (`docs/plans/v0.6.0.md`) and the draft milestone PR #235; **nothing is built: the build starts when the PO starts `/implement-spec #221`.** [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
 
 ## v0.6.0 (specified, waiting for the PO's start)
 
@@ -38,7 +38,7 @@
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `73a97fc5`; docs commits only so far) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | **#PRNUM** (draft): v0.6.0 milestone PR |
+| Open PR | **#235** (draft): v0.6.0 milestone PR |
 | Latest APK | [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (full release, versionCode 50199, from `main` `73a97fc5`, certificate verified); rc `v0.5.1-rc.2` (50102), rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
 | Decision numbers | Up to **D-112** used; the next free is **D-113** |
 
