@@ -705,6 +705,60 @@ sheet).**
 - The hero has its own view model; it reads the journal to find the tea's
   cover, an item for the milestone review.
 
+**Build notes (Claude, 2026-11-11, #236: step notes kept on accept).**
+- `RecipeOffer.keepingNotes(proposal, recipeSteps)` (`core:domain`) gives
+  each step of the proposal the note of the recipe's step at its position
+  when both have the same kind; any note the proposal carried itself is
+  replaced. `RoomRecipeOffers.accept` applies it inside the accept's
+  transaction, on the recipe's steps as stored at that moment.
+- The offer's line and the comparison are unchanged: a note never produces
+  an offer and the sheet shows the proposal without notes.
+
+**Review and fix round (Claude, 2026-11-11, #233).** One milestone review
+at T3 over the whole diff found no blocker; `/review-animations` once
+(`docs/plans/v0.6.0-motion-review.md`). Fixed, all at T2:
+- **Stars on the session page (R1).** The shown rating is the last tap
+  until the stored rating equals it, as GESCHMACK does it. Before, a late
+  emission of an older stored value reset the stars, so three quick taps
+  could store 3,5 where the third tap removes the rating.
+- **One session, not the journal (R2).** The session page and its hero read
+  one session (`JournalRepository.observeSession`, a query by id; no schema
+  change) and no longer the whole journal at every tasting write. The
+  journal's rows are mapped off the main thread. The page's view model
+  keeps its eager state (its tests read it without a subscriber); the hero
+  shares while subscribed.
+- **Session delete and photo files (R3).** `deleteSession` runs its
+  transaction and the file deletes uncancellable and off the main thread,
+  so leaving the page at that moment leaves no file behind.
+- **The average's rounding (R4).** A tea's average is rounded half up from
+  the exact mean (`averageRatingText`): 4,35 reads „4,4". Before, it went
+  through a `Float` and read „4,3". A session's own rating is unchanged.
+- **Descriptor keys (R5).** The write refuses to tick a key the vocabulary
+  does not have (`INVALID`); unticking stays allowed and stored unknown
+  keys stay stored and counted (05 §3.7, §3.8). The screens could not
+  reach it.
+- **Dead read (R6).** `JournalRepository.observeTeaRatings` had no caller
+  and is removed; the collection list keeps the one mapping of the rating.
+- **Journal list (the build's item).** Grouping and the search words are
+  built off the main thread (`Dispatchers.Default`); the last list stays
+  shown while a new one is built and in the first frame of a tab that comes
+  back, so nothing flashes. The 10 000-session criterion is still shown by
+  JVM timing only.
+- **Motion (M1, M2, M4).** The radar eases in above the sliders when the
+  third axis is set (03 SCR-16); the sheets' divider fade is read in the
+  draw phase; the hero's glide to a new photo uses the `sheet` token.
+- **Left as they are:** `observeTeaTasting`'s three queries (a read-only
+  display that settles with the next emission); the GESCHMACK fold's 100 ms
+  fade with the in-app reduce-motion path (on the phone, animator scale 0
+  ends it at once); `RoomSessionPhotos.add` beside `RoomTeaPhotos` (the tea
+  flow has the cover rule); the three local number helpers (they trim a
+  trailing „,0" or group thousands, which the shared helper does not).
+- **Open, for the PO (not decided, not built):** TalkBack cannot set an
+  unset taste slider to 0 and no axis can be unset on its own; an unset
+  slider's thumb sits at 0 like a set 0, only „–" tells them apart; whether
+  the radar stays above the sliders, moves below them or has its space
+  reserved.
+
 <a id="d-111"></a>
 ### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 

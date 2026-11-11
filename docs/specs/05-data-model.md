@@ -237,7 +237,9 @@ effect of the timer engine, 04 §4; D-052):
   sheet, each its own transaction on a `COMPLETED` session only: `rating`
   (0.5–5.0 in 0.5 steps, or null), one taste column (0–5, or null; *Zurücksetzen* nulls all six),
   `notes` (trimmed; empty stored as null; ≤ 5000), and a descriptor ticked
-  or unticked (§3.8; refused beyond 20). Each sets `updated_at`. None
+  or unticked (§3.8; a tick is refused beyond 20 and for a key the
+  vocabulary does not have; unticking a stored key always works). Each sets
+  `updated_at`. None
   touches steps, stock, cost or `active_brew`.
 - **Edit** (v0.6.0, JRN-11, D-112; `EditSession`): one transaction on a
   `COMPLETED` session; any other status changes nothing.
@@ -290,7 +292,8 @@ v0.6.0 (D-112): only `session_descriptor` is created (umamit.db v6, §9):
 TEXT NOT NULL, `created_at` INTEGER NOT NULL; primary key (`session_id`,
 `descriptor_key`); an index on `descriptor_key` for the per-tea counts. The
 key is a built-in key of 08 §4 (`marine.nori`). A stored key the app does
-not know (a later vocabulary change) is kept and not shown. At most 20 rows
+not know (a later vocabulary change) is kept and not shown; the write
+refuses to tick such a key and still unticks it. At most 20 rows
 per session, checked in the write's transaction. `custom_descriptor` is not
 created: custom descriptors are an idea kept for later, and the `custom:<id>`
 form stays reserved for them.

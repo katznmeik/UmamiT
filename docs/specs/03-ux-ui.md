@@ -1333,7 +1333,10 @@ hint that something is missing.
   with a chevron. Open (and always when values exist): the `TasteRadar`
   once three axes are set, then six `TasteSlider`s (Umami, Süße,
   Bitterkeit, Adstringenz, Körper, Aroma) and *Zurücksetzen*. Each release
-  of a slider saves.
+  of a slider saves. When the third axis is set, the radar eases in above
+  the sliders with the fold's tokens (§3.6: `sheet` for the height, `fade`)
+  instead of pushing them down in one frame; a fold that opens with three
+  axes shows it at once.
 - **BESCHREIBUNGEN** (JRN-04): the chosen `DescriptorChip`s in the
   vocabulary's order and a chip *+ Beschreibung* that opens SCR-30. A tap
   on a chosen chip opens the sheet too (chips are not removed by a stray
