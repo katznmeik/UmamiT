@@ -375,6 +375,11 @@ internal fun UmamitApp(
                     requests = journalSources.savedSheets,
                     sessions = journalSources.sessions,
                     teas = journalSources.teas,
+                    tasting = journalSources.tasting,
+                    // *Notizen hinzufügen*: the session's page above the tab in use (SCR-06, SCR-16).
+                    onOpenNotes = { sessionId ->
+                        controllers.getValue(selected).navigate(JournalSessionRoute(sessionId))
+                    },
                     alerting = alerting,
                     modifier = Modifier.align(Alignment.BottomCenter),
                     // Like the brew bar: in the rail layout nothing below the content has applied the bottom inset.

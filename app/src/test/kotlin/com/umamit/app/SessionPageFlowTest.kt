@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -33,10 +34,12 @@ import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCatalogRepository
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
+import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.feature.brew.setup.BrewSetupViewModel
@@ -139,12 +142,12 @@ class SessionPageFlowTest {
         sessions.sessions.completeSession(PAST, autoFinished = false)
     }
 
-    private fun show() {
+    private fun show(requests: SavedSheetRequests = SavedSheetRequests(FakeClock())) {
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 UmamitRoot(
                     activeBrewSource = NoActiveBrewSource,
-                    journalSources = testJournalSources(sessions, collection.teas),
+                    journalSources = testJournalSources(sessions, collection.teas, requests),
                     alertKey = alertKey,
                     timerRequest = timerRequest,
                     journalScreens = JournalStackScreens(session = { host -> Page(host) }),
@@ -301,6 +304,31 @@ class SessionPageFlowTest {
         compose.onNodeWithTag(SETUP_START_TAG).assertDoesNotExist()
         compose.onNodeWithText(TIMER).assertIsDisplayed()
         assertThat(starter.starts).isEmpty()
+    }
+
+    @Test
+    fun `Notizen hinzufuegen on the Gespeichert sheet opens the session page above the tab in use (SCR-06, D-112)`() {
+        val requests = SavedSheetRequests(FakeClock())
+        show(requests)
+        compose.onNodeWithTag(tabTag(Tab.Collection)).performClick()
+        compose.waitForIdle()
+
+        requests.showSavedSheet(PAST)
+        compose.waitForIdle()
+        compose.onNodeWithText("Notizen hinzufügen").assertIsDisplayed().performClick()
+        compose.waitForIdle()
+
+        // The page above Sammlung, the sheet gone, the notes field not focused (no keyboard).
+        compose.onNodeWithText("Sitzung").assertIsDisplayed()
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_NOTES_TAG).performScrollTo().assertIsNotFocused()
+        assertThat(requests.pending.value).isNull()
+
+        // Back returns to the tab it came from.
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        compose.onNodeWithText("Sitzung").assertDoesNotExist()
+        compose.onNodeWithTag(tabTag(Tab.Collection)).assertIsSelected()
     }
 
     private fun typeNote(text: String) {

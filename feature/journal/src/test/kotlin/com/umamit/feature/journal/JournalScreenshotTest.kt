@@ -159,6 +159,8 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                         requests = requests,
                         sessions = data.sessions,
                         teas = collection.teas,
+                        tasting = data.tasting,
+                        onOpenNotes = {},
                         alerting = false,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
@@ -226,6 +228,16 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         journalList(sessions.drop(1), TODAY),
         sheetFor = "sheet",
         flaggedTea = true,
+    )
+
+    /** Every line of the sheet: stars, *Notizen hinzufügen*, the opened date and *Rezept passt* (D-112). */
+    @Test
+    fun savedSheetAllLines() = capture(
+        "savedSheetAllLines",
+        journalList(sessions.drop(1), TODAY),
+        sheetFor = "sheet",
+        flaggedTea = true,
+        newPackage = true,
     )
 
     /** The session that opened a new package: „Packung als geöffnet markiert" · *Rückgängig* (INV-06, D-104). */

@@ -69,6 +69,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.data.OpenedDateChange
 import com.umamit.core.data.SessionRepository
+import com.umamit.core.data.SessionTasting
+import com.umamit.core.data.TastingWrite
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
@@ -76,9 +78,12 @@ import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.controller.SavedSheetRequests
+import com.umamit.core.ui.RatingStars
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.math.roundToInt
 
 /** How long the sheet stays (SCR-06); TalkBack users may get longer (the system's recommended timeout). */
@@ -123,7 +128,8 @@ private data class SavedSheetContent(
  * fine. It leaves after 10 s, on a swipe down, or at once when an alert
  * starts. While [alerting] it is not composed at all, so no exit animation
  * runs over the alert, and a sheet due then is dropped (rule 8, D-061).
- * *Notizen hinzufügen* and PRF-07 come with M4.
+ * From v0.6.0 (D-112) it also holds the rating stars (JRN-02: a tap rates at once and restarts the 10 s) and
+ * *Notizen hinzufügen*, which closes the sheet and opens the session's page. Everything on it is optional.
  *
  * For a session of a tea flagged „Rezept prüfen" it offers *Rezept passt*,
  * which clears that tea's flag and nothing else (CAT-05, D-073); it leaves
@@ -136,6 +142,8 @@ private data class SavedSheetContent(
  *
  * @param sessions the finished session, and the opened date its completion set.
  * @param teas the session's tea, read when the sheet is due and cleared by *Rezept passt*.
+ * @param tasting the rating write of the stars; a write already started is never cancelled (rule 8).
+ * @param onOpenNotes opens the page of the session (SCR-16) above the current tab; the sheet closes with it.
  * @param windowInsets the insets below it that nothing else has applied (the rail layout's bottom).
  */
 @Composable
@@ -143,14 +151,19 @@ fun SavedSheetHost(
     requests: SavedSheetRequests,
     sessions: SessionRepository,
     teas: TeaRepository,
+    tasting: SessionTasting,
+    onOpenNotes: (sessionId: String) -> Unit,
     alerting: Boolean,
     modifier: Modifier = Modifier,
     windowInsets: WindowInsets = WindowInsets(0),
 ) {
     val pending by requests.pending.collectAsStateWithLifecycle()
     val id = pending
-    // Above the early return: a *Rezept passt* or *Rückgängig* write is never cancelled by an alert starting.
+    // Above the early return: a *Rezept passt*, *Rückgängig* or rating write is never cancelled by an alert starting.
     val writes = rememberCoroutineScope()
+    // Rating writes run one after another in tap order, so the last tap is the one stored (JRN-02).
+    val ratingLock = remember { Mutex() }
+    val currentOnOpenNotes by rememberUpdatedState(onOpenNotes)
     LaunchedEffect(alerting, id) {
         if (alerting && id != null) requests.dismiss(id)
     }
@@ -165,7 +178,9 @@ fun SavedSheetHost(
     // time runs (also while the shell was covered); after a release the full time starts again.
     var held by remember(id) { mutableStateOf(false) }
     var released by remember(id) { mutableStateOf(false) }
-    LaunchedEffect(id, visible, held) {
+    // Each star tap starts the 10 s again, so a half step has time (SCR-06).
+    var restarts by remember(id) { mutableIntStateOf(0) }
+    LaunchedEffect(id, visible, held, restarts) {
         if (visible && !held && id != null) {
             delay(if (released) timeout else requests.remainingMs(id, timeout))
             requests.dismiss(id)
@@ -187,6 +202,20 @@ fun SavedSheetHost(
                     },
                     onUndoOpening = { change ->
                         writes.launch { guarded("Opened date not undone", Unit) { sessions.undoOpenedDate(change) } }
+                    },
+                    onRate = { rating ->
+                        released = true
+                        restarts++
+                        writes.launch {
+                            guarded("Rating not written", Unit) {
+                                val result = ratingLock.withLock { tasting.setRating(shown.sessionId, rating) }
+                                if (result != TastingWrite.SAVED) Log.w(TAG, "Rating not written: $result")
+                            }
+                        }
+                    },
+                    onNotes = {
+                        requests.dismiss(shown.sessionId)
+                        currentOnOpenNotes(shown.sessionId)
                     },
                     onDismiss = { requests.dismiss(shown.sessionId) },
                     onHold = { pressed ->
@@ -250,6 +279,8 @@ private fun SavedSheet(
     content: SavedSheetContent,
     onRecipeOk: (teaId: String) -> Unit,
     onUndoOpening: (OpenedDateChange) -> Unit,
+    onRate: (Double?) -> Unit,
+    onNotes: () -> Unit,
     onDismiss: () -> Unit,
     onHold: (Boolean) -> Unit,
     windowInsets: WindowInsets,
@@ -275,6 +306,8 @@ private fun SavedSheet(
         spokenDuration(content.summary.steepSeconds),
     )
     val dismissLabel = stringResource(R.string.journal_saved_dismiss)
+    // What the stars show: this sheet's own taps; the session starts unrated.
+    var rating by remember(content.sessionId) { mutableStateOf<Double?>(null) }
 
     Surface(
         modifier = Modifier
@@ -347,7 +380,8 @@ private fun SavedSheet(
                     ),
             )
             Spacer(Modifier.height(UmamiSpacing.Medium))
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            // The check stays at the title now that stars and actions make the column tall.
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Icon(
                     painter = painterResource(UmamiIcons.Check),
                     contentDescription = null,
@@ -366,11 +400,37 @@ private fun SavedSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    // Its own merged node, so the sheet's merge does not swallow the stars' TalkBack adjust action.
+                    Box(modifier = Modifier.padding(top = UmamiSpacing.XSmall).semantics(mergeDescendants = true) {}) {
+                        RatingStars(
+                            value = rating,
+                            onChange = {
+                                rating = it
+                                onRate(it)
+                            },
+                        )
+                    }
+                    NotesAction(onNotes)
                     content.openedDate?.let { change -> OpenedUndo(content.sessionId) { onUndoOpening(change) } }
                     content.recipeCheckTeaId?.let { teaId -> RecipeOk(content.sessionId) { onRecipeOk(teaId) } }
                 }
             }
         }
+    }
+}
+
+/** *Notizen hinzufügen* (JRN-05, D-112): closes the sheet and opens the session's page, without the keyboard. */
+@Composable
+private fun NotesAction(onClick: () -> Unit) {
+    // No side padding: its label lines up with the lines above.
+    TextButton(
+        modifier = Modifier.heightIn(min = ActionLineMinHeight),
+        onClick = onClick,
+        contentPadding = PaddingValues(
+            vertical = ButtonDefaults.TextButtonContentPadding.calculateTopPadding(),
+        ),
+    ) {
+        Text(stringResource(R.string.journal_saved_notes))
     }
 }
 

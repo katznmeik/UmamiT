@@ -822,8 +822,8 @@ spring, on `surface`. A swipe down or TalkBack's *Schließen* dismisses it; a
 finger on it holds it, also a resting one. Its 10 s run from *Sitzung
 beenden*, also while the shell is covered, so it never returns stale. It is
 never shown while an alert plays, and an alert removes it in
-the same frame (rule 8). M1 shows only the text; the two actions come with
-M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
+the same frame (rule 8). M1 shows only the text; v0.6.0 adds the stars and
+*Notizen hinzufügen* (D-112), *Zeiten ins Rezept übernehmen* comes with #228. From M2, a session of a tea flagged „Rezept prüfen" adds
 *Rezept passt*, which clears the flag of that tea only and then reads
 „„Rezept prüfen“ ist entfernt.“ (CAT-05, D-073, D-088).
 

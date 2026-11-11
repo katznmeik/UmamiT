@@ -291,6 +291,7 @@ class JournalSearchTest {
             SavedSheetRequests(clock),
             clock,
             FakeCollection().teas,
+            FakeSessions().tasting,
         )
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
@@ -342,7 +343,14 @@ class JournalSearchTest {
             )
         }
         val sources =
-            JournalSources(journal, FakeSessions().sessions, SavedSheetRequests(clock), clock, collection.teas)
+            JournalSources(
+                journal,
+                FakeSessions().sessions,
+                SavedSheetRequests(clock),
+                clock,
+                collection.teas,
+                FakeSessions().tasting,
+            )
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
                 JournalRoute(sources = sources, onOpenSettings = {}, onOpenTimer = {}, initialTeaKey = "t-neu")

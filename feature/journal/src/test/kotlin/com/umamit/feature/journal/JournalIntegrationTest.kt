@@ -30,7 +30,8 @@ class JournalIntegrationTest {
     private val data = FakeSessions()
     private val clock = FakeClock(wall = JournalSessions.ms(LocalDateTime.of(2026, 10, 22, 9, 30)))
     private val requests = SavedSheetRequests(clock)
-    private val sources = JournalSources(data.journal, data.sessions, requests, clock, FakeCollection().teas)
+    private val sources =
+        JournalSources(data.journal, data.sessions, requests, clock, FakeCollection().teas, data.tasting)
     private val controller = FakeBrewController(data.sessions, requests)
 
     @Test
@@ -39,7 +40,14 @@ class JournalIntegrationTest {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
                 Box {
                     JournalRoute(sources = sources, onOpenSettings = {}, onOpenTimer = {})
-                    SavedSheetHost(requests = requests, sessions = data.sessions, teas = sources.teas, alerting = false)
+                    SavedSheetHost(
+                        requests = requests,
+                        sessions = data.sessions,
+                        teas = sources.teas,
+                        tasting = sources.tasting,
+                        onOpenNotes = {},
+                        alerting = false,
+                    )
                 }
             }
         }
