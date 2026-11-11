@@ -8,9 +8,9 @@ import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TeaCategory
-import com.umamit.core.model.TeaRating
 import com.umamit.core.timer.engine.PlannedStep
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -32,6 +32,22 @@ class FakeSessionTastingTest {
         zoneId = "UTC",
     )
 
+    private val keys = TasteDescriptor.entries.map { it.key }
+
+    @Test
+    fun `a tick of a key the vocabulary lacks is refused, an untick of any key is not`() = runTest {
+        fakes.sessions.startSession(start("done"))
+        fakes.sessions.completeSession("done", autoFinished = false)
+        fakes.storeDescriptorKey("done", "future.thing")
+        val tasting = fakes.tasting
+
+        assertThat(tasting.setDescriptor("done", "future.other", ticked = true)).isEqualTo(TastingWrite.INVALID)
+        assertThat(fakes.sessions.getSession("done")!!.descriptorKeys).containsExactly("future.thing")
+
+        assertThat(tasting.setDescriptor("done", "future.thing", ticked = false)).isEqualTo(TastingWrite.SAVED)
+        assertThat(fakes.sessions.getSession("done")!!.descriptorKeys).isEmpty()
+    }
+
     @Test
     fun `writes on a completed session only, with the bounds, and the summary follows`() = runTest {
         fakes.sessions.startSession(start("done"))
@@ -45,8 +61,8 @@ class FakeSessionTastingTest {
         assertThat(tasting.setTaste("done", TasteAxis.BODY, 6)).isEqualTo(TastingWrite.INVALID)
         assertThat(tasting.setTaste("done", TasteAxis.BODY, 4)).isEqualTo(TastingWrite.SAVED)
         assertThat(tasting.setNotes("done", "  ")).isEqualTo(TastingWrite.SAVED)
-        (1..20).forEach { tasting.setDescriptor("done", "key.$it", ticked = true) }
-        assertThat(tasting.setDescriptor("done", "key.21", ticked = true)).isEqualTo(TastingWrite.DESCRIPTOR_LIMIT)
+        keys.take(20).forEach { tasting.setDescriptor("done", it, ticked = true) }
+        assertThat(tasting.setDescriptor("done", keys[20], ticked = true)).isEqualTo(TastingWrite.DESCRIPTOR_LIMIT)
 
         val session = fakes.sessions.getSession("done")!!
         assertThat(session.rating).isEqualTo(4.5)
@@ -56,10 +72,9 @@ class FakeSessionTastingTest {
         assertThat(fakes.sessions.getSession("running")!!.rating).isNull()
         assertThat(tasting.writes).isEqualTo(27)
 
-        assertThat(fakes.journal.observeTeaRatings().first()).containsExactly("t1", TeaRating(4.5, 1))
         val summary = fakes.journal.observeTeaTasting("t1").first()
         assertThat(summary.tasteAverages).containsExactly(TasteAxis.BODY, 4.0)
-        assertThat(summary.descriptorCounts.first()).isEqualTo(DescriptorCount("key.1", 1))
+        assertThat(summary.descriptorCounts.first()).isEqualTo(DescriptorCount(keys.take(20).min(), 1))
     }
 
     @Test

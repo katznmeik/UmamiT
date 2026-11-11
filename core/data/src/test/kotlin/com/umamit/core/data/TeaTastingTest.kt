@@ -1,6 +1,7 @@
 package com.umamit.core.data
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
@@ -55,13 +56,14 @@ class TeaTastingTest {
         tasting.setRating("a", 4.0)
         tasting.setTaste("a", TasteAxis.UMAMI, 5)
         tasting.setDescriptor("a", "marine.nori", ticked = true)
-        tasting.setDescriptor("a", "vegetal.spinach", ticked = true)
+        tasting.setDescriptor("a", "vegetal.spinat", ticked = true)
         completed("b", startedAtMs = 3_000)
         tasting.setRating("b", 3.5)
         tasting.setTaste("b", TasteAxis.UMAMI, 2)
         tasting.setTaste("b", TasteAxis.SWEETNESS, 3)
         tasting.setDescriptor("b", "marine.nori", ticked = true)
-        tasting.setDescriptor("b", "unknown.later", ticked = true)
+        // A key a later version wrote: stored and counted, though a tick of it is refused (05 §3.8).
+        data.db.tastingDao().insertDescriptor(SessionDescriptorEntity("b", "unknown.later", createdAt = 3_500))
         completed("c", startedAtMs = 4_000)
         completed("other", teaId = "t2", startedAtMs = 5_000)
         tasting.setRating("other", 5.0)
@@ -75,8 +77,6 @@ class TeaTastingTest {
         brewed()
 
         assertThat(journal.observeTeaTasting("t1").first().rating).isEqualTo(TeaRating(average = 3.75, count = 2))
-        assertThat(journal.observeTeaRatings().first())
-            .containsExactly("t1", TeaRating(3.75, 2), "t2", TeaRating(5.0, 1))
     }
 
     @Test
@@ -94,7 +94,7 @@ class TeaTastingTest {
         assertThat(journal.observeTeaTasting("t1").first().descriptorCounts).containsExactly(
             DescriptorCount("marine.nori", 2),
             DescriptorCount("unknown.later", 1),
-            DescriptorCount("vegetal.spinach", 1),
+            DescriptorCount("vegetal.spinat", 1),
         ).inOrder()
     }
 
@@ -104,7 +104,6 @@ class TeaTastingTest {
 
         assertThat(journal.observeTeaTasting("t2").first()).isEqualTo(TeaTasting.EMPTY)
         assertThat(journal.observeTeaTasting("nope").first()).isEqualTo(TeaTasting.EMPTY)
-        assertThat(journal.observeTeaRatings().first()).isEmpty()
     }
 
     @Test

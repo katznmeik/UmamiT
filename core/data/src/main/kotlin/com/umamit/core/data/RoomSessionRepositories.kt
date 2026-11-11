@@ -12,6 +12,7 @@ import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TastingLimits
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
@@ -203,7 +204,8 @@ class RoomSessionTasting @Inject constructor(private val db: UmamiDatabase, priv
     }
 
     override suspend fun setDescriptor(sessionId: String, key: String, ticked: Boolean): TastingWrite {
-        if (key.isBlank()) return TastingWrite.INVALID
+        // A tick needs a key the app knows; unticking any stored key stays allowed (unknown keys stay stored).
+        if (key.isBlank() || (ticked && TasteDescriptor.fromKey(key) == null)) return TastingWrite.INVALID
         val now = time.nowMs()
         return db.withTransaction {
             when {

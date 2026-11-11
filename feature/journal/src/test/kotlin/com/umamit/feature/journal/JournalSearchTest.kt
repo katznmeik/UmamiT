@@ -28,7 +28,6 @@ import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
-import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
@@ -282,7 +281,8 @@ class JournalSearchTest {
 
             override suspend fun deleteSession(sessionId: String) = Unit
 
-            override fun observeTeaRatings(): Flow<Map<String, TeaRating>> = flowOf(emptyMap())
+            override fun observeSession(sessionId: String): Flow<JournalSession?> =
+                flowOf(sessions.firstOrNull { it.session.id == sessionId })
 
             override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = flowOf(TeaTasting.EMPTY)
         }
@@ -335,7 +335,8 @@ class JournalSearchTest {
 
             override suspend fun deleteSession(sessionId: String) = Unit
 
-            override fun observeTeaRatings(): Flow<Map<String, TeaRating>> = flowOf(emptyMap())
+            override fun observeSession(sessionId: String): Flow<JournalSession?> =
+                flowOf(onlyRunning.firstOrNull { it.session.id == sessionId })
 
             override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = flowOf(TeaTasting.EMPTY)
         }

@@ -9,7 +9,9 @@ import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import com.umamit.core.timer.engine.StepRecord
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -206,6 +208,20 @@ class SessionPhotosTest {
         mine.forEach { assertThat(files.file(it).exists()).isFalse() }
         assertThat(files.file(theirs).exists()).isTrue()
         assertThat(photos.observePhotos("other").first().map { it.id }).containsExactly(theirs)
+    }
+
+    @Test
+    fun `a caller cancelled during the delete still leaves no file of the deleted session`() = runTest {
+        val mine = listOf(added(), added())
+
+        val caller = launch(start = CoroutineStart.UNDISPATCHED) {
+            RoomJournalRepository(data.db, files).deleteSession("done")
+        }
+        caller.cancel()
+        caller.join()
+
+        assertThat(data.sessions.getSession("done")).isNull()
+        mine.forEach { assertThat(files.file(it).exists()).isFalse() }
     }
 
     @Test

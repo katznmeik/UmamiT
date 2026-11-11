@@ -15,7 +15,6 @@ import androidx.compose.ui.test.performTextInput
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.JournalSession
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
@@ -59,7 +58,8 @@ class JournalTeaRequestTest {
 
             override suspend fun deleteSession(sessionId: String) = Unit
 
-            override fun observeTeaRatings(): Flow<Map<String, TeaRating>> = flowOf(emptyMap())
+            override fun observeSession(sessionId: String): Flow<JournalSession?> =
+                flowOf(sessions.firstOrNull { it.session.id == sessionId })
 
             override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = flowOf(TeaTasting.EMPTY)
         }

@@ -2,15 +2,20 @@ package com.umamit.core.data
 
 import androidx.room.withTransaction
 import com.umamit.core.database.UmamiDatabase
+import com.umamit.core.database.dao.JournalSessionRow
 import com.umamit.core.database.dao.TasteAveragesRow
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -37,11 +42,8 @@ interface JournalRepository {
      */
     suspend fun deleteSession(sessionId: String)
 
-    /**
-     * Every tea with a rated finished session, by tea id: the average rating and the number of rated sessions
-     * (TEA-08, TEA-11). A tea without one is absent.
-     */
-    fun observeTeaRatings(): Flow<Map<String, TeaRating>>
+    /** [sessionId]'s session as [observeSessions] lists it; null while there is none (a deleted one). */
+    fun observeSession(sessionId: String): Flow<JournalSession?>
 
     /** [teaId]'s tasting summary over its finished sessions (TEA-13, JRN-03); [TeaTasting.EMPTY] without data. */
     fun observeTeaTasting(teaId: String): Flow<TeaTasting>
@@ -54,7 +56,8 @@ class RoomJournalRepository @Inject constructor(private val db: UmamiDatabase, p
     private val sessions = db.sessionDao()
     private val tasting = db.tastingDao()
 
-    override suspend fun deleteSession(sessionId: String) {
+    // NonCancellable: a caller that is cleared after the commit never leaves the files of a deleted session behind.
+    override suspend fun deleteSession(sessionId: String) = withContext(NonCancellable + Dispatchers.IO) {
         // The photo ids are collected first: the rows go with the session by CASCADE (05 §3.9).
         val photoIds = db.withTransaction {
             val ids = db.sessionPhotoDao().photoIds(sessionId)
@@ -65,18 +68,16 @@ class RoomJournalRepository @Inject constructor(private val db: UmamiDatabase, p
         photoIds.forEach(photos::delete)
     }
 
-    override fun observeSessions(): Flow<List<JournalSession>> = journal.observeSessions().map { rows ->
-        rows.map { row ->
-            JournalSession(
-                session = row.session.toModel(row.steps.sortedBy { it.position }, row.descriptors),
-                coverPhoto = row.teaCoverPhotoId?.let(photos::file),
-            )
-        }
-    }
+    override fun observeSessions(): Flow<List<JournalSession>> =
+        journal.observeSessions().map { rows -> rows.map { it.toJournalSession() } }.flowOn(Dispatchers.Default)
 
-    override fun observeTeaRatings(): Flow<Map<String, TeaRating>> = tasting.observeTeaRatings().map { rows ->
-        rows.associate { it.teaId to TeaRating(it.average, it.count) }
-    }
+    override fun observeSession(sessionId: String): Flow<JournalSession?> =
+        journal.observeSession(sessionId).map { it?.toJournalSession() }.flowOn(Dispatchers.Default)
+
+    private fun JournalSessionRow.toJournalSession() = JournalSession(
+        session = session.toModel(steps.sortedBy { it.position }, descriptors),
+        coverPhoto = teaCoverPhotoId?.let(photos::file),
+    )
 
     override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = combine(
         tasting.observeTeaRating(teaId),

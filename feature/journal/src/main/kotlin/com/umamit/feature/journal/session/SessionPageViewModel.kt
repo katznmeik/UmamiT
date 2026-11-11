@@ -79,8 +79,8 @@ class SessionPageViewModel @Inject constructor(
     /** *Zeiten ins Rezept übernehmen* under the step table (PRF-07, D-112): its line and its write. */
     internal val recipeOffer = SessionOfferLine(offers, sessionId, viewModelScope)
 
-    val state: StateFlow<SessionPageUiState> = journal.observeSessions()
-        .map { list -> list.firstOrNull { it.session.id == sessionId }?.session }
+    val state: StateFlow<SessionPageUiState> = journal.observeSession(sessionId)
+        .map { it?.session }
         .distinctUntilChanged()
         .flatMapLatest { session ->
             if (session == null) {
