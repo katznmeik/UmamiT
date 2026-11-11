@@ -60,6 +60,11 @@ fun TasteSlider(axis: TasteAxis, value: Int?, onChange: (Int) -> Unit, modifier:
     var dragged by remember(value) { mutableStateOf(value) }
     val label = axis.tasteLabel()
     val shown = dragged
+    val valueColor = if (shown == null) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
     val state = if (shown == null) {
         stringResource(R.string.ui_taste_not_set)
     } else {
@@ -99,13 +104,7 @@ fun TasteSlider(axis: TasteAxis, value: Int?, onChange: (Int) -> Unit, modifier:
         Text(
             text = shown?.toString() ?: stringResource(R.string.ui_taste_unset),
             style = MaterialTheme.typography.bodyLarge,
-            color = if (shown ==
-                null
-            ) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
+            color = valueColor,
             textAlign = TextAlign.End,
             modifier = Modifier
                 .widthIn(min = VALUE_WIDTH)

@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,8 +55,11 @@ private val CHEVRON_SIZE = 20.dp
  */
 @Composable
 internal fun TasteSection(page: SessionPage, actions: SessionPageActions, modifier: Modifier = Modifier) {
-    // The taste as the sliders last said it, until the repository's value arrives (as the stars do).
-    var shown by remember(page.sessionId, page.taste) { mutableStateOf(page.taste) }
+    // The taste as the sliders last said it, kept until the repository shows exactly that: a stale emission still
+    // carrying older values must neither flick a value back nor reopen the section after Zurücksetzen.
+    var pending by remember(page.sessionId) { mutableStateOf<TasteProfile?>(null) }
+    LaunchedEffect(page.taste, pending) { if (pending == page.taste) pending = null }
+    val shown = pending ?: page.taste
     var opened by rememberSaveable(page.sessionId) { mutableStateOf(false) }
     val expanded = opened || shown.setCount > 0
     val motion = UmamiTheme.motion
@@ -79,11 +83,11 @@ internal fun TasteSection(page: SessionPage, actions: SessionPageActions, modifi
             TasteInputs(
                 taste = shown,
                 onSet = { axis, value ->
-                    shown = shown.with(axis, value)
+                    pending = shown.with(axis, value)
                     actions.setTaste(axis, value)
                 },
                 onReset = {
-                    shown = TasteProfile.EMPTY
+                    pending = TasteProfile.EMPTY
                     opened = false
                     actions.clearTaste()
                 },

@@ -53,6 +53,7 @@ class TasteRadarShapeTest {
         assertThat(TasteRadarShape.valueText(4.0)).isEqualTo("4")
         assertThat(TasteRadarShape.valueText(3.5)).isEqualTo("3,5")
         assertThat(TasteRadarShape.valueText(2.333)).isEqualTo("2,3")
+        assertThat(TasteRadarShape.valueText(2.96)).isEqualTo("3")
     }
 
     private companion object {

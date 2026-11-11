@@ -40,6 +40,7 @@ object TasteRadarShape {
     /** The radar is drawn from this many set axes on. */
     const val MIN_AXES = 3
 
+    private const val TENTHS = 10.0
     private const val FULL_TURN_DEGREES = 360.0
     private const val QUARTER_TURN_DEGREES = 90.0
 
@@ -57,8 +58,10 @@ object TasteRadarShape {
     }
 
     /** „4" or „3,5": a value as TalkBack says it (averages have a decimal). */
-    fun valueText(value: Double): String =
-        if (value % 1.0 == 0.0) value.toInt().toString() else "%.1f".format(Locale.GERMAN, value)
+    fun valueText(value: Double): String {
+        val rounded = Math.round(value * TENTHS) / TENTHS
+        return if (rounded % 1.0 == 0.0) rounded.toInt().toString() else "%.1f".format(Locale.GERMAN, rounded)
+    }
 }
 
 /** [TasteProfile]'s set axes as the radar takes them. */

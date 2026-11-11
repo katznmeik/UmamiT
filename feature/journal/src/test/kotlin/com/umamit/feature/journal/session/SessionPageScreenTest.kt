@@ -355,6 +355,19 @@ class SessionPageScreenTest {
     }
 
     @Test
+    fun `a release followed at once by Zuruecksetzen ends folded with nothing set`() {
+        show()
+        openTaste()
+        slider(TasteAxis.UMAMI).performSemanticsAction(SemanticsActions.SetProgress) { it(3f) }
+        compose.onNodeWithTag(SESSION_TASTE_RESET_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        assertThat(session().taste.setCount).isEqualTo(0)
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).performScrollTo().assertExists()
+    }
+
+    @Test
     fun `Zuruecksetzen clears all six and folds back to the one row`() {
         runBlocking {
             sessions.tasting.setTaste(PAST, TasteAxis.UMAMI, 5)

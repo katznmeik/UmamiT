@@ -54,9 +54,8 @@ sealed interface SessionPageEvent {
  * host's way to the setup (BRW-01). *Löschen* (D-102) removes a finished session and tells the host.
  *
  * The rating, the taste and the notes are saved at once through [SessionTasting] (JRN-02, JRN-03, JRN-05,
- * D-112): the stars on each tap,
- * the notes 1 s after the last key and when the field or the page is left ([flushNotes]). A write started always
- * completes, also when the page is left or an alert takes the screen (rule 8).
+ * D-112): the stars on each tap, the notes 1 s after the last key and when the field or the page is left
+ * ([flushNotes]). A write started always completes, also when the page is left or an alert takes the screen (rule 8).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel

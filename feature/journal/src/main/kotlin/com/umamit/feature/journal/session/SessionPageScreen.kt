@@ -85,8 +85,8 @@ class SessionPageActions(
  * session; for an archived tea it is greyed out with „Tee ist archiviert" and *Wiederherstellen*, for a deleted tea
  * there is neither the link nor the button. ⋮ *Löschen* (D-102) asks „Sitzung löschen?" and removes a finished
  * session with its stock deduction. BEWERTUNG (the stars, JRN-02) and NOTIZEN (JRN-05) sit above the step table and
- * save as they change (D-112), GESCHMACK (JRN-03) follows the step table;
- * descriptors, photos and *Bearbeiten* follow in later tickets.
+ * save as they change (D-112), GESCHMACK (JRN-03) follows the step table; descriptors, photos and *Bearbeiten*
+ * follow in later tickets.
  *
  * The menu and the question give way to another alert than the one they were opened in ([alertKey], rule 8); the
  * host opens the alerting timer in place of the setup or the tea during an alert.
