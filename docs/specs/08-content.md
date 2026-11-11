@@ -789,8 +789,8 @@ enum name in lower case (`marine`, `vegetal`,
 `mouthfeel`, `off_note`) and an ASCII slug of the German label (`nori`,
 `dashi`, `gemaehtes_gras`, `geroesteter_reis`, `klarer_abgang`,
 `zu_bitter`). The vocabulary is an enum-like list in `core:model`
-(`TasteDescriptor`: key, group, label resource) with the labels in
-`strings.xml`; a test pins every key, so a label can be reworded but a key
+(`TasteDescriptor`: key, group; `core:ui` maps each to its label) with the
+labels in `strings.xml`; a test pins every key, so a label can be reworded but a key
 never changes. The picker and the chips show groups and descriptors in the
 table's order. The group names read as in the table's first column
 („Meer", „Gemüse", „Süß", „Geröstet & nussig", „Blumig", „Fruchtig", „Erdig
