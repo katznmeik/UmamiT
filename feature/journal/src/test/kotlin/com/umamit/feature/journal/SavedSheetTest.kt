@@ -18,6 +18,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.SessionTasting
+import com.umamit.core.data.TastingWrite
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.Tea
@@ -28,6 +30,7 @@ import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.core.ui.ratingStarTag
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -54,6 +57,9 @@ class SavedSheetTest {
     private var alerting by mutableStateOf(false)
     private val opened = mutableListOf<String>()
 
+    /** The tasting writes the sheet gets; a test swaps in a failing or a gated one. */
+    private var tasting: SessionTasting = data.tasting
+
     /** Whether the shell, and with it the sheet's host, is composed (the timer route covers it otherwise). */
     private var hostComposed by mutableStateOf(true)
 
@@ -65,7 +71,7 @@ class SavedSheetTest {
                         requests = requests,
                         sessions = data.sessions,
                         teas = collection.teas,
-                        tasting = data.tasting,
+                        tasting = tasting,
                         onOpenNotes = { opened += it },
                         alerting = alerting,
                     )
@@ -273,6 +279,82 @@ class SavedSheetTest {
         compose.mainClock.autoAdvance = true
         compose.waitForIdle()
         assertThat(rating("s1")).isEqualTo(5.0)
+    }
+
+    /** Delegates to [inner]; [gate] holds back the first write, [fail] makes every write fail. */
+    private class ScriptedTasting(
+        private val inner: SessionTasting,
+        private val gate: CompletableDeferred<Unit>? = null,
+        private val fail: (() -> TastingWrite)? = null,
+    ) : SessionTasting by inner {
+        val ratings = mutableListOf<Double?>()
+        private var first = true
+
+        override suspend fun setRating(sessionId: String, rating: Double?): TastingWrite {
+            ratings += rating
+            if (first) {
+                first = false
+                gate?.await()
+            }
+            return fail?.invoke() ?: inner.setRating(sessionId, rating)
+        }
+    }
+
+    @Test
+    fun `a second tap queued behind a slow write lands after it, also after an alert`() {
+        val gate = CompletableDeferred<Unit>()
+        tasting = ScriptedTasting(data.tasting, gate)
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(1_000)
+
+        star(2).performClick()
+        star(5).performClick()
+        alerting = true
+        Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+
+        gate.complete(Unit)
+        compose.mainClock.autoAdvance = true
+        compose.waitForIdle()
+        assertThat(rating("s1")).isEqualTo(5.0)
+        assertThat((tasting as ScriptedTasting).ratings).containsExactly(2.0, 5.0).inOrder()
+    }
+
+    @Test
+    fun `a rating write that is refused leaves the sheet usable (D-090)`() {
+        tasting = ScriptedTasting(data.tasting, fail = { TastingWrite.NOT_COMPLETED })
+        show()
+        controller.brew("s1", 60)
+
+        star(3).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+        compose.onNodeWithText("Notizen hinzufügen").assertIsDisplayed()
+        assertThat(rating("s1")).isNull()
+        // Another tap is still written.
+        star(4).performClick()
+        compose.waitForIdle()
+        assertThat((tasting as ScriptedTasting).ratings).containsExactly(3.0, 4.0).inOrder()
+    }
+
+    @Test
+    fun `a rating write that throws is logged, never crashes, and leaves the sheet usable (D-090)`() {
+        tasting = ScriptedTasting(data.tasting, fail = { error("disk full") })
+        show()
+        controller.brew("s1", 60)
+
+        star(3).performClick()
+        compose.waitForIdle()
+        star(4).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+        assertThat((tasting as ScriptedTasting).ratings).containsExactly(3.0, 4.0).inOrder()
+        assertThat(rating("s1")).isNull()
     }
 
     @Test
