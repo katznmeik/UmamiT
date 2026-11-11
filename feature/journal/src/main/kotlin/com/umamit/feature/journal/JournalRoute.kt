@@ -52,8 +52,12 @@ fun JournalRoute(
         delay(sources.millisUntilTomorrow())
         today = sources.today()
     }
-    var filter by rememberSaveable(stateSaver = JournalFilter.Saver) { mutableStateOf(JournalFilter()) }
-    var appliedToken by rememberSaveable { mutableIntStateOf(0) }
+    // A request seeds the first composition, so the first frame is already filtered; the effect handles later ones.
+    val firstRequest = teaRequest?.takeIf { it.token != 0 }
+    var filter by rememberSaveable(stateSaver = JournalFilter.Saver) {
+        mutableStateOf(JournalFilter(teaKey = firstRequest?.teaKey))
+    }
+    var appliedToken by rememberSaveable { mutableIntStateOf(firstRequest?.token ?: 0) }
     LaunchedEffect(teaRequest) {
         if (teaRequest != null && teaRequest.token != appliedToken) {
             appliedToken = teaRequest.token
