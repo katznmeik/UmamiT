@@ -11,7 +11,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalResources
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.model.TasteDescriptor
@@ -58,9 +58,12 @@ fun JournalRoute(
             filter = filter.copy(teaKey = initialTeaKey)
         }
     }
-    val descriptorLabels = TasteDescriptor.entries.associate { it.key to stringResource(it.labelRes()) }
     // Keyed by the locale, not by the label list: the labels change only with it, and a list key is rebuilt per frame.
     val locale = LocalConfiguration.current.locales.toLanguageTags()
+    val resources = LocalResources.current
+    val descriptorLabels = remember(locale) {
+        TasteDescriptor.entries.associate { it.key to resources.getString(it.labelRes()) }
+    }
     val list = remember(sessions, today, locale) {
         sessions?.let { journalList(it, today, descriptorLabels::get) }
     }
