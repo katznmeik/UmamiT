@@ -636,6 +636,59 @@ sheet).**
   PO's design review.
 - `CollectionSort.RATING` is stored like the other orders (05 §6).
 
+**Build notes (Claude, 2026-11-11, #228: *Zeiten ins Rezept übernehmen*).**
+- An „early-ended step" is every step that was not skipped and whose
+  recorded time is below its planned time. The stored rows cannot tell
+  *Aufguss jetzt beenden* from a running step that *Sitzung beenden* ended
+  (04 §2), so both count, and so does a rinse ended early or a step time
+  shortened in the session editor. A step with overtime keeps its planned
+  time. **Open with the PO:** whether ending a session in the middle of an
+  infusion should offer the shorter time.
+- Rounding follows the recorded time: to 5 s below 10 min, to 1 min from
+  10 min (half up: 0:47 → 0:45, 0:48 → 0:50), so the proposal lands on the
+  Schritte-Sheet's steps. A 12 min step ended at 9:47 is proposed as 9:45.
+- „The recipe changed since" compares the latest change of the recipe and
+  its steps with the session's end. A start moved in the editor moves that
+  end with it.
+- An archived tea counts as not in the collection: no offer until
+  *Wiederherstellen*.
+- Proposal and recipe are compared by effective temperatures (a step
+  without one has the recipe's base) and without step notes. A base
+  temperature changed in the setup therefore counts as a change of every
+  step.
+- Accepting replaces the recipe's steps as *Im Rezept speichern* does, so
+  the recipe's step notes are dropped, as there. **Open with the PO.**
+- A session finished by v0.3.0 or earlier has no rows for its never started
+  steps: the recipe's steps at those positions are kept; without them no
+  offer applies.
+- The sheet's line reads „Rezept aktualisiert." at once and leaves if the
+  write is refused. The page's button changes only after the write; the
+  page reads the offer again whenever it comes back to the front, so a
+  recipe changed elsewhere removes it (PRF-07 AC3). A failed read shows no
+  line and is logged (D-090).
+
+**Build notes (Claude, 2026-11-11, #229: session photos and the hero).**
+- ← and the page's ⋮ sit over the hero on the tea detail's translucent
+  surfaces, as the sketch of SCR-16 and the ticket have it; a loaded page
+  therefore has no title „Sitzung" (loading and „not found" keep the bar).
+  SCR-16's sentence said the ⋮ „stays in the top bar" and is reworded.
+  **Open with the PO:** this layout, or a solid bar with the title above the
+  hero.
+- *+ Foto* shows only for a finished session. While the hero reads its
+  photos it shows the plain tinted box, so the leaf never flashes before a
+  photo.
+- The tea's cover in the hero is decorative for TalkBack; only session
+  photos read „Fotos der Sitzung", „Foto 1 von 3".
+- A session photo whose file is missing is left out of the pager and still
+  counts towards the six.
+- Toasts: „Das Foto konnte nicht gelesen werden.", „Das Foto konnte nicht
+  gespeichert werden.", „Höchstens 6 Fotos", „Das Foto konnte nicht
+  geändert werden." (the last as on the tea detail).
+- The pager moved to `core:ui` (`PhotoHero`); the tea detail's goldens are
+  unchanged. `SessionPhotoDao` adds queries only; the schema is unchanged.
+- The hero has its own view model; it reads the journal to find the tea's
+  cover, an item for the milestone review.
+
 <a id="d-111"></a>
 ### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
