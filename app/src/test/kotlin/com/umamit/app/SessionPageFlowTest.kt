@@ -36,6 +36,7 @@ import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
@@ -181,6 +182,7 @@ class SessionPageFlowTest {
                 SessionPageViewModel(
                     createSavedStateHandle(),
                     sessions.journal,
+                    FakeRecipeOffers(),
                     collection.teas,
                     archive,
                     sessions.tasting,

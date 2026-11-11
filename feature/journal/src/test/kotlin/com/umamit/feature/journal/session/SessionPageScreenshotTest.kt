@@ -9,6 +9,8 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteProfile
+import com.umamit.feature.journal.RECIPE_OFFER_TAG
+import com.umamit.feature.journal.RecipeOfferState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -113,6 +115,14 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
     /** GESCHMACK folded to its one row, scrolled into view below the step table. */
     @Test
     fun tasteFolded() = capture("tasteFolded", SessionPageUiState.Ready(page), scrollToTag = SESSION_TASTE_ADD_TAG)
+
+    /** The recipe offer applies: *Zeiten ins Rezept übernehmen* under the step table, scrolled into view (PRF-07). */
+    @Test
+    fun recipeOffer() = capture(
+        "recipeOffer",
+        SessionPageUiState.Ready(page.copy(recipeOffer = RecipeOfferState.OFFERED)),
+        scrollToTag = RECIPE_OFFER_TAG,
+    )
 
     @Test
     fun archivedTea() = capture("archivedTea", SessionPageUiState.Ready(page.copy(tea = SessionTea.ARCHIVED)))

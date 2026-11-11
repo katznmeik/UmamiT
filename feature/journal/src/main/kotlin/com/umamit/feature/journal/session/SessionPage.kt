@@ -5,6 +5,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteProfile
+import com.umamit.feature.journal.RecipeOfferState
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.DateTimeException
@@ -73,6 +74,8 @@ data class SessionPage(
     val taste: TasteProfile = TasteProfile.EMPTY,
     /** The ticked descriptor keys (JRN-04); keys the vocabulary lacks are kept and not shown. */
     val descriptorKeys: List<String> = emptyList(),
+    /** The line under the step table (PRF-07, D-112): null without an offer. */
+    val recipeOffer: RecipeOfferState? = null,
 ) {
     /** The tasting inputs are offered for a finished session only (05 §3.7: the writes refuse one in progress). */
     val canTaste: Boolean get() = !inProgress

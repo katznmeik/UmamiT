@@ -39,6 +39,7 @@ fun SessionPageRoute(
             notesChanged = viewModel::onNotesChanged,
             flushNotes = viewModel::flushNotes,
             setDescriptor = viewModel::setDescriptor,
+            acceptRecipeOffer = viewModel.recipeOffer::accept,
         )
     }
     SessionPageScreen(state = state, modifier = modifier, actions = actions, alertKey = host.alertKey)

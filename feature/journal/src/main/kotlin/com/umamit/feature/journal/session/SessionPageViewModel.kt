@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.JournalRepository
+import com.umamit.core.data.RecipeOffers
 import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TastingWrite
 import com.umamit.core.data.TeaArchive
@@ -20,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -63,6 +65,7 @@ sealed interface SessionPageEvent {
 class SessionPageViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val journal: JournalRepository,
+    private val offers: RecipeOffers,
     private val teas: TeaRepository,
     private val archive: TeaArchive,
     private val tasting: SessionTasting,
@@ -74,6 +77,9 @@ class SessionPageViewModel @Inject constructor(
     /** [SessionPageEvent]s for the host, each delivered once. */
     val events: Flow<SessionPageEvent> = _events.receiveAsFlow()
 
+    /** *Zeiten ins Rezept übernehmen* under the step table (PRF-07, D-112): its line and its write. */
+    internal val recipeOffer = SessionOfferLine(offers, sessionId, viewModelScope)
+
     val state: StateFlow<SessionPageUiState> = journal.observeSessions()
         .map { list -> list.firstOrNull { it.session.id == sessionId }?.session }
         .distinctUntilChanged()
@@ -81,7 +87,9 @@ class SessionPageViewModel @Inject constructor(
             if (session == null) {
                 flowOf(SessionPageUiState.NotFound)
             } else {
-                teaOf(session.snapshot.teaId).map { SessionPageUiState.Ready(sessionPage(session, it)) }
+                combine(teaOf(session.snapshot.teaId), recipeOffer.of(session)) { tea, offer ->
+                    SessionPageUiState.Ready(sessionPage(session, tea).copy(recipeOffer = offer))
+                }
             }
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, SessionPageUiState.Loading)

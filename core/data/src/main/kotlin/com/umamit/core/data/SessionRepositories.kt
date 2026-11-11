@@ -2,6 +2,7 @@ package com.umamit.core.data
 
 import com.umamit.core.model.ActiveBrewSnapshot
 import com.umamit.core.model.BrewSession
+import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TimerSlot
@@ -127,6 +128,31 @@ interface SessionTasting {
      * nothing new; a 21st key is refused ([TastingWrite.DESCRIPTOR_LIMIT]), checked in the write's transaction.
      */
     suspend fun setDescriptor(sessionId: String, key: String, ticked: Boolean): TastingWrite
+}
+
+/** What [RecipeOffers.accept] did. Anything but [ACCEPTED] wrote nothing. */
+enum class RecipeOfferAccept {
+    /** The proposal replaced the recipe's steps and the session is marked (`times_applied`). */
+    ACCEPTED,
+
+    /** The offer does not apply at that moment (accepted already, the recipe changed or gone, no difference). */
+    NOT_APPLICABLE,
+}
+
+/**
+ * *Zeiten ins Rezept übernehmen* (PRF-07, 05 §3.7 „Accept the recipe offer", D-112) on the „Gespeichert" sheet and the
+ * session page. The offer is derived when read (`RecipeOffer` in core:domain); `times_offered` is never written.
+ * Session completion and the timer are not involved.
+ */
+interface RecipeOffers {
+    /** The steps the recipe of [sessionId] would get when the offer applies now; null when it does not. */
+    suspend fun proposal(sessionId: String): List<RecipeStep>?
+
+    /**
+     * In one transaction: the recipe's steps replaced by the proposal, as *Im Rezept speichern* does (with each
+     * step's pre-alert), and `times_applied` set. Refused, changing nothing, when the offer no longer applies.
+     */
+    suspend fun accept(sessionId: String): RecipeOfferAccept
 }
 
 /**

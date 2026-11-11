@@ -28,6 +28,7 @@ import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
@@ -159,6 +160,7 @@ class TeaDetailSessionsRouteTest {
                 SessionPageViewModel(
                     createSavedStateHandle(),
                     sessions.journal,
+                    FakeRecipeOffers(),
                     collection.teas,
                     archive,
                     sessions.tasting,

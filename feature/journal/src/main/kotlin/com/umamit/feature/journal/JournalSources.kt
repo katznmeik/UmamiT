@@ -3,6 +3,7 @@ package com.umamit.feature.journal
 import com.umamit.core.common.WallClock
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.JournalSession
+import com.umamit.core.data.RecipeOffers
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TeaRepository
@@ -17,6 +18,7 @@ import javax.inject.Inject
  * app injects it; tests build it from the fakes of core:testing.
  *
  * @property teas the session's tea, for the sheet's *Rezept passt* (CAT-05, D-073).
+ * @property recipeOffers the sheet's *Zeiten ins Rezept übernehmen* (PRF-07, D-112).
  */
 class JournalSources @Inject constructor(
     val journal: JournalRepository,
@@ -25,6 +27,7 @@ class JournalSources @Inject constructor(
     val clock: WallClock,
     val teas: TeaRepository,
     val tasting: SessionTasting,
+    val recipeOffers: RecipeOffers,
 ) {
     /**
      * The journal's last read: a tab that comes back shows it in its first frame, so the

@@ -158,6 +158,9 @@
     <string name="journal_saved_dismiss">Schließen</string>
     <!-- SCR-06 (v0.6.0, D-112): closes the sheet and opens the session's page. -->
     <string name="journal_saved_notes">Notizen hinzufügen</string>
+    <!-- SCR-06 and SCR-16 (PRF-07, D-112): writes the session's deliberate changes into its recipe. -->
+    <string name="journal_recipe_offer">Zeiten ins Rezept übernehmen</string>
+    <string name="journal_recipe_offer_done">Rezept aktualisiert.</string>
     <!-- SCR-06 for a tea flagged „Rezept prüfen" (CAT-05, D-073): the recipe fits, the flag goes. -->
     <string name="journal_saved_recipe_ok">Rezept passt</string>
     <string name="journal_saved_recipe_ok_done">„Rezept prüfen“ ist entfernt.</string>

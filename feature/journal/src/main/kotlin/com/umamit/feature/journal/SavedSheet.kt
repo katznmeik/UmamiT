@@ -68,6 +68,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.data.OpenedDateChange
+import com.umamit.core.data.RecipeOfferAccept
+import com.umamit.core.data.RecipeOffers
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TastingWrite
@@ -114,12 +116,14 @@ private const val UPWARD_FRICTION = 0.2f
  * @property recipeCheckTeaId the session's tea when it is flagged „Rezept prüfen": the sheet offers *Rezept passt*.
  * @property openedDate the tea and its opened date before, when this session's completion set the date: the
  *   sheet says „Packung als geöffnet markiert" and offers *Rückgängig* (INV-06).
+ * @property recipeOffer the recipe offer applies (PRF-07): the sheet offers *Zeiten ins Rezept übernehmen*.
  */
 private data class SavedSheetContent(
     val sessionId: String,
     val summary: SavedSummary,
     val recipeCheckTeaId: String? = null,
     val openedDate: OpenedDateChange? = null,
+    val recipeOffer: Boolean = false,
 )
 
 /**
@@ -140,9 +144,14 @@ private data class SavedSheetContent(
  * date before, none or a date (INV-06, D-104). The write is never cancelled
  * by an alert either.
  *
+ * When the recipe offer applies (PRF-07, D-112) it offers *Zeiten ins Rezept übernehmen* below *Notizen hinzufügen*;
+ * tapped, the line reads „Rezept aktualisiert.". The write is never cancelled by an alert; a refused one (the offer no
+ * longer applies) removes the line, a failed one is logged.
+ *
  * @param sessions the finished session, and the opened date its completion set.
  * @param teas the session's tea, read when the sheet is due and cleared by *Rezept passt*.
  * @param tasting the rating write of the stars; a write already started is never cancelled (rule 8).
+ * @param offers the recipe offer of the session, read when the sheet is due and accepted by its line.
  * @param onOpenNotes opens the page of the session (SCR-16) above the current tab; the sheet closes with it.
  * @param windowInsets the insets below it that nothing else has applied (the rail layout's bottom).
  */
@@ -152,6 +161,7 @@ fun SavedSheetHost(
     sessions: SessionRepository,
     teas: TeaRepository,
     tasting: SessionTasting,
+    offers: RecipeOffers,
     onOpenNotes: (sessionId: String) -> Unit,
     alerting: Boolean,
     modifier: Modifier = Modifier,
@@ -172,7 +182,7 @@ fun SavedSheetHost(
     val timeout = LocalAccessibilityManager.current
         ?.calculateRecommendedTimeoutMillis(SAVED_SHEET_MILLIS, containsText = true)
         ?: SAVED_SHEET_MILLIS
-    val content by rememberSavedSheetContent(id, requests, sessions, teas, timeout)
+    val content by rememberSavedSheetContent(id, requests, sessions, teas, offers, timeout)
     val visible = id != null && content?.sessionId == id
     // A finger on the sheet holds it: it never leaves under the finger. Until then the request's own
     // time runs (also while the shell was covered); after a release the full time starts again.
@@ -213,6 +223,12 @@ fun SavedSheetHost(
                             }
                         }
                     },
+                    onAcceptOffer = { onRefused ->
+                        writes.launch {
+                            val result = guarded("Recipe offer not accepted", null) { offers.accept(shown.sessionId) }
+                            if (result == RecipeOfferAccept.NOT_APPLICABLE) onRefused()
+                        }
+                    },
                     onNotes = {
                         requests.dismiss(shown.sessionId)
                         currentOnOpenNotes(shown.sessionId)
@@ -239,6 +255,7 @@ private fun rememberSavedSheetContent(
     requests: SavedSheetRequests,
     sessions: SessionRepository,
     teas: TeaRepository,
+    offers: RecipeOffers,
     timeout: Long,
 ): State<SavedSheetContent?> = produceState(null, id) {
     if (id != null) {
@@ -253,6 +270,8 @@ private fun rememberSavedSheetContent(
                 recipeCheckTeaId = flagged,
                 // A failed read offers no undo line; the sheet still shows.
                 openedDate = guarded("Opened date change not read", null) { sessions.openedDateChange(id) },
+                // A failed read offers nothing here; the offer waits on the session page.
+                recipeOffer = guarded("Recipe offer not read", null) { offers.proposal(id) } != null,
             )
         }
     }
@@ -280,6 +299,7 @@ private fun SavedSheet(
     onRecipeOk: (teaId: String) -> Unit,
     onUndoOpening: (OpenedDateChange) -> Unit,
     onRate: (Double?) -> Unit,
+    onAcceptOffer: (onRefused: () -> Unit) -> Unit,
     onNotes: () -> Unit,
     onDismiss: () -> Unit,
     onHold: (Boolean) -> Unit,
@@ -411,6 +431,7 @@ private fun SavedSheet(
                         )
                     }
                     NotesAction(onNotes)
+                    if (content.recipeOffer) SheetRecipeOffer(content.sessionId, onAcceptOffer)
                     content.openedDate?.let { change -> OpenedUndo(content.sessionId) { onUndoOpening(change) } }
                     content.recipeCheckTeaId?.let { teaId -> RecipeOk(content.sessionId) { onRecipeOk(teaId) } }
                 }
@@ -431,6 +452,24 @@ private fun NotesAction(onClick: () -> Unit) {
         ),
     ) {
         Text(stringResource(R.string.journal_saved_notes))
+    }
+}
+
+/**
+ * *Zeiten ins Rezept übernehmen* (PRF-07, D-112), then „Rezept aktualisiert."; a refused write removes the line (the
+ * offer no longer applies).
+ */
+@Composable
+private fun SheetRecipeOffer(sessionId: String, onAccept: (onRefused: () -> Unit) -> Unit) {
+    var state by remember(sessionId) { mutableStateOf<RecipeOfferState?>(RecipeOfferState.OFFERED) }
+    state?.let { shown ->
+        RecipeOfferLine(
+            state = shown,
+            onAccept = {
+                state = RecipeOfferState.ACCEPTED
+                onAccept { state = null }
+            },
+        )
     }
 }
 
