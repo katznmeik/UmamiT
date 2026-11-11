@@ -61,4 +61,16 @@ class FakeSessionTastingTest {
         assertThat(summary.tasteAverages).containsExactly(TasteAxis.BODY, 4.0)
         assertThat(summary.descriptorCounts.first()).isEqualTo(DescriptorCount("key.1", 1))
     }
+
+    @Test
+    fun `an invalid value is refused before the session is checked, as on Room`() = runTest {
+        fakes.sessions.startSession(start("running"))
+        val tasting = fakes.tasting
+
+        assertThat(tasting.setRating("running", 4.2)).isEqualTo(TastingWrite.INVALID)
+        assertThat(tasting.setTaste("running", TasteAxis.BODY, 6)).isEqualTo(TastingWrite.INVALID)
+        assertThat(tasting.setNotes("gone", "a".repeat(5_001))).isEqualTo(TastingWrite.INVALID)
+        assertThat(tasting.setDescriptor("running", " ", ticked = true)).isEqualTo(TastingWrite.INVALID)
+        assertThat(tasting.setRating("running", 4.0)).isEqualTo(TastingWrite.NOT_COMPLETED)
+    }
 }

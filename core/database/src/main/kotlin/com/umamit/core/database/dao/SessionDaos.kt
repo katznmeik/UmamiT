@@ -199,8 +199,8 @@ private const val FINISHED = "status != 'IN_PROGRESS'"
 @Dao
 interface JournalDao {
     /**
-     * Every session, newest first, with its steps and its tea's cover photo. Emits again on
-     * every write to the sessions, their steps or the teas.
+     * Every session, newest first, with its steps, its descriptor rows and its tea's cover photo. Emits again on
+     * every write to the sessions, their steps, their descriptors or the teas.
      */
     @Transaction
     @Query(

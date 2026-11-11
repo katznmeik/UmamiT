@@ -25,8 +25,9 @@ import java.time.ZoneOffset
 @Config(sdk = [36])
 class SessionTastingTest {
     private val data = TestDatabase()
+    private var now = WRITE_AT
     private val clock = object : WallClock {
-        override fun nowMs(): Long = WRITE_AT
+        override fun nowMs(): Long = now
 
         override fun zone(): ZoneId = ZoneOffset.UTC
     }
@@ -123,14 +124,15 @@ class SessionTastingTest {
 
     @Test
     fun `descriptors are ticked in order, ticked twice once, and unticked`() = runTest {
-        listOf("marine.nori", "vegetal.spinach", "marine.nori").forEach {
+        listOf("vegetal.spinach", "marine.nori", "vegetal.spinach").forEach {
+            now += 1_000
             assertThat(tasting.setDescriptor("done", it, ticked = true)).isEqualTo(TastingWrite.SAVED)
         }
-        assertThat(session().descriptorKeys).containsExactly("marine.nori", "vegetal.spinach").inOrder()
+        assertThat(session().descriptorKeys).containsExactly("vegetal.spinach", "marine.nori").inOrder()
 
-        assertThat(tasting.setDescriptor("done", "marine.nori", ticked = false)).isEqualTo(TastingWrite.SAVED)
+        assertThat(tasting.setDescriptor("done", "vegetal.spinach", ticked = false)).isEqualTo(TastingWrite.SAVED)
         assertThat(tasting.setDescriptor("done", "never.ticked", ticked = false)).isEqualTo(TastingWrite.SAVED)
-        assertThat(session().descriptorKeys).containsExactly("vegetal.spinach")
+        assertThat(session().descriptorKeys).containsExactly("marine.nori")
         assertThat(tasting.setDescriptor("done", " ", ticked = true)).isEqualTo(TastingWrite.INVALID)
     }
 

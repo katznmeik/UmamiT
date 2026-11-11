@@ -292,25 +292,21 @@ class FakeSessionTasting internal constructor(private val s: FakeSessions) : Ses
     var writes = 0
         private set
 
-    override suspend fun setRating(sessionId: String, rating: Double?): TastingWrite = write(sessionId) {
-        if (rating != null && !TastingLimits.isValidRating(rating)) null else it.copy(rating = rating)
-    }
+    override suspend fun setRating(sessionId: String, rating: Double?): TastingWrite =
+        write(sessionId, invalid = rating != null && !TastingLimits.isValidRating(rating)) { it.copy(rating = rating) }
 
     override suspend fun setTaste(sessionId: String, axis: TasteAxis, value: Int?): TastingWrite =
-        write(sessionId) { session ->
-            if (value != null && !TastingLimits.isValidTaste(value)) {
-                null
-            } else {
-                session.copy(taste = session.taste.with(axis, value))
-            }
+        write(sessionId, invalid = value != null && !TastingLimits.isValidTaste(value)) { session ->
+            session.copy(taste = session.taste.with(axis, value))
         }
 
     override suspend fun clearTaste(sessionId: String): TastingWrite =
         write(sessionId) { it.copy(taste = TasteProfile.EMPTY) }
 
-    override suspend fun setNotes(sessionId: String, notes: String?): TastingWrite = write(sessionId) { session ->
+    override suspend fun setNotes(sessionId: String, notes: String?): TastingWrite {
         val trimmed = notes?.trim()?.takeIf { it.isNotEmpty() }
-        if (trimmed != null && trimmed.length > TastingLimits.MAX_NOTES_LENGTH) null else session.copy(notes = trimmed)
+        val tooLong = trimmed != null && trimmed.length > TastingLimits.MAX_NOTES_LENGTH
+        return write(sessionId, invalid = tooLong) { it.copy(notes = trimmed) }
     }
 
     override suspend fun setDescriptor(sessionId: String, key: String, ticked: Boolean): TastingWrite {
@@ -329,23 +325,26 @@ class FakeSessionTasting internal constructor(private val s: FakeSessions) : Ses
     }
 
     /**
-     * Applies [change] to a completed session; [invalid] or a null change is [TastingWrite.INVALID], checked first
-     * as on Room.
+     * Applies [change] to a completed session; [invalid] is [TastingWrite.INVALID] and is checked before the
+     * session, as on Room.
      */
     private fun write(
         sessionId: String,
         invalid: Boolean = false,
-        change: (BrewSession) -> BrewSession?,
+        change: (BrewSession) -> BrewSession,
     ): TastingWrite {
         writes++
         val session = s.sessionRows.value[sessionId]?.takeIf { it.status == SessionStatus.COMPLETED }
-        val changed = if (invalid) null else session?.let(change)
-        when {
-            invalid -> Unit
-            session == null -> return TastingWrite.NOT_COMPLETED
-            changed != null -> s.updateSession(sessionId) { changed }
+        return when {
+            invalid -> TastingWrite.INVALID
+
+            session == null -> TastingWrite.NOT_COMPLETED
+
+            else -> {
+                s.updateSession(sessionId, change)
+                TastingWrite.SAVED
+            }
         }
-        return if (changed != null) TastingWrite.SAVED else TastingWrite.INVALID
     }
 
     private fun TasteProfile.with(axis: TasteAxis, value: Int?) = when (axis) {
