@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is being built** on `claude/wonderful-davinci-fu8tqi` (draft PR #235), started by the PO with `/implement-spec #221`. Merged so far: #222, #223 (wave 1), #224, #231 (wave 2), #225, #227 (wave 3). Plan and waves: `docs/plans/v0.6.0.md`. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is being built** on `claude/wonderful-davinci-fu8tqi` (draft PR #235), started by the PO with `/implement-spec #221`. Merged so far: #222–#227 and #230–#232 (nine of eleven); #228 and #229 are being built. Plan and waves: `docs/plans/v0.6.0.md`. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
 
 ## v0.6.0 (build phase in progress)
 
@@ -34,7 +34,14 @@
     the green run before. The same test flaked once before
     (`docs/history.md`). A fix is test-only but under
     `core/timer/src/androidTest`, so it waits for the PO's answer (below).
-  - **Next:** waves 4–6 of the plan (#226 ‖ #230, #228 ‖ #232, #229).
+  - **Waves 4 and 5, merged (`cc237684`, gate passed):** #226 (T2)
+    BESCHREIBUNGEN and the descriptor sheet; #230 (T3) the session editor
+    (`EditSession`, three review rounds); #232 (T2) ratings, GESCHMACK and
+    LETZTE SITZUNGEN on the tea screens, the sort *Bewertung*, *Alle
+    anzeigen* (`JournalTeaRequest` replaces #231's route argument). The
+    order differs from the plan: #232 ran beside #230's last fix round, so
+    #228 ‖ #229 is the last pair.
+  - **Next:** #228 ‖ #229 (both T3), then the full gate on the final merge.
   - **Environment:** Maven Central answered HTTP 429 all day; a local Gradle
     init script (`~/.gradle/init.d`, not in the repository) points
     `repo.maven.apache.org` at Google's Maven Central mirror
