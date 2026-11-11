@@ -79,6 +79,8 @@ class SessionPageActions(
     val notesChanged: (String) -> Unit = {},
     /** The notes field or the page is left (JRN-05): a pending note is saved now. */
     val flushNotes: () -> Unit = {},
+    /** A chip ticked or unticked in the descriptor sheet (JRN-04): saved at once; `onRefused` runs if not stored. */
+    val setDescriptor: (key: String, ticked: Boolean, onRefused: () -> Unit) -> Unit = { _, _, _ -> },
 )
 
 /**
@@ -123,7 +125,7 @@ fun SessionPageScreen(
                 body = stringResource(R.string.session_not_found_body),
             )
 
-            is SessionPageUiState.Ready -> SessionContent(state.page, actions)
+            is SessionPageUiState.Ready -> SessionContent(state.page, actions, alertKey)
         }
     }
     AlertGated(deleteAsk) {
@@ -185,7 +187,7 @@ private fun DeleteDialog(onDelete: () -> Unit, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun SessionContent(page: SessionPage, actions: SessionPageActions) {
+private fun SessionContent(page: SessionPage, actions: SessionPageActions, alertKey: String?) {
     Column(modifier = Modifier.fillMaxWidth()) {
         TeaHeader(page, onOpenTea = page.teaId?.let { id -> { actions.openTea(id) } })
         Spacer(Modifier.height(UmamiSpacing.Small))
@@ -211,6 +213,7 @@ private fun SessionContent(page: SessionPage, actions: SessionPageActions) {
         )
         SessionSteps(page.steps)
         if (page.canTaste) TasteSection(page, actions)
+        if (page.canTaste) DescriptorsSection(page, actions, alertKey)
         BrewAgain(page, actions)
     }
 }

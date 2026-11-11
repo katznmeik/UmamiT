@@ -38,6 +38,7 @@ fun SessionPageRoute(
             clearTaste = viewModel::clearTaste,
             notesChanged = viewModel::onNotesChanged,
             flushNotes = viewModel::flushNotes,
+            setDescriptor = viewModel::setDescriptor,
         )
     }
     SessionPageScreen(state = state, modifier = modifier, actions = actions, alertKey = host.alertKey)
