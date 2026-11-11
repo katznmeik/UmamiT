@@ -33,8 +33,11 @@ class RoomRecipeOffers @Inject constructor(private val db: UmamiDatabase, privat
                 RecipeOfferAccept.NOT_APPLICABLE
             } else {
                 val (recipeId, steps) = offer
-                // *Im Rezept speichern*'s write (BRW-02, SCR-31): only the steps, each with its pre-alert.
-                recipes.replaceSteps(recipeId, steps.toEntities(recipeId, now), now)
+                // *Im Rezept speichern*'s write (BRW-02, SCR-31): only the steps, each with its pre-alert; the
+                // recipe's notes stay by position and kind (D-112 Q22).
+                val oldSteps = recipes.get(recipeId)?.toModel()?.steps.orEmpty()
+                val kept = RecipeOffer.keepingNotes(steps, oldSteps)
+                recipes.replaceSteps(recipeId, kept.toEntities(recipeId, now), now)
                 sessions.update(stored.copy(timesApplied = true, updatedAt = now))
                 RecipeOfferAccept.ACCEPTED
             }

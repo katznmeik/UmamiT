@@ -86,6 +86,17 @@ object RecipeOffer {
         )
     }
 
+    /**
+     * The steps to store when the offer is accepted (D-112 Q22): each of [proposal] takes the `note` of [recipeSteps]'
+     * step at the same position when both have the same kind; a position the recipe lacks, or of another kind, gets
+     * none. Notes never take part in whether an offer exists ([of]).
+     */
+    fun keepingNotes(proposal: List<RecipeStep>, recipeSteps: List<RecipeStep>): List<RecipeStep> =
+        proposal.mapIndexed { position, step ->
+            val old = recipeSteps.getOrNull(position)
+            step.copy(note = old?.note?.takeIf { old.kind == step.kind })
+        }
+
     /** [actualSeconds] rounded half up to 5 s, or to 1 min from [MINUTE_ROUNDING_FROM_SECONDS]; at least 5 s. */
     fun recordedTime(actualSeconds: Int): Int {
         val unit = if (actualSeconds >= MINUTE_ROUNDING_FROM_SECONDS) MINUTE_SECONDS else FINE_STEP_SECONDS
