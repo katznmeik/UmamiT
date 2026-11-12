@@ -25,6 +25,9 @@
   (`docs/design/assets.md`; the image is delivered). Statistik shows „Deine Statistik folgt bald" until then.
   v0.6.0 gives it ratings, taste values, descriptors and notes per session, per-tea rating and taste
   aggregates (05; umamit.db v6) and the journal's filters.
+- **Config housekeeping (2026-11-12):** a prompt audit of the Claude Code config pointed `CLAUDE.md` at the
+  per-release plans and plainly restated `emil-design-eng`'s review format (a local edit; its hash no longer
+  matches `skills-lock.json`, see `CLAUDE.md`). No app change.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab
   that comes back to the Journal can show the earlier list for a frame until the next build. The drag feel of
   the slim pin is first seen on the device with `v0.6.0` (D-113, answer 7): the PO's word on it is welcome.

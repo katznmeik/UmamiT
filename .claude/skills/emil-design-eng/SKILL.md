@@ -37,7 +37,7 @@ People select tools based on the overall experience, not just functionality. Goo
 
 ## Review Format (Required)
 
-When reviewing UI code, you MUST use a markdown table with Before/After columns. Do NOT use a list with "Before:" and "After:" on separate lines. Always output an actual markdown table like this:
+When reviewing UI code, report the findings as one markdown table with Before, After and Why columns, one row per issue, like this:
 
 | Before | After | Why |
 | --- | --- | --- |
@@ -47,17 +47,7 @@ When reviewing UI code, you MUST use a markdown table with Before/After columns.
 | No `:active` state on button | `transform: scale(0.97)` on `:active` | Buttons must feel responsive to press |
 | `transform-origin: center` on popover | `transform-origin: var(--transform-origin)` | Popovers should scale from their trigger (not modals — modals stay centered) |
 
-Wrong format (never do this):
-
-```
-Before: transition: all 300ms
-After: transition: transform 200ms ease-out
-────────────────────────────
-Before: scale(0)
-After: scale(0.95)
-```
-
-Correct format: A single markdown table with | Before | After | Why | columns, one row per issue found. The "Why" column briefly explains the reasoning.
+The "Why" column briefly explains the reasoning.
 
 ## The Animation Decision Framework
 
