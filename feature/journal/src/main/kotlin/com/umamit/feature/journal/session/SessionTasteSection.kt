@@ -38,7 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -56,6 +56,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TastingLimits
 import com.umamit.core.ui.InfusionTasteEditor
 import com.umamit.core.ui.TasteRadar
 import com.umamit.core.ui.TasteRadarShape
@@ -97,14 +98,25 @@ internal fun TasteSection(page: SessionPage, actions: SessionPageActions, modifi
     val infusions = page.infusions
     if (infusions.isEmpty()) return
     // The taste as the sliders last said it, per infusion, kept until the repository shows exactly that: a stale
-    // emission still carrying older values must not flick a value back.
+    // emission still carrying older values must not flick a value back. A refused or failed write drops it, so the
+    // stored value shows again (n3).
     var pending by remember(page.sessionId) { mutableStateOf<Map<Int, TasteProfile>>(emptyMap()) }
-    LaunchedEffect(infusions, pending) {
-        val stored = infusions.associate { it.position to it.taste }
-        val open = pending.filter { (position, taste) -> stored[position] != taste }
+    // The note as the editor last handed it over, per infusion (as stored: trimmed, blank as none), kept the same
+    // way: a field re-created by a fold, an unfold or a chip change before that save lands starts from it, never
+    // from the older stored note (m5).
+    var pendingNotes by remember(page.sessionId) { mutableStateOf<Map<Int, String?>>(emptyMap()) }
+    LaunchedEffect(infusions, pending, pendingNotes) {
+        val stored = infusions.associateBy { it.position }
+        val open = pending.filter { (position, taste) -> stored[position]?.taste != taste }
         if (open != pending) pending = open
+        val openNotes = pendingNotes.filter { (position, note) -> stored[position]?.note != note }
+        if (openNotes != pendingNotes) pendingNotes = openNotes
     }
-    val shown = infusions.map { infusion -> pending[infusion.position]?.let { infusion.copy(taste = it) } ?: infusion }
+    val shown = infusions.map { infusion ->
+        val taste = pending[infusion.position] ?: infusion.taste
+        val note = if (infusion.position in pendingNotes) pendingNotes[infusion.position] else infusion.note
+        infusion.copy(taste = taste, note = note)
+    }
     var opened by rememberSaveable(page.sessionId) { mutableStateOf(false) }
     var unfolded by rememberSaveable(page.sessionId) { mutableStateOf(false) }
     var selectedState by rememberSaveable(page.sessionId) { mutableIntStateOf(infusions.first().position) }
@@ -140,7 +152,7 @@ internal fun TasteSection(page: SessionPage, actions: SessionPageActions, modifi
                 AnimatedContent(
                     targetState = selected,
                     transitionSpec = {
-                        (fadeIn(motion.fade()) togetherWith fadeOut(motion.fade()))
+                        (fadeIn(motion.fade()) togetherWith fadeOut(motion.exitFade()))
                             .using(SizeTransform(clip = false) { _, _ -> motion.sheet() })
                     },
                     label = "taste chip",
@@ -156,14 +168,31 @@ internal fun TasteSection(page: SessionPage, actions: SessionPageActions, modifi
                                 onToggle = { unfolded = !unfolded },
                                 onSet = { axis, value ->
                                     opened = true
-                                    pending = pending + (infusion.position to infusion.taste.with(axis, value))
-                                    actions.setTaste(infusion.position, axis, value)
+                                    val position = infusion.position
+                                    val taste = infusion.taste.with(axis, value)
+                                    pending = pending + (position to taste)
+                                    actions.setTaste(position, axis, value) {
+                                        // Only if no later change of this infusion took its place meanwhile.
+                                        if (pending[position] == taste) pending = pending - position
+                                    }
                                 },
-                                onNoteSave = { actions.setInfusionNote(infusion.position, it) },
+                                onNoteSave = { text ->
+                                    val position = infusion.position
+                                    val note = text.take(TastingLimits.MAX_INFUSION_NOTE_LENGTH).trim().ifEmpty { null }
+                                    pendingNotes = pendingNotes + (position to note)
+                                    actions.setInfusionNote(position, text) {
+                                        if (position in pendingNotes && pendingNotes[position] == note) {
+                                            pendingNotes = pendingNotes - position
+                                        }
+                                    }
+                                },
                                 onReset = {
                                     opened = true
-                                    pending = pending + (infusion.position to TasteProfile.EMPTY)
-                                    actions.clearTaste(infusion.position)
+                                    val position = infusion.position
+                                    pending = pending + (position to TasteProfile.EMPTY)
+                                    actions.clearTaste(position) {
+                                        if (pending[position] == TasteProfile.EMPTY) pending = pending - position
+                                    }
                                 },
                             )
                         }
@@ -416,7 +445,7 @@ private fun AdjustRow(unfolded: Boolean, onToggle: () -> Unit) {
             painterResource(UmamiIcons.ChevronRight),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(CHEVRON_SIZE).rotate(turn),
+            modifier = Modifier.size(CHEVRON_SIZE).graphicsLayer { rotationZ = turn },
         )
     }
 }

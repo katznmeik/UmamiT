@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
@@ -37,6 +39,7 @@ import com.umamit.core.ui.INFUSION_TASTE_RESET_TAG
 import com.umamit.core.ui.TASTE_RADAR_TAG
 import com.umamit.core.ui.tasteSliderTag
 import com.umamit.feature.journal.JournalSessions
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
@@ -326,6 +329,71 @@ class SessionTasteSectionTest {
         assertThat(tasting(FIRST).note).isEqualTo("Weich")
         assertThat(tasting(THIRD).taste.umami).isEqualTo(2)
         slider(TasteAxis.UMAMI).assert(hasStateDescription("nicht gesetzt"))
+    }
+
+    @Test
+    fun `a failed write never crashes the app, and the slider shows the stored value again (m2, n3)`() {
+        seedTaste(FIRST, TasteAxis.UMAMI to 4)
+        show()
+        tap(SESSION_TASTE_ADJUST_TAG)
+        sessions.tasting.failInfusionWrites = true
+        // As on Room, the write suspends before it fails: the slider shows the value released meanwhile.
+        val failing = CompletableDeferred<Unit>()
+        sessions.tasting.beforeInfusionWrite = { failing.await() }
+
+        release(TasteAxis.UMAMI, 2f)
+        slider(TasteAxis.UMAMI).assert(hasStateDescription("2 von 5"))
+        failing.complete(Unit)
+        compose.waitForIdle()
+
+        assertThat(tasting(FIRST).taste.umami).isEqualTo(4)
+        slider(TasteAxis.UMAMI).assert(hasStateDescription("4 von 5"))
+
+        // *Zurücksetzen* that fails: the values show again too.
+        tap(INFUSION_TASTE_RESET_TAG)
+        assertThat(tasting(FIRST).taste.umami).isEqualTo(4)
+        slider(TasteAxis.UMAMI).assert(hasStateDescription("4 von 5"))
+    }
+
+    @Test
+    fun `a note saved on fold shows when unfolded before the save lands, and is not written over (m5)`() {
+        seedTaste(FIRST, TasteAxis.UMAMI to 4)
+        runBlocking { sessions.tasting.setInfusionNote(PAST, FIRST, "Alt") }
+        show()
+        tap(SESSION_TASTE_ADJUST_TAG)
+        val landing = CompletableDeferred<Unit>()
+        sessions.tasting.beforeInfusionWrite = { landing.await() }
+        node(INFUSION_NOTE_TAG).performTextClearance()
+        node(INFUSION_NOTE_TAG).performTextInput("Neu")
+
+        // Folded and unfolded again while the save is held back: the field starts from the newer text.
+        tap(SESSION_TASTE_ADJUST_TAG)
+        tap(SESSION_TASTE_ADJUST_TAG)
+        node(INFUSION_NOTE_TAG).assertTextEquals("Neu")
+
+        landing.complete(Unit)
+        compose.waitForIdle()
+        assertThat(tasting(FIRST).note).isEqualTo("Neu")
+        node(INFUSION_NOTE_TAG).assertTextEquals("Neu")
+    }
+
+    @Test
+    fun `a page opened anew starts folded on the 1st infusion (SCR-16, n7)`() {
+        seedTaste(FIRST, TasteAxis.UMAMI to 4)
+        seedTaste(THIRD, TasteAxis.UMAMI to 2)
+        show()
+        tapChip(sessionTasteChipTag(THIRD))
+        tap(SESSION_TASTE_ADJUST_TAG)
+        slider(TasteAxis.UMAMI).assert(hasStateDescription("2 von 5"))
+
+        compose.runOnUiThread { onScreen.value = false }
+        compose.waitForIdle()
+        compose.runOnUiThread { onScreen.value = true }
+        compose.waitForIdle()
+
+        node(sessionTasteChipTag(FIRST)).assertIsSelected()
+        node(SESSION_TASTE_ADJUST_TAG).assert(hasStateDescription("eingeklappt"))
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
     }
 
     private companion object {

@@ -122,8 +122,13 @@ class SettingsActions(
     val setLowStockReminderInterval: (LowStockReminderInterval) -> Unit = {},
     /** SET-29 *Uhrzeit*: the minute of the day, 0…1439. */
     val setLowStockReminderTime: (Int) -> Unit = {},
-    /** SET-05 *Design*: *System*, *Hell* or *Dunkel* (D-114). */
+    /** SET-05 *Design*: *System*, *Hell* or *Dunkel* (D-114), stored and shown at once. */
     val setTheme: (ThemeMode) -> Unit = {},
+    /**
+     * The stored *Design* to the system, if it is not there yet (D-114, PO on motion review M21): called when the
+     * *Design* dialog closes and whenever the screen shows, both only with no alert playing.
+     */
+    val handOverTheme: () -> Unit = {},
     /** SET-22 *Katalog: Fotos laden*. */
     val setCatalogPhotos: (Boolean) -> Unit = {},
     val testAlert: () -> Unit = {},
@@ -157,7 +162,7 @@ fun SettingsRoute(
     val catalog by catalogViewModel.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val saveFailed by viewModel.saveFailed.collectAsStateWithLifecycle()
-    // Read when a *Design* pick is handed to the system, after it is stored (rule 8).
+    // Read when the *Design* is handed to the system, in the same frame (rule 8).
     val currentAlertKey by rememberUpdatedState(alertKey)
     LifecycleResumeEffect(viewModel) {
         viewModel.refresh()
@@ -205,7 +210,8 @@ fun SettingsRoute(
                 viewModel.change { it.copy(lowStockReminderInterval = interval) }
             },
             setLowStockReminderTime = { minute -> viewModel.change { it.copy(lowStockReminderTime = minute) } },
-            setTheme = { mode -> viewModel.setTheme(mode, alerting = { currentAlertKey != null }) },
+            setTheme = viewModel::setTheme,
+            handOverTheme = { viewModel.handOverTheme(alerting = { currentAlertKey != null }) },
             setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
@@ -238,6 +244,14 @@ fun SettingsScreen(
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
     // Rule 8: an alert removes an open dialog in its first frame, without animation.
     LaunchedEffect(alerting) { if (alerting) dialog = null }
+    // SET-05 (PO, motion review M21): the *Design* goes to the system once its dialog is closed (*Fertig*, back, a
+    // tap outside) and whenever the screen shows, never under an alert. A dialog an alert closed hands it over the
+    // next time the screen shows with no alert playing; a stored value out of step (a restore) is handed over too.
+    val themeDialogOpen = dialog == SettingsDialog.Theme
+    LifecycleResumeEffect(alerting, themeDialogOpen) {
+        if (!alerting && !themeDialogOpen) actions.handOverTheme()
+        onPauseOrDispose {}
+    }
     ScreenScaffold(
         title = stringResource(R.string.settings_title),
         modifier = modifier,

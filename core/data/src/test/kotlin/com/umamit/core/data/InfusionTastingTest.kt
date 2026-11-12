@@ -155,6 +155,24 @@ class InfusionTastingTest {
     }
 
     @Test
+    fun `a skipped step takes a write, so a migrated value left there can be changed or reset`() = runTest {
+        // A skipped step records 0 s (04 §5.1): ended for the writes (05 §3.7). Only a v0.6.0 session whose steps
+        // were all skipped has values there after the v7 migration (D-114 build note, T3 m1); its chip shows them.
+        driver.send(startEvent(infusion(60), infusion(20)))
+        driver.send(TimerEvent.SkipStep)
+        pour(20)
+        driver.send(TimerEvent.FinishSession)
+        assertThat(rows().map { it.skipped to it.actualSeconds }).containsExactly(true to 0, false to 20).inOrder()
+
+        assertThat(tasting.setInfusionTaste(SESSION_ID, 0, TasteAxis.UMAMI, 3)).isEqualTo(TastingWrite.SAVED)
+        assertThat(tasting.setInfusionNote(SESSION_ID, 0, "Übersprungen")).isEqualTo(TastingWrite.SAVED)
+        assertThat(session().infusions.first()).isEqualTo(Infusion(0, 1, TasteProfile(umami = 3), "Übersprungen"))
+
+        assertThat(tasting.clearInfusionTaste(SESSION_ID, 0)).isEqualTo(TastingWrite.SAVED)
+        assertThat(session().infusions.first().taste).isEqualTo(TasteProfile.EMPTY)
+    }
+
+    @Test
     fun `a write on an aborted session is refused and the session is gone with its values`() = runTest {
         runningAtSecondInfusion()
         tasting.setInfusionTaste(SESSION_ID, 1, TasteAxis.UMAMI, 4)
@@ -297,7 +315,8 @@ class InfusionTastingTest {
         tasting.setInfusionTaste(SESSION_ID, 2, TasteAxis.UMAMI, 2)
         tasting.setInfusionTaste(SESSION_ID, 3, TasteAxis.AROMA, 4)
 
-        assertThat(session().tasteAverages).containsExactly(
+        // The session page's *Alle* averages its infusions per axis (D-114 Q18).
+        assertThat(TasteProfile.averages(session().infusions.map { it.taste })).containsExactly(
             TasteAxis.UMAMI,
             3.5,
             TasteAxis.BODY,

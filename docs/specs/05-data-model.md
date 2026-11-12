@@ -890,8 +890,9 @@ infusion, `MIGRATION_6_7` in `UMAMI_MIGRATIONS`:
   (INTEGER, nullable) and `tasting_note` (TEXT, nullable), in that order as
   the last columns.
 - For every `brew_session` with at least one taste column set: its six
-  values are copied to one of its steps (the first ended step that is not
-  *Spülen* by `position`; else its first step that is not *Spülen*; else
+  values are copied to one of its steps (the first ended step that is
+  neither skipped nor *Spülen* by `position`, a skipped step recording 0 s
+  but never poured, D-114 build note on T3 m1; else its first step that is not *Spülen*; else
   its first step, position 0), then the session's six columns are set to
   null. A session without values, or without any step row, is left as it
   is; the tea's average reads the values of the latter from the session

@@ -68,6 +68,9 @@ class FakeSessions(
     internal val sessionRows = MutableStateFlow<Map<String, BrewSession>>(emptyMap())
     internal val activeRows = MutableStateFlow<Map<TimerSlot, TimerSnapshot>>(emptyMap())
 
+    /** A session's own taste columns, by session: only a v0.6.0 session without step rows keeps them (05 §9 v7). */
+    internal val sessionRowTastes = MutableStateFlow<Map<String, TasteProfile>>(emptyMap())
+
     val sessions = FakeSessionRepository(this)
     val activeBrew = FakeActiveBrewStore(this)
     val journal = FakeJournalRepository(this)
@@ -102,6 +105,13 @@ class FakeSessions(
      */
     fun storeDescriptorKey(sessionId: String, key: String) =
         updateSession(sessionId) { it.copy(descriptorKeys = (it.descriptorKeys + key).distinct()) }
+
+    /**
+     * Stores [taste] in [sessionId]'s own taste columns, as a v0.6.0 session without any step row keeps them after
+     * the v7 migration (05 §9): nothing shows them on the session page, and the tea's average counts them, as on Room.
+     */
+    fun storeSessionRowTaste(sessionId: String, taste: TasteProfile) =
+        sessionRowTastes.update { it + (sessionId to taste) }
 
     internal fun updateSession(id: String, transform: (BrewSession) -> BrewSession) = sessionRows.update { map ->
         map[id]?.let { map + (id to transform(it)) } ?: map
@@ -273,12 +283,18 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
         }
     }
 
-    override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = s.sessionRows.map { rows ->
+    override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = combine(
+        s.sessionRows,
+        s.sessionRowTastes,
+    ) { rows, rowTastes ->
         val sessions = finished(rows).filter { it.snapshot.teaId == teaId }
+        // Every step row's values count, and a session's own columns too, as on Room's union (05 §3.7, D-114).
+        val tastes = sessions.flatMap { session ->
+            session.stepTastings.values.map { it.taste } + listOfNotNull(rowTastes[session.id])
+        }
         TeaTasting(
             rating = ratingOf(sessions),
-            // Every step row's values count, as on Room (05 §3.7, D-114).
-            tasteAverages = TasteProfile.averages(sessions.flatMap { it.stepTastings.values.map { t -> t.taste } }),
+            tasteAverages = TasteProfile.averages(tastes),
             descriptorCounts = sessions.flatMap { it.descriptorKeys }.groupingBy { it }.eachCount()
                 .map { (key, count) -> DescriptorCount(key, count) }
                 .sortedWith(compareByDescending<DescriptorCount> { it.count }.thenBy { it.key }),
@@ -300,6 +316,12 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
 class FakeSessionTasting internal constructor(private val s: FakeSessions) : SessionTasting {
     var writes = 0
         private set
+
+    /** While set, every infusion write throws as a full disk does on Room and changes nothing (m2). */
+    var failInfusionWrites: Boolean = false
+
+    /** Runs before every infusion write: a test suspends in it to hold a write back until the test lets it land. */
+    var beforeInfusionWrite: suspend () -> Unit = {}
 
     override suspend fun setRating(sessionId: String, rating: Double?): TastingWrite =
         write(sessionId, invalid = rating != null && !TastingLimits.isValidRating(rating)) { it.copy(rating = rating) }
@@ -369,13 +391,15 @@ class FakeSessionTasting internal constructor(private val s: FakeSessions) : Ses
     }
 
     /** Applies [change] to the tasting of the infusion at [position], with Room's checks in Room's order. */
-    private fun infusionWrite(
+    private suspend fun infusionWrite(
         sessionId: String,
         position: Int,
         invalid: Boolean = false,
         change: (StepTasting) -> StepTasting,
     ): TastingWrite {
         writes++
+        beforeInfusionWrite()
+        check(!failInfusionWrites) { "synthetic infusion write failure" }
         val session = s.sessionRows.value[sessionId]
             ?.takeIf { it.status == SessionStatus.IN_PROGRESS || it.status == SessionStatus.COMPLETED }
         val row = session?.steps?.firstOrNull { it.position == position }

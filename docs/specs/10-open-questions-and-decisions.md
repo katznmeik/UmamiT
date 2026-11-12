@@ -545,7 +545,31 @@ words:
   step" for the v0.6.0 taste is the first step poured: a skipped step
   (`skipped = 1`, which records 0 s) is not ended for the migration, as
   D-114's „a skipped step has no chip" and the checklist's „under
-  „1. Aufguss"" say.
+  „1. Aufguss"" say. The writes still take a skipped row (it records
+  0 s), so values a migration left on one (every step skipped) can be
+  changed or reset on its chip.
+- **Build notes (Claude, 2026-11-12, v0.6.1 review fix round).**
+  - *Design* (T3 m3, T4 MIN-2, the PO's amendment on M21): the settings
+    screen hands the stored theme to the system whenever it shows with no
+    alert playing and the *Design* dialog is not open, so on the dialog's
+    close and after an alert or a restore; the alert check and the call
+    run on the main thread in one frame. The system has no getter for the
+    app's night mode, so the mode last handed over is recorded in the
+    app's private preferences, which no backup includes: after a restore
+    the stored theme differs from the record and is handed over, which
+    replaces the restore caveat above. The asynchronous re-creation can
+    still land up to about half a second after the check; accepted (an
+    alert then starts on a re-created activity, which restores its state).
+  - The session page's taste writes log a failure instead of throwing
+    (T3 m2); a refused or failed write drops the value shown in advance,
+    so the stored one shows again (n3). The infusion note field starts
+    from the text last handed over until the store shows it, follows a
+    newer stored note while it holds no unsaved edit, and hands a draft
+    restored after process death over again (T3 m5, T4 nit 7).
+  - GESCHMACK starts folded, on the 1st infusion, whenever the page is
+    opened anew; a return through the back stack (⋮ *Tee ansehen*, *Im
+    Katalog ansehen*, then back) keeps the fold and chip as left, as
+    SCR-16's „Both open above the page; back returns" reads (T3 n7).
 - **The quick-timer chips** wrap onto a second row as before; SCR-07's
   layout rules (polish 2, the band giving way) are re-checked at font 2.0.
 

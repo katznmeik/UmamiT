@@ -78,12 +78,18 @@ class SessionPageActions(
     val openCatalog: (catalogKey: String) -> Unit = {},
     /** A tap on the stars (JRN-02): the new rating, null for none; saved at once. */
     val setRating: (Double?) -> Unit = {},
-    /** A taste slider of the infusion at `position` released on a value (JRN-03, D-114): saved at once. */
-    val setTaste: (position: Int, TasteAxis, Int) -> Unit = { _, _, _ -> },
-    /** *Zurücksetzen* (JRN-03): the six taste values of the infusion at `position` are unset. */
-    val clearTaste: (position: Int) -> Unit = {},
-    /** The note of the infusion at `position` (JRN-05, D-114), handed over by the shared editor: saved now. */
-    val setInfusionNote: (position: Int, String) -> Unit = { _, _ -> },
+    /**
+     * A taste slider of the infusion at `position` released on a value (JRN-03, D-114): saved at once; `onRefused`
+     * runs if it is not stored (refused or failed), so the page shows the stored value again.
+     */
+    val setTaste: (position: Int, TasteAxis, Int, onRefused: () -> Unit) -> Unit = { _, _, _, _ -> },
+    /** *Zurücksetzen* (JRN-03): the six taste values of the infusion at `position` are unset; `onRefused` as above. */
+    val clearTaste: (position: Int, onRefused: () -> Unit) -> Unit = { _, _ -> },
+    /**
+     * The note of the infusion at `position` (JRN-05, D-114), handed over by the shared editor: saved now;
+     * `onRefused` as above.
+     */
+    val setInfusionNote: (position: Int, String, onRefused: () -> Unit) -> Unit = { _, _, _ -> },
     /** The notes field changed (JRN-05): saved 1 s after the last key. */
     val notesChanged: (String) -> Unit = {},
     /** The notes field or the page is left (JRN-05): a pending note is saved now. */

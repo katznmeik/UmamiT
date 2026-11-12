@@ -208,8 +208,9 @@ internal fun SettingsRepository.themeMode(): Flow<ThemeMode> =
  * The app theme's choice as state, following the settings at once; null until the file is read, and the app
  * draws *System* until then. Nothing waits for it (rule 8: a start into the timer or the alert never blocks on
  * the theme, and those surfaces are always [com.umamit.core.designsystem.theme.SteepingTheme]). No flash of the
- * other theme still: a pick is handed to the system too (`UiModeManager.setApplicationNightMode`, SET-05,
- * D-114), so the starting window and the configuration *System* reads are already in the chosen theme.
+ * other theme still: the settings hand the stored choice to the system too (`UiModeManager.setApplicationNightMode`,
+ * SET-05, D-114) when the *Design* dialog closes and whenever they show with no alert, so the starting window and the
+ * configuration *System* reads are already in the chosen theme.
  */
 internal fun ComponentActivity.themeModeState(settings: SettingsRepository): StateFlow<ThemeMode?> =
     settings.themeMode().stateIn(lifecycleScope, SharingStarted.Eagerly, null)

@@ -73,9 +73,6 @@ data class BrewSession(
             }
         }
 
-    /** The session's taste under *Alle* (JRN-03, D-114 Q18): per axis over its infusions that set that axis. */
-    val tasteAverages: Map<TasteAxis, Double> get() = TasteProfile.averages(infusions.map { it.taste })
-
     /** Whether any infusion has a note (JRN-09 *Mit Notizen*, D-114). */
     val hasInfusionNotes: Boolean get() = infusions.any { it.note != null }
 

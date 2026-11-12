@@ -89,6 +89,22 @@ class FakeSessionTastingTest {
     }
 
     @Test
+    fun `the tea's average counts a session's own taste columns too, as Room's union (n2)`() = runTest {
+        // A v0.6.0 session without step rows keeps its values on its own row after the v7 migration (05 §9).
+        fakes.sessions.startSession(start("stepless", steps = emptyList()))
+        fakes.sessions.completeSession("stepless", autoFinished = false)
+        fakes.storeSessionRowTaste("stepless", TasteProfile(umami = 2, aroma = 4))
+        fakes.sessions.startSession(start("done"))
+        fakes.sessions.recordStep("done", 0, poured)
+        fakes.sessions.completeSession("done", autoFinished = false)
+        fakes.tasting.setInfusionTaste("done", 0, TasteAxis.UMAMI, 4)
+
+        val summary = fakes.journal.observeTeaTasting("t1").first()
+
+        assertThat(summary.tasteAverages).containsExactly(TasteAxis.UMAMI, 3.0, TasteAxis.AROMA, 4.0)
+    }
+
+    @Test
     fun `an invalid value is refused before the session is checked, as on Room`() = runTest {
         fakes.sessions.startSession(start("running"))
         val tasting = fakes.tasting
