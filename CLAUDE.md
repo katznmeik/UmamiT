@@ -53,8 +53,8 @@ and effort to pick, the branch and PR, the phase and its steps by pointer
    - German number and date formats („4,0 g", „21. Okt. 2026");
    - every UI string goes in `strings.xml`.
    Docs and code are in English.
-5. **Delegation** follows `docs/specs/12-agent-plan.md`. The tiers were
-   shifted down on 2026-11-02 to save usage (D-101):
+5. **Delegation** follows `docs/specs/12-agent-plan.md`. The tiers are set
+   to save usage (D-101):
 
    | Tier | Model | Effort | Use for |
    |---|---|---|---|
@@ -124,7 +124,7 @@ and effort to pick, the branch and PR, the phase and its steps by pointer
 | Design | `docs/design/mockup-v2-*.png` (current), display sans Alegreya Sans (D-110; the mockups still show the earlier serif), washi/matcha palette (`docs/specs/03-ux-ui.md`) |
 | Images to produce | `docs/design/assets.md` |
 | Milestones | M0 specs → M1 timer → M2 catalog → M3 collection → M4 journal & stats → M5 1.0 |
-| Current plan | `docs/plans/` (e.g. `M1-timer.md`) |
+| Current plan | `docs/plans/`, one file per release (`vX.Y.Z.md`); `PROJECT_STATE.md` names the current one |
 
 ## Environment (cloud sessions)
 
@@ -201,5 +201,9 @@ washi/matcha design in `docs/specs/03-ux-ui.md`. The most relevant are
 `/break-ui` and `/animation-vocabulary` are also kept. The web/iOS-only skills
 (`animate-expo`, `ask-sonner`, `write-swift`, `mobile-native`,
 `pick-ui-library`, `animation-performance`, `prototype`) were removed. How
-they enter the M1 work: `docs/plans/M1-timer.md` §3.2. Timer reliability
-still beats polish (rule 8).
+they enter a release's work: its plan in `docs/plans/` (first set out in
+`M1-timer.md` §3.2). Timer reliability still beats polish (rule 8).
+`emil-design-eng` carries one local edit (its "Review Format" section states
+the table format plainly instead of in capitals with a wrong-format
+example), so its hash no longer matches `skills-lock.json`; reapply the edit
+after `npx skills update -p`.
