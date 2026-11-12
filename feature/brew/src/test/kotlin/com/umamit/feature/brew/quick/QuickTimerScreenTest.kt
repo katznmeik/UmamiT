@@ -98,6 +98,28 @@ class QuickTimerScreenTest {
     }
 
     @Test
+    fun `the 10_00 and 15_00 chips are shown, select 600 and 900 s and are spoken (TMR-22, D-114)`() {
+        show()
+
+        compose.onNodeWithContentDescription("10 Minuten").performScrollTo().performClick()
+        compose.onNodeWithText("10:00").assertIsSelected()
+        compose.onNodeWithContentDescription("15 Minuten").performScrollTo().performClick()
+        compose.onNodeWithText("15:00").assertIsSelected()
+        compose.onNodeWithText("Start").performClick()
+
+        assertThat(calls).containsExactly("select 600", "select 900", "start").inOrder()
+    }
+
+    @Test
+    fun `it opens on the 1_00 chip and the 0_30 and 1_30 chips are gone (D-114)`() {
+        show()
+
+        compose.onNodeWithContentDescription("1 Minute").assertIsSelected()
+        compose.onNodeWithContentDescription("30 Sekunden").assertDoesNotExist()
+        compose.onNodeWithContentDescription("1 Minute 30 Sekunden").assertDoesNotExist()
+    }
+
+    @Test
     fun `the ring shows the chosen duration and offers the picker`() {
         show(QuickTimerUiState(durationSeconds = 90))
 

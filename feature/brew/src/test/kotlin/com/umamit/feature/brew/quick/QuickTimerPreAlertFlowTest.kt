@@ -57,7 +57,7 @@ import org.robolectric.annotation.Config
  * [ControllerBrewTimer], and the timer route shows it. With the global *Vorwarnung* 10 s, a 2:00 quick timer has
  * its mark at 0:10 on the ring, its tick at 0:10 left and the caption „Gleich fertig …". On the code of v0.2.1
  * this passes: it did not reproduce the PO's silent pre-alert. From v0.2.2 SCR-07's *Vorwarnung* choice reaches the
- * timer the same way (#116).
+ * timer the same way (#116). From v0.6.1 the 10:00 and 15:00 chips keep their pre-alert too (D-114, #241).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -134,6 +134,56 @@ class QuickTimerPreAlertFlowTest {
         compose.waitForIdle()
         assertThat(alert.ticks).isEqualTo(0)
         ring().assert(hasContentDescription("Zieht …", substring = true))
+        runBlocking { wakeUp.advanceBy(1_000) }
+        compose.waitForIdle()
+
+        assertThat(alert.ticks).isEqualTo(1)
+        ring().assert(hasContentDescription("Gleich fertig …", substring = true))
+    }
+
+    @Test
+    fun `a 10_00 quick timer from its chip shows its mark and warns at 0_10, not before (TMR-18, D-114)`() {
+        assertThat(QuickDuration.CHIPS).contains(600)
+        val quick = QuickTimerViewModel(SavedStateHandle(), timer, settings)
+        quick.select(600)
+        quick.start()
+        awaitActive()
+        showTimer()
+
+        val running = controller.state.value as TimerUiState.Active
+        assertThat(running.phase).isEqualTo(TimerPhase.RUNNING)
+        assertThat(running.preAlertLeadSeconds).isEqualTo(10)
+        assertThat(running.preAlertPosition()).isWithin(EPSILON).of(1f - 10f / 600f)
+        ring().assert(hasContentDescription("Zieht …", substring = true))
+
+        runBlocking { wakeUp.advanceBy(589_000) }
+        compose.waitForIdle()
+        assertThat(alert.ticks).isEqualTo(0)
+        ring().assert(hasContentDescription("Zieht …", substring = true))
+        runBlocking { wakeUp.advanceBy(1_000) }
+        compose.waitForIdle()
+
+        assertThat(alert.ticks).isEqualTo(1)
+        ring().assert(hasContentDescription("Gleich fertig …", substring = true))
+    }
+
+    @Test
+    fun `a 15_00 quick timer from its chip with Vorwarnung 20 s warns at 0_20 (TMR-18, D-114)`() {
+        assertThat(QuickDuration.CHIPS).contains(900)
+        val quick = QuickTimerViewModel(SavedStateHandle(), timer, settings)
+        quick.select(900)
+        quick.selectPreAlert(PreAlertChoice.Seconds(20))
+        quick.start()
+        awaitActive()
+        showTimer()
+
+        val running = controller.state.value as TimerUiState.Active
+        assertThat(running.preAlertLeadSeconds).isEqualTo(20)
+        assertThat(running.preAlertPosition()).isWithin(EPSILON).of(1f - 20f / 900f)
+
+        runBlocking { wakeUp.advanceBy(879_000) }
+        compose.waitForIdle()
+        assertThat(alert.ticks).isEqualTo(0)
         runBlocking { wakeUp.advanceBy(1_000) }
         compose.waitForIdle()
 

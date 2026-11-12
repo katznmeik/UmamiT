@@ -79,7 +79,7 @@ class QuickTimerActions(
 /**
  * The quick timer before its *Start* (SCR-07, TMR-22): dark like SCR-05 with
  * its ink-wash band and no seal (D-095), the ring with the chosen duration and its pre-alert mark, the chips
- * 0:30 … 5:00, the *Vorwarnung* selector (D-097) and *Start*. A tap on
+ * 1:00 … 15:00 (D-114), the *Vorwarnung* selector (D-097) and *Start*. A tap on
  * the ring opens the duration picker (5 s – 24 h, PRF-04 increments). Once it
  * runs, the timer screen shows it (*Pause* / *Weiter*, *Fertig*, overflow
  * *Abbrechen*), as the notification and the full-screen alert open it.
@@ -244,7 +244,7 @@ private fun QuickPreAlertRow(state: QuickTimerUiState, onSelect: (PreAlertChoice
 }
 
 /**
- * The chips 0:30 … 8:00 (TMR-22), wrapping onto a second line at narrow widths
+ * The chips 1:00 … 15:00 (TMR-22, D-114), wrapping onto a second line at narrow widths
  * and large fonts. No check mark on the selected one: it would widen the chip
  * and shift its neighbours under the finger; the colour and the selected state
  * (TalkBack) mark it.
