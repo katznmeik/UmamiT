@@ -5,18 +5,26 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-12. **v0.6.0 (the journal, M4 part 1; D-112, D-113) is released**: [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) from `main` `232c4b82` (versionCode 60099, certificate verified), after the PO's approval of the on-device checklist on `v0.6.0-rc.1` and of the design review with the slim pin slider (#237). The gate, CI and all three accuracy variants passed on the released tree; details in `docs/history.md`. **Next phase (fresh session): the v0.6.1 (Statistik, M4 part 2) specify session**: a grilling round with the PO, then spec, plan and tickets. No development before that (CLAUDE.md rule 1).
+**Last updated:** 2026-11-12. **v0.6.0 (the journal, M4 part 1; D-112, D-113) is released**: [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) from `main` `232c4b82` (versionCode 60099, certificate verified), after the PO's approval of the on-device checklist on `v0.6.0-rc.1` and of the design review with the slim pin slider (#237). The gate, CI and all three accuracy variants passed on the released tree; details in `docs/history.md`. **Next phase (fresh session): a feedback round on v0.6.0** (the PO, 2026-11-12: „another feedback round before anything else"): its specify session takes the PO's points through a grilling round, then spec, plan and tickets. Statistik (M4 part 2) follows after it. No development before that (CLAUDE.md rule 1).
 
-## Next: v0.6.1 (Statistik, M4 part 2; not yet specified)
+## Next: feedback round on v0.6.0 (not yet specified)
 
-- **Specify session first** (D-112; `docs/plans/v0.6.0.md` „After v0.6.0"): grill the PO with questions as
-  selectable options, then decisions (from D-114), the specs, `/to-spec`, a plan `docs/plans/v0.6.1.md` and
-  tickets. Nothing is built before the PO has answered and approved the ticket breakdown.
-- **Starting point, not yet confirmed by the PO:** INS-01–INS-07 (02 §12, marked v0.6.1), SCR-18 and the
-  Statistik tab in 03, the A9 empty state (`docs/design/assets.md`; the image is delivered). Statistik shows
-  „Deine Statistik folgt bald" until then.
-- **What v0.6.0 gives it:** ratings, taste values, descriptors and notes per session, per-tea rating and taste
-  aggregates (05; umamit.db v6), the journal's filters.
+- **The PO's decision (2026-11-12, after the final release):** a feedback round on v0.6.0 comes before
+  anything else; Statistik waits for it. The PO brings the points to the specify session; none is recorded yet.
+- **Specify session first:** grill the PO on each point with questions as selectable options, then decisions
+  (from D-114), the specs the points touch, 09 §2 and a §4 checklist, `/to-spec`, a plan in `docs/plans/` and
+  tickets. Nothing is built before the PO has answered and approved the ticket breakdown. The pattern is the
+  feedback round on v0.5.0 (`docs/plans/v0.5.1.md`, D-110).
+- **Open, for the PO to answer in that session:** which release number the round gets, and what that means
+  for Statistik's number. 09 §2, D-112 and 02 §12 still call Statistik „v0.6.1"; nothing is renumbered until
+  the PO has answered.
+- **If a point needs timer code:** the tiers change (never below T3), the T4 timer review applies, and every
+  rc needs the accuracy runs (09 §4a).
+- **Then Statistik (M4 part 2; not yet specified):** its own specify session. Starting point, not yet
+  confirmed by the PO: INS-01–INS-07 (02 §12), SCR-18 and the Statistik tab in 03, the A9 empty state
+  (`docs/design/assets.md`; the image is delivered). Statistik shows „Deine Statistik folgt bald" until then.
+  v0.6.0 gives it ratings, taste values, descriptors and notes per session, per-tea rating and taste
+  aggregates (05; umamit.db v6) and the journal's filters.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab
   that comes back to the Journal can show the earlier list for a frame until the next build. The drag feel of
   the slim pin is first seen on the device with `v0.6.0` (D-113, answer 7): the PO's word on it is welcome.
@@ -37,9 +45,9 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.6.1** (Statistik, M4 part 2; D-112): not yet specified; its specify session is next. **v0.6.0** (the journal, M4 part 1; D-112, D-113, spec #221, plan `docs/plans/v0.6.0.md`) is released (2026-11-12) |
+| Current milestone | **Feedback round on v0.6.0**: not yet specified, release number open (the PO decides it in the specify session, which is next). Then **Statistik** (M4 part 2; D-112; called v0.6.1 in the specs so far), not yet specified. **v0.6.0** (the journal, M4 part 1; D-112, D-113, spec #221, plan `docs/plans/v0.6.0.md`) is released (2026-11-12) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi`, restarted from `main` after the merge of #235 (`232c4b82`) and again after the docs PR that carries this file; it equals `main` until v0.6.1's first commit |
+| Working branch | `claude/wonderful-davinci-fu8tqi`, restarted from `main` after the merges of #235 (`232c4b82`) and of the docs PR #238 (`e1d18896`); since then only this file's update for the feedback round is on it (docs only) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | none (#235, the v0.6.0 milestone PR, was merged on 2026-11-12) |
 | Latest APK | [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (full release, versionCode 60099, from `main` `232c4b82`, certificate verified); rc [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (pre-release, 60001); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
@@ -58,7 +66,7 @@
 
 ## Waiting on the PO
 
-1. **v0.6.1:** the PO's answers in the specify session's grilling round (the next session asks them as selectable options). Nothing else waits on the PO.
+1. **Feedback round on v0.6.0:** the PO's points and the answers in the specify session's grilling round (the next session asks them as selectable options), including the round's release number. Nothing else waits on the PO.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
@@ -68,7 +76,7 @@
 - **Ideas the PO kept for later (D-112, 09 §5):** custom descriptors, notes per infusion, manual journal entries, brew coach tips.
 - **Parked from v0.3.0:** the two *Pause* buttons and the shortened tea name in the brew row at font 2.0.
 - **#58:** its remaining optional review findings stay open for later milestones.
-- **Images:** all delivered. A6 (Journal) is built in since v0.6.0 (#231); A9 (Statistik) comes with v0.6.1.
+- **Images:** all delivered. A6 (Journal) is built in since v0.6.0 (#231); A9 (Statistik) comes with the Statistik release.
 
 ## Known caveats
 
