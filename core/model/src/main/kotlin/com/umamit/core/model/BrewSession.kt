@@ -25,7 +25,7 @@ data class SessionSnapshot(
 
 /**
  * A `brew_session` row with its `session_step` rows in position order
- * (05 §3.6, §3.7), with its tasting inputs (05 §3.8, JRN-02–JRN-05, D-112), each optional.
+ * (05 §3.6, §3.7), with its tasting inputs (05 §3.8, JRN-02–JRN-05, D-112, D-114), each optional.
  *
  * @property preAlertSeconds the effective pre-alert of the session (04 §5): session override ?: recipe ?: global.
  * @property plannedStepCount steps planned at the finish, never-started ones included („2 von 3 Aufgüssen", TMR-12).
@@ -35,7 +35,8 @@ data class SessionSnapshot(
  * @property steps every row: a session completed from v0.4.0 on keeps its never-started rows, without an actual
  * time (Q-19, D-100); one completed by v0.3.0 or earlier has only its ended rows.
  * @property rating 0,5–5,0 in half steps; null when unrated (JRN-02).
- * @property taste the six taste values, each null when unset (JRN-03).
+ * @property stepTastings the taste and note stored on step rows, by `position`; rows without any are absent
+ * (umamit.db v7, D-114). Read them through [infusions].
  * @property notes trimmed, never blank; null without notes (JRN-05).
  * @property descriptorKeys the ticked descriptor keys in the order ticked (JRN-04, 05 §3.8); keys the app does not
  * know are kept here and not shown.
@@ -53,10 +54,31 @@ data class BrewSession(
     val autoFinished: Boolean,
     val steps: List<SessionStepRow>,
     val rating: Double? = null,
-    val taste: TasteProfile = TasteProfile.EMPTY,
     val notes: String? = null,
     val descriptorKeys: List<String> = emptyList(),
+    val stepTastings: Map<Int, StepTasting> = emptyMap(),
 ) {
+    /**
+     * The infusions (JRN-03, D-114): the ended steps that are not *Spülen*, in position order, each numbered as the
+     * step table numbers it, with its taste and note.
+     */
+    val infusions: List<Infusion>
+        get() {
+            var number = 0
+            return steps.sortedBy { it.position }.mapNotNull { row ->
+                val counted = if (row.kind == StepKind.INFUSION) ++number else null
+                if (row.actualSeconds == null || row.kind == StepKind.RINSE) return@mapNotNull null
+                val tasting = stepTastings[row.position] ?: StepTasting.EMPTY
+                Infusion(row.position, counted, tasting.taste, tasting.note)
+            }
+        }
+
+    /** The session's taste under *Alle* (JRN-03, D-114 Q18): per axis over its infusions that set that axis. */
+    val tasteAverages: Map<TasteAxis, Double> get() = TasteProfile.averages(infusions.map { it.taste })
+
+    /** Whether any infusion has a note (JRN-09 *Mit Notizen*, D-114). */
+    val hasInfusionNotes: Boolean get() = infusions.any { it.note != null }
+
     /**
      * The ended rows, those with an actual time (05 §3.7): all that journal counts, cost and
      * statistics count of a completed session, as before v0.4.0 kept its never-started rows (Q-19).

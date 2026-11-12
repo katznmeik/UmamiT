@@ -45,7 +45,10 @@ interface JournalRepository {
     /** [sessionId]'s session as [observeSessions] lists it; null while there is none (a deleted one). */
     fun observeSession(sessionId: String): Flow<JournalSession?>
 
-    /** [teaId]'s tasting summary over its finished sessions (TEA-13, JRN-03); [TeaTasting.EMPTY] without data. */
+    /**
+     * [teaId]'s tasting summary over its finished sessions (TEA-13, JRN-03); the taste averages over every infusion of
+     * them (D-114). [TeaTasting.EMPTY] without data.
+     */
     fun observeTeaTasting(teaId: String): Flow<TeaTasting>
 }
 
@@ -92,7 +95,7 @@ class RoomJournalRepository @Inject constructor(private val db: UmamiDatabase, p
     }
 }
 
-/** The set axes' averages; an axis no session set is absent. */
+/** The set axes' averages; an axis no infusion set is absent. */
 private fun TasteAveragesRow.byAxis(): Map<TasteAxis, Double> = buildMap {
     umami?.let { put(TasteAxis.UMAMI, it) }
     sweetness?.let { put(TasteAxis.SWEETNESS, it) }

@@ -23,10 +23,10 @@ import java.time.ZoneId
  * @property infusions poured infusions: ended steps that are neither a rinse nor skipped.
  * @property plannedInfusions the non-rinse steps of the plan, never-started ones included.
  * @property rating 0,5–5,0 in half steps; null when unrated (JRN-02, JRN-08).
- * @property hasNotes the session has note text (JRN-09's *Mit Notizen*).
+ * @property hasNotes the session has note text, its own or an infusion's (JRN-09's *Mit Notizen*, D-114).
  * @property teaKey the tea filter's key (JRN-09): the tea's id, or `name:` and the recorded name for a deleted tea.
- * @property searchWords the normalized words of the tea name, the notes and the chosen descriptors' labels
- *   (GEN-10), built once with the list so a keystroke only compares them.
+ * @property searchWords the normalized words of the tea name, the notes, the infusion notes (D-114) and the chosen
+ *   descriptors' labels (GEN-10), built once with the list so a keystroke only compares them.
  */
 data class JournalEntry(
     val sessionId: String,
@@ -127,12 +127,13 @@ private fun JournalSession.toEntry(descriptorLabel: (String) -> String?): Journa
         plannedInfusions = maxOf(planned, poured),
         inProgress = inProgress,
         rating = session.rating,
-        hasNotes = !session.notes.isNullOrBlank(),
+        hasNotes = !session.notes.isNullOrBlank() || session.hasInfusionNotes,
         teaKey = teaKeyOf(session.snapshot.teaId, session.snapshot.teaName),
         searchWords = SearchQuery.words(
             buildString {
                 append(session.snapshot.teaName)
                 session.notes?.let { append(' ').append(it) }
+                session.infusions.forEach { infusion -> infusion.note?.let { append(' ').append(it) } }
                 session.descriptorKeys.forEach { key -> descriptorLabel(key)?.let { append(' ').append(it) } }
             },
         ),

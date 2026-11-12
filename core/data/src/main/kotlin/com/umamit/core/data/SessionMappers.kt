@@ -10,6 +10,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
+import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
@@ -89,6 +90,17 @@ internal fun BrewSessionEntity.toModel(
     autoFinished = autoFinished,
     steps = steps.map { it.toRow() },
     rating = rating,
+    notes = notes,
+    descriptorKeys = descriptors.sortedWith(compareBy({ it.createdAt }, { it.descriptorKey })).map { it.descriptorKey },
+    stepTastings = steps.mapNotNull { step -> step.tasting().takeUnless { it.isEmpty }?.let { step.position to it } }
+        .toMap(),
+)
+
+/**
+ * The row's taste and note (umamit.db v7, D-114). The session's own `taste_*` columns are never read: from v7 they
+ * are never written, and the migration moved their values to a step row (05 §3.6).
+ */
+internal fun SessionStepEntity.tasting() = StepTasting(
     taste = TasteProfile(
         umami = tasteUmami,
         sweetness = tasteSweetness,
@@ -97,8 +109,7 @@ internal fun BrewSessionEntity.toModel(
         body = tasteBody,
         aroma = tasteAroma,
     ),
-    notes = notes,
-    descriptorKeys = descriptors.sortedWith(compareBy({ it.createdAt }, { it.descriptorKey })).map { it.descriptorKey },
+    note = tastingNote,
 )
 
 /** A planned, unstarted row at [position]. */

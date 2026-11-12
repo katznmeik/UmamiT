@@ -150,12 +150,3 @@ private fun TasteInputs(taste: TasteProfile, onSet: (TasteAxis, Int) -> Unit, on
         }
     }
 }
-
-private fun TasteProfile.with(axis: TasteAxis, value: Int): TasteProfile = when (axis) {
-    TasteAxis.UMAMI -> copy(umami = value)
-    TasteAxis.SWEETNESS -> copy(sweetness = value)
-    TasteAxis.BITTERNESS -> copy(bitterness = value)
-    TasteAxis.ASTRINGENCY -> copy(astringency = value)
-    TasteAxis.BODY -> copy(body = value)
-    TasteAxis.AROMA -> copy(aroma = value)
-}

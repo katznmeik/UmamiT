@@ -177,14 +177,15 @@ Table `brew_session`
 | `ended_at` | INTEGER | | at completion: the end of the last ended step (the time of the completion if none has one) |
 | `zone_id` | TEXT | ✓ | |
 | `rating` | REAL | | 0.5–5.0 step 0.5 |
-| `taste_umami`, `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma` | INTEGER | | 0–5 each. **From v7 (v0.6.1, D-114) never written:** taste lives per infusion in `session_step` (§3.7); the v7 migration moved the values there and nulled these |
+| `taste_umami`, `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma` | INTEGER | | 0–5 each. **From v7 (v0.6.1, D-114) never written:** taste lives per infusion in `session_step` (§3.7); the v7 migration moved the values there and nulled these. Only a session without any step row keeps its values here (§9 v7); the tea's average still counts them, nothing else reads them |
 | `notes` | TEXT | | ≤ 5000 |
 | `auto_finished` | INTEGER | ✓ | 1 when the app completed the session on its own: the midnight timeout (TMR-14; `CompleteSession.autoFinished`, D-054), or recovery after a device restore that found it in progress without its `active_brew` row (E11, D-063); 0 when the user finished it, also by *Beenden & neu starten* (TMR-21). |
 | `times_offered` | INTEGER | ✓ | boolean: PRF-07 prompt was applicable. Never written: from v0.6.0 the offer is derived when read (PRF-07, D-112); the column stays for the frozen schema |
 | `times_applied` | INTEGER | ✓ | boolean: user accepted *Zeiten ins Rezept übernehmen*; the offer is not shown again |
 
 No full-text index: the journal's search runs in memory over tea name,
-notes and descriptor labels (JRN-09, D-112). The FTS4 table `session_fts`
+notes, the infusion notes (from v0.6.1, D-114) and descriptor labels (JRN-09,
+D-112). The FTS4 table `session_fts`
 planned until then is not created.
 
 ### 3.7 SessionStep
@@ -200,7 +201,11 @@ from schema v7 (v0.6.1, [D-114](10-open-questions-and-decisions.md#d-114)) the i
 `taste_aroma` (INTEGER 0–5, null = unset) and `tasting_note` (TEXT ≤ 200,
 trimmed, empty stored as null), written only on an ended row whose kind is
 not *Spülen*. The older `note` column keeps whatever it holds and is not
-used for the infusion note.
+used for the infusion note. Every other write of a step row (the timer's
+`RecordStep` and `Persist`, the session editor) goes through an `@Update`
+of a partial entity without these seven columns (`SessionStepTimerColumns`),
+so it can never overwrite them; `ReplacePendingSteps` deletes and inserts
+only unstarted rows, which have none.
 
 `(session_id, position)` is unique; positions run 0…n−1.
 
@@ -241,12 +246,13 @@ effect of the timer engine, 04 §4; D-052):
 - **Tasting writes** (v0.6.0, JRN-02–JRN-05, D-112; `SessionTasting` in
   `core:data`): one small write per input of the session page and the
   sheet, each its own transaction on a `COMPLETED` session only: `rating`
-  (0.5–5.0 in 0.5 steps, or null), one taste column (0–5, or null; *Zurücksetzen* nulls all six),
-  `notes` (trimmed; empty stored as null; ≤ 5000), and a descriptor ticked
-  or unticked (§3.8; a tick is refused beyond 20 and for a key the
-  vocabulary does not have; unticking a stored key always works). Each sets
-  `updated_at`. None
-  touches steps, stock, cost or `active_brew`.
+  (0.5–5.0 in 0.5 steps, or null), `notes` (trimmed; empty stored as null;
+  ≤ 5000), and a descriptor ticked or unticked (§3.8; a tick is refused
+  beyond 20 and for a key the vocabulary does not have; unticking a stored
+  key always works). Each sets `updated_at`. None touches steps, stock,
+  cost or `active_brew`. Until v0.6.0 one taste column of the session (and
+  its *Zurücksetzen*) was such a write too; from v0.6.1 the taste writes are
+  the infusion writes below (D-114).
 - **Infusion tasting writes** (v0.6.1, JRN-03, JRN-05, [D-114](10-open-questions-and-decisions.md#d-114)): one
   taste column or the `tasting_note` of one `session_step` row, addressed
   by `session_id` and `position`, each its own transaction, written with a
@@ -256,8 +262,23 @@ effect of the timer engine, 04 §4; D-052):
   values. The engine's writes (`RecordStep`, `ReplacePendingSteps`,
   `Persist`) never touch an ended row's taste or note, and these writes
   never touch any other column, `active_brew` or the session row (but its
-  `updated_at` for a `COMPLETED` session). A session aborted or deleted
-  takes them along (CASCADE).
+  `updated_at` for a `COMPLETED` session); the step row's own `updated_at`
+  stays too. A write that is refused changes nothing and says why
+  (`TastingWrite`): `NOT_COMPLETED` for a missing session or one neither in
+  progress nor completed, `NOT_AN_INFUSION` for a missing, unended or
+  *Spülen* row, `INVALID` for a value beyond 0–5 or a note over 200. A
+  session aborted or deleted takes them along (CASCADE).
+- **Infusion reads** (v0.6.1, D-114): the session's infusions are its ended
+  rows that are not *Spülen*, in position order, each numbered as the step
+  table numbers it (the *Aufguss* rows counted by position; an
+  *Aufschlagen* row has no number), with its taste and note
+  (`BrewSession.infusions`). The session's average (*Alle*) is per axis over
+  its infusions that set that axis. The tea's average (SCR-09) is per axis
+  over every `session_step` row of its finished sessions that set that axis
+  (only infusions are written, but a v0.6.0 session whose steps never
+  brewed keeps its values on the row the migration chose), plus the
+  session's own columns of a v0.6.0 session without any step row (§9 v7),
+  so the tea's radar reads after the update as it did before.
 - **Edit** (v0.6.0, JRN-11, D-112; `EditSession`): one transaction on a
   `COMPLETED` session; any other status changes nothing.
   - *Start moved by Δ:* `started_at`, `ended_at` and every step's
@@ -871,15 +892,22 @@ infusion, `MIGRATION_6_7` in `UMAMI_MIGRATIONS`:
 - For every `brew_session` with at least one taste column set: its six
   values are copied to one of its steps (the first ended step that is not
   *Spülen* by `position`; else its first step that is not *Spülen*; else
-  the step at position 0), then the session's six columns are set to null.
-  A session without values, or without any step row, is left as it is.
+  its first step, position 0), then the session's six columns are set to
+  null. A session without values, or without any step row, is left as it
+  is; the tea's average reads the values of the latter from the session
+  row (§3.7 „Infusion reads"), so the radar does not change. The values
+  moved to a step that never brewed count in the tea's average but are not
+  an infusion: the session page does not show them (D-114 says nothing on
+  this edge).
 - No other change: running timers keep their `active_brew` rows and alert
   on time (rule 8).
 - One transaction, never destructive. Tests: `Migration6To7Test` from a
   populated v6 database (a finished session with all six values and a
   rinse first, one with two values, one without values, one whose steps
-  were never brewed, a session in progress with its `active_brew` row);
-  every row and value checked, then opened with the production builder.
+  were never brewed, one whose only step is a rinse, one without step
+  rows, a session in progress with its `active_brew` row and a quick
+  timer); every row and value checked, the tea's radar compared with the
+  v6 one, then opened with the production builder.
   `SchemaVersionsTest` opens v1–v7; the v1–v6 JSON keep their version and
   identity hash (`check-frozen-schemas.sh`). The v0.6.1 rc checklist
   installs it over v0.6.0 (09 §4).

@@ -87,7 +87,7 @@ class RoomSessionEditor @Inject constructor(private val db: UmamiDatabase, priva
         )
         val stepEdits = edit.steps.associateBy { it.position }
         val changed = rows.mapNotNull { row -> row.edited(shift, stepEdits[row.position], now) }
-        if (changed.isNotEmpty()) sessions.updateSteps(changed)
+        if (changed.isNotEmpty()) sessions.updateSteps(changed.map { it.timerColumns() })
         if (brew != null) {
             when {
                 leaf != null && leaf <= 0.0 -> inventory.delete(brew.id)

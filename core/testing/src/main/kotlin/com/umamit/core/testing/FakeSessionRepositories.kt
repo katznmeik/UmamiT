@@ -20,6 +20,7 @@ import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.StepTasting
 import com.umamit.core.model.StockSummary
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
@@ -276,9 +277,8 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
         val sessions = finished(rows).filter { it.snapshot.teaId == teaId }
         TeaTasting(
             rating = ratingOf(sessions),
-            tasteAverages = TasteAxis.entries.mapNotNull { axis ->
-                sessions.mapNotNull { it.taste[axis] }.takeIf { it.isNotEmpty() }?.let { axis to it.average() }
-            }.toMap(),
+            // Every step row's values count, as on Room (05 §3.7, D-114).
+            tasteAverages = TasteProfile.averages(sessions.flatMap { it.stepTastings.values.map { t -> t.taste } }),
             descriptorCounts = sessions.flatMap { it.descriptorKeys }.groupingBy { it }.eachCount()
                 .map { (key, count) -> DescriptorCount(key, count) }
                 .sortedWith(compareByDescending<DescriptorCount> { it.count }.thenBy { it.key }),
@@ -293,7 +293,8 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
 
 /**
  * Fake [SessionTasting] on the fake session rows, with Room's rules (05 §3.7): a `COMPLETED` session only, the
- * bounds, trimmed notes and at most 20 descriptors; create it through [FakeSessions]. [writes] counts the calls,
+ * bounds, trimmed notes and at most 20 descriptors; an infusion's taste and note on an ended, non-*Spülen* step of a
+ * session in progress or completed (D-114); create it through [FakeSessions]. [writes] counts the calls,
  * written or refused, so a screen test can check that nothing was saved.
  */
 class FakeSessionTasting internal constructor(private val s: FakeSessions) : SessionTasting {
@@ -303,13 +304,24 @@ class FakeSessionTasting internal constructor(private val s: FakeSessions) : Ses
     override suspend fun setRating(sessionId: String, rating: Double?): TastingWrite =
         write(sessionId, invalid = rating != null && !TastingLimits.isValidRating(rating)) { it.copy(rating = rating) }
 
-    override suspend fun setTaste(sessionId: String, axis: TasteAxis, value: Int?): TastingWrite =
-        write(sessionId, invalid = value != null && !TastingLimits.isValidTaste(value)) { session ->
-            session.copy(taste = session.taste.with(axis, value))
-        }
+    override suspend fun setInfusionTaste(
+        sessionId: String,
+        position: Int,
+        axis: TasteAxis,
+        value: Int?,
+    ): TastingWrite {
+        val invalid = value != null && !TastingLimits.isValidTaste(value)
+        return infusionWrite(sessionId, position, invalid) { it.copy(taste = it.taste.with(axis, value)) }
+    }
 
-    override suspend fun clearTaste(sessionId: String): TastingWrite =
-        write(sessionId) { it.copy(taste = TasteProfile.EMPTY) }
+    override suspend fun clearInfusionTaste(sessionId: String, position: Int): TastingWrite =
+        infusionWrite(sessionId, position) { it.copy(taste = TasteProfile.EMPTY) }
+
+    override suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): TastingWrite {
+        val trimmed = note?.trim()?.takeIf { it.isNotEmpty() }
+        val tooLong = trimmed != null && trimmed.length > TastingLimits.MAX_INFUSION_NOTE_LENGTH
+        return infusionWrite(sessionId, position, invalid = tooLong) { it.copy(note = trimmed) }
+    }
 
     override suspend fun setNotes(sessionId: String, notes: String?): TastingWrite {
         val trimmed = notes?.trim()?.takeIf { it.isNotEmpty() }
@@ -356,13 +368,33 @@ class FakeSessionTasting internal constructor(private val s: FakeSessions) : Ses
         }
     }
 
-    private fun TasteProfile.with(axis: TasteAxis, value: Int?) = when (axis) {
-        TasteAxis.UMAMI -> copy(umami = value)
-        TasteAxis.SWEETNESS -> copy(sweetness = value)
-        TasteAxis.BITTERNESS -> copy(bitterness = value)
-        TasteAxis.ASTRINGENCY -> copy(astringency = value)
-        TasteAxis.BODY -> copy(body = value)
-        TasteAxis.AROMA -> copy(aroma = value)
+    /** Applies [change] to the tasting of the infusion at [position], with Room's checks in Room's order. */
+    private fun infusionWrite(
+        sessionId: String,
+        position: Int,
+        invalid: Boolean = false,
+        change: (StepTasting) -> StepTasting,
+    ): TastingWrite {
+        writes++
+        val session = s.sessionRows.value[sessionId]
+            ?.takeIf { it.status == SessionStatus.IN_PROGRESS || it.status == SessionStatus.COMPLETED }
+        val row = session?.steps?.firstOrNull { it.position == position }
+        return when {
+            invalid -> TastingWrite.INVALID
+
+            session == null -> TastingWrite.NOT_COMPLETED
+
+            row == null || row.kind == StepKind.RINSE || row.actualSeconds == null -> TastingWrite.NOT_AN_INFUSION
+
+            else -> {
+                s.updateSession(sessionId) {
+                    val tasting = change(it.stepTastings[position] ?: StepTasting.EMPTY)
+                    val others = it.stepTastings - position
+                    it.copy(stepTastings = if (tasting.isEmpty) others else others + (position to tasting))
+                }
+                TastingWrite.SAVED
+            }
+        }
     }
 }
 
