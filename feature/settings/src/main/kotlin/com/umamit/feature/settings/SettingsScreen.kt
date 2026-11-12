@@ -23,6 +23,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -48,6 +49,7 @@ import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.LowStockReminderInterval
+import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.alert.AlertSound
 import com.umamit.core.timer.alert.PreAlertSound
@@ -72,6 +74,9 @@ object SettingsTags {
     const val REMINDER_TIME = "SettingsReminderTime"
     const val REMINDER_INTERVAL = "SettingsReminderInterval"
 
+    /** The *Design* row (SET-05, D-114). */
+    const val THEME = "SettingsTheme"
+
     /** The *Lautstärke* slider (SET-27). */
     const val VOLUME = "SettingsVolume"
 }
@@ -85,6 +90,7 @@ internal enum class SettingsDialog {
     LowStock,
     ReminderInterval,
     ReminderTime,
+    Theme,
 }
 
 /** What the rows of SCR-25 do. */
@@ -116,6 +122,8 @@ class SettingsActions(
     val setLowStockReminderInterval: (LowStockReminderInterval) -> Unit = {},
     /** SET-29 *Uhrzeit*: the minute of the day, 0…1439. */
     val setLowStockReminderTime: (Int) -> Unit = {},
+    /** SET-05 *Design*: *System*, *Hell* or *Dunkel* (D-114). */
+    val setTheme: (ThemeMode) -> Unit = {},
     /** SET-22 *Katalog: Fotos laden*. */
     val setCatalogPhotos: (Boolean) -> Unit = {},
     val testAlert: () -> Unit = {},
@@ -149,6 +157,8 @@ fun SettingsRoute(
     val catalog by catalogViewModel.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val saveFailed by viewModel.saveFailed.collectAsStateWithLifecycle()
+    // Read when a *Design* pick is handed to the system, after it is stored (rule 8).
+    val currentAlertKey by rememberUpdatedState(alertKey)
     LifecycleResumeEffect(viewModel) {
         viewModel.refresh()
         onPauseOrDispose {}
@@ -195,6 +205,7 @@ fun SettingsRoute(
                 viewModel.change { it.copy(lowStockReminderInterval = interval) }
             },
             setLowStockReminderTime = { minute -> viewModel.change { it.copy(lowStockReminderTime = minute) } },
+            setTheme = { mode -> viewModel.setTheme(mode, alerting = { currentAlertKey != null }) },
             setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
@@ -209,8 +220,8 @@ fun SettingsRoute(
 }
 
 /**
- * SCR-25 without state: the reliability card first, then *Timer & Alarm*, *Brühen & Vorrat*, *Katalog*,
- * *Teegeschirr* and *Über* (SET-30).
+ * SCR-25 without state: the reliability card first, then *Darstellung* (D-114), *Timer & Alarm*,
+ * *Brühen & Vorrat*, *Katalog*, *Teegeschirr* and *Über* (SET-30).
  */
 @Composable
 fun SettingsScreen(
@@ -246,6 +257,16 @@ fun SettingsScreen(
             )
         }
         ReliabilityCard(status = status, onFix = actions.fix)
+        SectionHeader(
+            title = stringResource(R.string.settings_section_appearance),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        SettingsRow(
+            title = stringResource(R.string.settings_theme),
+            value = stringResource(settings.theme.label()),
+            onClick = { if (!alerting) dialog = SettingsDialog.Theme },
+            modifier = Modifier.testTag(SettingsTags.THEME),
+        )
         SectionHeader(title = stringResource(R.string.settings_section_timer), modifier = Modifier.fillMaxWidth())
         TimerSection(settings, actions, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_brewing), modifier = Modifier.fillMaxWidth())

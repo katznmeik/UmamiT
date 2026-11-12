@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.umamit.core.designsystem.motion.LocalReduceMotion
 import com.umamit.core.designsystem.motion.UmamiMotion
 import com.umamit.core.designsystem.motion.rememberSystemReduceMotion
+import com.umamit.core.model.ThemeMode
 
 /** Whether the current UmamiT scheme is the dark „Steeping" one. */
 val LocalUmamiDarkTheme = staticCompositionLocalOf { false }
@@ -54,6 +55,27 @@ fun UmamiTheme(
             content = content,
         )
     }
+}
+
+/** Whether [this] choice (SET-05) is the dark theme, given whether the phone is in its dark theme. */
+fun ThemeMode.isDark(systemDark: Boolean): Boolean = when (this) {
+    ThemeMode.SYSTEM -> systemDark
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+}
+
+/**
+ * The app's theme for the stored *Design* choice (SET-05, D-114): [mode] decides, *System* follows the phone.
+ * The timer surfaces keep [SteepingTheme] inside whatever this is.
+ */
+@Composable
+fun UmamiAppTheme(
+    mode: ThemeMode,
+    systemDark: Boolean = isSystemInDarkTheme(),
+    reduceMotion: Boolean = rememberSystemReduceMotion(),
+    content: @Composable () -> Unit,
+) {
+    UmamiTheme(darkTheme = mode.isDark(systemDark), reduceMotion = reduceMotion, content = content)
 }
 
 /** The timer always steeps in the dark „Steeping" scheme, in both app themes (03 §3.1). */

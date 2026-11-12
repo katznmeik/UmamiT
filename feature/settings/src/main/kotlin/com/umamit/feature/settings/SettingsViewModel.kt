@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.SettingsRepository
+import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.alert.AlertTester
 import com.umamit.core.timer.alert.TonePreview
@@ -31,6 +32,7 @@ class SettingsViewModel @Inject constructor(
     private val tester: AlertTester,
     private val reliability: TimerReliability,
     private val preview: TonePreview,
+    private val nightMode: AppNightMode,
 ) : ViewModel() {
 
     /** The stored settings; null until the file is read. */
@@ -81,14 +83,21 @@ class SettingsViewModel @Inject constructor(
      * the app (a crash would take a running timer's process down): it is logged and shown.
      */
     fun change(transform: (UserSettings) -> UserSettings) {
+        viewModelScope.launch { failed.value = !settings.tryUpdate(transform) }
+    }
+
+    /**
+     * SET-05 *Design* (D-114): stored first, then handed to the system ([AppNightMode]) so the next start's
+     * starting window shows it too. The app's theme follows the stored value at once; the system's re-creation
+     * of the activity follows. Not handed over when the write failed (the system stays in step with the file)
+     * or when [alerting] says an alert plays by then: a pick is only possible with no alert in front, and the
+     * activity is never re-created under one (rule 8).
+     */
+    fun setTheme(mode: ThemeMode, alerting: () -> Boolean) {
         viewModelScope.launch {
-            failed.value = try {
-                settings.update(transform)
-                false
-            } catch (e: IOException) {
-                Log.w(TAG, "Settings not saved", e)
-                true
-            }
+            val stored = settings.tryUpdate { it.copy(theme = mode) }
+            failed.value = !stored
+            if (stored && !alerting()) nightMode.apply(mode)
         }
     }
 
@@ -96,8 +105,15 @@ class SettingsViewModel @Inject constructor(
         stopTest()
         stopPreview()
     }
-
-    private companion object {
-        const val TAG = "UmamiTSettings"
-    }
 }
+
+/** [SettingsRepository.update] that never throws into the app: a failed write is logged and reads false. */
+private suspend fun SettingsRepository.tryUpdate(transform: (UserSettings) -> UserSettings): Boolean = try {
+    update(transform)
+    true
+} catch (e: IOException) {
+    Log.w(TAG, "Settings not saved", e)
+    false
+}
+
+private const val TAG = "UmamiTSettings"
