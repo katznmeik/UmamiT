@@ -11,6 +11,124 @@
 
 ## Releases and plans
 
+### v0.6.0: released (2026-11-12)
+
+- **PO approval (2026-11-12, in the session; D-113, PR #235 comment):** the on-device checklist on `v0.6.0-rc.1`: „Yes, all twelve passed"; the design review with the slim pin slider (#237), judged from its renders: „Approved". No rc.2 (D-113, answer 7).
+- **Version:** `umamit.version=0.6.0` (versionCode 60099) in `d10e7ef0`; the full local gate passed on it; CI green (run 43179353777), and on the head before it, `8198d442` (run 43177366250). `ProcessDeathTest` passed in every run of the day.
+- **Accuracy on `d10e7ef0` (09 §4a, API 36, 50 steps), all PASS:** standard (pre-alert p95 49 / max 231 ms, alert 31 / 232 ms; run 43183870952); alongside (brew pre-alert 13 / 156, alert 32 / 41 ms; quick timer pre-alert 10 / 283, alert 10 / 106 ms; run 43183875784); two-brews (brew 1 pre-alert 43 / 141, alert 16 / 200 ms; brew 2 pre-alert 13 / 122 ms; brew 2's held alert held 7954 / 8045 ms, release → sound p95 12 / max 15 ms, not gated; run 43183880162). The runs were on the branch tip before the merge; the merge commit has the same tree (`main` had no other commits).
+- **Pre-merge audit (read-only, four auditors):** no blocker. No file under `core/timer`, `core/timer-engine`, `feature/brew`, the manifests or the app's timer wiring changed against `main`; the schemas gained only `6.json`, identical to the one in `v0.6.0-rc.1`; no secrets and no Tee-Kontor content in the diff.
+- PR #235 merged into `main` with a merge commit (`232c4b82`); CI green on it (run 43210759821).
+- **Release:** run 43213268264, [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) from `main` `232c4b82` (versionCode 60099, APK SHA-256 `505fe673…28d3`), certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`.
+- #221–#233, #236 and #237 closed by the merge, #234 closed after the release. Working branch restarted from `main`.
+- **Environment that day:** Maven Central answered HTTP 429 to the container again; the local init script of the section below (Google's Maven Central mirror) and Robolectric's two runtime jars fetched from the mirror, checked against Maven Central's sha512, made the local gate run.
+
+### v0.6.0: specify, build, rc.1 and the feedback round (2026-11-11/12)
+
+Moved from `PROJECT_STATE.md` as it stood before the final release. Spec #221,
+plan `docs/plans/v0.6.0.md`, milestone PR **#235** from
+`claude/wonderful-davinci-fu8tqi`.
+
+- **Specify phase: done** (2026-11-11). The PO was grilled in five rounds
+  (Q1–Q18, all as options); the answers are D-112. The PO's rule for the
+  release: every tasting input is optional and skippable with as little
+  friction as possible.
+- **Scope:** rating, notes, taste sliders with radar, descriptors and session
+  photos in place on the session page; five stars and both actions on the
+  „Gespeichert" sheet; *Zeiten ins Rezept übernehmen* after deliberate
+  changes only (SET-18 retired); the session editor; journal search with
+  three filters and the A6 empty state; ratings, GESCHMACK and LETZTE
+  SITZUNGEN on the tea screens; umamit.db v6. No timer code changes.
+- **Specs written** (commit `b4d2aae7` and the plan commit): 02, 03, 05, 06,
+  08, 09, 10 (D-112), 12, the specs README.
+- **Tickets:** the PO approved the breakdown of thirteen (2026-11-11). One
+  refinement after the approval: #232 is also blocked by #231 (it uses the
+  Journal's tea-filter argument).
+- **Review and rc phase (#233): done** (2026-11-11, one session).
+  - **[`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1)**
+    is published (pre-release, versionCode 60001, from `74237151` on the PR
+    branch; release run 43106966020; APK SHA-256 `7f9530bb…30a7`;
+    certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`). CI
+    was green on that commit (run 43103655084: checks, build, emulator
+    tests on API 35 and 36). No accuracy run for the rc: no timer code
+    changed.
+  - **CI on the way there.** Run 43094657346 (head `d902df8c`) failed in
+    „Emulator tests (API 35)": the brew-and-quick-timer test of
+    `ProcessDeathTest`
+    (`aBrewStepAndAQuickTimerDueTogetherSurviveTwoKillsAndAlertTheBrewFirst`)
+    saw the held quick-timer alert 2327 ms after *Abgegossen* (tolerance
+    2 s). This is not the flake of D-112 Q19 (other method, API 35, a
+    timing bound). Timer code is unchanged against `main`, GitHub's runners
+    were degraded at that time (artifact uploads failed, and the next run,
+    43096106697, hung in the queue for an hour), and the test passed on
+    both API levels in run 43103655084. Nothing was changed; the PO knows.
+    If it shows again: rerun once; if it repeats, stop and ask the PO
+    (timer).
+  - **Milestone review (T3):** no blocker. **Motion review (T2):**
+    `docs/plans/v0.6.0-motion-review.md`. What was fixed and what was left
+    is D-112's „Review and fix round".
+  - **Fix round, built at T2:** #236 (accepting the recipe offer keeps the
+    recipe's step notes by position, PRF-07 AC5); round A (the session page
+    reads one session, the session delete is uncancellable, unknown
+    descriptor keys are refused, a dead read removed); round B (the stars
+    keep the tapped value, the journal list is built off the main thread,
+    the radar eases in, the dividers' fade, the average's rounding).
+  - **One failure after the fix round:** the first full gate failed once in
+    `SessionPageFlowTest`: the app's tests clicked a journal row before the
+    off-thread list existed. A sweep found the same race in
+    `TeaDetailSessionsRouteTest` and `ShellNavigationTest`; fixed at T3,
+    test code only (`app/src/test/.../JournalWaits.kt`), and reviewed. The
+    full gate then passed on `efc061b6`.
+  - **No timer code changed:** the diff against `main` is still empty for
+    `core/timer`, `core/timer-engine`, `feature/brew` and the app's timer
+    routes; `core/database/schemas` gained only `6.json`.
+  - **Renders:** `docs/design/review/v0.6.0/` (147, light, dark and font
+    2.0, placeholder images only) with a README that lists the points to
+    judge.
+- **Feedback round after rc.1 (D-113, #237): built and approved**
+  (2026-11-12, same session).
+  - **The PO's approval (2026-11-12, in the session):** the slim slider's
+    renders: „Approved"; the on-device checklist of rc.1: „Yes, all twelve
+    passed". The checklist and the design review of v0.6.0 are approved
+    (D-113); nothing waits on the PO.
+  - **The PO's answer on rc.1:** „All looks good except the handle of the
+    taste slider is way to big and bulky. This needs to look more classy and
+    elegant. Everything else looks fine and works as expected." So the
+    on-device checklist and the design review are approved except for the
+    slider's handle.
+  - **D-113 (seven answers, as options):** the slim pin (option B of four
+    drawn designs) for the taste sliders and for the settings'
+    *Lautstärke*; TalkBack on an unset slider, the single-axis unset and
+    the radar's position stay as built; 03 notes the fold's 100 ms fade
+    with reduce motion; **no rc.2**: the PO approves the slider from its
+    renders, then the merge and the final follow.
+  - **#237 (T2), merged:** `SlimSlider` in `core:designsystem`, used by
+    `TasteSlider` and `VolumeRow`; 44 goldens changed or new (8 taste, 32
+    settings, 4 component). A read-only review measured the goldens against
+    03 §3.8 and found nothing to fix.
+  - **A second test flake of the off-thread journal list, fixed at T3:**
+    `JournalSearchTest` failed once with a wrong-thread error while #237
+    was built. In Compose UI tests the list's result was written on the
+    worker thread (the app was never affected). The context of the list
+    build is now injected (`JournalSources.listContext`); a test pins it.
+  - **Verified:** the full local gate passed on `4a15f547`; CI is green on
+    `284e83a2` (run 43174172386). No timer code changed.
+  - **Renders for the PO:** `docs/design/review/v0.6.0/` („To judge now" in
+    its README): the taste section, *Lautstärke*, the component sheet.
+- **Known, not blocking:** #231's „smooth with 10 000 sessions" is shown by
+  JVM timing only. A tab that comes back to the Journal can show the
+  earlier list for a frame (a session just deleted, yesterday's day
+  headings right after midnight) until the next build. The drag feel of
+  the slim pin is first seen in the final (D-113, answer 7).
+- **Environment:** Maven Central answered HTTP 429 all day; a local Gradle
+  init script (`~/.gradle/init.d`, not in the repository) pointed
+  `repo.maven.apache.org` at Google's Maven Central mirror
+  (`maven-central.storage-download.googleapis.com`), which the „UmamiT"
+  environment reaches. A new container needs it again if 429 persists:
+  set the URL of every `repo.maven.apache.org` repository in
+  `settingsEvaluated` (plugin and dependency repositories) and
+  `allprojects`. One Gradle build at a time (`flock` as in
+  `docs/plans/v0.4.0-resume.md` §3).
+
 ### v0.5.1: released (2026-11-10)
 
 - **PO approval (2026-11-10, in the session):** „rc.2 works, the transition is clean now, approved" (on-device checklist including the Start hand-off of D-111, and the design review). The last checklist point was ticked in PR #219 and in #220.
@@ -401,9 +519,6 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Topic | Agreed |
 |---|---|
-| 2026-11-10 | **v0.5.1 done:** PO approved rc.2 (checklist with the Start hand-off of D-111, design review); all three accuracy variants PASS on `5d461669`; #219 merged (`73a97fc5`), `v0.5.1` released (versionCode 50199, certificate verified); #212–#218, #220 closed. Next: M4 → v0.6.0. |
-| 2026-11-10 | **v0.5.0 done:** PO approved rc.1 (checklist and design review); #210 merged (`db2ba2b3`), all three accuracy variants PASS on `main`, `v0.5.0` released (versionCode 50099, certificate verified); #194, #196–#208 closed. Next: M4 → v0.6.0. |
-| 2026-11-09 | **v0.5.0 built, rc.1 out:** `/implement-spec #194`, tickets #196–#206 on PR #210; T3/T4/motion reviews and two fix rounds; D-109 (held alarm rings once the other stops sounding). `0.5.0-rc.1` (`e53cc2b0`): CI green, all three accuracy variants PASS, pre-release published, checklist on #207. Next: the PO's checklist and design review. |
 | Start | 2026-10-22 09:05 Europe/Berlin via a scheduled task in session `session_01TEa8Scj1c19uHy7ruNYZYJ`; `/implement-spec` on spec #6 (tickets #8–#17) |
 | Parallelism | At most **2** implementer subagents at a time |
 | Signing key | A fresh key, generated by the orchestrator (the one sent on 2026-10-21 was discarded); the PO adds the secrets during the day |
@@ -418,6 +533,10 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-12 | **v0.6.0 done:** PO approved rc.1 (all twelve checklist points) and the slim slider's renders (D-113, #237; no rc.2); full local gate, CI and all three accuracy variants PASS on `d10e7ef0`; #235 merged (`232c4b82`), `v0.6.0` released (versionCode 60099, certificate verified); #221–#234, #236, #237 closed. Next: v0.6.1 (Statistik), its specify session. |
+| 2026-11-10 | **v0.5.1 done:** PO approved rc.2 (checklist with the Start hand-off of D-111, design review); all three accuracy variants PASS on `5d461669`; #219 merged (`73a97fc5`), `v0.5.1` released (versionCode 50199, certificate verified); #212–#218, #220 closed. Next: M4 → v0.6.0. |
+| 2026-11-10 | **v0.5.0 done:** PO approved rc.1 (checklist and design review); #210 merged (`db2ba2b3`), all three accuracy variants PASS on `main`, `v0.5.0` released (versionCode 50099, certificate verified); #194, #196–#208 closed. Next: M4 → v0.6.0. |
+| 2026-11-09 | **v0.5.0 built, rc.1 out:** `/implement-spec #194`, tickets #196–#206 on PR #210; T3/T4/motion reviews and two fix rounds; D-109 (held alarm rings once the other stops sounding). `0.5.0-rc.1` (`e53cc2b0`): CI green, all three accuracy variants PASS, pre-release published, checklist on #207. Next: the PO's checklist and design review. |
 | 2026-11-09 | **PO feedback after v0.4.1** (four points) grilled in two rounds into **D-108**: v0.5.0 before M4 (M4 → v0.6.0): any two active timers, every tea section of the shop with one category chip at a time, per-tea stock warning with its own threshold and a global reminder interval, a flavour filter (taste notes and scales). 01 NG6/NG7 retired, 09 §2 row added. Spec #194 published with `/to-spec` (six existing test seams: timer controller harness, catalog parser, catalog refresher, `CatalogBrowser`, low-stock repository and schedule, umamit.db v5 migration; PO confirmed). Tickets #196–#208 with `/to-tickets` (13, approved by the PO as proposed; #205, #206 at T3). Next: the build on the PO's go. |
 | 2026-11-08 | **v0.4.1 done:** PO approved rc.1 (checklist and design review); #191 merged (`2b5735fc`), both accuracy variants PASS on `main`, `v0.4.1` released (versionCode 40199, certificate verified); #171, #175–#189 closed. Next: M4 → v0.5.0. |
 | 2026-10-29 | **v0.2.1 done:** #106 merged (9a73b19), accuracy PASS on `main`, `v0.2.1` released (versionCode 20199, certificate verified); #81, #83–#94, #97, #98, #100, #102 closed. Next: v0.3.0. |
