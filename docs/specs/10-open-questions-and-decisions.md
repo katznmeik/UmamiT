@@ -819,7 +819,15 @@ at T3 over the whole diff found no blocker; `/review-animations` once
   yesterday's day headings right after midnight; the next build corrects
   it. The app's tests wait for the built list before they use it (the
   first gate run failed once on that race, in `SessionPageFlowTest`; fixed
-  at T3, test code only).
+  at T3, test code only). A second effect showed while #237 was built
+  (2026-11-12): `JournalSearchTest` failed once with a wrong-thread error.
+  A Compose UI test runs effects on an unconfined test dispatcher, so after
+  the hop to `Dispatchers.Default` the state was written, and the
+  snapshot's changes applied, on the worker thread (shown by a probe in 10
+  of 10 runs; the app resumes on the main thread and was never affected).
+  Fixed at T3: the context of the list build is injected
+  (`JournalSources.listContext`, `Dispatchers.Default` in the app, the
+  effect's own context in tests), with a test that pins both.
 - **Motion (M1, M2, M4).** The radar eases in above the sliders when the
   third axis is set (03 SCR-16); the sheets' divider fade is read in the
   draw phase; the hero's glide to a new photo uses the `sheet` token.
