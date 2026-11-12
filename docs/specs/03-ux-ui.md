@@ -456,7 +456,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `TimerRing` | 3 dp ring, round cap, leaf glyph, digits + caption; pre-alert segment marked as a short tick on the ring |
 | `PillButton` | Cream on dark / green on light; ink with washi text on the alert surface |
 | `KettleHint` | Kettle icon + „Wasserkocher auf 60 °C" |
-| `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named. From v0.6.0 (D-112): `RatingStars` is the one rating input (sheet and session page): five stars, 48 dp targets, a tap sets whole stars, a second tap on the same star takes half off, a third clears; a half star draws half filled; a light tick per change; TalkBack „Bewertung, 3,5 von 5 Sternen" / „Bewertung, keine", adjustable in half steps, action „Bewertung entfernen". Read-only it is the text „★ 4,5". `TasteSlider`: 0–5 in whole steps, „–" while unset. `TasteRadar`: six axes (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma), drawn from three set axes on, unset axes at the centre; TalkBack reads the values as a list |
+| `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named. From v0.6.0 (D-112): `RatingStars` is the one rating input (sheet and session page): five stars, 48 dp targets, a tap sets whole stars, a second tap on the same star takes half off, a third clears; a half star draws half filled; a light tick per change; TalkBack „Bewertung, 3,5 von 5 Sternen" / „Bewertung, keine", adjustable in half steps, action „Bewertung entfernen". Read-only it is the text „★ 4,5". `TasteSlider`: 0–5 in whole steps, „–" while unset. **The slim slider** (from v0.6.0, [D-113](10-open-questions-and-decisions.md#d-113); `TasteSlider` and the settings' *Lautstärke*, one look in `core:designsystem`): a pin handle of 3 × 20 dp, corners 1.5 dp, `primary` (4 × 24 dp while pressed or dragged); a 2 dp line with round caps, `primary` up to the handle and `outlineVariant` beyond it, with a 4 dp gap on each side of the handle; stop dots of 3 dp in `onSurfaceVariant` on the part beyond the handle only; the touch target stays 48 dp high. An unset `TasteSlider` shows a short mark of 1.5 × 10 dp in `onSurfaceVariant` at the left end and no `primary` line, so it differs from a set 0. `TasteRadar`: six axes (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma), drawn from three set axes on, unset axes at the centre; TalkBack reads the values as a list |
 | `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen". `FreshnessChip` (v0.4.1, `core:designsystem`): *Frisch* on `primaryContainer`, *Bald genießen* on `secondaryContainer` (as *Knapp*), *Über dem Höhepunkt* on `surfaceContainerHigh`; a compact size in SCR-03 |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
 | `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings. **Two brews (v0.5.0, D-108):** two brew sessions take the halves the same way, in the slot order (`BREW`, `BREW_2`), each with its step; a held brew shows „wartet" (TalkBack: „*Kamille*, Aufguss 1 von 2 fertig, wartet auf den anderen Aufguss") |
@@ -1349,8 +1349,10 @@ hint that something is missing.
 - **Rule 8:** an alert closes the open menu, question or descriptor sheet
   in its first frame; a write already started completes.
 - **Motion:** the hero, the stars and the folding of GESCHMACK follow §3.6
-  (`sheet` spring for the fold, no animation with reduce motion); judged in
-  the milestone's motion review.
+  (`sheet` spring for the fold); judged in the milestone's motion review.
+  With reduce motion nothing slides: the fold opens and closes with the
+  `fade` token's 100 ms fade only (on the device, animator scale 0 ends it
+  at once; D-113).
 
 ### SCR-17 Sitzung bearbeiten
 
@@ -1655,7 +1657,8 @@ the section *Brühen & Vorrat* between *Timer & Alarm* and *Katalog* with
 v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
 - *Timer & Alarm* gets *Lautstärke* (SET-27) below *Vorwarnton*: a slider
   10–100 % in 10 % steps with the value („100 %"), and the hint „Wirkt auf
-  die Alarmlautstärke des Handys". *Alarm testen* plays at it.
+  die Alarmlautstärke des Handys". *Alarm testen* plays at it. From v0.6.0
+  the slider has the slim look of §3.8 (D-113).
 - The *Timer-Zuverlässigkeit* card gets the row „Alarmlautstärke" („Ist
   aus" with *Beheben*, which opens the system's sound settings; „OK"
   otherwise).

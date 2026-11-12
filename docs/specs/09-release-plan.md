@@ -324,6 +324,12 @@ v0.5.0 changes timer code throughout, so every `v0.5.0-rc.N` needs a PASS of
 - [ ] Tea detail: „★ 4,5 (2)" under the name after two rated sessions; LETZTE SITZUNGEN lists the last three and opens a session; GESCHMACK shows the radar and descriptors once sessions have them. *Meine Tees* shows the average in the row; sort *Bewertung* puts the best tea first.
 - [ ] Statistik still shows „Deine Statistik folgt bald" (v0.6.1).
 
+After `v0.6.0-rc.1` ([D-113](10-open-questions-and-decisions.md#d-113)): the
+PO approved the list above and the design review except for the taste
+slider's handle. The slim slider (GESCHMACK and the settings' *Lautstärke*)
+is judged from its renders in `docs/design/review/v0.6.0/` (light, dark,
+font 2.0); there is no rc.2, and the final follows the PO's OK on them.
+
 ### v0.6.1 — Statistik (D-112; its checklist comes with its spec)
 
 - [ ] Statistik tabs show plausible numbers for a week of real use.

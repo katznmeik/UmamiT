@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-11
+> Status: **Living document** · Last updated: 2026-11-12
 
 ## Open questions
 
@@ -322,6 +322,76 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-113"></a>
+### D-113 — v0.6.0: the slim slider handle; the open points of rc.1 closed; the final without an rc.2 (03 §3.8, SCR-16, SET-27; JRN-03) · *Accepted* (PO, 2026-11-12, on `v0.6.0-rc.1`; seven questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
+
+**Context.** The PO tested `v0.6.0-rc.1` with the on-device checklist (09 §4
+„v0.6.0") and the design review, in the PO's words: **„All looks good except
+the handle of the taste slider is way to big and bulky. This needs to look
+more classy and elegant. Everything else looks fine and works as expected."**
+The taste slider was Material 3's stock slider: a bar handle of 4 × 44 dp on
+a 16 dp track with a gap and stop dots. Four slimmer designs were drawn
+beside it, light and dark, each with a value of 4, a value of 0 and an unset
+axis: A, a 12 dp dot on a 2 dp line; B, a slim pin; C, an open ring on a
+hairline; D, six dots without a handle.
+
+**Decision (the PO's answers).**
+
+1. **The handle: B, the slim pin.** The upright bar stays and shrinks to a
+   pin on a thin line.
+2. **Both sliders.** The settings' *Lautstärke* (SET-27) gets the same handle
+   and line in v0.6.0.
+3. **TalkBack on an unset taste slider stays as built.** 0 is reached by
+   setting 1 and going one step down.
+4. **No unset for a single axis.** *Zurücksetzen* clears all six, as built.
+5. **The radar stays above the sliders**, easing in when the third axis is
+   set (D-112's fix round).
+6. **Reduce motion, spec wording only.** 03 says that the GESCHMACK fold
+   keeps the `fade` token's 100 ms fade and that nothing slides. The app is
+   unchanged.
+7. **No `v0.6.0-rc.2`.** The PO approves the new slider from its renders
+   (light, dark, font 2.0); then the merge and the final `v0.6.0` follow. The
+   drag feel is first seen in the final.
+
+With this the on-device checklist and the design review of rc.1 are approved
+except for the slider's handle, which the renders settle.
+
+**The slim slider (03 §3.8; the sheet the PO chose from, as drawn).**
+
+- **Handle:** a pin of 3 × 20 dp, corners 1.5 dp, `primary`; 4 × 24 dp while
+  pressed or dragged.
+- **Line:** 2 dp with round caps, `primary` up to the handle,
+  `outlineVariant` beyond it, with a gap of 4 dp on each side of the handle.
+- **Stops:** dots of 3 dp in `onSurfaceVariant` on the part beyond the
+  handle only; the `primary` part has none.
+- **An unset taste axis:** a short mark of 1.5 × 10 dp in `onSurfaceVariant`
+  at the left end, no `primary` line, the value „–". A set 0 has the full pin
+  there, so the two differ by height and colour.
+- **Unchanged:** the 48 dp touch target, whole steps with the light tick, a
+  release saves, TalkBack's readings.
+
+**Details (Claude; correct them at any time).**
+
+- *Lautstärke* has no unset state; its ten stops (10–100 %) get the same
+  dots beyond the handle. Its inactive line becomes `outlineVariant` like the
+  taste sliders'; the `surfaceContainerHighest` track of D-098 goes with the
+  16 dp track.
+- The look lives in one place (`core:designsystem`), used by both sliders, so
+  they cannot drift apart.
+- The size change of the pressed pin follows the `fade` token; with reduce
+  motion it changes at once.
+- The comparison sheets were drawn on `surface`; the screens sit on
+  `background`. The contrast of the pin and the `primary` line is 6,8 : 1
+  (light) and 9,1 : 1 (dark) there; the `outlineVariant` line is below 3 : 1
+  by design, as the stock track was, and the stop dots and the number carry
+  the scale.
+
+**Consequences.** One ticket (#237, T2), built on PR #235 after rc.1; the
+goldens of the session page's GESCHMACK and of the settings change. No timer
+code changes (`feature:settings`' *Lautstärke* row is a display of a stored
+value; `core:timer` is untouched), so the accuracy run stays where 09 §4a
+puts it: all three variants before the final.
 
 <a id="d-112"></a>
 ### D-112 — M4 in two releases; v0.6.0: tasting notes in place, the session editor, journal search, the recipe offer (JRN-02–JRN-05, JRN-07–JRN-11, PRF-07, TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18; SCR-06, SCR-08, SCR-09, SCR-15–SCR-17, SCR-30; amends D-061's sheet actions and D-100's M4 list) · *Accepted* (PO, 2026-11-11, grilled in the session Q1–Q18 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
@@ -763,7 +833,8 @@ at T3 over the whole diff found no blocker; `/review-animations` once
   unset taste slider to 0 and no axis can be unset on its own; an unset
   slider's thumb sits at 0 like a set 0, only „–" tells them apart; whether
   the radar stays above the sliders, moves below them or has its space
-  reserved.
+  reserved. **Answered by the PO on 2026-11-12:
+  [D-113](#d-113).**
 
 <a id="d-111"></a>
 ### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
