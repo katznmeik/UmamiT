@@ -39,7 +39,7 @@
 |---|---|
 | Current milestone | **v0.6.1** (Statistik, M4 part 2; D-112): not yet specified; its specify session is next. **v0.6.0** (the journal, M4 part 1; D-112, D-113, spec #221, plan `docs/plans/v0.6.0.md`) is released (2026-11-12) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi`, restarted from `main` `232c4b82` after the merge of #235 |
+| Working branch | `claude/wonderful-davinci-fu8tqi`, restarted from `main` after the merge of #235 (`232c4b82`) and again after the docs PR that carries this file; it equals `main` until v0.6.1's first commit |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | none (#235, the v0.6.0 milestone PR, was merged on 2026-11-12) |
 | Latest APK | [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (full release, versionCode 60099, from `main` `232c4b82`, certificate verified); rc [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (pre-release, 60001); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
