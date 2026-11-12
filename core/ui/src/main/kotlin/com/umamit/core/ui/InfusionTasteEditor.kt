@@ -48,8 +48,12 @@ const val INFUSION_NOTE_COUNTER_FROM = 180
  * - [taste] is shown as given; [onTasteChange] gets a slider's value on release (a release saves).
  * - The note is edited here and handed to [onNoteSave] 1 s after the last key, and at once when the field loses focus,
  *   when the editor leaves the composition (fold, chip change, sheet closed, back, an alert's screen on top) and when
- *   the app stops; only a text that differs from the one last handed over. [note] is the stored note, read when the
- *   editor first composes: a host showing several infusions wraps each in `key(position)`, so the field and its
+ *   the app stops; only a text that differs from the one last handed over. [note] is the stored note (a host may
+ *   pass the text it was last handed until the store shows it, so a field re-created before a save lands starts
+ *   from the newer text): the field starts from it, and follows a newer [note] while it holds no unsaved edit, so a
+ *   field re-created from an older note never writes that older text over a newer one; an echo of one of the
+ *   field's own earlier saves is not taken. A draft restored after the process died is handed over again, as it
+ *   may not have been stored. A host showing several infusions wraps each in `key(position)`, so the field and its
  *   pending save belong to one infusion. The host's write must complete when its screen goes (rule 8).
  * - [onReset] is *Zurücksetzen*: the host clears the infusion's six values; the note stays (D-114).
  */
@@ -80,17 +84,41 @@ fun InfusionTasteEditor(
 @Composable
 private fun InfusionNoteField(note: String?, onSave: (String) -> Unit) {
     var text by rememberSaveable { mutableStateOf(note.orEmpty()) }
-    var saved by remember { mutableStateOf(text) }
+    // The text the store holds or will hold: the stored note at first (so a draft restored after process death,
+    // which differs from it, is handed over again, T4 Nit 7), then the text last handed over.
+    var saved by remember { mutableStateOf(note.orEmpty()) }
+    // The texts handed over whose store has not shown the latest yet, oldest first (stale echoes are skipped).
+    val handed = remember { mutableListOf<String>() }
     var focused by remember { mutableStateOf(false) }
     val save by rememberUpdatedState(onSave)
     val flush = {
         val current = text
         if (current != saved) {
             saved = current
+            handed += current
             save(current)
         }
     }
     val currentFlush by rememberUpdatedState(flush)
+    LaunchedEffect(note) {
+        val stored = note.orEmpty()
+        val echo = handed.indexOfLast { it.trim() == stored }
+        when {
+            // The latest save is stored.
+            echo >= 0 && echo == handed.lastIndex -> handed.clear()
+
+            // An echo of an older save of this field, a newer one still on its way: not taken.
+            echo >= 0 -> Unit
+
+            // A newer note (a save that landed after this field was created, or one from elsewhere) and no unsaved
+            // edit: the field follows it, so an edit never starts from older text (m5).
+            text == saved -> {
+                handed.clear()
+                text = stored
+                saved = stored
+            }
+        }
+    }
     LaunchedEffect(text) {
         if (text != saved) {
             delay(INFUSION_NOTE_DEBOUNCE_MS)

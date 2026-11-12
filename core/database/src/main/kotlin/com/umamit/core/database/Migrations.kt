@@ -152,7 +152,8 @@ internal val MIGRATION_5_6: Migration = object : Migration(5, 6) {
 /**
  * Schema 6 → 7 (v0.6.1, JRN-03, JRN-05, D-114): taste per infusion. `session_step` gains the six `taste_*` columns
  * and `tasting_note` (nullable, appended in that order). A session's six values (v0.6.0 stored them on
- * `brew_session`) move to one of its step rows: the first ended row that is not *Spülen* by `position`; else its
+ * `brew_session`) move to one of its step rows: the first ended row that is neither skipped nor *Spülen* by
+ * `position` (a skipped step records 0 s but was never poured, D-114 build note on T3 m1); else its
  * first row that is not *Spülen*; else its first row (position 0). Then the session's six columns are nulled. A session
  * without values, or without any step row, is left as it is. Nothing else changes, so timers running during the update
  * keep their `active_brew` rows and alert on time (rule 8). Room runs it in one transaction: it applies whole or not
@@ -192,11 +193,12 @@ private val TASTED_SESSIONS = "SELECT `id` FROM `brew_session` WHERE " +
 
 /**
  * The position of the row that takes the values of the session of the `session_step` row being updated: its first
- * ended row that is not *Spülen*, else its first row that is not *Spülen*, else its first row.
+ * ended row that is neither skipped nor *Spülen*, else its first row that is not *Spülen*, else its first row.
  */
 private const val TARGET_POSITION = "COALESCE(" +
     "(SELECT `s`.`position` FROM `session_step` AS `s` WHERE `s`.`session_id` = `session_step`.`session_id` " +
-    "AND `s`.`actual_seconds` IS NOT NULL AND `s`.`kind` != 'RINSE' ORDER BY `s`.`position` LIMIT 1), " +
+    "AND `s`.`actual_seconds` IS NOT NULL AND `s`.`skipped` = 0 AND `s`.`kind` != 'RINSE' " +
+    "ORDER BY `s`.`position` LIMIT 1), " +
     "(SELECT `s`.`position` FROM `session_step` AS `s` WHERE `s`.`session_id` = `session_step`.`session_id` " +
     "AND `s`.`kind` != 'RINSE' ORDER BY `s`.`position` LIMIT 1), " +
     "(SELECT `s`.`position` FROM `session_step` AS `s` WHERE `s`.`session_id` = `session_step`.`session_id` " +

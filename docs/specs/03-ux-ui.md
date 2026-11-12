@@ -1435,7 +1435,8 @@ v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)):
   session's photos, or the tea's when it shows the cover).
 - **Motion:** the fold uses the `sheet` spring for the height and the
   `fade` token, the chevron turns with it; a chip change cross-fades the
-  radar and values (`fade`). With reduce motion the 100 ms fade only.
+  radar and values (`fade` in, `exitFade` out; v0.6.1 motion review M1).
+  With reduce motion the 100 ms fade only.
 - **TalkBack:** the chips read „1. Aufguss, ausgewählt, Geschmack
   eingetragen"; *Anpassen* reads „Geschmack anpassen, eingeklappt".
 

@@ -23,11 +23,12 @@ import org.robolectric.annotation.Config
 /**
  * `MIGRATION_6_7` (05 §9 „umamit.db v7", JRN-03, D-114, #242): a populated database of the frozen schema v6 migrates
  * to v7. `session_step` gains the six taste columns and `tasting_note`; each session's taste values move to one of its
- * steps (the first ended one that is not *Spülen*; else the first that is not *Spülen*; else position 0) and the
- * session's own columns become null. The fixture: a finished session with all six values and a rinse first, one with
- * two values, one without values, one whose steps were never brewed, one whose only step is a rinse, one with values
- * and no step row (left as it is), and a session in progress with its `active_brew` row (and a quick timer). The tea's
- * radar reads the same before and after (JRN-03 AC3). Every row of every table
+ * steps (the first ended one that is neither skipped nor *Spülen*; else the first that is not *Spülen*; else position
+ * 0) and the session's own columns become null. The fixture: a finished session with all six values and a rinse
+ * first, one with two values, one without values, one whose steps were never brewed, one whose only step is a rinse,
+ * one whose 1st infusion was skipped, one whose steps were all skipped, one with values and no step row (left as it
+ * is), and a session in progress with its `active_brew` row (and a quick timer). The tea's radar reads the same before
+ * and after (JRN-03 AC3). Every row of every table
  * is checked against what it was; Room's helper validates the result against the exported v7 schema.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -63,7 +64,7 @@ class Migration6To7Test {
 
         helper.runMigrationsAndValidate(NAME, 7, true, MIGRATION_6_7).use { db ->
             // brew_session: every column as it was, but the moved sessions' six taste columns.
-            val moved = setOf("all-six", "two", "unbrewed", "rinse-only")
+            val moved = setOf("all-six", "two", "unbrewed", "rinse-only", "skipped-first", "all-skipped")
             val expectedSessions = sessionsBefore.map { row ->
                 if (row["id"] in moved) row + TASTE_COLUMNS.associateWith { null } else row
             }
@@ -75,6 +76,8 @@ class Migration6To7Test {
                 ("two" to 0L) to TWO,
                 ("unbrewed" to 1L) to UNBREWED,
                 ("rinse-only" to 0L) to RINSE_ONLY,
+                ("skipped-first" to 1L) to SKIPPED_FIRST,
+                ("all-skipped" to 0L) to ALL_SKIPPED,
             )
             val expectedSteps = stepsBefore.map { row ->
                 val values = targets[row["session_id"] to row["position"]] ?: NO_TASTE
@@ -100,6 +103,10 @@ class Migration6To7Test {
             // No ended step: the first that is not a rinse (its rinse at 0 never brewed either).
             assertThat(tasted("unbrewed")).containsExactly(1L)
             assertThat(tasted("rinse-only")).containsExactly(0L)
+            // A skipped step records 0 s but was never poured (D-114 build note, T3 m1): the 2nd, poured, takes them.
+            assertThat(tasted("skipped-first")).containsExactly(1L)
+            // Every step skipped: the first that is not a rinse still keeps the values (nothing is lost).
+            assertThat(tasted("all-skipped")).containsExactly(0L)
             assertThat(tasted("live")).isEmpty()
             // A session without step rows keeps its values on its own row (the tea's radar still reads them).
             val stepless = db.dump("brew_session").single { it["id"] == "stepless" }
@@ -259,6 +266,15 @@ class Migration6To7Test {
         // Values, and its only step is an ended rinse: the step at position 0.
         db.session("rinse-only", "COMPLETED", RINSE_ONLY)
         db.sessionStep("rinse-only", 0, kind = "RINSE", actual = 10)
+        // Values, the 1st infusion skipped (0 s, `skipped = 1`), the 2nd and 3rd poured: the 2nd takes them.
+        db.session("skipped-first", "COMPLETED", SKIPPED_FIRST)
+        db.sessionStep("skipped-first", 0, actual = 0, startedAt = null, skipped = true)
+        db.sessionStep("skipped-first", 1, actual = 60)
+        db.sessionStep("skipped-first", 2, actual = 30)
+        // Values and every step skipped: no step was poured, so the first that is not a rinse (position 0).
+        db.session("all-skipped", "COMPLETED", ALL_SKIPPED)
+        db.sessionStep("all-skipped", 0, actual = 0, startedAt = null, skipped = true)
+        db.sessionStep("all-skipped", 1, actual = 0, startedAt = null, skipped = true)
         // Values and no step row (a v0.3.0 session completed without an ended step): left as it is.
         db.session("stepless", "COMPLETED", STEPLESS)
     }
@@ -310,13 +326,15 @@ class Migration6To7Test {
         actual: Int? = null,
         startedAt: Long? = actual?.let { 1_000_000L },
         preAlert: Int? = null,
+        skipped: Boolean = false,
     ) {
         insert(
             "session_step",
             "id" to "$sessionId-step-$position", "session_id" to sessionId, "position" to position,
             "kind" to kind, "planned_seconds" to 60, "actual_seconds" to actual,
             "paused_seconds" to actual?.let { 0 }, "overtime_seconds" to actual?.let { 1 }, "temp_c" to 60,
-            "started_at" to startedAt, "ended_at" to actual?.let { 1_000_000L + it * 1000 }, "skipped" to 0,
+            "started_at" to startedAt, "ended_at" to actual?.let { 1_000_000L + it * 1000 },
+            "skipped" to if (skipped) 1 else 0,
             "overtime_auto_ack" to 0, "note" to "Schritt $position", "created_at" to 12L, "updated_at" to 13L,
             "pre_alert_seconds" to preAlert,
         )
@@ -340,6 +358,8 @@ class Migration6To7Test {
         val TWO = listOf<Long?>(2, 1, null, null, null, null)
         val UNBREWED = listOf<Long?>(1, null, null, null, 3, null)
         val RINSE_ONLY = listOf<Long?>(0, 1, null, null, null, null)
+        val SKIPPED_FIRST = listOf<Long?>(3, null, 2, null, null, null)
+        val ALL_SKIPPED = listOf<Long?>(null, null, null, 1, null, 4)
         val STEPLESS = listOf<Long?>(4, null, null, null, null, 2)
         val NO_TASTE = listOf<Long?>(null, null, null, null, null, null)
 

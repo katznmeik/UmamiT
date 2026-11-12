@@ -48,6 +48,7 @@ import com.umamit.core.timer.alert.AlertTester
 import com.umamit.core.timer.alert.TonePreview
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -126,7 +127,8 @@ class SettingsTest {
         shadowOf(context.getSystemService(UiModeManager::class.java)).applicationNightMode
 
     private fun show(): SettingsViewModel {
-        val viewModel = SettingsViewModel(settings, tester, reliability, preview, AppNightMode(context))
+        val viewModel =
+            SettingsViewModel(settings, tester, reliability, preview, AppNightMode(context, Dispatchers.Unconfined))
         val catalogViewModel = CatalogSettingsViewModel(catalog, catalogRefresh)
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
@@ -324,23 +326,43 @@ class SettingsTest {
     }
 
     @Test
-    fun `each Design can be picked, is stored at once and shown (SET-05, D-114)`() {
+    fun `each Design can be picked, is stored at once and shown, and goes to the system when the dialog closes`() {
         show()
         for ((label, mode) in listOf(
             "Dunkel" to ThemeMode.DARK,
             "Hell" to ThemeMode.LIGHT,
             "System" to ThemeMode.SYSTEM,
         )) {
+            val before = systemNightMode()
             compose.onNodeWithTag(SettingsTags.THEME).performClick()
             compose.onNode(hasText(label) and isSelectable()).assertIsNotSelected().performClick()
             compose.onNode(hasText(label) and isSelectable()).assertIsSelected()
-            // Stored at once, with the dialog still open, and handed to the system for the starting window.
+            // Stored at once, with the dialog still open; not yet handed to the system (PO, motion review M21).
             assertThat(stored().theme).isEqualTo(mode)
-            assertThat(systemNightMode()).isEqualTo(mode.uiNightMode())
+            assertThat(systemNightMode()).isEqualTo(before)
             compose.onNodeWithText("Fertig").performClick()
             compose.waitForIdle()
+            // The dialog closed: handed over for the starting window, once.
+            assertThat(systemNightMode()).isEqualTo(mode.uiNightMode())
             compose.onNodeWithTag(SettingsTags.THEME).assertTextContains(label, substring = true)
         }
+    }
+
+    @Test
+    fun `several picks in one dialog are handed over once, as the last pick (SET-05, M21)`() {
+        show()
+        val before = systemNightMode()
+        compose.onNodeWithTag(SettingsTags.THEME).performClick()
+        compose.onNode(hasText("Dunkel") and isSelectable()).performClick()
+        compose.onNode(hasText("Hell") and isSelectable()).performClick()
+        compose.waitForIdle()
+        assertThat(systemNightMode()).isEqualTo(before)
+
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+
+        assertThat(stored().theme).isEqualTo(ThemeMode.LIGHT)
+        assertThat(systemNightMode()).isEqualTo(UiModeManager.MODE_NIGHT_NO)
     }
 
     @Test
@@ -351,17 +373,65 @@ class SettingsTest {
         compose.onNodeWithTag(SettingsTags.THEME).performClick()
         compose.onNode(hasText("Dunkel") and isSelectable()).performClick()
         compose.waitForIdle()
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
         assertThat(stored().theme).isEqualTo(ThemeMode.SYSTEM)
         assertThat(systemNightMode()).isEqualTo(before)
     }
 
     @Test
-    fun `a Design pick never re-creates the app under an alert that started meanwhile (SET-05, rule 8)`() {
-        val viewModel = show()
+    fun `a Design whose dialog an alert closed is handed over once no alert plays (SET-05, rule 8, m3)`() {
+        show()
         val before = systemNightMode()
-        viewModel.setTheme(ThemeMode.DARK, alerting = { true })
+        compose.onNodeWithTag(SettingsTags.THEME).performClick()
+        compose.onNode(hasText("Dunkel") and isSelectable()).performClick()
         compose.waitForIdle()
+
+        alertKey = "session-1:0"
+        compose.waitForIdle()
+        // The alert closed the dialog: stored, never handed over under the alert.
+        compose.onNode(hasText("Dunkel") and isSelectable()).assertDoesNotExist()
         assertThat(stored().theme).isEqualTo(ThemeMode.DARK)
+        assertThat(systemNightMode()).isEqualTo(before)
+
+        alertKey = null
+        compose.waitForIdle()
+        assertThat(systemNightMode()).isEqualTo(UiModeManager.MODE_NIGHT_YES)
+    }
+
+    @Test
+    fun `a hand-over checks for an alert in its own frame (SET-05, rule 8, T4 MIN-2)`() {
+        val viewModel = show()
+        runBlocking { settings.update { it.copy(theme = ThemeMode.DARK) } }
+        val before = systemNightMode()
+
+        viewModel.handOverTheme(alerting = { true })
+        compose.waitForIdle()
+        assertThat(systemNightMode()).isEqualTo(before)
+
+        viewModel.handOverTheme(alerting = { false })
+        compose.waitForIdle()
+        assertThat(systemNightMode()).isEqualTo(UiModeManager.MODE_NIGHT_YES)
+    }
+
+    @Test
+    fun `a stored Design out of step with the system, as after a restore, is handed over when the screen shows`() {
+        // A restore brought DARK; the system has no choice recorded for the app (m3).
+        runBlocking { settings.update { it.copy(theme = ThemeMode.DARK) } }
+
+        show()
+        compose.waitForIdle()
+
+        assertThat(systemNightMode()).isEqualTo(UiModeManager.MODE_NIGHT_YES)
+    }
+
+    @Test
+    fun `the screen shows with nothing out of step, so nothing is handed over (SET-05)`() {
+        val before = systemNightMode()
+
+        show()
+        compose.waitForIdle()
+
         assertThat(systemNightMode()).isEqualTo(before)
     }
 
