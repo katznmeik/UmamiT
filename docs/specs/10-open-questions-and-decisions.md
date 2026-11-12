@@ -514,6 +514,18 @@ words:
   app theme; the timer surfaces and the alert stay as they are. *Darstellung*
   holds only *Design* in v0.6.1 (SET-06 stays out). SET-30's order changes:
   *Darstellung* moves to the top, below the *Timer-Zuverlässigkeit* card.
+  How the start avoids the flash (Claude, #249 fix round): a pick is
+  stored, then handed to the system with
+  `UiModeManager.setApplicationNightMode` (*System* = `MODE_NIGHT_AUTO`),
+  which keeps it for the app, so the starting window and the configuration
+  are already in the chosen theme. No start reads the settings on the main
+  thread or waits for them (rule 8: a cold start into the timer or the
+  alert is never delayed by the theme); the app draws *System* until the
+  file is read and then follows it. A pick re-creates the activity, which
+  restores its state (S1); the pick is not handed over when the write
+  failed or an alert started meanwhile (no re-creation under an alert).
+  After a restore from backup the system has no stored choice yet: until
+  the next pick, a start can show the phone's theme until the file is read.
 - **The quick-timer chips** wrap onto a second row as before; SCR-07's
   layout rules (polish 2, the band giving way) are re-checked at font 2.0.
 

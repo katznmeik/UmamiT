@@ -1,5 +1,7 @@
 package com.umamit.feature.settings
 
+import android.app.UiModeManager
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -27,6 +29,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
@@ -51,6 +54,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -115,9 +119,14 @@ class SettingsTest {
     private var visible by mutableStateOf(true)
     private val catalog = FakeCatalogRepository()
     private val catalogRefresh = FakeCatalogRefreshRunner()
+    private val context: Context = ApplicationProvider.getApplicationContext()
+
+    /** The night mode the app last handed to the system (SET-05, D-114). */
+    private fun systemNightMode(): Int =
+        shadowOf(context.getSystemService(UiModeManager::class.java)).applicationNightMode
 
     private fun show(): SettingsViewModel {
-        val viewModel = SettingsViewModel(settings, tester, reliability, preview)
+        val viewModel = SettingsViewModel(settings, tester, reliability, preview, AppNightMode(context))
         val catalogViewModel = CatalogSettingsViewModel(catalog, catalogRefresh)
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
@@ -325,12 +334,42 @@ class SettingsTest {
             compose.onNodeWithTag(SettingsTags.THEME).performClick()
             compose.onNode(hasText(label) and isSelectable()).assertIsNotSelected().performClick()
             compose.onNode(hasText(label) and isSelectable()).assertIsSelected()
-            // Stored at once, with the dialog still open.
+            // Stored at once, with the dialog still open, and handed to the system for the starting window.
             assertThat(stored().theme).isEqualTo(mode)
+            assertThat(systemNightMode()).isEqualTo(mode.uiNightMode())
             compose.onNodeWithText("Fertig").performClick()
             compose.waitForIdle()
             compose.onNodeWithTag(SettingsTags.THEME).assertTextContains(label, substring = true)
         }
+    }
+
+    @Test
+    fun `a Design that is not stored is not handed to the system (SET-05, D-114)`() {
+        show()
+        val before = systemNightMode()
+        settings.failUpdates = true
+        compose.onNodeWithTag(SettingsTags.THEME).performClick()
+        compose.onNode(hasText("Dunkel") and isSelectable()).performClick()
+        compose.waitForIdle()
+        assertThat(stored().theme).isEqualTo(ThemeMode.SYSTEM)
+        assertThat(systemNightMode()).isEqualTo(before)
+    }
+
+    @Test
+    fun `a Design pick never re-creates the app under an alert that started meanwhile (SET-05, rule 8)`() {
+        val viewModel = show()
+        val before = systemNightMode()
+        viewModel.setTheme(ThemeMode.DARK, alerting = { true })
+        compose.waitForIdle()
+        assertThat(stored().theme).isEqualTo(ThemeMode.DARK)
+        assertThat(systemNightMode()).isEqualTo(before)
+    }
+
+    @Test
+    fun `each System, Hell and Dunkel maps to the system's night mode (SET-05)`() {
+        assertThat(ThemeMode.SYSTEM.uiNightMode()).isEqualTo(UiModeManager.MODE_NIGHT_AUTO)
+        assertThat(ThemeMode.LIGHT.uiNightMode()).isEqualTo(UiModeManager.MODE_NIGHT_NO)
+        assertThat(ThemeMode.DARK.uiNightMode()).isEqualTo(UiModeManager.MODE_NIGHT_YES)
     }
 
     @Test

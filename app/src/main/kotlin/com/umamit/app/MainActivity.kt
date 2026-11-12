@@ -33,12 +33,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -109,7 +106,7 @@ class MainActivity : ComponentActivity() {
         val collectionSegments = SettingsCollectionSegments(settings, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
-        val themeMode = themeModeState(settings, readStoredThemeMode(settings))
+        val themeMode = themeModeState(settings)
         val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         lifecycleScope.launch {
             combine(brewTimer.state, timerVisible, ::lockScreenFlags).distinctUntilChanged().collect {
@@ -119,7 +116,7 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             val mode by themeMode.collectAsStateWithLifecycle()
-            UmamiAppTheme(mode) {
+            UmamiAppTheme(mode ?: ThemeMode.SYSTEM) {
                 WindowBackground()
                 UmamitRoot(
                     activeBrewSource = activeBrewSource,
@@ -167,15 +164,6 @@ class MainActivity : ComponentActivity() {
         timerRequests.request(intent)
     }
 
-    /**
-     * The stored *Design* (SET-05, D-114), read before the first frame so the app starts in it with no flash of
-     * the other theme. A read that fails or takes longer than [THEME_READ_TIMEOUT_MS] reads *System*; the live
-     * flow ([themeModeState]) then corrects it.
-     */
-    private fun readStoredThemeMode(settings: SettingsRepository): ThemeMode = runBlocking {
-        withTimeoutOrNull(THEME_READ_TIMEOUT_MS) { settings.themeMode().first() } ?: ThemeMode.SYSTEM
-    }
-
     /** The window behind the app takes the theme's background, so nothing of the phone's theme shows through. */
     @Composable
     private fun WindowBackground() {
@@ -193,8 +181,6 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        private const val THEME_READ_TIMEOUT_MS = 400L
-
         /**
          * Opens the app's own task with the shared [text] (CAT-17), as the timer's notifications
          * open it (`NEW_TASK | SINGLE_TOP`): a running activity gets it in [onNewIntent].
@@ -218,6 +204,12 @@ internal fun SettingsRepository.onboardingCompleted(): Flow<Boolean?> =
 internal fun SettingsRepository.themeMode(): Flow<ThemeMode> =
     settings.map { it.theme }.catch { emit(ThemeMode.SYSTEM) }.distinctUntilChanged()
 
-/** The app theme's choice as state, from [initial] (read before the first frame) on following the settings at once. */
-internal fun ComponentActivity.themeModeState(settings: SettingsRepository, initial: ThemeMode): StateFlow<ThemeMode> =
-    settings.themeMode().stateIn(lifecycleScope, SharingStarted.Eagerly, initial)
+/**
+ * The app theme's choice as state, following the settings at once; null until the file is read, and the app
+ * draws *System* until then. Nothing waits for it (rule 8: a start into the timer or the alert never blocks on
+ * the theme, and those surfaces are always [com.umamit.core.designsystem.theme.SteepingTheme]). No flash of the
+ * other theme still: a pick is handed to the system too (`UiModeManager.setApplicationNightMode`, SET-05,
+ * D-114), so the starting window and the configuration *System* reads are already in the chosen theme.
+ */
+internal fun ComponentActivity.themeModeState(settings: SettingsRepository): StateFlow<ThemeMode?> =
+    settings.themeMode().stateIn(lifecycleScope, SharingStarted.Eagerly, null)

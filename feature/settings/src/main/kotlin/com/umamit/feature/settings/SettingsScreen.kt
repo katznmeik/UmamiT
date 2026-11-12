@@ -23,6 +23,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -156,6 +157,8 @@ fun SettingsRoute(
     val catalog by catalogViewModel.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val saveFailed by viewModel.saveFailed.collectAsStateWithLifecycle()
+    // Read when a *Design* pick is handed to the system, after it is stored (rule 8).
+    val currentAlertKey by rememberUpdatedState(alertKey)
     LifecycleResumeEffect(viewModel) {
         viewModel.refresh()
         onPauseOrDispose {}
@@ -202,7 +205,7 @@ fun SettingsRoute(
                 viewModel.change { it.copy(lowStockReminderInterval = interval) }
             },
             setLowStockReminderTime = { minute -> viewModel.change { it.copy(lowStockReminderTime = minute) } },
-            setTheme = { mode -> viewModel.change { it.copy(theme = mode) } },
+            setTheme = { mode -> viewModel.setTheme(mode, alerting = { currentAlertKey != null }) },
             setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
