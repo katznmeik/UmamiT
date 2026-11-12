@@ -127,7 +127,7 @@ data class CatalogSection(val teaType: String?, val teas: List<CatalogTeaSummary
  * @property grouped the sections are *Sorten* (sort by type).
  * @property byKind the view without a kind (D-114): the sections come grouped by [CatalogSection.kind].
  * @property totalCount every tea of the current range of the shown kind, or every tea without a kind, for the
- *   header („274 Grüntees", „312 Tees", CAT-07 AC6).
+ *   header („312 Tees", CAT-07 AC6).
  * @property hiddenMatches search hits the filters hide („searchable but hidden", D-073), those of the
  *   other kind included (CAT-10); 0 without a search.
  * @property types every *Sorte* of the shown kind (every kind's without one), for the filter sheet.

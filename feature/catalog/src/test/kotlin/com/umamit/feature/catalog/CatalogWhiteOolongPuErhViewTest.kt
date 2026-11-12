@@ -103,19 +103,19 @@ class CatalogWhiteOolongPuErhViewTest {
 
         switchTo(R.string.catalog_filter_white)
         chip(R.string.catalog_filter_white).assertIsSelected()
-        shown("Tee-Kontor Kiel · 2 Weiße Tees · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 2 Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Bai Mu Dan")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag(null)).assertIsDisplayed()
         hidden("Bergnebel Oolong")
 
         switchTo(R.string.catalog_filter_oolong)
-        shown("Tee-Kontor Kiel · 3 Oolongs · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 3 Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Taiwan")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("China")).assertIsDisplayed()
         hidden("Mandelwolke")
 
         switchTo(R.string.catalog_filter_dark)
-        shown("Tee-Kontor Kiel · 2 Pu-Erhs · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 2 Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Sheng")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Shou")).assertIsDisplayed()
         shown("Nebelberg Bing Cha")

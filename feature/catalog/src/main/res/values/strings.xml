@@ -7,53 +7,13 @@
     <!-- While a first load runs and its sheet is closed. -->
     <string name="catalog_loading_body">Der Katalog wird gerade geladen.</string>
     <string name="catalog_show_progress">Fortschritt anzeigen</string>
-    <!-- SCR-19 header (CAT-07 AC6): „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." -->
+    <!-- SCR-19 header (CAT-07 AC6): „Tee-Kontor Kiel · 274 Tees · aktualisiert am 21. Okt." -->
     <string name="catalog_header">Tee-Kontor Kiel · %1$s · aktualisiert am %2$s</string>
     <string name="catalog_header_undated">Tee-Kontor Kiel · %1$s</string>
-    <plurals name="catalog_tea_count">
-        <item quantity="one">%1$d Grüntee</item>
-        <item quantity="other">%1$d Grüntees</item>
-    </plurals>
     <!-- The header's count of the view's teas (v0.6.1, D-114 Q16): „… · 312 Tees · …", never a kind's name. -->
     <plurals name="catalog_all_count">
         <item quantity="one">%1$d Tee</item>
         <item quantity="other">%1$d Tees</item>
-    </plurals>
-    <!-- The header's count in the Kräutertee view (v0.2.1, D-093): „… · 38 Kräutertees · …". -->
-    <plurals name="catalog_herbal_count">
-        <item quantity="one">%1$d Kräutertee</item>
-        <item quantity="other">%1$d Kräutertees</item>
-    </plurals>
-    <!-- The header's count in the Schwarztee view (v0.5.0, D-108): „… · 186 Schwarztees · …". -->
-    <plurals name="catalog_black_count">
-        <item quantity="one">%1$d Schwarztee</item>
-        <item quantity="other">%1$d Schwarztees</item>
-    </plurals>
-    <!-- The header's count in the views of the white teas, oolongs and Pu-Erhs (v0.5.0, #205). -->
-    <plurals name="catalog_white_count">
-        <item quantity="one">%1$d Weißer Tee</item>
-        <item quantity="other">%1$d Weiße Tees</item>
-    </plurals>
-    <plurals name="catalog_oolong_count">
-        <item quantity="one">%1$d Oolong</item>
-        <item quantity="other">%1$d Oolongs</item>
-    </plurals>
-    <plurals name="catalog_dark_count">
-        <item quantity="one">%1$d Pu-Erh</item>
-        <item quantity="other">%1$d Pu-Erhs</item>
-    </plurals>
-    <!-- The header's count in the views of the Rotbusch teas, fruit teas and chais (v0.5.0, #206). -->
-    <plurals name="catalog_rooibos_count">
-        <item quantity="one">%1$d Rotbuschtee</item>
-        <item quantity="other">%1$d Rotbuschtees</item>
-    </plurals>
-    <plurals name="catalog_fruit_count">
-        <item quantity="one">%1$d Früchtetee</item>
-        <item quantity="other">%1$d Früchtetees</item>
-    </plurals>
-    <plurals name="catalog_chai_count">
-        <item quantity="one">%1$d Chai</item>
-        <item quantity="other">%1$d Chais</item>
     </plurals>
     <!-- The header's count in the Gemerkt view (v0.2.2, CAT-18): „… · 4 gemerkt · …". -->
     <plurals name="catalog_marked_count">
@@ -178,7 +138,7 @@
         <item quantity="one">%1$d Tee</item>
         <item quantity="other">%1$d Tees</item>
     </plurals>
-    <!-- The summary line after the count of green teas (CAT-07 AC3, D-086): „274 Grüntees · 12 neu · 5 geändert ·
+    <!-- The summary line after the count of teas (CAT-07 AC3, D-086): „274 Tees · 12 neu · 5 geändert ·
          2 nicht mehr im Sortiment · 3 Rezepte prüfen", each part only with a count above 0. „neu", „geändert" and
          „nicht mehr im Sortiment" don't change with the number. -->
     <!-- Non-breaking spaces keep each part on one line and the dot after the part before it. -->
@@ -231,7 +191,7 @@
         <item quantity="other">%1$d Guides von Tee-Kontor Kiel, offline lesbar</item>
     </plurals>
     <string name="guides_title">Ratgeber</string>
-    <string name="guides_intro">Grüntee-Wissen von Tee-Kontor Kiel – auch ohne Verbindung lesbar.</string>
+    <string name="guides_intro">Tee-Wissen von Tee-Kontor Kiel – auch ohne Verbindung lesbar.</string>
     <string name="guides_empty_title">Noch keine Ratgeber.</string>
     <string name="guides_empty_body">Die Guides kommen mit der nächsten Aktualisierung des Katalogs.</string>
     <string name="guide_source">Tee-Kontor Kiel · Tee-Info</string>

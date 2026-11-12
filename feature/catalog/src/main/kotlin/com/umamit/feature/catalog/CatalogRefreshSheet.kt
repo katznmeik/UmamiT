@@ -144,7 +144,7 @@ private fun ColumnScope.Result(outcome: CatalogRefreshOutcome, onClose: () -> Un
     }
 }
 
-/** One part of the summary line (CAT-07 AC3): „274 Grüntees", „12 neu", „3 Rezepte prüfen", … */
+/** One part of the summary line (CAT-07 AC3): „274 Tees", „12 neu", „3 Rezepte prüfen", … */
 @Composable
 private fun summaryPart(part: SummaryPart): String = when (part) {
     is SummaryPart.Teas -> pluralStringResource(R.plurals.catalog_refresh_tea_count, part.count, part.count)
