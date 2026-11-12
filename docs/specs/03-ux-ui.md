@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-11-11 (v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SITZUNGEN, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-11-12 (v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SITZUNGEN, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -811,6 +811,42 @@ TalkBack announcements: state changes, pre-alert, 10 s remaining, alert.
 - **Motion.** None new: the row's countdown ticks, the button has the usual
   press feedback.
 
+**Taste per infusion (v0.6.1, [D-114](10-open-questions-and-decisions.md#d-114)).** While a brew session runs, the
+timer screen offers the taste of the infusion ended last (JRN-03, JRN-05):
+
+```
+│        [   Abgegossen   ]     │  primary control
+│  ◉ Geschmack · 1. Aufguss     │  after the first Abgegossen; „ ✓" with values
+```
+
+- **The button.** A quiet text button with the taste icon below the step
+  strip, „Geschmack · 1. Aufguss" (the infusion ended last, *Spülen* never
+  counts), „… ✓" once that infusion has a value or a note. It shows in
+  READY, RUNNING and PAUSED from the first *Abgegossen* (or *Aufguss jetzt
+  beenden*) on, never before. From then its space is reserved; on the
+  alert surface it is hidden and the space kept, so nothing moves when the
+  alert starts (rule 8, D-096). The band gives way for it like for the
+  other content above the control (D-096); below the control it scrolls
+  with the banner where it does not fit. Each of two brews' screens offers
+  its own session's infusion; the quick timer has none.
+- **The sheet.** A Material 3 modal sheet on the Steeping surface: title
+  „Geschmack · 1. Aufguss" with *Fertig* pinned at its end (as D-110's
+  sheets), six `SlimSlider`s (§3.8; Umami, Süße, Bitterkeit, Adstringenz,
+  Körper, Aroma; unset „–"), the field „Notiz zum Aufguss …" (≤ 200, a
+  counter from 180), *Zurücksetzen* (the six values) at the end. No radar.
+  A slider's release saves; the note saves 1 s after the last key and when
+  the sheet closes. The keyboard does not open by itself.
+- **Rule 8.** The pre-alert leaves the sheet open; an alert of any slot
+  closes it (and the keyboard) in its first frame, a write already started
+  completes, nothing entered is lost. The sheet never delays, covers or
+  silences an alert, and the timer's controls work as soon as it closes.
+- **TalkBack:** the button reads „Geschmack zum 1. Aufguss eintragen"
+  („…, eingetragen" with values); the sheet's sliders read as on the
+  session page.
+- **Motion:** the sheet uses Material's sheet motion; the button fades in
+  with the `fade` token at the first *Abgegossen* (at once with reduce
+  motion).
+
 ### SCR-06 „Gespeichert" sheet
 
 Small bottom sheet after *Sitzung beenden*, auto-dismisses after 10 s:
@@ -870,7 +906,7 @@ is the way to skip.
 
 ### SCR-07 Schnelltimer
 
-Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00 and, from v0.2.2, 8:00 (wrapping onto a second row when needed); tap time for a duration picker; *Start*;
+Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00 and, from v0.2.2, 8:00 (wrapping onto a second row when needed); from v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)) 1:00 · 2:00 · 3:00 · 5:00 · 8:00 · 10:00 · 15:00, opening at 1:00, with polish 2 and the band rule re-checked at font 2.0; tap time for a duration picker; *Start*;
 while running *Pause*/*Weiter*; on alert *Fertig*; overflow *Abbrechen*
 ([04 §10](04-brew-timer.md#10-quick-timer)).
 
@@ -1095,6 +1131,15 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - **Dates (v0.4.1, #179):** DETAILS also lists *Haltbar bis* („21. Okt.
   2026") when set. *Geöffnet am* shows only in FRISCHE (INV-06), not twice
   (PO decision, v0.4.1 fix round).
+
+v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)):
+- **⋮** starts with *Im Katalog ansehen* for a tea whose `catalog_key` has
+  a catalog tea (discontinued counts), as in SCR-04; it opens the tea's
+  SCR-21 above the detail, back returns. Then *Favorit*, *Aus Katalog
+  zurücksetzen*, *Archivieren*, *Löschen* as before.
+- **Hero:** a tap opens the photo viewer (SCR-28) on the photo shown.
+- **GESCHMACK:** the radar averages every infusion of every session per
+  axis (JRN-03).
 
 ### SCR-10 Tee bearbeiten
 
@@ -1354,6 +1399,43 @@ hint that something is missing.
   `fade` token's 100 ms fade only (on the device, animator scale 0 ends it
   at once; D-113).
 
+v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)):
+
+```
+│ GESCHMACK                    │
+│ (Alle) (1. Aufguss•) (2.) (3.)│  1. selected on open
+│   [ radar ]  or „Umami 4 · Süße 3"
+│   „Weich, nach Nori …"       │  the infusion's note, one line
+│   Anpassen               ⌄   │  folded; unfolds sliders, note, Zurücksetzen
+```
+
+- **GESCHMACK per infusion.** Without any value: the quiet row „Geschmack
+  hinzufügen" as in v0.6.0; a tap shows the chips with the 1st infusion
+  selected and unfolded. With values: a chip row (`FilterChip`s, scrolling
+  sideways) *Alle* · „1. Aufguss" · „2." · … (ended steps that are not
+  *Spülen*, numbered as the step table; a chip with a value or note has a
+  small dot), the 1st infusion selected whenever the page opens.
+- **Folded** (whenever the page opens): the selected infusion's radar once
+  three axes are set, else one line „Umami 4 · Süße 3" („Noch nichts
+  eingetragen" without values); its note in one line; and the row
+  *Anpassen* with a chevron. **Unfolded:** the radar, the six
+  `SlimSlider`s, the field „Notiz zum Aufguss …" (≤ 200, counter from 180)
+  and *Zurücksetzen* (the infusion's six values). The fold state stays when
+  the chip changes.
+- ***Alle*** shows only the radar averaged per axis over the session's
+  infusions (or the summary line); no *Anpassen*.
+- **⋮:** *Tee ansehen* (not for a deleted tea), *Im Katalog ansehen* (when
+  the tea's `catalog_key` has a catalog tea), a divider, *Bearbeiten*,
+  *Löschen*. Both open above the page; back returns. The tea name's link
+  stays.
+- **Hero:** a tap opens the photo viewer (SCR-28) on the photo shown (the
+  session's photos, or the tea's when it shows the cover).
+- **Motion:** the fold uses the `sheet` spring for the height and the
+  `fade` token, the chevron turns with it; a chip change cross-fades the
+  radar and values (`fade`). With reduce motion the 100 ms fade only.
+- **TalkBack:** the chips read „1. Aufguss, ausgewählt, Geschmack
+  eingetragen"; *Anpassen* reads „Geschmack anpassen, eingeklappt".
+
 ### SCR-17 Sitzung bearbeiten
 
 Until D-112 this was one editor for notes and recorded data. From v0.6.0
@@ -1395,7 +1477,7 @@ selector. Überblick: teas total („24 · +3 diesen Monat"), sessions this
 week/month, streak, sessions per week, tea-type donut. Bewertungen: average,
 distribution bars, top teas, taste radar. Verbrauch: grams per month, money
 spent per month, cost per session, running-out list.
-**M1 placeholder** (until v0.6.1, D-112): „Deine Statistik folgt bald · Sie kommt mit
+**M1 placeholder** (until v0.7.0, D-112; v0.6.1 until D-114): „Deine Statistik folgt bald · Sie kommt mit
 einem späteren Update. Deine Aufgüsse stehen schon im Journal.", true before
 and after the first brew (D-069).
 
@@ -1558,6 +1640,24 @@ Empty (never loaded): illustration A8, „Der Katalog ist noch leer" ·
 *Katalog laden*. This is the entry point on a phone whose first-start setup
 is already done (ONB-03 shows only on fresh installs).
 
+v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)):
+- **Header:** „Tee-Kontor Kiel · 312 Tees · aktualisiert am 21. Okt." in
+  every view, N the view's count (all teas, or the kind's); never a kind's
+  name. The kind views' „274 Grüntees", „38 Kräutertees" … go.
+- **No kind selected** is the default view: every tea, grouped by kind in
+  the chip order, each kind group foldable (header „Grüntee · 274" with a
+  chevron); with *Sortierung* *Sorte* the *Sorte* headings show inside each
+  kind group without folding. A tap on a kind chip narrows to it; a tap on
+  the selected chip clears it (no chip selected). One chip at a time.
+  *Pur* and the umami filter apply in the Grüntee view only, so the
+  all-teas view shows flavoured teas as well. A pending kind shows its
+  hint as its group's body. *Zurücksetzen*, „Filter zurücksetzen" and
+  *Alle zeigen* clear the kind; the chip row scrolls to its start.
+- **Texts (point 9):** the empty catalog, the refresh sheet's and the
+  notification's summary („312 Tees · 12 neu …") and the Ratgeber intro
+  („Tee-Wissen von Tee-Kontor Kiel – auch ohne Verbindung lesbar.") speak
+  of teas, not green teas.
+
 ### SCR-20 Ratgeber-Artikel
 
 Hero image (if any, 16:9 under the status bar with the back button over it,
@@ -1683,6 +1783,15 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - The section *Teegeschirr* (SET-30) between *Katalog* and *Über*: one row
   „Teegeschirr" that opens SCR-13.
 
+v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)): a section *Darstellung* first, below the
+*Timer-Zuverlässigkeit* card, with the row *Design* and its value
+(„System"); it opens a choice dialog *System · Hell · Dunkel* (a pick
+applies at once, *Fertig* closes), like *Vorrats-Erinnerung*. The app
+switches without a restart and starts in the chosen theme with no flash of
+the other. The timer, the quick timer and the alert surface stay as they
+are (Steeping, washi/matcha); the status-bar icons follow D-069 on the
+chosen theme.
+
 ### SCR-26 Daten & Sicherung
 
 Device-backup explanation, *Sicherung erstellen* (BAK-01), (Could) CSV
@@ -1766,6 +1875,18 @@ its own. Only with stock events.
   2026: 100 g dazu für 18,90 €", „Bestand korrigiert am …: 15 g weniger",
   „Gebrüht am …: 5 g verbraucht"; a brew row's action „Sitzung ansehen"; the
   trash icon „Kauf vom 20. Okt. 2026 löschen".
+
+**Photo viewer (v0.6.1, [D-114](10-open-questions-and-decisions.md#d-114)).** A tap on a hero with photos (SCR-09,
+SCR-16) or on the vessel's photo (SCR-14) opens a full-screen route on
+black: the whole photo fitted (never cropped), pinch and double-tap to zoom
+(up to 4×, double-tap back to fit), a swipe to the neighbouring photo in
+the hero's order (not while zoomed in), „2 / 5" at the top with ← on a
+40 dp translucent circle; back closes it and the hero shows the photo last
+viewed. No cover or delete actions here. The status-bar icons are light.
+TalkBack: the hero's action „Foto vergrößern", the viewer „Foto 2 von 5".
+Motion: it opens and closes with the `fade` token (no shared-element
+zoom); with reduce motion at once. An alert takes the screen as
+everywhere (rule 8).
 
 ### SCR-31 Schritte-Sheet (session steps)
 

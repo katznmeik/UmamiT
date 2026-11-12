@@ -1,10 +1,10 @@
 # UmamiT — Specifications
 
-> Status: **Draft v0.2 — for review** · Last updated: 2026-11-11 (journal bullet, D-112)
+> Status: **Draft v0.2 — for review** · Last updated: 2026-11-12 (v0.6.1 bullet, D-114; 2026-11-11: journal bullet, D-112)
 
 Product and technical specification of **UmamiT**, a personal Android app
 for brewing tea, focused on umami-rich Japanese green teas. It provides a
-multi-infusion steep timer, a catalog of Tee-Kontor Kiel's green teas, a
+multi-infusion steep timer, a catalog of Tee-Kontor Kiel's teas, a
 personal collection with stock and cost, an automatic journal and
 statistics.
 
@@ -65,7 +65,11 @@ releases are dispatched and verified).
 - **Journal:** sessions are logged automatically; notes are optional. — D-020
   - M4 ships as v0.6.0 (rating, taste, descriptors, notes and photos in
     place on the session page, all optional; session editor; search) and
-    v0.6.1 (Statistik). — D-112
+    v0.7.0 (Statistik; v0.6.1 until D-114). — D-112
+  - v0.6.1 is the feedback round on v0.6.0: taste and a note per infusion,
+    also on the timer screen (umamit.db v7); GESCHMACK folds; quick-timer
+    chips 1:00–15:00; photo viewer; catalog links in ⋮; the Katalog opens
+    with every kind; „N Tees"; *Design* (System · Hell · Dunkel). — D-114
 - **Backup:** Android device backup plus a simple manual export; no in-app
   restore in 1.x. — D-022, D-036
 - **Navigation:** Start · Journal · Sammlung · Statistik. — D-018

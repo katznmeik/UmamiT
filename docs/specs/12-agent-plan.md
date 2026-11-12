@@ -1,6 +1,6 @@
 # 12 · Subagent Distribution Plan
 
-> Status: **Draft v0.3** · Last updated: 2026-11-02 (tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
+> Status: **Draft v0.3** · Last updated: 2026-11-12 (v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
 > Decisions: [D-026](10-open-questions-and-decisions.md#d-026), [D-101](10-open-questions-and-decisions.md#d-101)
 
 UmamiT is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
@@ -175,7 +175,25 @@ Answer the questions in order and take the first tier that matches:
 | Ratings, GESCHMACK and LETZTE SITZUNGEN on the tea screens | T2 |
 | Milestone review | T3 |
 
-*v0.6.1 — Statistik* (provisional; its spec sets the tickets and tiers)
+*v0.6.1 — Feedback on v0.6.0* (D-114; timer code: never below T3 for
+`feature:brew`, the T4 timer review, the accuracy runs per rc)
+
+| Task | Tier |
+|---|---|
+| Quick-timer chips (TMR-22, SCR-07; `feature:brew`) | T3 |
+| umamit.db v7: taste and note per infusion, `MIGRATION_6_7`, the per-step writes, the averages, search | T3 |
+| Session page: GESCHMACK per infusion, *Alle*, folding; the shared infusion-taste editor | T3 |
+| Timer screen: „Geschmack · N. Aufguss" and its sheet (SCR-05; `feature:brew`) | T3 |
+| ⋮ *Tee ansehen* / *Im Katalog ansehen* (session page, tea detail) | T2 |
+| Full-screen photo viewer (SCR-28) | T2 |
+| Katalog without a kind, grouped by kind (CAT-10) | T3 |
+| „N Tees" texts sweep (CAT-07) | T1 |
+| *Darstellung* › *Design* (SET-05) | T2 |
+| Milestone review | T3 |
+| Timer review (`feature:brew` diff) | T4 |
+
+*v0.7.0 — Statistik* (provisional; v0.6.1 until D-114; its spec sets the
+tickets and tiers)
 
 | Task | Tier |
 |---|---|

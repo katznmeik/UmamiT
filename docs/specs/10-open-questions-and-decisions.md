@@ -323,6 +323,213 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-114"></a>
+### D-114 — v0.6.1: the PO's feedback on v0.6.0: taste per infusion (also on the timer), folding taste, quick-timer chips, photo viewer, catalog links in ⋮, all kinds without a chip, „N Tees", the *Design* setting; Statistik becomes v0.7.0 (TMR-22, JRN-03, JRN-05, JRN-09, JRN-10, TEA-05, TEA-13, CAT-07, CAT-10, SET-05; SCR-05, SCR-07, SCR-09, SCR-16, SCR-19, SCR-25, SCR-28; amends D-112's taste per session and Q1's numbering, D-103's default kind, D-097's 8:00 chip row) · *Accepted* (PO, 2026-11-12, grilled in the session Q1–Q19 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
+
+**Context.** The PO installed the final `v0.6.0` and brought nine points to
+a feedback round before Statistik (PROJECT_STATE, 2026-11-12). In the PO's
+words:
+
+1. „Schnelltimer: remove 0.30 and 1:30, add 10:00 and 15:00"
+2. „Geschmack Hinzufügen must be possible for each brewing of a session;
+   the one after the first brewing is the most important"
+3. „Journal → Session Detail → add (back) link to respective entry in Meine
+   Tees and a link to the Katalog page via the three dots in the upper right"
+4. „Geschmack Hinzufügen: The sliders should be able to fold in and out so
+   they are not always visible (only on demand)"
+5. „It must be possible to see the complete foto taken and added to a tee
+   when via tea details (either tabbing the picture or a small icon for it)"
+6. „Sammlung: Tea Details: Add link to respective Katalog entry via the
+   three dots on the upper right"
+7. „Katalog: filter chips, currently when none would be selected it
+   automatically jumps back to Grüntee […] when no chip is selected, no
+   filters are applied"
+8. „Settings: Add a switch for light/dark mode (independent from phone
+   global setting)"
+9. „Katalog: currently it reads Tee-Kontor Kiel, XXX Grüntees,
+   aktualisiert…, as the app is not focused on green tea anymore please
+   make this more general, this also applies for any message after / while
+   a Katalog update or any other places"
+
+**Decision (the PO's answers).**
+
+1. **Q1, numbering.** This round is **v0.6.1** (as v0.5.1 was after
+   v0.5.0). **Statistik (M4 part 2) becomes v0.7.0**; D-112 Q1's „v0.6.1"
+   for Statistik is replaced.
+2. **Q2, taste per infusion, also on the timer.** Taste can be entered for
+   every infusion of a session: on the **timer screen** while the session
+   runs, and on the session page afterwards. This is timer-screen code
+   (`feature:brew`): see Consequences.
+3. **Q3, what per infusion:** the six taste sliders **and a short note**.
+   Rating, the session's notes, descriptors and photos stay per session.
+4. **Q4, aggregates.** Taste lives **per infusion only**. The values a
+   v0.6.0 session has become its first infusion's. The tea's GESCHMACK
+   radar (SCR-09) averages **every infusion of every session** per axis
+   (over the infusions that set that axis).
+5. **Q5, on the timer.** After *Abgegossen*, a quiet button „Geschmack ·
+   1. Aufguss" names the infusion just poured while the next one waits
+   (READY) and while it steeps (RUNNING, PAUSED). It opens a sheet with
+   that infusion's sliders and note. An alert closes the sheet in its first
+   frame; what was entered is kept (rule 8).
+6. **Q6, the session page:** a chip row per infusion in GESCHMACK; the
+   1st is selected when the page opens; below it that infusion's radar,
+   sliders and note.
+7. **Q7, folding (point 4).** GESCHMACK is folded whenever the page opens:
+   it shows the radar (below three set axes, a one-line summary) and a
+   chevron *Anpassen*; a tap unfolds the sliders, the note and
+   *Zurücksetzen*, a second tap folds them.
+8. **Q8, quick-timer chips:** **1:00 · 2:00 · 3:00 · 5:00 · 8:00 · 10:00 ·
+   15:00**; the screen still opens at 1:00.
+9. **Q9, photo viewer (point 5).** A **tap on the hero** opens a
+   full-screen viewer with the whole photo, pinch and double-tap zoom and a
+   swipe to the next photo. The same on the session page's hero and on the
+   vessel photos.
+10. **Q10, the catalog link (points 3, 6)** opens the tea's page in the
+    app's Katalog (SCR-21), as the setup's ⋮ *Im Katalog ansehen* does;
+    hidden for teas without a catalog entry.
+11. **Q11, the session page's ⋮:** *Tee ansehen*, *Im Katalog ansehen*
+    (catalog teas only), then *Bearbeiten*, *Löschen*. The tea name's link
+    stays.
+12. **Q12, the theme (point 8):** a row ***Design*** with *System · Hell ·
+    Dunkel* (SET-05 as specified, default *System*) in a new first section
+    *Darstellung* of the settings. The timer stays dark as before.
+13. **Q13, the Katalog's default (point 7):** the Katalog opens with **no
+    kind chip selected**, showing every tea. A tap on a kind chip narrows
+    to that kind; a tap on the selected chip clears it again. *Pur* and the
+    umami filter apply in the Grüntee view only.
+14. **Q14, grouping without a kind:** by kind in the chip order, each group
+    foldable; the *Sortierung* applies inside each group.
+15. **Q15:** kind chips stay **one at a time** (plus none).
+16. **Q16, the texts (point 9):** the catalog header always reads „Tee-Kontor
+    Kiel · **N Tees** · aktualisiert am …", N being the count of the view
+    (the kind's, or all), never a kind's name; the refresh notification and
+    sheet read „N Tees" for the whole range; plus a sweep of every other
+    place that calls the whole range green (below).
+17. **Q17, the infusion note:** up to **200 characters**, and the journal
+    search finds words in it.
+18. **Q18, the whole session:** the chip row starts with ***Alle***: a
+    read-only radar averaged per axis over the session's infusions; the
+    1st infusion is still the one selected when the page opens.
+19. **Q19, release plan:** `v0.6.1-rc.1`, then the final; an rc.2 only if
+    the checklist finds something.
+20. **Timer code (stated in Q19's question; Claude's reading of CLAUDE.md
+    rule 5 and 09 §4a, which the PO answered on):** the chips and the
+    button live in `feature:brew`, so the round is timer code: implementers
+    of those tickets work at T3 or above, the timer path gets the T4
+    review, and every rc and the final need all three accuracy variants.
+
+**Details (Claude; not asked, open to the PO's correction in the review).**
+
+- **Which steps count as infusions.** Every *ended* step that is not
+  *Spülen*, numbered as the step table numbers them („1. Aufguss",
+  „2. Aufguss", …; an *Aufschlagen* step counts). A step never brewed or
+  skipped has no chip and no button.
+- **The timer button.** A text button with the taste icon below the step
+  strip, naming the infusion ended last; its space is reserved in READY,
+  RUNNING and PAUSED and kept empty on the alert surface, so nothing moves
+  when the alert starts (rule 8, D-096). Before the first infusion ends it
+  is not shown, and its space is not reserved before then either: it
+  appears with the first *Abgegossen* (a change of state, not of the
+  alert). With values it reads „Geschmack · 1. Aufguss ✓". Only the
+  infusion ended last is offered on the timer; earlier ones are on the
+  session page. With two brews, each timer screen offers its own session's.
+- **The timer sheet.** A Material 3 modal sheet on the Steeping surface:
+  title „Geschmack · 1. Aufguss", the six `SlimSlider`s (03 §3.8), the note
+  field „Notiz zum Aufguss …" (≤ 200, counter from 180), *Zurücksetzen* and
+  *Fertig*. No radar on the timer (the session page has it). Each slider
+  release saves; the note saves 1 s after the last key and when the sheet
+  closes. The **pre-alert does not close it** (a sound, not a surface); the
+  **alert** of any slot closes it in its first frame. An open sheet never
+  delays or hides an alert (rule 8).
+- **Writes during a session.** Tasting writes to an ended step's row are
+  allowed while the session is `IN_PROGRESS` (until now only on
+  `COMPLETED`). They update only the step's taste and note columns, by
+  `session_id` and `position`, never the row as a whole, so the engine's
+  `RecordStep` and `ReplacePendingSteps` (which touch only pending or the
+  running row) and the taste writes cannot overwrite each other. They never
+  touch `active_brew`, the snapshot or the timer state.
+- **Schema (umamit.db v7).** `session_step` gains `taste_umami`,
+  `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`,
+  `taste_aroma` (INTEGER 0–5, null = unset) and `tasting_note` (TEXT
+  ≤ 200). The existing `note` column (≤ 300, from the schema's first
+  version) keeps whatever it holds and is not reused. The migration copies
+  each session's six values to its first ended non-rinse step (else its
+  first non-rinse row, else the row at position 0), then sets the
+  session's columns to null; they stay in the frozen schema, unwritten. A
+  session without values is untouched. One transaction, tested from a
+  populated v6 database like `Migration5To6Test`.
+- **The session page.** Without any taste value GESCHMACK is the quiet row
+  „Geschmack hinzufügen" as in v0.6.0; a tap shows the chips with the 1st
+  infusion selected and unfolded. With values: the chips *Alle · 1. · 2. ·
+  …* (a chip with values carries a small dot), the 1st selected, folded.
+  *Alle* shows only the averaged radar (or the summary line) and no
+  chevron. The summary line below three axes: „Umami 4 · Süße 3"; nothing
+  set: „Noch nichts eingetragen". The infusion's note shows folded as one
+  line under the radar, in full when unfolded. *Zurücksetzen* clears the
+  selected infusion's six values (the note stays).
+- **Folding motion.** The `sheet` spring for the height and the `fade`
+  token, as the v0.6.0 fold; with reduce motion the 100 ms fade only. The
+  chevron turns with the fold. Switching chips cross-fades the radar
+  (`fade`); the fold state stays when the chip changes.
+- **The tea's average.** Per axis over every infusion with that axis set,
+  in every finished session of the tea; the radar shows once three axes
+  have an average (as before). Descriptors stay per session.
+- **Search.** The journal search (JRN-09) also matches the infusion notes;
+  *Mit Notizen* counts a session with any infusion note.
+- **The *Gespeichert* sheet** is unchanged (the PO did not take the option
+  that adds the last infusion's taste there).
+- **The photo viewer.** A full-screen route on black: the whole photo
+  fitted, pinch and double-tap to zoom (up to 4×), swipe between the same
+  photos in the hero's order, „2 / 5" at the top, ← and system back close
+  it on the photo last shown (the hero follows). No actions in the viewer
+  (cover, delete stay in the hero's ⋮). Without photos (the leaf) a tap does
+  nothing. TalkBack: the hero's action „Foto vergrößern"; the viewer reads
+  „Foto 2 von 5". An alert takes the screen as everywhere (rule 8).
+- **The tea detail's ⋮** (point 6): *Im Katalog ansehen* first, for a tea
+  whose `catalog_key` has a catalog tea (discontinued counts), as in SCR-04;
+  then *Favorit*, *Aus Katalog zurücksetzen*, *Archivieren*, *Löschen*.
+- **The session page's ⋮** for a deleted tea: no *Tee ansehen*, and no *Im
+  Katalog ansehen* either (it follows the tea's `catalog_key`; the session
+  keeps no key of its own). For an archived tea *Tee ansehen* opens the archived tea's detail.
+- **The Katalog without a kind.** The header's count is every tea; the
+  kind groups are foldable like the *Sorte* groups (their fold state
+  remembered as theirs); a kind still pending (05 §9) shows its hint as its
+  group's body. „Filter (n)" does not count the kind. *Zurücksetzen* and
+  „Filter zurücksetzen" clear the kind too (the default view is now no
+  kind). Search hits hidden by a kind are counted as today and *Alle
+  zeigen* now clears the kind. With *Sortierung* *Sorte* the *Sorte*
+  headings show inside each kind group without folding of their own (one
+  level of folding: the kinds). The kind is not remembered across app
+  starts (the default view every start), as today.
+- **„N Tees" sweep (point 9).** The catalog header (all views), the
+  refresh notification's summary („Katalog geladen · 312 Tees · 12 neu …"),
+  the refresh sheet's summary, the Ratgeber intro („Tee-Wissen von
+  Tee-Kontor Kiel – auch ohne Verbindung lesbar."), and the recipe hint of
+  an unmapped tea („… allgemeine Werte."). Kind names stay where they name
+  a kind (chips, pending hints, *Sorte* names). The build lists every
+  string it changed in its report.
+- **The theme.** Stored in DataStore `theme` (05 §6: SYSTEM/LIGHT/DARK),
+  applied at once without a restart and before the first frame (no flash of
+  the other theme at the start); the status-bar rules of D-069 follow the
+  app theme; the timer surfaces and the alert stay as they are. *Darstellung*
+  holds only *Design* in v0.6.1 (SET-06 stays out). SET-30's order changes:
+  *Darstellung* moves to the top, below the *Timer-Zuverlässigkeit* card.
+- **The quick-timer chips** wrap onto a second row as before; SCR-07's
+  layout rules (polish 2, the band giving way) are re-checked at font 2.0.
+
+**Consequences.**
+
+- **Timer code.** Points 1 and 2 change `feature:brew` (the chips, the
+  timer screen's button and sheet). Those tickets are T3 or above, the
+  milestone gets the T4 timer review of that path, and `v0.6.1-rc.1` and
+  the final each need all three accuracy variants (09 §4a). `core:timer`
+  and `core:timer-engine` are not changed.
+- **Migration code** (umamit.db v6 → v7) is T3 or above (CLAUDE.md rule 5).
+- **Specs written:** 02 (TMR-22, JRN-03, JRN-05, JRN-09, JRN-10, TEA-05,
+  TEA-13, CAT-07, CAT-10, SET-05, INS numbering), 03 (SCR-05, SCR-07,
+  SCR-09, SCR-14, SCR-16, SCR-18, SCR-19, SCR-25, SCR-28), 04 §10, 05
+  (§3.6, §3.7, §6, §9), 09 (§2, §4), 11, 12, the specs README.
+
 <a id="d-113"></a>
 ### D-113 — v0.6.0: the slim slider handle; the open points of rc.1 closed; the final without an rc.2 (03 §3.8, SCR-16, SET-27; JRN-03) · *Accepted* (PO, 2026-11-12, on `v0.6.0-rc.1`; seven questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
@@ -7203,6 +7410,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-12 | D-114: PO feedback after v0.6.0 → v0.6.1 (Statistik becomes v0.7.0): taste per infusion with a short note, also on the timer screen (umamit.db v7); GESCHMACK folds; quick-timer chips 1:00–15:00; a full-screen photo viewer; *Tee ansehen* / *Im Katalog ansehen* in the ⋮ of the session page and the tea detail; the Katalog opens with every kind and groups by kind; „N Tees" everywhere; *Design* (System · Hell · Dunkel). Timer code: T3+, T4 timer review, accuracy runs per rc. |
 | 2026-11-11 | D-112: M4 is specified with the PO (Q1–Q18) and split: **v0.6.0** is the journal (rating, taste, descriptors, notes and session photos entered in place on the session page, all optional; stars on the „Gespeichert" sheet; the session editor for date, vessel, leaf, water and step times; journal search with three filters; *Zeiten ins Rezept übernehmen* only after deliberate changes, without a setting, SET-18 retired; ratings on the tea detail and in *Meine Tees*; LETZTE SITZUNGEN and GESCHMACK; umamit.db v6), **v0.6.1** is Statistik. JRN-08's no-notes dot is dropped; custom descriptors, notes per infusion, manual entries and coach tips stay ideas for later. The anchors of D-110 and D-111 are corrected. |
 | 2026-11-10 | D-110: PO feedback after v0.5.0 → v0.5.1: Start's *Nochmal brühen* and *Zuletzt gebrüht* become one section of six teas whose rows brew again; *Knapp ab* shows the value in effect; the catalog filter sheet's *Fertig* is pinned beside the title; the display font becomes Alegreya Sans in place of Cormorant Garamond (amends D-027). 02 BRW-11, 03 §1, §3.2, SCR-02, SCR-09, SCR-19, 09 and 11 updated. |
 | 2026-11-09 | D-109: a held alarm (second brew, or the quick timer behind a brew) rings as soon as the other alarm has stopped sounding, not only after *Abgegossen*; two sounds still never overlap (amends D-098 point 2, D-108 point 3). |

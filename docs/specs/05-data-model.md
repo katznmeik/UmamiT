@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-11-11 (v0.6.0: tasting writes, `EditSession`, the recipe offer's flags, `session_descriptor` and umamit.db v6, session photos, no `custom_descriptor` and no `session_fts`, `offerRecipeUpdate` retired, D-112; 2026-10-22: session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
+> Status: **Draft v0.2** · Last updated: 2026-11-12 (v0.6.1: taste and a note per infusion in `session_step`, umamit.db v7, D-114; 2026-11-11: v0.6.0: tasting writes, `EditSession`, the recipe offer's flags, `session_descriptor` and umamit.db v6, session photos, no `custom_descriptor` and no `session_fts`, `offerRecipeUpdate` retired, D-112; 2026-10-22: session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -177,7 +177,7 @@ Table `brew_session`
 | `ended_at` | INTEGER | | at completion: the end of the last ended step (the time of the completion if none has one) |
 | `zone_id` | TEXT | ✓ | |
 | `rating` | REAL | | 0.5–5.0 step 0.5 |
-| `taste_umami`, `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma` | INTEGER | | 0–5 each |
+| `taste_umami`, `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma` | INTEGER | | 0–5 each. **From v7 (v0.6.1, D-114) never written:** taste lives per infusion in `session_step` (§3.7); the v7 migration moved the values there and nulled these |
 | `notes` | TEXT | | ≤ 5000 |
 | `auto_finished` | INTEGER | ✓ | 1 when the app completed the session on its own: the midnight timeout (TMR-14; `CompleteSession.autoFinished`, D-054), or recovery after a device restore that found it in progress without its `active_brew` row (E11, D-063); 0 when the user finished it, also by *Beenden & neu starten* (TMR-21). |
 | `times_offered` | INTEGER | ✓ | boolean: PRF-07 prompt was applicable. Never written: from v0.6.0 the offer is derived when read (PRF-07, D-112); the column stays for the frozen schema |
@@ -194,7 +194,13 @@ Table `session_step`: `id`; `session_id` FK CASCADE; `position`; `kind`;
 `temp_c`; `started_at`; `ended_at`; `skipped`; `overtime_auto_ack`
 (see [04 §3.2](04-brew-timer.md#32-events-and-transitions)); `note` ≤ 300;
 from schema v2 `pre_alert_seconds` INTEGER nullable — the step's pre-alert
-choice: null = *Automatisch*, 0 = *Aus*, 5–30 step 5 (TMR-23, D-093).
+choice: null = *Automatisch*, 0 = *Aus*, 5–30 step 5 (TMR-23, D-093);
+from schema v7 (v0.6.1, [D-114](10-open-questions-and-decisions.md#d-114)) the infusion's taste `taste_umami`,
+`taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`,
+`taste_aroma` (INTEGER 0–5, null = unset) and `tasting_note` (TEXT ≤ 200,
+trimmed, empty stored as null), written only on an ended row whose kind is
+not *Spülen*. The older `note` column keeps whatever it holds and is not
+used for the infusion note.
 
 `(session_id, position)` is unique; positions run 0…n−1.
 
@@ -241,6 +247,17 @@ effect of the timer engine, 04 §4; D-052):
   vocabulary does not have; unticking a stored key always works). Each sets
   `updated_at`. None
   touches steps, stock, cost or `active_brew`.
+- **Infusion tasting writes** (v0.6.1, JRN-03, JRN-05, [D-114](10-open-questions-and-decisions.md#d-114)): one
+  taste column or the `tasting_note` of one `session_step` row, addressed
+  by `session_id` and `position`, each its own transaction, written with a
+  column-level `UPDATE` (never the whole row), and only when the row is
+  ended (`actual_seconds` set), its kind is not *Spülen*, and the session
+  is `IN_PROGRESS` or `COMPLETED`. *Zurücksetzen* nulls the row's six
+  values. The engine's writes (`RecordStep`, `ReplacePendingSteps`,
+  `Persist`) never touch an ended row's taste or note, and these writes
+  never touch any other column, `active_brew` or the session row (but its
+  `updated_at` for a `COMPLETED` session). A session aborted or deleted
+  takes them along (CASCADE).
 - **Edit** (v0.6.0, JRN-11, D-112; `EditSession`): one transaction on a
   `COMPLETED` session; any other status changes nothing.
   - *Start moved by Δ:* `started_at`, `ended_at` and every step's
@@ -844,6 +861,28 @@ stock warning, `MIGRATION_4_5` in `UMAMI_MIGRATIONS`:
   builder. `SchemaVersionsTest` opens v1–v6; the v1–v5 JSON keep their
   version and identity hash (`check-frozen-schemas.sh`). The v0.6.0 rc
   checklist installs it over v0.5.1 (09 §4).
+
+**umamit.db v7 (v0.6.1, [D-114](10-open-questions-and-decisions.md#d-114)).** One schema step for taste per
+infusion, `MIGRATION_6_7` in `UMAMI_MIGRATIONS`:
+- `ALTER TABLE session_step ADD COLUMN` `taste_umami`, `taste_sweetness`,
+  `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma`
+  (INTEGER, nullable) and `tasting_note` (TEXT, nullable), in that order as
+  the last columns.
+- For every `brew_session` with at least one taste column set: its six
+  values are copied to one of its steps (the first ended step that is not
+  *Spülen* by `position`; else its first step that is not *Spülen*; else
+  the step at position 0), then the session's six columns are set to null.
+  A session without values, or without any step row, is left as it is.
+- No other change: running timers keep their `active_brew` rows and alert
+  on time (rule 8).
+- One transaction, never destructive. Tests: `Migration6To7Test` from a
+  populated v6 database (a finished session with all six values and a
+  rinse first, one with two values, one without values, one whose steps
+  were never brewed, a session in progress with its `active_brew` row);
+  every row and value checked, then opened with the production builder.
+  `SchemaVersionsTest` opens v1–v7; the v1–v6 JSON keep their version and
+  identity hash (`check-frozen-schemas.sh`). The v0.6.1 rc checklist
+  installs it over v0.6.0 (09 §4).
 
 **catalog.db and the black teas (v0.5.0, D-108, #203).** No schema change:
 a black tea is a `catalog_tea` row told apart by its style key (one of the
