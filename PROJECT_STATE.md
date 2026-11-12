@@ -5,9 +5,9 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-11. **[`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) is out** (the journal, M4 part 1; D-112; versionCode 60001, from `74237151` on `claude/wonderful-davinci-fu8tqi`, draft PR #235). The milestone review (T3), the motion review, #236 and the fix round are merged; CI is green on the rc's commit. **Waiting on the PO:** the on-device checklist (09 §4 „v0.6.0"), the design review (`docs/design/review/v0.6.0/`) and four open questions (below). **Next phase (fresh session, after the PO's answer): #234**, the merge and the final release, or a feedback round. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest full release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-12. **v0.6.0 (the journal, M4 part 1; D-112): the PO approved [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) except for the taste slider's handle** (D-113). The slim pin slider (#237) is built for the taste sliders and *Lautstärke*, the full local gate passed on `4a15f547` and CI is green on `284e83a2` (`claude/wonderful-davinci-fu8tqi`, draft PR #235). **Waiting on the PO:** the OK on the slider's renders (`docs/design/review/v0.6.0/`); there is no rc.2. **Next phase (fresh session, after the OK): #234**, the merge and the final release. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest full release (from `main` `73a97fc5`); details in `docs/history.md`.
 
-## v0.6.0 (rc.1 out; waiting on the PO)
+## v0.6.0 (rc.1 approved except the slider; the slim slider waits on the PO's OK)
 
 - **Review and rc phase (#233): done** (2026-11-11, one session).
   - **[`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1)**
@@ -50,36 +50,48 @@
   - **Renders:** `docs/design/review/v0.6.0/` (147, light, dark and font
     2.0, placeholder images only) with a README that lists the points to
     judge.
-- **Next phase, #234 (fresh session, after the PO's answer):**
-  1. If the PO approves the checklist (09 §4 „v0.6.0") and the design
-     review: set `umamit.version=0.6.0` (versionCode 60099), run the
-     accuracy check with all three variants (09 §4a), mark PR #235 ready,
-     merge it with a merge commit once CI is green, dispatch `release.yml`
-     from `main`, verify the certificate, close #234, move this section to
-     `docs/history.md`, restart the working branch from `main`.
-  2. If the PO reports problems or answers the open questions with a
-     change: that is input to the process (grilling as options → spec and
-     decision D-113 → tickets → build by tier → `v0.6.0-rc.2`), never
-     straight into code.
-- **Open questions for the PO (not decided, not built; D-112's review
-  notes):**
-  1. TalkBack on an unset taste slider: an action „Auf 0 setzen" / the
-     first swipe sets 0 / leave it. And: should one axis be unsettable on
-     its own (yes / no)?
-  2. How an unset slider looks: as now (thumb at 0, „–") / no thumb and a
-     dimmed track / a hollow thumb.
-  3. Where the radar sits: above the sliders with the eased shift (as
-     built) / below the sliders / its space reserved from the start.
-  4. Optional: the wording of 03's reduce-motion line for the GESCHMACK
-     fold (its 100 ms fade stays; no behaviour change).
-- **Items for the PO's design review** are the „Points to judge" in
-  `docs/design/review/v0.6.0/README.md` (the sheet, the filter sheet,
-  GESCHMACK, the editor, the tea detail, *Meine Tees*, the session page's
-  two ⋮, the recipe offer's details).
+- **Feedback round after rc.1 (D-113, #237): built; waiting on the PO's OK
+  on the renders** (2026-11-12, same session).
+  - **The PO's answer on rc.1:** „All looks good except the handle of the
+    taste slider is way to big and bulky. This needs to look more classy and
+    elegant. Everything else looks fine and works as expected." So the
+    on-device checklist and the design review are approved except for the
+    slider's handle.
+  - **D-113 (seven answers, as options):** the slim pin (option B of four
+    drawn designs) for the taste sliders and for the settings'
+    *Lautstärke*; TalkBack on an unset slider, the single-axis unset and
+    the radar's position stay as built; 03 notes the fold's 100 ms fade
+    with reduce motion; **no rc.2**: the PO approves the slider from its
+    renders, then the merge and the final follow.
+  - **#237 (T2), merged:** `SlimSlider` in `core:designsystem`, used by
+    `TasteSlider` and `VolumeRow`; 44 goldens changed or new (8 taste, 32
+    settings, 4 component). A read-only review measured the goldens against
+    03 §3.8 and found nothing to fix.
+  - **A second test flake of the off-thread journal list, fixed at T3:**
+    `JournalSearchTest` failed once with a wrong-thread error while #237
+    was built. In Compose UI tests the list's result was written on the
+    worker thread (the app was never affected). The context of the list
+    build is now injected (`JournalSources.listContext`); a test pins it.
+  - **Verified:** the full local gate passed on `4a15f547`; CI is green on
+    `284e83a2` (run 43174172386). No timer code changed.
+  - **Renders for the PO:** `docs/design/review/v0.6.0/` („To judge now" in
+    its README): the taste section, *Lautstärke*, the component sheet.
+- **Next phase, #234 (fresh session, after the PO's OK on the renders):**
+  1. Record the OK (PR #235, D-113). Set `umamit.version=0.6.0`
+     (versionCode 60099), run the full local gate, push, wait for green CI.
+  2. Run the accuracy check with all three variants (09 §4a).
+  3. Mark PR #235 ready, merge it with a merge commit, dispatch
+     `release.yml` from `main`, verify the certificate.
+  4. Close #234, move this section to `docs/history.md` with a session-log
+     row, restart the working branch from `main`.
+  5. If the PO wants the slider changed again: that is input to the process
+     (options → spec, D-114 → ticket → build → renders), never straight
+     into code.
 - **Known, not blocking:** #231's „smooth with 10 000 sessions" is shown by
   JVM timing only. A tab that comes back to the Journal can show the
   earlier list for a frame (a session just deleted, yesterday's day
-  headings right after midnight) until the next build.
+  headings right after midnight) until the next build. The drag feel of
+  the slim pin is first seen in the final (D-113, answer 7).
 - **Environment:** Maven Central answered HTTP 429 all day; a local Gradle
   init script (`~/.gradle/init.d`, not in the repository) pointed
   `repo.maven.apache.org` at Google's Maven Central mirror
@@ -110,13 +122,13 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, spec #221, plan `docs/plans/v0.6.0.md`): built (#222–#232, #236), reviewed and fixed (#233), **`v0.6.0-rc.1` out**; the PO's test, then #234. Then v0.6.1 (Statistik, M4 part 2), not yet specified |
+| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, D-113, spec #221, plan `docs/plans/v0.6.0.md`): built (#222–#232, #236), reviewed and fixed (#233), `v0.6.0-rc.1` approved by the PO except the slider's handle; the slim slider (#237) built and waiting on the PO's OK; then #234. Then v0.6.1 (Statistik, M4 part 2), not yet specified |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `73a97fc5`; v0.6.0's build and fix round, last full local gate on `efc061b6`) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `73a97fc5`; v0.6.0's build and fix round, last full local gate on `4a15f547`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | **#235** (draft): v0.6.0 milestone PR, all build tickets and the fix round merged, rc.1 published |
+| Open PR | **#235** (draft): v0.6.0 milestone PR, all build tickets, the fix round and #237 merged, rc.1 published |
 | Latest APK | rc [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (pre-release, versionCode 60001, from `74237151`, certificate verified); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (full release, versionCode 50199, from `main` `73a97fc5`, certificate verified); rc `v0.5.1-rc.2` (50102), rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-112** used (its PO answers run to Q22); the next free is **D-113** |
+| Decision numbers | Up to **D-113** used; the next free is **D-114** |
 
 ## Working agreements in effect
 
@@ -131,7 +143,7 @@
 
 ## Waiting on the PO
 
-1. **v0.6.0:** test `v0.6.0-rc.1` with the on-device checklist (09 §4 „v0.6.0", also in PR #235), judge the renders (`docs/design/review/v0.6.0/README.md`, „Points to judge") and answer the four open questions above. The approval (in a session or as a PR comment) starts #234; anything else is input to a feedback round.
+1. **v0.6.0:** look at the slim slider's renders (`docs/design/review/v0.6.0/README.md`, „To judge now") and give the OK, in a session or as a comment on PR #235. The OK starts #234 (merge and final release); a wish for another change starts a new round.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
