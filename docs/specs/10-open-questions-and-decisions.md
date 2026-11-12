@@ -530,6 +530,21 @@ words:
   SCR-09, SCR-14, SCR-16, SCR-18, SCR-19, SCR-25, SCR-28), 04 §10, 05
   (§3.6, §3.7, §6, §9), 09 (§2, §4), 11, 12, the specs README.
 
+**Build notes (Claude, 2026-11-12, #241: quick-timer chips).** At font 2.0
+on a short screen the chips wrap onto three rows (15:00 alone on the
+third): a point for the design review of `v0.6.1-rc.1`.
+
+**Build notes (Claude, 2026-11-12, #242: umamit.db v7).**
+`SessionDao.updateSteps` writes a partial entity (`SessionStepTimerColumns`),
+so a timer write never overwrites an infusion's taste or note. Taste writes
+are allowed while a session is in progress (#244 needs them); the session
+page's `canTaste` still hid taste then, and `SessionPage.tastePosition`
+showed infusion 1 as a stop-gap, both until #243. Migrated v0.6.0 values
+whose session had no ended non-rinse step land on a row that is not an
+infusion: counted in the tea's radar, not listed in `infusions`. The tea
+average also reads a session's own taste columns (only v0.6.0 sessions
+without step rows).
+
 <a id="d-113"></a>
 ### D-113 — v0.6.0: the slim slider handle; the open points of rc.1 closed; the final without an rc.2 (03 §3.8, SCR-16, SET-27; JRN-03) · *Accepted* (PO, 2026-11-12, on `v0.6.0-rc.1`; seven questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
