@@ -590,6 +590,19 @@ waits for the session's taste read before it shows the editor. Writes run
 in order and complete even when an alert closes the sheet (rule 8); none
 is an engine event, and `core:timer` / `core:timer-engine` are unchanged.
 
+**Build notes (Claude, 2026-11-12, #246: the photo viewer).** The viewer
+lives in `core:ui` (`PhotoViewerScreen`), routed from the app root as
+`PhotoViewerRoute` above the shell and alert-gated like the setup's routes;
+features reach it through `LocalPhotoViewer`. Claude's defaults for the
+design review: double-tap zooms to 2.5× (pinch to 4×); „1 / 1" and „Foto 1
+von 1" show for a single photo too; the counter is hidden from TalkBack
+(each photo reads „Foto n von m"); the ← circle is the existing light
+`OverPhoto` surface; a hero whose photo file is missing (the leaf in its
+place) still opens the viewer; a session without photos opens its tea's
+cover as the single photo; the vessel's picked, unsaved photo opens too.
+Pinch, double-tap and the swipe lock while zoomed are not covered by JVM
+tests: an on-device check.
+
 <a id="d-113"></a>
 ### D-113 — v0.6.0: the slim slider handle; the open points of rc.1 closed; the final without an rc.2 (03 §3.8, SCR-16, SET-27; JRN-03) · *Accepted* (PO, 2026-11-12, on `v0.6.0-rc.1`; seven questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
