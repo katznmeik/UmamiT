@@ -5,15 +5,17 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-12 (evening). **The v0.6.1 build is in #250** (D-114, spec #240). Milestone PR **#252** (draft) from `claude/wonderful-davinci-fu8tqi`. **All nine build tickets #241–#249 landed** (CI green per head). **Reviews done:** T3 milestone (0 Blocker/Major), T4 timer (1 Major: keyboard insets at the alert), motion review by project rules (`docs/plans/v0.6.1-motion-review.md`). The PO answered four questions (M6, M8 keep; M21 hand-over on dialog close; T4 MIN-1 slot from the first READY), recorded in SCR-05, SCR-25, D-114. **Now:** two T3 fix rounds (timer path; data/journal/settings), then a T2 round (viewer/catalog motion M3–M5, T3 nits n4–n6), then the full local gate, the three accuracy variants on the rc commit, `v0.6.1-rc.1`, renders in `docs/design/review/v0.6.1/`, push to the PO. See „Resume"
+**Last updated:** 2026-11-12 (night). **`v0.6.1-rc.1` is out for the PO's testing** (D-114, spec #240; pre-release from `62657833`, versionCode 60101). Milestone PR **#252** (draft) from `claude/wonderful-davinci-fu8tqi`. Build #241–#249 and #250's reviews, PO answers and fix rounds done; full local gate, CI (incl. both emulator jobs) and **all three accuracy variants PASS on `62657833`**. Renders and points to judge: `docs/design/review/v0.6.1/README.md`. **Next:** the PO's on-device checklist (09 §4 „v0.6.1", copied into #252) and design review; on approval #251 (merge, final `v0.6.1` from `main` with the accuracy runs on the final commit); on findings, a feedback round per CLAUDE.md rule 1.
 
-## Resume (v0.6.1 #250, 2026-11-12)
+## After rc.1 (2026-11-12)
 
-1. Review files were in the session scratchpad (lost with the container); their findings are summarised in D-114's amendments and `docs/plans/v0.6.1-motion-review.md`. If the fix rounds did not land (check `git log` for `fix(brew)` / `fix:` commits after `e3d700b2`), re-run the reviews' fix scope: T4 MAJ-1 (timer layout ignores `ime` insets), MIN-1 (slot from the first READY), MIN-3 (narrow taste read), MIN-5 (refused write shows the stored value); T3 m1 (migration skips `skipped = 1`), m2 (catch failed writes on the session page), m3/MIN-2/M21 (Design hand-over on dialog close, re-sync when out of step, never under an alert), m5 (note editor never overwrites a newer note); motion M1–M5, M7.
-2. Then: full local gate (`gate.sh`) on the rc commit; `accuracy.yml` with `variant` standard, alongside, two-brews on that commit (all PASS); `release.yml` (`ref` = branch, `version` = `0.6.1-rc.1`); renders (light/dark) in `docs/design/review/v0.6.1/`; push notification to the PO with the checklist (09 §4 „v0.6.1") and the design-review points (D-114 build notes; m6: GESCHMACK hidden when a finished session has no infusion).
-3. Per-ticket verification in this release: see the working agreement below. Environment: `~/.gradle/init.d/mirror.gradle`, gw.sh/gate.sh (`docs/plans/v0.4.0-resume.md` §3), Robolectric jars pre-fetched.
+1. **Waiting on the PO:** checklist 09 §4 „v0.6.1" on `v0.6.1-rc.1` and the design review (`docs/design/review/v0.6.1/`, seven points to judge in its README).
+2. **On approval (#251):** set `umamit.version=0.6.1` (versionCode 60199), full local gate, CI, all three accuracy variants on that commit; merge #252 (merge commit); dispatch `release.yml` from `main` (`version` 0.6.1); verify the certificate; close #240–#251 as the PR does; restart the working branch from `main`; move v0.6.1 to `docs/history.md`.
+3. **On findings:** each point goes through the process (grilling as options → spec/D-115 → tickets → build), then `v0.6.1-rc.2`.
+4. **Open, accepted as Claude's note (D-114 build notes):** the activity re-creation after the *Design* hand-over can still meet an alert starting in the same ≈ 0.5 s; m6 (GESCHMACK hidden for a finished session without a poured infusion) is a design-review point.
+5. **Environment:** `~/.gradle/init.d/mirror.gradle`, gw.sh/gate.sh (`docs/plans/v0.4.0-resume.md` §3), Robolectric jars pre-fetched; per-ticket verification in v0.6.1 as the working agreement below.
 
-## v0.6.1 (in build)
+## v0.6.1 (rc.1 out)
 
 - **Scope (D-114):** taste and a note per infusion, entered on the timer screen for the infusion ended last and on the session page (chips *Alle · 1. · 2. …*; umamit.db v7 with a tested migration; the tea's radar averages every infusion); GESCHMACK folds; quick-timer chips 1:00 · 2:00 · 3:00 · 5:00 · 8:00 · 10:00 · 15:00; a full-screen photo viewer; ⋮ *Tee ansehen* / *Im Katalog ansehen*; the Katalog opens with every kind, grouped by kind; „N Tees"; *Darstellung* › *Design*.
 - **Timer code:** #241 and #244 change `feature:brew`: T3+ implementers, a T4 timer review, the 04 §12 unit tests, and all three accuracy variants on the rc and the final (09 §4a). `core:timer` / `core:timer-engine` stay untouched; if a ticket needs them, stop and ask the PO.
@@ -41,12 +43,12 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.6.1, feedback round on v0.6.0** (D-114; spec #240, tickets #241–#251, plan `docs/plans/v0.6.1.md`): specified, the build is next. Then **Statistik** (v0.7.0, M4 part 2), not yet specified. v0.6.0 is released (2026-11-12) |
+| Current milestone | **v0.6.1, feedback round on v0.6.0** (D-114; spec #240, tickets #241–#251, plan `docs/plans/v0.6.1.md`): `v0.6.1-rc.1` out, waiting on the PO's checklist and design review. Then **Statistik** (v0.7.0, M4 part 2), not yet specified. v0.6.0 is released (2026-11-12) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `8a880d0d`; carries the v0.6.1 specs and plan) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | **#252** (draft, v0.6.1 milestone; #241 and #242 landed) |
-| Latest APK | [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (full release, versionCode 60099, from `main` `232c4b82`, certificate verified); rc [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (pre-release, 60001); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
+| Open PR | **#252** (draft, v0.6.1 milestone; #241–#249 landed, #250 at rc.1) |
+| Latest APK | rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (full release, versionCode 60099, from `main` `232c4b82`, certificate verified); rc [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (pre-release, 60001); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
 | Decision numbers | Up to **D-114** used; the next free is **D-115** |
 
 ## Working agreements in effect
@@ -63,7 +65,7 @@
 
 ## Waiting on the PO
 
-1. **Resume the paused v0.6.1 build** (prompt at the end of the pausing session). Later: the on-device checklist and design review of `v0.6.1-rc.1`.
+1. **The on-device checklist and design review of `v0.6.1-rc.1`** (09 §4 „v0.6.1", `docs/design/review/v0.6.1/`).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
