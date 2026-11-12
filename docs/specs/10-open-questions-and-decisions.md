@@ -387,6 +387,15 @@ except for the slider's handle, which the renders settle.
   by design, as the stock track was, and the stop dots and the number carry
   the scale.
 
+**Approval (PO, 2026-11-12, in the session).** Asked with the built
+slider's renders (the taste section light, dark and at font 2.0,
+*Lautstärke* light and dark, the component sheet), the PO answered
+**„Approved"**: the slim slider goes into the final `v0.6.0`. Asked whether
+all twelve points of the on-device checklist passed on rc.1, the PO
+answered **„Yes, all twelve passed"**. With this the checklist and the
+design review of v0.6.0 are approved; #234 (the merge and the final
+release) follows.
+
 **Consequences.** One ticket (#237, T2), built on PR #235 after rc.1; the
 goldens of the session page's GESCHMACK and of the settings change. No timer
 code changes (`feature:settings`' *Lautstärke* row is a display of a stored

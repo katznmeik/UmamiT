@@ -5,9 +5,9 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-12. **v0.6.0 (the journal, M4 part 1; D-112): the PO approved [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) except for the taste slider's handle** (D-113). The slim pin slider (#237) is built for the taste sliders and *Lautstärke*, the full local gate passed on `4a15f547` and CI is green on `284e83a2` (`claude/wonderful-davinci-fu8tqi`, draft PR #235). **Waiting on the PO:** the OK on the slider's renders (`docs/design/review/v0.6.0/`); there is no rc.2. **Next phase (fresh session, after the OK): #234**, the merge and the final release. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest full release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-12. **v0.6.0 (the journal, M4 part 1; D-112, D-113) is approved by the PO**: the on-device checklist on [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (all twelve points) and the design review, with the slim pin slider (#237) approved from its renders; there is no rc.2. The full local gate passed on `4a15f547` and CI is green on the branch (`claude/wonderful-davinci-fu8tqi`, draft PR #235). **Next phase (fresh session): #234**, version `0.6.0`, the accuracy run with all three variants, the merge and the final release from `main`. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest full release (from `main` `73a97fc5`); details in `docs/history.md`.
 
-## v0.6.0 (rc.1 approved except the slider; the slim slider waits on the PO's OK)
+## v0.6.0 (approved by the PO; the merge and the final release are next)
 
 - **Review and rc phase (#233): done** (2026-11-11, one session).
   - **[`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1)**
@@ -50,8 +50,12 @@
   - **Renders:** `docs/design/review/v0.6.0/` (147, light, dark and font
     2.0, placeholder images only) with a README that lists the points to
     judge.
-- **Feedback round after rc.1 (D-113, #237): built; waiting on the PO's OK
-  on the renders** (2026-11-12, same session).
+- **Feedback round after rc.1 (D-113, #237): built and approved**
+  (2026-11-12, same session).
+  - **The PO's approval (2026-11-12, in the session):** the slim slider's
+    renders: „Approved"; the on-device checklist of rc.1: „Yes, all twelve
+    passed". The checklist and the design review of v0.6.0 are approved
+    (D-113); nothing waits on the PO.
   - **The PO's answer on rc.1:** „All looks good except the handle of the
     taste slider is way to big and bulky. This needs to look more classy and
     elegant. Everything else looks fine and works as expected." So the
@@ -76,17 +80,16 @@
     `284e83a2` (run 43174172386). No timer code changed.
   - **Renders for the PO:** `docs/design/review/v0.6.0/` („To judge now" in
     its README): the taste section, *Lautstärke*, the component sheet.
-- **Next phase, #234 (fresh session, after the PO's OK on the renders):**
-  1. Record the OK (PR #235, D-113). Set `umamit.version=0.6.0`
+- **Next phase, #234 (fresh session): the merge and the final release.**
+  1. Set `umamit.version=0.6.0`
      (versionCode 60099), run the full local gate, push, wait for green CI.
   2. Run the accuracy check with all three variants (09 §4a).
   3. Mark PR #235 ready, merge it with a merge commit, dispatch
      `release.yml` from `main`, verify the certificate.
   4. Close #234, move this section to `docs/history.md` with a session-log
      row, restart the working branch from `main`.
-  5. If the PO wants the slider changed again: that is input to the process
-     (options → spec, D-114 → ticket → build → renders), never straight
-     into code.
+  5. If an accuracy variant fails or CI shows a timer test failing twice:
+     stop and ask the PO (no timer code changes without the PO).
 - **Known, not blocking:** #231's „smooth with 10 000 sessions" is shown by
   JVM timing only. A tab that comes back to the Journal can show the
   earlier list for a frame (a session just deleted, yesterday's day
@@ -122,7 +125,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, D-113, spec #221, plan `docs/plans/v0.6.0.md`): built (#222–#232, #236), reviewed and fixed (#233), `v0.6.0-rc.1` approved by the PO except the slider's handle; the slim slider (#237) built and waiting on the PO's OK; then #234. Then v0.6.1 (Statistik, M4 part 2), not yet specified |
+| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, D-113, spec #221, plan `docs/plans/v0.6.0.md`): built (#222–#232, #236), reviewed and fixed (#233), `v0.6.0-rc.1` and the slim slider (#237) approved by the PO (2026-11-12); #234 (merge, final release) is next. Then v0.6.1 (Statistik, M4 part 2), not yet specified |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `73a97fc5`; v0.6.0's build and fix round, last full local gate on `4a15f547`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -143,7 +146,7 @@
 
 ## Waiting on the PO
 
-1. **v0.6.0:** look at the slim slider's renders (`docs/design/review/v0.6.0/README.md`, „To judge now") and give the OK, in a session or as a comment on PR #235. The OK starts #234 (merge and final release); a wish for another change starts a new round.
+1. **v0.6.0:** nothing. The approval is given (D-113); #234 runs without the PO unless the accuracy run or CI fails on the timer.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
