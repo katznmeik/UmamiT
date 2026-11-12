@@ -123,6 +123,14 @@
     <string name="ui_taste_slider_value">%1$s von 5</string>
     <string name="ui_taste_radar_label">Geschmacksprofil: %1$s</string>
     <string name="ui_taste_radar_item">%1$s %2$s von 5</string>
+    <!-- The summary line under three set axes (SCR-16 v0.6.1, D-114): „Umami 4 · Süße 3"; nothing set. -->
+    <string name="ui_taste_summary_item">%1$s %2$s</string>
+    <string name="ui_taste_summary_separator">" · "</string>
+    <string name="ui_taste_summary_empty">Noch nichts eingetragen</string>
+    <!-- InfusionTasteEditor (SCR-05, SCR-16 v0.6.1, D-114): an infusion's note, ≤ 200 with a counter from 180. -->
+    <string name="ui_infusion_note_placeholder">Notiz zum Aufguss …</string>
+    <string name="ui_infusion_note_counter">%1$d / %2$d</string>
+    <string name="ui_infusion_taste_reset">Zurücksetzen</string>
     <!-- DescriptorChip toggle state for TalkBack: „Nori, ausgewählt" (03 §3.8, JRN-04). -->
     <string name="ui_descriptor_selected">ausgewählt</string>
     <string name="ui_descriptor_not_selected">nicht ausgewählt</string>

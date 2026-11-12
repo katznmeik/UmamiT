@@ -240,20 +240,28 @@ class SessionPageViewModelTest {
     }
 
     @Test
-    fun `taste values are saved at once, Zuruecksetzen clears them in order with the writes`() = runTest {
-        brewed()
-        val vm = viewModel()
-        assertThat(vm.page.taste.setCount).isEqualTo(0)
+    fun `taste values are saved at once on their infusion, Zuruecksetzen clears them in order with the writes`() =
+        runTest {
+            brewed()
+            val vm = viewModel()
+            // The rinse and the skipped infusion have no chip (D-114).
+            assertThat(vm.page.infusions.map { it.position }).containsExactly(1)
+            assertThat(vm.page.infusions.single().taste.setCount).isEqualTo(0)
 
-        vm.setTaste(TasteAxis.UMAMI, 4)
-        vm.setTaste(TasteAxis.BODY, 0)
-        assertThat(vm.page.taste.umami).isEqualTo(4)
-        assertThat(vm.page.taste.body).isEqualTo(0)
-        assertThat(vm.page.taste.aroma).isNull()
+            vm.infusionTasting.setTaste(1, TasteAxis.UMAMI, 4)
+            vm.infusionTasting.setTaste(1, TasteAxis.BODY, 0)
+            vm.infusionTasting.setNote(1, "  Weich  ")
+            val first = vm.page.infusions.single()
+            assertThat(first.taste.umami).isEqualTo(4)
+            assertThat(first.taste.body).isEqualTo(0)
+            assertThat(first.taste.aroma).isNull()
+            assertThat(first.note).isEqualTo("Weich")
+            assertThat(first.hasData).isTrue()
 
-        vm.clearTaste()
-        assertThat(vm.page.taste.setCount).isEqualTo(0)
-    }
+            vm.infusionTasting.clearTaste(1)
+            assertThat(vm.page.infusions.single().taste.setCount).isEqualTo(0)
+            assertThat(vm.page.infusions.single().note).isEqualTo("Weich")
+        }
 
     /** The half-step gesture is a quick second tap (4,0 then 3,5): a slow first write never overtakes it. */
     @Test

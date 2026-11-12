@@ -73,10 +73,12 @@ class SessionPageActions(
     val edit: (sessionId: String) -> Unit = {},
     /** A tap on the stars (JRN-02): the new rating, null for none; saved at once. */
     val setRating: (Double?) -> Unit = {},
-    /** A taste slider released on a value (JRN-03): saved at once. */
-    val setTaste: (TasteAxis, Int) -> Unit = { _, _ -> },
-    /** *Zurücksetzen* (JRN-03): all six taste values are unset. */
-    val clearTaste: () -> Unit = {},
+    /** A taste slider of the infusion at `position` released on a value (JRN-03, D-114): saved at once. */
+    val setTaste: (position: Int, TasteAxis, Int) -> Unit = { _, _, _ -> },
+    /** *Zurücksetzen* (JRN-03): the six taste values of the infusion at `position` are unset. */
+    val clearTaste: (position: Int) -> Unit = {},
+    /** The note of the infusion at `position` (JRN-05, D-114), handed over by the shared editor: saved now. */
+    val setInfusionNote: (position: Int, String) -> Unit = { _, _ -> },
     /** The notes field changed (JRN-05): saved 1 s after the last key. */
     val notesChanged: (String) -> Unit = {},
     /** The notes field or the page is left (JRN-05): a pending note is saved now. */
