@@ -75,7 +75,7 @@ class CatalogTasteFilterSheetTest {
     }
 
     @Test
-    fun fertigIsPinnedClosesTheSheetFromTheListEndAndResetKeepsSearchAndKind() {
+    fun fertigIsPinnedClosesTheSheetFromTheListEndAndResetKeepsTheSearchAndClearsTheKind() {
         var filter by mutableStateOf(CatalogFilter(search = "nebel", kind = CatalogKind.BLACK, notes = setOf("mild")))
         var dismissed = 0
         compose.setContent {
@@ -92,7 +92,8 @@ class CatalogTasteFilterSheetTest {
         compose.onNodeWithText("Zurücksetzen").performScrollTo().performClick()
         assertThat(filter.notes).isEmpty()
         assertThat(filter.search).isEqualTo("nebel")
-        assertThat(filter.kind).isEqualTo(CatalogKind.BLACK)
+        // The default view has no kind since v0.6.1 (D-114).
+        assertThat(filter.kind).isNull()
 
         compose.onAllNodesWithText("Fertig").assertCountEquals(1)
         compose.onNodeWithText("Fertig").assertIsDisplayed().performClick()

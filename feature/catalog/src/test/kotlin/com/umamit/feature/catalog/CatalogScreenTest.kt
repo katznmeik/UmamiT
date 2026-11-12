@@ -145,7 +145,7 @@ class CatalogScreenTest {
 
         assertThat(runner.acknowledgements).isEqualTo(1)
         sheet().assertDoesNotExist()
-        compose.onNodeWithText("Tee-Kontor Kiel · 2\u00A0Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        compose.onNodeWithText("Tee-Kontor Kiel · 2\u00A0Tees · aktualisiert am 22. Okt.").assertIsDisplayed()
         compose.onNodeWithText("Morgennebel Sencha").assertIsDisplayed()
         compose.onNodeWithText("12,40 €/100 g").assertIsDisplayed()
         compose.onNodeWithText("36,00 €/100 g").assertIsDisplayed()

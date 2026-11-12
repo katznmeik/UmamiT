@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -72,6 +73,8 @@ class CatalogWhiteOolongPuErhViewTest {
             FakeCatalogRefreshRunner(),
             folds = SettingsCatalogFoldRepository(settings),
         )
+        // From the Grüntee view: no kind is the default since v0.6.1 (D-114).
+        viewModel.changeFilter { it.withKind(CatalogKind.GREEN) }
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 CatalogRoute(alerting = false, onOpenTea = {}, viewModel = viewModel)
@@ -139,18 +142,19 @@ class CatalogWhiteOolongPuErhViewTest {
     }
 
     @Test
-    fun searchHitsAmongTheNewKindsAreHiddenInTheGreenViewAndShowAllOpensTheKindWithMost() {
+    fun searchHitsAmongTheNewKindsAreHiddenInTheGreenViewAndShowAllShowsEveryKind() {
         show()
 
         compose.onNodeWithTag(CATALOG_SEARCH_TAG).performTextInput("nebelberg")
         compose.waitForIdle()
-        // One oolong and two Pu-Erhs are hidden: *Alle zeigen* opens the Pu-Erhs.
+        // One oolong and two Pu-Erhs are hidden: *Alle zeigen* clears the kind (D-114).
         shown(compose.activity.resources.getQuantityString(R.plurals.catalog_hidden_matches, 3, 3))
 
         compose.onNodeWithText(str(R.string.catalog_show_all)).performClick()
         compose.waitForIdle()
 
-        chip(R.string.catalog_filter_dark).assertIsSelected()
+        chip(R.string.catalog_filter_dark).assertIsNotSelected()
+        shown("Felsentee Nebelberg")
         shown("Nebelberg Bing Cha")
         shown("Waldboden Nebelberg")
     }

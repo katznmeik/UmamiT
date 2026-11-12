@@ -251,4 +251,4 @@ private fun Group(title: String, content: @Composable () -> Unit) {
 private fun Set<String>.toggle(value: String): Set<String> = if (value in this) this - value else this + value
 
 /** *Zurücksetzen*: the default view (D-073) of the kind shown, the search kept; taste notes and scales cleared too. */
-internal fun CatalogFilter.resetFilters(): CatalogFilter = CatalogFilter.DEFAULT.copy(search = search, kind = kind)
+internal fun CatalogFilter.resetFilters(): CatalogFilter = CatalogFilter.DEFAULT.copy(search = search)

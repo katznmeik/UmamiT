@@ -62,6 +62,9 @@ typealias FilterChange = (CatalogFilter) -> CatalogFilter
 /** The chip row's item key in the catalog list. */
 internal const val CHIPS_KEY = "chips"
 
+/** The saved key of the view without a kind (D-114); no kind's key. */
+private const val NO_KIND = "-"
+
 /** The catalog's search field (SCR-19). */
 const val CATALOG_SEARCH_TAG = "catalog_search"
 
@@ -131,12 +134,19 @@ internal fun CatalogFilterChips(
             revealedKind = null // the row is rebuilt when *Gemerkt* ends: reveal again then
             return@LaunchedEffect
         }
-        if (revealedKind == filter.kind.key) return@LaunchedEffect
+        val kind = filter.kind
+        val shownKey = kind?.key ?: NO_KIND
+        if (revealedKind == shownKey) return@LaunchedEffect
         val instant = revealedKind == null // first shown, or rebuilt after *Gemerkt*: no travel
+        val spec: AnimationSpec<Float> = if (instant) snap() else motion.standard()
         withFrameNanos { } // this frame's spans, after a *Filter* label that changed with the kind
-        val chip = snapshotFlow { kindChips[filter.kind] }.filterNotNull().first()
-        scroll.reveal(chip, side, if (instant) snap() else motion.standard())
-        revealedKind = filter.kind.key
+        if (kind == null) {
+            // No kind (D-114): the row goes back to its start, *Filter* first.
+            if (scroll.value != 0) scroll.animateScrollTo(0, spec)
+        } else {
+            scroll.reveal(snapshotFlow { kindChips[kind] }.filterNotNull().first(), side, spec)
+        }
+        revealedKind = shownKey
     }
     Row(
         modifier = Modifier
@@ -169,8 +179,7 @@ internal fun CatalogFilterChips(
             },
         )
         MarkedChip(filter, onFilterChange)
-        // The two ranges side by side (D-103): *Grüntee* names the default view, which until v0.4.0-rc.2 showed only
-        // as „Pur"; a tap on it returns from the Kräutertees, a tap on the selected one changes nothing.
+        // The kinds in the chip order (D-108); none selected is the default view, every tea (D-114).
         CatalogKind.ALL.forEach { kind ->
             key(kind.key) {
                 Box(
@@ -179,8 +188,9 @@ internal fun CatalogFilterChips(
                         kindChips[kind] = start until start + chip.size.width
                     },
                 ) {
+                    // One kind at a time; a tap on the selected one clears it, never back to *Grüntee* (D-114).
                     CatalogChip(stringResource(kind.chipLabel), filter.kind == kind) {
-                        onFilterChange { it.withKind(if (it.kind == kind) CatalogKind.GREEN else kind) }
+                        onFilterChange { it.toggleKind(kind) }
                     }
                 }
             }
@@ -204,12 +214,13 @@ internal fun CatalogFilterChips(
  * screen and nothing moves; no animated travel through content that was just replaced.
  */
 @Composable
-internal fun ChipRowOnKindChange(listState: LazyListState, kind: CatalogKind, chipsIndex: Int) {
-    var listedKind by rememberSaveable { mutableStateOf(kind.key) }
+internal fun ChipRowOnKindChange(listState: LazyListState, kind: CatalogKind?, chipsIndex: Int) {
+    val shownKey = kind?.key ?: NO_KIND
+    var listedKind by rememberSaveable { mutableStateOf(shownKey) }
     val index by rememberUpdatedState(chipsIndex)
-    LaunchedEffect(kind) {
-        if (kind.key == listedKind) return@LaunchedEffect
-        listedKind = kind.key
+    LaunchedEffect(shownKey) {
+        if (shownKey == listedKind) return@LaunchedEffect
+        listedKind = shownKey
         if (listState.layoutInfo.visibleItemsInfo.none { it.key == CHIPS_KEY }) listState.scrollToItem(index)
     }
 }

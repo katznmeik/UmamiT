@@ -72,6 +72,9 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
 
         private val PURCHASE_DAY: LocalDate = LocalDate.of(2026, 10, 22)
 
+        /** The Grüntee view; no kind is the list's default since v0.6.1 (D-114, see [listAllKinds]). */
+        private val GREEN_VIEW = CatalogFilter(kind = CatalogKind.GREEN)
+
         private val TEAS = listOf(
             catalogTea("XY0100", "Morgennebel Sencha", thumbnailPath = "sencha", secondaryName = "朝霧")
                 .copy(originCountry = "Japan", isOrganic = true, owned = true),
@@ -238,7 +241,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     }
 
     private fun listState(
-        filter: CatalogFilter = CatalogFilter.DEFAULT,
+        filter: CatalogFilter = GREEN_VIEW,
         searchHits: Set<String>? = null,
         refresh: CatalogRefreshState = CatalogRefreshState.Idle,
     ) = CatalogUiState(
@@ -275,7 +278,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     fun listFiltered() = capture("listFiltered") {
         CatalogContent(
             state = listState(
-                filter = CatalogFilter(search = "Sencha", sort = CatalogSort.PRICE, availableOnly = false),
+                filter = GREEN_VIEW.copy(search = "Sencha", sort = CatalogSort.PRICE, availableOnly = false),
                 searchHits = setOf("XY0100", "XY0700", "XY0800"),
             ),
             onLoad = {},
@@ -300,7 +303,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     /** ⋮ *Alle einklappen* (D-098): only the headers, each with its count. */
     @Test
     fun listFoldedAll() = capture("listFoldedAll") {
-        val listing = CatalogBrowser.listing(TEAS, CatalogFilter.DEFAULT, null, FakeClock.DEFAULT_WALL_MS)
+        val listing = CatalogBrowser.listing(TEAS, GREEN_VIEW, null, FakeClock.DEFAULT_WALL_MS)
         CatalogContent(
             state = listState().copy(folded = (listing.types + null).map { "green/${it ?: "-"}" }.toSet()),
             onLoad = {},
@@ -312,10 +315,37 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     /** A search over folded groups (D-098): every hit unfolded, the headers no toggles while it is typed. */
     @Test
     fun listSearchFolded() = capture("listSearchFolded") {
-        val filter = CatalogFilter.DEFAULT.copy(search = "Sencha")
+        val filter = GREEN_VIEW.copy(search = "Sencha")
         CatalogContent(
             state = listState(filter = filter, searchHits = setOf("XY0100", "XY0700", "XY0300"))
                 .copy(folded = setOf("green/Sencha", "green/Shincha")),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /**
+     * The default view without a kind (v0.6.1, #247, D-114): every tea grouped by kind in the chip order, each kind
+     * group foldable, the *Sorte* headings inside; flavoured teas show (no „Pur" outside the Grüntee view).
+     */
+    @Test
+    fun listAllKinds() = capture("listAllKinds") {
+        CatalogContent(
+            state = listState(filter = CatalogFilter.DEFAULT).copy(guideCount = 12),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /** The view without a kind with the Grüntee group folded (D-114): the Kräutertees and Schwarztees move up. */
+    @Test
+    fun listAllKindsFolded() = capture("listAllKindsFolded") {
+        CatalogContent(
+            state = listState(filter = CatalogFilter.DEFAULT).copy(folded = setOf("all/green", "all/herbal")),
             onLoad = {},
             onShowProgress = {},
             zone = FakeClock.BERLIN,
@@ -327,7 +357,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun listHerbal() = capture("listHerbal") {
         CatalogContent(
-            state = listState(filter = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL)),
+            state = listState(filter = GREEN_VIEW.withKind(CatalogKind.HERBAL)),
             onLoad = {},
             onShowProgress = {},
             zone = FakeClock.BERLIN,
@@ -339,7 +369,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun listBlack() = capture("listBlack") {
         CatalogContent(
-            state = listState(filter = CatalogFilter.DEFAULT.withKind(CatalogKind.BLACK)),
+            state = listState(filter = GREEN_VIEW.withKind(CatalogKind.BLACK)),
             onLoad = {},
             onShowProgress = {},
             zone = FakeClock.BERLIN,
@@ -353,7 +383,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
      */
     @Test
     fun listDark() = capture("listDark") {
-        val filter = CatalogFilter.DEFAULT.withKind(CatalogKind.DARK)
+        val filter = GREEN_VIEW.withKind(CatalogKind.DARK)
         val puErhs = listOf(
             catalogTea("XP1900", "2019 Nebelberg Bing Cha", "Sheng", 2490, thumbnailPath = "sheng")
                 .copy(kind = CatalogKind.DARK, originCountry = "Yunnan / China", isNew = true),
@@ -383,7 +413,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Config(qualifiers = "w2400dp-h120dp-mdpi")
     fun chipRow() = capture("chipRow") {
         CatalogFilterChips(
-            filter = CatalogFilter.DEFAULT.withKind(CatalogKind.CHAI),
+            filter = GREEN_VIEW.withKind(CatalogKind.CHAI),
             onFilterChange = {},
             onOpenFilters = {},
         )
@@ -392,7 +422,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     /** The Schwarztee view before the first refresh after the update to v0.5.0 (#203): the hint with *Jetzt laden*. */
     @Test
     fun listBlackPending() = capture("listBlackPending") {
-        val filter = CatalogFilter.DEFAULT.withKind(CatalogKind.BLACK)
+        val filter = GREEN_VIEW.withKind(CatalogKind.BLACK)
         CatalogContent(
             state = CatalogUiState(
                 listing = CatalogBrowser.listing(
@@ -417,7 +447,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
      */
     @Test
     fun listHerbalPending() = capture("listHerbalPending") {
-        val filter = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL)
+        val filter = GREEN_VIEW.withKind(CatalogKind.HERBAL)
         val greenOnly = TEAS.filterNot { (it.kind == CatalogKind.HERBAL) }
         CatalogContent(
             state = CatalogUiState(
@@ -439,7 +469,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun listMarked() = capture("listMarked") {
         CatalogContent(
-            state = listState(filter = CatalogFilter.DEFAULT.copy(marked = true)),
+            state = listState(filter = GREEN_VIEW.copy(marked = true)),
             onLoad = {},
             onShowProgress = {},
             zone = FakeClock.BERLIN,
@@ -450,7 +480,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     /** The *Gemerkt* view without a mark (CAT-18): „Noch nichts gemerkt · Tippe bei einem Tee auf das Lesezeichen.". */
     @Test
     fun listMarkedEmpty() = capture("listMarkedEmpty") {
-        val filter = CatalogFilter.DEFAULT.copy(marked = true)
+        val filter = GREEN_VIEW.copy(marked = true)
         CatalogContent(
             state = CatalogUiState(
                 listing = CatalogBrowser.listing(
@@ -473,7 +503,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     fun filterSheetHerbal() {
         assumeTrue(fontScale == 1f)
         capture("filterSheetHerbal") {
-            val state = listState(filter = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL).copy(organicOnly = true))
+            val state = listState(filter = GREEN_VIEW.withKind(CatalogKind.HERBAL).copy(organicOnly = true))
             CatalogContent(state = state, onLoad = {}, onShowProgress = {}, zone = FakeClock.BERLIN)
             CatalogFilterSheet(filter = state.filter, listing = state.listing, onFilterChange = {
             }, onDismissRequest = {})
@@ -505,7 +535,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                 tea.copy(tasteNotes = notes[index % notes.size], tasteScales = scales[index % scales.size])
             }
         }
-        val filter = CatalogFilter(notes = setOf("mild", "suß"), minScales = mapOf("suße" to 3))
+        val filter = GREEN_VIEW.copy(notes = setOf("mild", "suß"), minScales = mapOf("suße" to 3))
         val listing = CatalogBrowser.listing(teas, filter, null, FakeClock.DEFAULT_WALL_MS)
         capture("filterSheetTaste", scrollToText = "Weitere") {
             CatalogContent(
@@ -522,7 +552,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun filterSheet() {
         capture("filterSheet") {
-            val state = listState(filter = CatalogFilter(types = setOf("Gyokuro"), minUmami = UmamiLevel.HIGH))
+            val state = listState(filter = GREEN_VIEW.copy(types = setOf("Gyokuro"), minUmami = UmamiLevel.HIGH))
             CatalogContent(state = state, onLoad = {}, onShowProgress = {}, zone = FakeClock.BERLIN)
             CatalogFilterSheet(filter = state.filter, listing = state.listing, onFilterChange = {
             }, onDismissRequest = {})

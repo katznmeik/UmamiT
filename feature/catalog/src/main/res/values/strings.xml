@@ -14,6 +14,11 @@
         <item quantity="one">%1$d Grüntee</item>
         <item quantity="other">%1$d Grüntees</item>
     </plurals>
+    <!-- The header's count of the view's teas (v0.6.1, D-114 Q16): „… · 312 Tees · …", never a kind's name. -->
+    <plurals name="catalog_all_count">
+        <item quantity="one">%1$d Tee</item>
+        <item quantity="other">%1$d Tees</item>
+    </plurals>
     <!-- The header's count in the Kräutertee view (v0.2.1, D-093): „… · 38 Kräutertees · …". -->
     <plurals name="catalog_herbal_count">
         <item quantity="one">%1$d Kräutertee</item>

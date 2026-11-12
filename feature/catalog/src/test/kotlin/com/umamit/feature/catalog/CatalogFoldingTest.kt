@@ -75,12 +75,13 @@ class CatalogFoldingTest {
     private fun str(@StringRes id: Int, vararg args: Any): String =
         ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
-    private fun newViewModel() = CatalogViewModel(
+    /** The view model in the Grüntee view, where the *Sorte* groups fold; [green] false keeps the default, no kind. */
+    private fun newViewModel(green: Boolean = true) = CatalogViewModel(
         FakeCatalogRepository(CatalogOverview(teas, FakeClock.DEFAULT_WALL_MS), bookmarks = bookmarks),
         FakeCatalogRefreshRunner(),
         bookmarks = bookmarks,
         folds = SettingsCatalogFoldRepository(settings),
-    )
+    ).apply { if (green) changeFilter { it.withKind(CatalogKind.GREEN) } }
 
     private fun show(viewModel: CatalogViewModel = newViewModel()) {
         compose.setContent {
@@ -255,6 +256,62 @@ class CatalogFoldingTest {
         assertThat(compose.activity.resources.getQuantityString(R.plurals.catalog_group_description, 12, "Bancha", 12))
             .isEqualTo("Bancha, 12 Tees")
         assertThat(str(R.string.catalog_group_folded)).isEqualTo("eingeklappt")
+    }
+
+    private fun kindHeader(kind: CatalogKind) = compose.onNodeWithTag(catalogKindGroupTag(kind))
+
+    /** v0.6.1, D-114: without a kind the kind groups fold, as `all/<kind>`; the *Sorte* headings inside don't. */
+    @Test
+    fun withoutAKindTheKindGroupsFold() {
+        settings = FakeSettingsRepository(UserSettings(catalogFolded = setOf("green/Bancha")))
+        show(newViewModel(green = false))
+        assertThat(foldable).isTrue()
+
+        // The green view's *Sorte* folds don't apply here: Bancha shows under a plain heading.
+        shown("Herbstlaub Bancha")
+        header("Bancha").assertDoesNotExist()
+        kindHeader(CatalogKind.GREEN)
+            .assertContentDescriptionEquals("Grüntee, 6 Tees")
+            .assert(state(str(R.string.catalog_group_unfolded)))
+            .assert(clickLabel(str(R.string.catalog_group_fold)))
+        compose.onNodeWithText("Grüntee · 6").assertIsDisplayed()
+
+        kindHeader(CatalogKind.GREEN).performClick()
+        compose.waitForIdle()
+
+        hidden("Herbstlaub Bancha")
+        hidden("Morgennebel Sencha")
+        shown("Wiesenzauber")
+        kindHeader(CatalogKind.GREEN).assert(state(str(R.string.catalog_group_folded)))
+        assertThat(stored()).containsExactly("green/Bancha", "all/green")
+
+        foldAll++
+        compose.waitForIdle()
+        hidden("Wiesenzauber")
+        assertThat(stored()).containsExactlyElementsIn(setOf("green/Bancha") + CatalogKind.ALL.map { "all/${it.key}" })
+
+        unfoldAll++
+        compose.waitForIdle()
+        shown("Morgennebel Sencha")
+        shown("Wiesenzauber")
+        assertThat(stored()).containsExactly("green/Bancha")
+    }
+
+    @Test
+    fun withoutAKindAFlatSortKeepsTheKindGroupsAndASearchUnfoldsThem() {
+        settings = FakeSettingsRepository(UserSettings(catalogFolded = setOf("all/herbal")))
+        val viewModel = newViewModel(green = false)
+        viewModel.changeFilter { it.copy(sort = CatalogSort.NAME) }
+        show(viewModel)
+
+        assertThat(foldable).isTrue()
+        kindHeader(CatalogKind.HERBAL).assert(state(str(R.string.catalog_group_folded)))
+        hidden("Wiesenzauber")
+        header("Bancha").assertDoesNotExist()
+
+        search("wiesen")
+        shown("Wiesenzauber")
+        assertThat(foldable).isFalse()
     }
 
     private fun state(text: String) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text)

@@ -36,10 +36,11 @@ class CatalogTasteFilterViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
+    /** In the Grüntee view: no kind is the default since v0.6.1 (D-114). */
     private fun viewModel() = CatalogViewModel(
         FakeCatalogRepository(CatalogOverview(teas, FakeClock.DEFAULT_WALL_MS)),
         FakeCatalogRefreshRunner(),
-    )
+    ).apply { changeFilter { it.withKind(CatalogKind.GREEN) } }
 
     @Test
     fun choosingNotesAndScalesNarrowsTheListAndResetClearsThem() = runTest(UnconfinedTestDispatcher()) {
@@ -59,7 +60,9 @@ class CatalogTasteFilterViewModelTest {
         viewModel.changeFilter { it.resetFilters() }
         assertThat(viewModel.state.value.filter.notes).isEmpty()
         assertThat(viewModel.state.value.filter.minScales).isEmpty()
-        assertThat(names()).containsExactly("Abendrot", "Morgennebel")
+        // *Zurücksetzen* clears the kind too (D-114): every tea.
+        assertThat(viewModel.state.value.filter.kind).isNull()
+        assertThat(names()).containsExactly("Abendrot", "Bergfeuer", "Morgennebel")
         collector.cancel()
     }
 

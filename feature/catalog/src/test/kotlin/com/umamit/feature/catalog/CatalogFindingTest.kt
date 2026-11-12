@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.testing.FakeCatalogRefreshRunner
@@ -70,6 +71,8 @@ class CatalogFindingTest {
 
     private fun show() {
         val viewModel = CatalogViewModel(repository, FakeCatalogRefreshRunner())
+        // The Grüntee view: no kind is the default since v0.6.1 (D-114).
+        viewModel.changeFilter { it.withKind(CatalogKind.GREEN) }
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 CatalogRoute(alerting = alerting, onOpenTea = {}, viewModel = viewModel)
