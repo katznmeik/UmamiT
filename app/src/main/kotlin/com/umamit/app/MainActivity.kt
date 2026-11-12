@@ -6,13 +6,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.umamit.app.timer.TimerActiveBrewSource
 import com.umamit.app.timer.TimerScreenRequests
 import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.SettingsRepository
-import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.designsystem.theme.UmamiAppTheme
+import com.umamit.core.model.ThemeMode
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.notification.TimerScreenIntents
 import com.umamit.feature.brew.timer.BrewTimer
@@ -21,12 +29,16 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -97,6 +109,7 @@ class MainActivity : ComponentActivity() {
         val collectionSegments = SettingsCollectionSegments(settings, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
+        val themeMode = themeModeState(settings, readStoredThemeMode(settings))
         val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         lifecycleScope.launch {
             combine(brewTimer.state, timerVisible, ::lockScreenFlags).distinctUntilChanged().collect {
@@ -105,7 +118,9 @@ class MainActivity : ComponentActivity() {
             }
         }
         setContent {
-            UmamiTheme {
+            val mode by themeMode.collectAsStateWithLifecycle()
+            UmamiAppTheme(mode) {
+                WindowBackground()
                 UmamitRoot(
                     activeBrewSource = activeBrewSource,
                     journalSources = journalSources,
@@ -152,6 +167,23 @@ class MainActivity : ComponentActivity() {
         timerRequests.request(intent)
     }
 
+    /**
+     * The stored *Design* (SET-05, D-114), read before the first frame so the app starts in it with no flash of
+     * the other theme. A read that fails or takes longer than [THEME_READ_TIMEOUT_MS] reads *System*; the live
+     * flow ([themeModeState]) then corrects it.
+     */
+    private fun readStoredThemeMode(settings: SettingsRepository): ThemeMode = runBlocking {
+        withTimeoutOrNull(THEME_READ_TIMEOUT_MS) { settings.themeMode().first() } ?: ThemeMode.SYSTEM
+    }
+
+    /** The window behind the app takes the theme's background, so nothing of the phone's theme shows through. */
+    @Composable
+    private fun WindowBackground() {
+        val view = LocalView.current
+        val background = MaterialTheme.colorScheme.background.toArgb()
+        SideEffect { view.rootView.setBackgroundColor(background) }
+    }
+
     /** The timer is about to show: over the lock screen at once, before any frame (D-058, D-064). */
     private fun showTimerOverLockScreen() {
         timerVisible.value = true
@@ -161,6 +193,8 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        private const val THEME_READ_TIMEOUT_MS = 400L
+
         /**
          * Opens the app's own task with the shared [text] (CAT-17), as the timer's notifications
          * open it (`NEW_TASK | SINGLE_TOP`): a running activity gets it in [onNewIntent].
@@ -179,3 +213,11 @@ class MainActivity : ComponentActivity() {
  */
 internal fun SettingsRepository.onboardingCompleted(): Flow<Boolean?> =
     settings.map<_, Boolean?> { it.onboardingCompleted }.catch { emit(true) }
+
+/** The stored *Design* (SET-05); an unreadable settings file reads as *System* (D-068). */
+internal fun SettingsRepository.themeMode(): Flow<ThemeMode> =
+    settings.map { it.theme }.catch { emit(ThemeMode.SYSTEM) }.distinctUntilChanged()
+
+/** The app theme's choice as state, from [initial] (read before the first frame) on following the settings at once. */
+internal fun ComponentActivity.themeModeState(settings: SettingsRepository, initial: ThemeMode): StateFlow<ThemeMode> =
+    settings.themeMode().stateIn(lifecycleScope, SharingStarted.Eagerly, initial)

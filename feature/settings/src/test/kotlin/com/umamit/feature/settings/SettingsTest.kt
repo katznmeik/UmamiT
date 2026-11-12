@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -33,6 +34,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.LowStockReminderInterval
+import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeCatalogRefreshRunner
 import com.umamit.core.testing.FakeCatalogRepository
@@ -299,6 +301,39 @@ class SettingsTest {
     }
 
     @Test
+    fun `Darstellung comes first below the reliability card and Design is System by default (SET-30, SET-05)`() {
+        show()
+        val reliability = compose.onNodeWithTag(SettingsTags.RELIABILITY).fetchSemanticsNode().boundsInRoot.top
+        val appearance = compose.onNode(hasContentDescription("Darstellung")).fetchSemanticsNode().boundsInRoot.top
+        val timer = compose.onNode(hasContentDescription("Timer & Alarm")).fetchSemanticsNode().boundsInRoot.top
+        assertThat(reliability).isLessThan(appearance)
+        assertThat(appearance).isLessThan(timer)
+        compose.onNodeWithTag(SettingsTags.THEME).assertIsDisplayed()
+        compose.onNodeWithText("Design").assertIsDisplayed()
+        compose.onNodeWithText("System").assertIsDisplayed()
+        assertThat(stored().theme).isEqualTo(ThemeMode.SYSTEM)
+    }
+
+    @Test
+    fun `each Design can be picked, is stored at once and shown (SET-05, D-114)`() {
+        show()
+        for ((label, mode) in listOf(
+            "Dunkel" to ThemeMode.DARK,
+            "Hell" to ThemeMode.LIGHT,
+            "System" to ThemeMode.SYSTEM,
+        )) {
+            compose.onNodeWithTag(SettingsTags.THEME).performClick()
+            compose.onNode(hasText(label) and isSelectable()).assertIsNotSelected().performClick()
+            compose.onNode(hasText(label) and isSelectable()).assertIsSelected()
+            // Stored at once, with the dialog still open.
+            assertThat(stored().theme).isEqualTo(mode)
+            compose.onNodeWithText("Fertig").performClick()
+            compose.waitForIdle()
+            compose.onNodeWithTag(SettingsTags.THEME).assertTextContains(label, substring = true)
+        }
+    }
+
+    @Test
     fun `the reminder is daily at 18 00 and Aus hides its time (SET-28, SET-29)`() {
         show()
         compose.onNodeWithText("Vorrats-Erinnerung").performScrollTo().assertIsDisplayed()
@@ -559,7 +594,10 @@ class SettingsTest {
 
         clickRow("Vibration")
         compose.waitForIdle()
-        compose.onNodeWithText("Konnte nicht gespeichert werden", substring = true).assertIsDisplayed()
+        compose.onNodeWithText(
+            "Konnte nicht gespeichert werden",
+            substring = true,
+        ).performScrollTo().assertIsDisplayed()
         assertThat(stored().vibration).isTrue()
 
         settings.failUpdates = false
