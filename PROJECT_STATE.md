@@ -5,34 +5,20 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-12. **The v0.6.1 build (D-114, spec #240) is paused part-way for the usage limit** (the PO, 2026-11-12). Milestone PR **#252** (draft) from `claude/wonderful-davinci-fu8tqi`. **Landed and pushed:** #241 (quick-timer chips, `44d4e9de`, full local gate PASS) and #242 (umamit.db v7, merge `01b9656c`; its full local gate was still running at the pause, so CI on #252 is its check). **Next (fresh session): resume the build** at the second pair (#243 + #247), see „Resume" below.
+**Last updated:** 2026-11-12 (evening). **The v0.6.1 build is in #250** (D-114, spec #240). Milestone PR **#252** (draft) from `claude/wonderful-davinci-fu8tqi`. **All nine build tickets #241–#249 landed** (CI green per head). **Reviews done:** T3 milestone (0 Blocker/Major), T4 timer (1 Major: keyboard insets at the alert), motion review by project rules (`docs/plans/v0.6.1-motion-review.md`). The PO answered four questions (M6, M8 keep; M21 hand-over on dialog close; T4 MIN-1 slot from the first READY), recorded in SCR-05, SCR-25, D-114. **Now:** two T3 fix rounds (timer path; data/journal/settings), then a T2 round (viewer/catalog motion M3–M5, T3 nits n4–n6), then the full local gate, the three accuracy variants on the rc commit, `v0.6.1-rc.1`, renders in `docs/design/review/v0.6.1/`, push to the PO. See „Resume"
 
-## Resume (build paused 2026-11-12)
+## Resume (v0.6.1 #250, 2026-11-12)
 
-1. Check CI of #252 on `01b9656c` (#241 + #242). If red: fix by tier (#242 is migration code: T3+).
-2. **#243 and #247 were stopped mid-work.** Their unverified work is only in this container (local commits
-   `2cb4c398` on `work-243`, `fcce9e9b` on `work-247`, worktrees under `.claude/worktrees/`; patches in the
-   session scratchpad). A new container will not have them: **restart both tickets from #252's head** with fresh
-   T3 implementers. If the old worktrees still exist, an implementer may start from the WIP commit, but must verify it.
-3. Then the plan's order: #244 + #245, #246 + #249, #248; then #250 and stop after rc.1 as the build prompt says.
-4. **Notes from #242 for #243/#244** (record as build notes in D-114): `SessionPage.tastePosition` is a stop-gap
-   showing infusion 1 until #243; writes are now allowed while a session is in progress but the session page's
-   `canTaste` still hides taste then; migrated v0.6.0 values whose session had no ended non-rinse step land on a
-   row that is not an infusion (counted in the tea's radar, not listed in `infusions`); the tea average also reads a
-   session's own taste columns (only v0.6.0 sessions without step rows). `SessionDao.updateSteps` now writes a
-   partial entity (`SessionStepTimerColumns`) so timer writes never overwrite taste. #241: at font 2.0 on a short
-   screen the chips wrap to three rows (15:00 alone): a design-review point.
-5. **Environment of this session:** Maven Central answered 200, but some jars redirect to a blocked host
-   (`gcp.mirrors.maven.org`): the init script in `~/.gradle/init.d/mirror.gradle` (Google's mirror first for
-   non-Android groups, plus `robolectric.dependency.repo.url` on every Test task) is needed again in a new
-   container; gw.sh/gate.sh as in `docs/plans/v0.4.0-resume.md` §3.
+1. Review files were in the session scratchpad (lost with the container); their findings are summarised in D-114's amendments and `docs/plans/v0.6.1-motion-review.md`. If the fix rounds did not land (check `git log` for `fix(brew)` / `fix:` commits after `e3d700b2`), re-run the reviews' fix scope: T4 MAJ-1 (timer layout ignores `ime` insets), MIN-1 (slot from the first READY), MIN-3 (narrow taste read), MIN-5 (refused write shows the stored value); T3 m1 (migration skips `skipped = 1`), m2 (catch failed writes on the session page), m3/MIN-2/M21 (Design hand-over on dialog close, re-sync when out of step, never under an alert), m5 (note editor never overwrites a newer note); motion M1–M5, M7.
+2. Then: full local gate (`gate.sh`) on the rc commit; `accuracy.yml` with `variant` standard, alongside, two-brews on that commit (all PASS); `release.yml` (`ref` = branch, `version` = `0.6.1-rc.1`); renders (light/dark) in `docs/design/review/v0.6.1/`; push notification to the PO with the checklist (09 §4 „v0.6.1") and the design-review points (D-114 build notes; m6: GESCHMACK hidden when a finished session has no infusion).
+3. Per-ticket verification in this release: see the working agreement below. Environment: `~/.gradle/init.d/mirror.gradle`, gw.sh/gate.sh (`docs/plans/v0.4.0-resume.md` §3), Robolectric jars pre-fetched.
 
-## Next: build v0.6.1 (specified, waiting for the PO's start)
+## v0.6.1 (in build)
 
 - **Scope (D-114):** taste and a note per infusion, entered on the timer screen for the infusion ended last and on the session page (chips *Alle · 1. · 2. …*; umamit.db v7 with a tested migration; the tea's radar averages every infusion); GESCHMACK folds; quick-timer chips 1:00 · 2:00 · 3:00 · 5:00 · 8:00 · 10:00 · 15:00; a full-screen photo viewer; ⋮ *Tee ansehen* / *Im Katalog ansehen*; the Katalog opens with every kind, grouped by kind; „N Tees"; *Darstellung* › *Design*.
 - **Timer code:** #241 and #244 change `feature:brew`: T3+ implementers, a T4 timer review, the 04 §12 unit tests, and all three accuracy variants on the rc and the final (09 §4a). `core:timer` / `core:timer-engine` stay untouched; if a ticket needs them, stop and ask the PO.
 - **Order and tiers:** the plan's task graph (PO-approved): #242 + #241, #243 + #247, #244 + #245, #246 + #249, #248; then #250 (reviews, accuracy, rc.1, checklist 09 §4 „v0.6.1", design review in `docs/design/review/v0.6.1/`) and #251 (merge, final).
-- **Milestone PR:** none yet; the build opens it from `claude/wonderful-davinci-fu8tqi`.
+- **Milestone PR:** #252 (draft).
 - **Then Statistik (v0.7.0, M4 part 2; not yet specified):** its own specify session. Starting point, not yet confirmed by the PO: INS-01–INS-07 (02 §12), SCR-18, the A9 empty state. With D-114 the taste data is per infusion.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
 - **Config housekeeping (2026-11-12, #253 on `main`):** a prompt audit of the Claude Code config pointed `CLAUDE.md` at the
