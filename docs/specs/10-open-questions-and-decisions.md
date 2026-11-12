@@ -562,6 +562,34 @@ page (SCR-16, its entry opens the timer), so its taste is entered on the
 timer (#244). Migrated values on a non-infusion row (see #242) show only in
 the tea's average.
 
+**Build notes (Claude, 2026-11-12, #247: the Katalog without a kind).** With
+no kind every sort stays grouped by kind (CAT-10's v0.6.1 bullet: the
+*Sortierung* applies inside each group): name and price sort flat inside
+each kind group, whose rows name their *Sorte*; the kind groups fold in
+every sort. CAT-10 AC4 („flat sorts have no folding") is read as a kind's
+own view. Search hits are counted as hidden by kind only while a kind is
+selected. The kind views' headers („274 Grüntees") are left for #248.
+
+**Build notes (Claude, 2026-11-12, #245: ⋮ links).** The session page's
+divider shows only when *Tee ansehen* or *Im Katalog ansehen* shows; the
+tea detail's ⋮ has none. The tea detail opened from the setup's ⋮ gets *Im
+Katalog ansehen* too (the setup's catalog route, alert-gated). A session in
+progress has no ⋮, as before.
+
+**Build notes (Claude, 2026-11-12, #244: taste on the timer).** Claude's
+defaults for the T4 timer review and the design review: the button is
+hidden with its space kept in FINISHED as on the alert surface; its slot is
+as tall as the „… ✓" label from the first ended infusion, so the ✓ and the
+alert move nothing; the icon is `UmamiIcons.Tune` (no taste icon exists);
+a whisk step reads „Geschmack · Aufschlagen"; with reduce motion the
+button appears at once. The band rule (D-096): where the button would push
+the primary control off a short screen (384 × 832 dp, font 2.0, a two-line
+name), it is placed below the controls and scrolls with the banner; the
+choice depends only on measured heights, never on the phase. The sheet
+waits for the session's taste read before it shows the editor. Writes run
+in order and complete even when an alert closes the sheet (rule 8); none
+is an engine event, and `core:timer` / `core:timer-engine` are unchanged.
+
 <a id="d-113"></a>
 ### D-113 — v0.6.0: the slim slider handle; the open points of rc.1 closed; the final without an rc.2 (03 §3.8, SCR-16, SET-27; JRN-03) · *Accepted* (PO, 2026-11-12, on `v0.6.0-rc.1`; seven questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
