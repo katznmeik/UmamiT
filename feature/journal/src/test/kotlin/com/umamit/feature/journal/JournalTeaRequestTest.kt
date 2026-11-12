@@ -32,6 +32,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.LocalDateTime
 import java.time.LocalTime
+import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * The tea detail's *Alle anzeigen* shows the journal's list for one tea (TEA-13, JRN-09, #232): a request sets *Tee*
@@ -71,6 +72,7 @@ class JournalTeaRequestTest {
             FakeCollection().teas,
             FakeSessions().tasting,
             FakeRecipeOffers(),
+            EmptyCoroutineContext,
         )
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {

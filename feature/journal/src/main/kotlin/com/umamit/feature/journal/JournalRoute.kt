@@ -17,7 +17,6 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.ui.labelRes
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
@@ -72,11 +71,11 @@ fun JournalRoute(
     val descriptorLabels = remember(locale) {
         TasteDescriptor.entries.associate { it.key to resources.getString(it.labelRes()) }
     }
-    // Grouping and the search words are built off the main thread; the last list stays in the first frame of a
-    // tab that comes back, and while a new read is built, so nothing flashes (JRN-09).
+    // Grouping and the search words are built off the main thread ([JournalSources.listContext]); the last list stays
+    // in the first frame of a tab that comes back, and while a new read is built, so nothing flashes (JRN-09).
     val list by produceState(sources.lastList, sessions, today, locale) {
         val read = sessions ?: return@produceState
-        value = withContext(Dispatchers.Default) { journalList(read, today, descriptorLabels::get) }
+        value = withContext(sources.listContext) { journalList(read, today, descriptorLabels::get) }
     }
     SideEffect { sources.lastList = list }
     // A tea without finished sessions is no filter option, so its name is looked up (a deleted tea carries it).

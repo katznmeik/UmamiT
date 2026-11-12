@@ -20,6 +20,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.LocalDateTime
+import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * JRN-01 through the journal's seams: a session brewed and finished through a
@@ -44,6 +45,7 @@ class JournalIntegrationTest {
             FakeCollection().teas,
             data.tasting,
             FakeRecipeOffers(),
+            EmptyCoroutineContext,
         )
     private val controller = FakeBrewController(data.sessions, requests)
 

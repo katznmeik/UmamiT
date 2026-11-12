@@ -49,6 +49,7 @@ import org.robolectric.annotation.Config
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import kotlin.coroutines.EmptyCoroutineContext
 
 /** The journal's rating in rows, search and filters (SCR-15, JRN-08, JRN-09, D-112) through the screen. */
 @RunWith(RobolectricTestRunner::class)
@@ -295,6 +296,7 @@ class JournalSearchTest {
             FakeCollection().teas,
             FakeSessions().tasting,
             FakeRecipeOffers(),
+            EmptyCoroutineContext,
         )
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
@@ -362,6 +364,7 @@ class JournalSearchTest {
                 collection.teas,
                 FakeSessions().tasting,
                 FakeRecipeOffers(),
+                EmptyCoroutineContext,
             )
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {

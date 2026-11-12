@@ -16,6 +16,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.LocalDateTime
+import kotlin.coroutines.EmptyCoroutineContext
 
 /** The journal tab keeps „Heute" true while it stays open: at midnight today's sessions move to „Gestern" (D-061). */
 @RunWith(RobolectricTestRunner::class)
@@ -41,6 +42,7 @@ class JournalRouteTest {
                 FakeCollection().teas,
                 data.tasting,
                 FakeRecipeOffers(),
+                EmptyCoroutineContext,
             )
         compose.mainClock.autoAdvance = false
         compose.setContent {
