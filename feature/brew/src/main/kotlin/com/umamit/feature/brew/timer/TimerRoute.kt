@@ -97,6 +97,7 @@ fun BrewTimerRoute(
                 .collectAsStateWithLifecycle()
             val tastings by remember(viewModel, active.slot) { viewModel.stepTastings(active.slot) }
                 .collectAsStateWithLifecycle()
+            val refusals by viewModel.tasteWrites.refusals.collectAsStateWithLifecycle()
             TimerScreen(
                 state = active,
                 nowElapsedMs = remember(viewModel) { viewModel::nowElapsedMs },
@@ -129,6 +130,7 @@ fun BrewTimerRoute(
                         },
                         onReset = { position -> viewModel.tasteWrites.clearTaste(sessionId, position) },
                         onNote = { position, note -> viewModel.tasteWrites.setNote(sessionId, position, note) },
+                        refusals = refusals,
                     )
                 },
             )

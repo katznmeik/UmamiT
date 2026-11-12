@@ -109,6 +109,21 @@ data class DescriptorCountRow(
     @ColumnInfo(name = "count") val count: Int,
 )
 
+/**
+ * The taste columns and `tasting_note` of one `session_step` row (schema v7, D-114), by its `position`: what the
+ * timer's taste button and sheet read (SCR-05 v0.6.1).
+ */
+data class StepTastingRow(
+    @ColumnInfo(name = "position") val position: Int,
+    @ColumnInfo(name = "taste_umami") val tasteUmami: Int?,
+    @ColumnInfo(name = "taste_sweetness") val tasteSweetness: Int?,
+    @ColumnInfo(name = "taste_bitterness") val tasteBitterness: Int?,
+    @ColumnInfo(name = "taste_astringency") val tasteAstringency: Int?,
+    @ColumnInfo(name = "taste_body") val tasteBody: Int?,
+    @ColumnInfo(name = "taste_aroma") val tasteAroma: Int?,
+    @ColumnInfo(name = "tasting_note") val tastingNote: String?,
+)
+
 /** What an infusion tasting write checks of its target row (05 §3.7 „Infusion tasting writes"). */
 data class InfusionTargetRow(
     @ColumnInfo(name = "status") val status: SessionStatus,
@@ -169,6 +184,19 @@ interface TastingDao {
     /** The infusion's short note (JRN-05, D-114). */
     @Query("UPDATE session_step SET tasting_note = :note WHERE $INFUSION_ROW")
     suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): Int
+
+    /**
+     * The taste and note of [sessionId]'s step rows that have any (SCR-05 v0.6.1, D-114): one plain read of
+     * `session_step`, no transaction and no join, so a taste write beside a running timer re-runs only this.
+     */
+    @Query(
+        "SELECT position, taste_umami, taste_sweetness, taste_bitterness, taste_astringency, taste_body, " +
+            "taste_aroma, tasting_note FROM session_step WHERE session_id = :sessionId AND (" +
+            "taste_umami IS NOT NULL OR taste_sweetness IS NOT NULL OR taste_bitterness IS NOT NULL OR " +
+            "taste_astringency IS NOT NULL OR taste_body IS NOT NULL OR taste_aroma IS NOT NULL OR " +
+            "tasting_note IS NOT NULL)",
+    )
+    fun observeStepTastings(sessionId: String): Flow<List<StepTastingRow>>
 
     @Query("UPDATE brew_session SET notes = :notes, updated_at = :now WHERE id = :sessionId AND $COMPLETED")
     suspend fun setNotes(sessionId: String, notes: String?, now: Long): Int

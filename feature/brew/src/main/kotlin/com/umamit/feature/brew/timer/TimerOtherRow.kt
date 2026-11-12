@@ -46,7 +46,7 @@ import com.umamit.feature.brew.R
 const val TIMER_OTHER_ROW_TAG = "timer_other_row"
 
 /** The row's height: one 48 dp touch target, also at the largest font (its text stays on one line). */
-private val TimerOtherRowHeight = UmamiSpacing.MinTouchTarget
+internal val TimerOtherRowHeight = UmamiSpacing.MinTouchTarget
 
 private val OtherRowIconSize = 18.dp
 private val OtherRowButtonPadding = PaddingValues(horizontal = UmamiSpacing.Small)

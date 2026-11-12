@@ -73,8 +73,9 @@ const val TIMER_RING_TAG = "timer_ring"
  * @param stock the brew tea's stock, shown on READY under the leaf and water (BRW-11, D-098); null: no line
  *   (the quick timer never has one). Its space is reserved in every brew, so the pill never moves for it.
  * @param tasting the taste of the infusion ended last (JRN-03, JRN-05, D-114): the button „Geschmack · N. Aufguss"
- *   below the step strip and its sheet ([TasteButtonSlot], [TimerTasteHost]); null: none (the quick timer). The sheet
- *   is removed in an alert's first frame like the other overlays (rule 8) and sends no engine event.
+ *   below the step strip and its sheet ([TasteButtonSlot], [TimerTasteHost]), its space kept from the first READY;
+ *   null: none (the quick timer). The sheet is removed in an alert's first frame like the other overlays (rule 8)
+ *   and sends no engine event.
  */
 @Composable
 fun TimerScreen(

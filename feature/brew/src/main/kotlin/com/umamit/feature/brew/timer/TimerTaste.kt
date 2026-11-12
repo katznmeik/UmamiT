@@ -63,7 +63,7 @@ import kotlinx.coroutines.launch
 /** Test tag of the timer's „Geschmack · N. Aufguss" button (SCR-05 v0.6.1, D-114). */
 const val TIMER_TASTE_BUTTON_TAG = "timer_taste_button"
 
-/** Test tag of the button's slot, there (its space kept) also while the button is hidden. */
+/** Test tag of the button's slot: in a brew from the session's first READY, kept while the button is hidden. */
 const val TIMER_TASTE_SLOT_TAG = "timer_taste_slot"
 
 /** Test tag of the timer's taste sheet. */
@@ -84,8 +84,9 @@ data class TasteTarget(val position: Int, val number: Int?)
 
 /**
  * The infusion ended last (D-114): the last ended (*Abgegossen*, *Aufguss jetzt beenden*) step that is not *Spülen*;
- * a skipped step never counts. Null for the quick timer and before the first infusion ended. From then on the
- * button's space is reserved in every phase, so nothing moves when the alert starts (rule 8, D-096).
+ * a skipped step never counts. Null for the quick timer and before the first infusion ended. The button's space is
+ * reserved from the session's first READY, before there is one, so nothing moves at the first *Abgegossen* or when
+ * the alert starts (rule 8, D-096; PO, T4 MIN-1).
  */
 fun TimerUiState.Active.tasteTarget(): TasteTarget? {
     if (isQuick) return null
@@ -108,14 +109,17 @@ private val TASTE_PHASES = setOf(TimerPhase.READY, TimerPhase.RUNNING, TimerPhas
 
 /**
  * What the timer screen needs for the taste of the infusion ended last (JRN-03, JRN-05, D-114): the taste and note
- * stored per step `position` of the shown session ([byPosition]; null until read) and the writes, each of the step at
- * the position it names. The writes go to `SessionTasting` beside the timer; none is an engine event.
+ * stored per step `position` of the shown session ([byPosition]; null until read, and after a failed read) and the
+ * writes, each of the step at the position it names. The writes go to `SessionTasting` beside the timer; none is an
+ * engine event. [refusals] counts the writes that were refused or failed: when it changes, the sheet shows the stored
+ * values again instead of the ones it was given (no message, SCR-05).
  */
 class TimerTasting(
     val byPosition: Map<Int, StepTasting>?,
     val onTaste: (position: Int, axis: TasteAxis, value: Int) -> Unit,
     val onReset: (position: Int) -> Unit,
     val onNote: (position: Int, note: String) -> Unit,
+    val refusals: Int = 0,
 )
 
 /** „2. Aufguss", or „Aufschlagen" for a step the step table does not number. */
@@ -125,20 +129,21 @@ private fun TasteTarget.name(): String = number?.let { stringResource(R.string.b
 
 /**
  * The button below the step strip (SCR-05 v0.6.1, D-114): „Geschmack · 1. Aufguss", „… ✓" once that infusion has a
- * value or a note. Composed only once an infusion has ended ([tasteTarget]); from then its space is kept in every
- * phase. Hidden on the alert surface and in FINISHED, decided in this composition so the alert's first frame never
- * shows it (rule 8). It fades in with `fade` when it appears (at once under reduce motion).
+ * value or a note. Its slot is composed in a brew from the session's first READY, before an infusion has ended
+ * ([tasteTarget]), and keeps its space in every phase: the first *Abgegossen* moves nothing either (PO, T4 MIN-1).
+ * The slot is as tall as the longest label, so a later infusion's name never changes it. The button shows once an
+ * infusion has ended; it is hidden on the alert surface and in FINISHED, decided in this composition so the alert's
+ * first frame never shows it (rule 8). It fades in with the `fade` token when it appears.
  */
 @Composable
 internal fun TasteButtonSlot(state: TimerUiState.Active, tasting: TimerTasting, onOpen: (TasteTarget) -> Unit) {
-    val target = state.tasteTarget() ?: return
+    if (state.isQuick) return
+    val target = state.tasteTarget()
     val shown = state.tasteButtonShown()
-    val name = target.name()
-    val done = tasting.byPosition?.get(target.position)?.isEmpty == false
-    val reduceMotion = UmamiTheme.reduceMotion
     val faded by animateFloatAsState(
         targetValue = if (shown) 1f else 0f,
-        animationSpec = if (shown && !reduceMotion) UmamiTheme.motion.fade() else snap(),
+        // The token on the appearing side (100 ms under in-app reduce motion); hidden at once, never faded out.
+        animationSpec = if (shown) UmamiTheme.motion.fade() else snap(),
         label = "tasteButton",
     )
     Box(
@@ -147,40 +152,66 @@ internal fun TasteButtonSlot(state: TimerUiState.Active, tasting: TimerTasting, 
             .testTag(TIMER_TASTE_SLOT_TAG),
         contentAlignment = Alignment.Center,
     ) {
-        // The label with „✓", invisible: the slot is as tall as it from the start, so nothing moves when it comes.
-        TasteButton(
-            label = stringResource(R.string.brew_timer_taste_button_done, name),
-            onClick = {},
-            enabled = false,
-            modifier = Modifier
-                .alpha(0f)
-                .clearAndSetSemantics {},
-        )
-        val description = stringResource(
-            if (done) R.string.brew_timer_taste_description_done else R.string.brew_timer_taste_description,
-            name,
-        )
-        TasteButton(
-            label = stringResource(
-                if (done) R.string.brew_timer_taste_button_done else R.string.brew_timer_taste_button,
-                name,
-            ),
-            onClick = { onOpen(target) },
-            enabled = shown,
-            modifier = Modifier
-                // Hidden at once, never faded out: the alert's first frame has no button (rule 8).
-                .graphicsLayer { alpha = if (shown) faded else 0f }
-                .then(
-                    if (shown) {
-                        Modifier
-                            .testTag(TIMER_TASTE_BUTTON_TAG)
-                            .semantics { contentDescription = description }
-                    } else {
-                        Modifier.clearAndSetSemantics {}
-                    },
-                ),
-        )
+        // The longest labels with „✓", invisible: the slot is as tall as the tallest of them from the first READY,
+        // so nothing moves when the button comes, when its check comes or when it names another infusion.
+        reservedLabels().forEach { label ->
+            TasteButton(
+                label = label,
+                onClick = {},
+                enabled = false,
+                modifier = Modifier
+                    .alpha(0f)
+                    .clearAndSetSemantics {},
+            )
+        }
+        if (target != null) VisibleTasteButton(target, shown, faded, tasting, onOpen)
     }
+}
+
+/** The labels the slot reserves: „Geschmack · Aufschlagen ✓" and a two-digit „Geschmack · 88. Aufguss ✓". */
+@Composable
+private fun reservedLabels(): List<String> = listOf(
+    stringResource(R.string.brew_steps_kind_whisk),
+    stringResource(R.string.brew_timer_taste_infusion, RESERVED_INFUSION_NUMBER),
+).map { stringResource(R.string.brew_timer_taste_button_done, it) }
+
+/** A two-digit infusion number of wide digits: no session reaches 100 infusions. */
+private const val RESERVED_INFUSION_NUMBER = 88
+
+@Composable
+private fun VisibleTasteButton(
+    target: TasteTarget,
+    shown: Boolean,
+    faded: Float,
+    tasting: TimerTasting,
+    onOpen: (TasteTarget) -> Unit,
+) {
+    val name = target.name()
+    val done = tasting.byPosition?.get(target.position)?.isEmpty == false
+    val description = stringResource(
+        if (done) R.string.brew_timer_taste_description_done else R.string.brew_timer_taste_description,
+        name,
+    )
+    TasteButton(
+        label = stringResource(
+            if (done) R.string.brew_timer_taste_button_done else R.string.brew_timer_taste_button,
+            name,
+        ),
+        onClick = { onOpen(target) },
+        enabled = shown,
+        modifier = Modifier
+            // Hidden at once, never faded out: the alert's first frame has no button (rule 8).
+            .graphicsLayer { alpha = if (shown) faded else 0f }
+            .then(
+                if (shown) {
+                    Modifier
+                        .testTag(TIMER_TASTE_BUTTON_TAG)
+                        .semantics { contentDescription = description }
+                } else {
+                    Modifier.clearAndSetSemantics {}
+                },
+            ),
+    )
 }
 
 @Composable
@@ -221,6 +252,7 @@ internal fun TimerTasteHost(state: TimerUiState.Active, tasting: TimerTasting?, 
         title = stringResource(R.string.brew_timer_taste_button, target.name()),
         position = target.position,
         stored = tasting.byPosition?.let { it[target.position] ?: StepTasting.EMPTY },
+        refusals = tasting.refusals,
         onTaste = { axis, value -> tasting.onTaste(target.position, axis, value) },
         onReset = { tasting.onReset(target.position) },
         onNote = { tasting.onNote(target.position, it) },
@@ -232,6 +264,10 @@ internal fun TimerTasteHost(state: TimerUiState.Active, tasting: TimerTasting?, 
  * Material 3's modal sheet on the Steeping surface: the title with *Fertig* pinned at its end (D-110), below it the
  * shared [InfusionTasteEditor] scrolling (no radar). The keyboard does not open by itself. [stored] is null until the
  * session's taste is read: the editor then waits for it, so its note field starts from the stored note.
+ *
+ * A slider's release saves; a drag still in progress when the sheet leaves (an alert removes it) is dropped, as
+ * nothing was released. When [refusals] changes (a write was refused or failed), the editor starts again from
+ * [stored], so it never shows a value that was not stored.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -239,6 +275,7 @@ private fun TimerTasteSheet(
     title: String,
     position: Int,
     stored: StepTasting?,
+    refusals: Int,
     onTaste: (TasteAxis, Int) -> Unit,
     onReset: () -> Unit,
     onNote: (String) -> Unit,
@@ -258,9 +295,12 @@ private fun TimerTasteSheet(
         }
     }
     // The taste as the sliders last said it, until the stored taste shows exactly that: a stale read must not flick
-    // a value back.
-    var pending by remember { mutableStateOf<TasteProfile?>(null) }
+    // a value back. A refused write drops it: the stored taste shows again.
+    var pending by remember(refusals) { mutableStateOf<TasteProfile?>(null) }
     LaunchedEffect(stored?.taste, pending) { if (pending != null && pending == stored?.taste) pending = null }
+    // Set once the sheet has left: a slider whose drag the alert cut off saves nothing (only a release saves).
+    val present = remember { SheetPresence() }
+    DisposableEffect(present) { onDispose { present.left = true } }
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -279,14 +319,17 @@ private fun TimerTasteSheet(
                 .padding(start = UmamiSpacing.SideMargin, end = UmamiSpacing.SideMargin, bottom = UmamiSpacing.Large),
         ) {
             if (stored != null) {
-                val taste = pending ?: stored.taste
-                key(position) {
+                // Started again after a refused write, so the note field too shows the stored note.
+                key(position, refusals) {
                     InfusionTasteEditor(
-                        taste = taste,
+                        taste = pending ?: stored.taste,
                         note = stored.note,
                         onTasteChange = { axis, value ->
-                            pending = taste.with(axis, value)
-                            onTaste(axis, value)
+                            if (!present.left) {
+                                // From the latest pending taste: two releases in one frame both stay.
+                                pending = (pending ?: stored.taste).with(axis, value)
+                                onTaste(axis, value)
+                            }
                         },
                         onNoteSave = onNote,
                         onReset = {
@@ -298,6 +341,11 @@ private fun TimerTasteSheet(
             }
         }
     }
+}
+
+/** Whether the sheet has left the composition; read by callbacks that may still arrive after it. */
+private class SheetPresence {
+    var left = false
 }
 
 @Composable

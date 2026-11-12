@@ -88,6 +88,10 @@ class TimerTasteScreenshotTest(private val appDark: Boolean, private val fontSca
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/TimerScreen_${name}_$variant.png")
     }
 
+    /** The session's first READY: no button yet, its space kept, so the first *Abgegossen* moves nothing (MIN-1). */
+    @Test
+    fun readyBeforeTheFirstInfusion() = capture("Ready_tasteSpace", TimerStates.ready(stepIndex = 0))
+
     @Test
     fun readyWithTaste() = capture("Ready_taste", TimerStates.ready(stepIndex = 1))
 

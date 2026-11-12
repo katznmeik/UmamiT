@@ -11,6 +11,7 @@ import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.StockRepository
+import com.umamit.core.data.TastingWrite
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.model.StepTasting
 import com.umamit.core.model.StockLevel
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -100,16 +102,20 @@ class TimerViewModel @Inject constructor(
     /**
      * The taste and note stored per step of [slot]'s session (JRN-03, JRN-05, D-114), for the timer's
      * „Geschmack · N. Aufguss" button („✓" with data) and its sheet; each of two brews has its own. Read from the
-     * journal beside the timer, never through the engine or the controller. Null for the quick timer, before the
-     * session is read and after a failed read (logged).
+     * journal beside the timer, never through the engine or the controller: only the step rows' taste columns, and
+     * only while a screen collects it (the slot the route shows), so a taste write re-reads no whole session and not
+     * the other slot's. Null for the quick timer, before the session is read and after a failed read (logged): the
+     * sheet's editor then waits, so its note field never starts empty over a stored note.
      */
     fun stepTastings(slot: TimerSlot): StateFlow<TimerSessionTastings?> = tastings[slot] ?: NO_TASTINGS
 
     // Read from the start for both brew slots, so a screen opened on either has them as soon as they are read.
     private val seals = BREW_SLOTS.associateWith { slot -> slotSeal(slot, sessions, teas, photos) }
     private val stocks = BREW_SLOTS.associateWith { slot -> slotStock(slot, sessions, teas, stock, settings) }
+
+    // Read only while the route shows the slot (MIN-3): each taste write invalidates the step table.
     private val tastings = BREW_SLOTS.associateWith { slot ->
-        slotTastings(timer.state(slot), journal).stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        slotTastings(timer.state(slot), journal).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     }
 
     /** The taste sheet's writes (JRN-03, JRN-05, D-114), beside the timer: never an engine event. */
@@ -226,20 +232,24 @@ private val NO_TASTINGS: StateFlow<TimerSessionTastings?> = MutableStateFlow<Tim
 /** The taste and note stored per step `position` of the session [sessionId]; steps without any are absent (D-114). */
 data class TimerSessionTastings(val sessionId: String, val byPosition: Map<Int, StepTasting>)
 
-/** The taste and note per step of the session in [state]'s slot, as the journal reads them (D-114). */
+/**
+ * The taste and note per step of the session in [state]'s slot, as the journal reads them (D-114): the step rows'
+ * taste columns only. Null without a session and after a failed read (logged), until the slot's next session.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
-private fun slotTastings(state: Flow<TimerUiState>, journal: JournalRepository): Flow<TimerSessionTastings?> = state
+internal fun slotTastings(state: Flow<TimerUiState>, journal: JournalRepository): Flow<TimerSessionTastings?> = state
     .map { (it as? TimerUiState.Active)?.sessionId }
     .distinctUntilChanged()
     .flatMapLatest { id ->
         if (id == null) {
             flowOf(null)
         } else {
-            journal.observeSession(id)
-                .map { read -> TimerSessionTastings(id, read?.session?.stepTastings.orEmpty()) }
+            journal.observeStepTastings(id)
+                .map<Map<Int, StepTasting>, TimerSessionTastings?> { TimerSessionTastings(id, it) }
                 .catch { e ->
+                    // Not an empty map: the editor would then start with an empty note over a stored one.
                     Log.w(TAG, "Taste of the session not read", e)
-                    emit(TimerSessionTastings(id, emptyMap()))
+                    emit(null)
                 }
         }
     }
@@ -249,10 +259,15 @@ private fun slotTastings(state: Flow<TimerUiState>, journal: JournalRepository):
  * The timer's taste writes (JRN-03, JRN-05, D-114) through [SessionTasting], addressed by session and step position.
  * They run one after another in the order given, so the last one is the one stored, and each completes even when the
  * sheet closes on an alert, the screen is left or the view model is cleared meanwhile (rule 8); none waits on, or for,
- * the timer. A refused or failed write changes nothing.
+ * the timer. A refused or failed write changes nothing: it is logged and counted in [refusals], so the sheet shows
+ * the stored values again (no message, SCR-05).
  */
 class TimerTasteWrites(private val tasting: SessionTasting, private val scope: CoroutineScope) {
     private val lock = Mutex()
+    private val refused = MutableStateFlow(0)
+
+    /** How many writes were refused or failed so far; the sheet starts again from the stored values on a change. */
+    val refusals: StateFlow<Int> = refused.asStateFlow()
 
     /** The sheet's slider for [axis] of the infusion at [position] of [sessionId] released on [value]. */
     fun setTaste(sessionId: String, position: Int, axis: TasteAxis, value: Int) {
@@ -270,14 +285,19 @@ class TimerTasteWrites(private val tasting: SessionTasting, private val scope: C
         write { tasting.setInfusionNote(sessionId, position, text) }
     }
 
-    private fun write(block: suspend () -> Unit) {
+    private fun write(block: suspend () -> TastingWrite) {
         scope.launch(start = CoroutineStart.ATOMIC) {
             withContext(NonCancellable) {
                 lock.withLock {
-                    try {
+                    val result = try {
                         block()
                     } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                         Log.w(TAG, "Taste write failed", e)
+                        null
+                    }
+                    if (result != TastingWrite.SAVED) {
+                        if (result != null) Log.w(TAG, "Taste write refused: $result")
+                        refused.update { it + 1 }
                     }
                 }
             }

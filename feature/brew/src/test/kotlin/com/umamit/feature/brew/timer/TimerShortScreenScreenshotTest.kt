@@ -92,6 +92,11 @@ class TimerShortScreenScreenshotTest {
     @Test
     fun readyWithTaste() = capture("Ready_taste", TimerStates.ready(stepIndex = 1), tasting = TASTING)
 
+    /** The session's first READY: the button's space kept below the control, *Start* where it stays (MIN-1). */
+    @Test
+    fun readyBeforeTheFirstInfusionWithTaste() =
+        capture("Ready_tasteSpace", TimerStates.ready(stepIndex = 0), tasting = TASTING)
+
     /** The alert with the taste button's space kept below the control: *Abgegossen* where *Start* was. */
     @Test
     fun alertingWithTaste() =

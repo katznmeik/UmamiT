@@ -1,15 +1,21 @@
 package com.umamit.feature.brew.timer
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,6 +25,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import com.google.common.truth.Truth.assertThat
@@ -46,9 +53,11 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The timer's „Geschmack · N. Aufguss" button and sheet (SCR-05 v0.6.1, D-114; JRN-03, JRN-05): no button before the
- * first infusion ends, the infusion ended last named, „✓" with data, hidden on the alert surface with every bound
- * kept (rule 8, D-096), none on the quick timer; the sheet removed in an alert's first frame with its pending note
- * handed over, kept by the pre-alert, and its writes addressed to the infusion's step position only.
+ * first infusion ends but its space from the session's first READY (PO, T4 MIN-1), the infusion ended last named,
+ * „✓" with data, hidden on the alert surface with every bound kept (rule 8, D-096), none on the quick timer; the
+ * sheet removed in an alert's first frame with its pending note handed over, kept by the pre-alert, its writes
+ * addressed to the infusion's step position only, a drag the alert cut off dropped, and the stored values shown
+ * again after a refused write.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -60,6 +69,7 @@ class TimerTasteTest {
 
     private var state by mutableStateOf<TimerUiState.Active>(TimerStates.ready(stepIndex = 1))
     private var stored by mutableStateOf<Map<Int, StepTasting>?>(emptyMap())
+    private var refusals by mutableIntStateOf(0)
 
     private val tastes = mutableListOf<Triple<Int, TasteAxis, Int>>()
     private val resets = mutableListOf<Int>()
@@ -83,6 +93,7 @@ class TimerTasteTest {
                         onTaste = { position, axis, value -> tastes += Triple(position, axis, value) },
                         onReset = { resets += it },
                         onNote = { position, note -> notes += position to note },
+                        refusals = refusals,
                     ),
                 )
             }
@@ -94,15 +105,20 @@ class TimerTasteTest {
     /** The button's slot, there also while the button is hidden. */
     private fun slot() = compose.onNodeWithTag(TIMER_TASTE_SLOT_TAG, useUnmergedTree = true)
 
-    /** The frame that recomposes after the state change and the frame that drops the sheet's window: 32 ms. */
-    private fun advanceTwoFrames() {
-        repeat(2) {
-            compose.mainClock.advanceTimeByFrame()
-            compose.waitForIdle()
-        }
+    /**
+     * One frame, the one that recomposes after the state change: the change is applied first, so this frame is the
+     * first one that can show it (the clock does not advance by itself).
+     */
+    private fun advanceOneFrame() {
+        Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeByFrame()
+        compose.waitForIdle()
     }
 
     private fun sheet() = compose.onNodeWithTag(TIMER_TASTE_SHEET_TAG)
+
+    /** The sheet in the composition at all, in any window and unmerged. */
+    private fun sheetComposed() = compose.onNodeWithTag(TIMER_TASTE_SHEET_TAG, useUnmergedTree = true)
 
     private fun top(text: String): Dp = compose.onNodeWithText(text).getUnclippedBoundsInRoot().top
 
@@ -115,9 +131,11 @@ class TimerTasteTest {
     }
 
     @Test
-    fun `no button before the first infusion ends, in any phase`() {
+    fun `no button before the first infusion ends, in any phase, but its space from the first READY`() {
         show(TimerStates.ready(stepIndex = 0))
-        slot().assertDoesNotExist()
+        slot().assertExists()
+        val space = slot().getUnclippedBoundsInRoot()
+        assertThat(space.bottom - space.top).isGreaterThan(Dp(0f))
         listOf(
             TimerStates.running(),
             TimerStates.paused(),
@@ -125,8 +143,10 @@ class TimerTasteTest {
         ).forEach {
             state = it
             compose.waitForIdle()
-            slot().assertDoesNotExist()
+            button().assertDoesNotExist()
             compose.onNodeWithText("Geschmack", substring = true).assertDoesNotExist()
+            compose.onNode(hasClickAction() and hasAnyAncestor(hasTestTag(TIMER_TASTE_SLOT_TAG))).assertDoesNotExist()
+            assertThat(slot().getUnclippedBoundsInRoot()).isEqualTo(space)
         }
     }
 
@@ -136,7 +156,8 @@ class TimerTasteTest {
             it.copy(steps = listOf(TimerUiStep(StepKind.RINSE, 10, 80, StepStatus.DONE)) + it.steps.drop(1))
         }
         show(rinseDone)
-        slot().assertDoesNotExist()
+        button().assertDoesNotExist()
+        compose.onNodeWithText("Geschmack", substring = true).assertDoesNotExist()
 
         state = TimerStates.ready(stepIndex = 2).let {
             it.copy(
@@ -201,6 +222,23 @@ class TimerTasteTest {
         assertThat(listOf(ringTop(), top("Start"))).isEqualTo(before)
     }
 
+    /** Nit 3: the slot is as tall as the longest label, whatever infusion it names. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `at font scale 2_0 a longer infusion name keeps the slot's height`() {
+        val whisk = TimerStates.ready(stepIndex = 1).let {
+            it.copy(steps = listOf(it.steps[0].copy(kind = StepKind.WHISK)) + it.steps.drop(1))
+        }
+        show(TimerStates.ready(stepIndex = 1))
+        val slot = slot().getUnclippedBoundsInRoot()
+        val pill = top("Start")
+        state = whisk
+        compose.waitForIdle()
+        compose.onNodeWithText("Geschmack · Aufschlagen", substring = true).assertExists()
+        assertThat(slot().getUnclippedBoundsInRoot()).isEqualTo(slot)
+        assertThat(top("Start")).isEqualTo(pill)
+    }
+
     @Test
     fun `the quick timer has none, whatever the host passes`() {
         show(TimerStates.quick(TimerPhase.RUNNING))
@@ -221,11 +259,31 @@ class TimerTasteTest {
     @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
     fun `on a 384 x 832 dp screen at font scale 2_0 nothing moves at the alert either`() = staysPut()
 
-    /** READY → RUNNING → ALERTING of the 2nd step → the last step's ALERTING → FINISHED, with the button's slot. */
+    /**
+     * From the session's first READY, before the first *Abgegossen* (PO, T4 MIN-1): READY → RUNNING → ALERTING of the
+     * 1st step → READY → RUNNING → ALERTING of the 2nd → the last step's ALERTING → FINISHED, with the button's slot.
+     */
     private fun staysPut() {
-        show(TimerStates.ready(stepIndex = 1))
+        show(TimerStates.ready(stepIndex = 0))
         val slot = slot().getUnclippedBoundsInRoot()
         val ready = listOf(ringTop(), top("Start"))
+
+        state = TimerStates.running()
+        compose.waitForIdle()
+        assertThat(slot().getUnclippedBoundsInRoot()).isEqualTo(slot)
+        val firstRunning = listOf(ringTop(), top("Pause"))
+
+        state = TimerStates.alerting(stepIndex = 0)
+        compose.waitForIdle()
+        assertThat(slot().getUnclippedBoundsInRoot()).isEqualTo(slot)
+        val firstAlert = listOf(ringTop(), top("Abgegossen"))
+
+        // The first *Abgegossen*: the button comes in its kept space.
+        state = TimerStates.ready(stepIndex = 1)
+        compose.waitForIdle()
+        compose.onNodeWithText("Geschmack · 1. Aufguss").assertIsDisplayed()
+        assertThat(slot().getUnclippedBoundsInRoot()).isEqualTo(slot)
+        val secondReady = listOf(ringTop(), top("Start"))
 
         state = TimerStates.running(stepIndex = 1)
         compose.waitForIdle()
@@ -250,7 +308,8 @@ class TimerTasteTest {
         compose.onNodeWithText("Geschmack", substring = true).assertDoesNotExist()
         val finished = listOf(ringTop(), top("Sitzung beenden"))
 
-        assertThat(listOf(running, alert, lastAlert, finished)).containsExactly(ready, ready, ready, ready)
+        assertThat(listOf(firstRunning, firstAlert, secondReady, running, alert, lastAlert, finished))
+            .containsExactly(ready, ready, ready, ready, ready, ready, ready)
     }
 
     /**
@@ -332,9 +391,10 @@ class TimerTasteTest {
 
         compose.mainClock.autoAdvance = false
         state = TimerStates.alerting(stepIndex = 1)
-        advanceTwoFrames()
+        advanceOneFrame()
 
-        sheet().assertDoesNotExist()
+        // Not in the composition after the alert's first frame, in no window (Nit 1).
+        sheetComposed().assertDoesNotExist()
         compose.onNodeWithText("Abgegossen").assertExists()
         assertThat(notes).containsExactly(0 to "Kräftig")
 
@@ -353,11 +413,90 @@ class TimerTasteTest {
 
         compose.mainClock.autoAdvance = false
         state = TimerStates.quick(TimerPhase.ALERTING)
-        advanceTwoFrames()
-        sheet().assertDoesNotExist()
+        advanceOneFrame()
+        sheetComposed().assertDoesNotExist()
 
         compose.mainClock.autoAdvance = true
         state = TimerStates.running(stepIndex = 1)
+        compose.waitForIdle()
+        sheet().assertDoesNotExist()
+    }
+
+    /** Nit 6: a release saves; a drag still in progress when the alert removes the sheet is dropped. */
+    @Test
+    fun `a drag the alert cuts off saves nothing`() {
+        show(TimerStates.running(stepIndex = 1))
+        openSheet()
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).performScrollTo().performTouchInput {
+            down(centerLeft)
+            moveTo(center)
+        }
+        compose.waitForIdle()
+
+        state = TimerStates.alerting(stepIndex = 1)
+        compose.waitForIdle()
+
+        sheet().assertDoesNotExist()
+        assertThat(tastes).isEmpty()
+    }
+
+    /** MIN-5: after a refused write the sheet shows the stored values again, not the refused ones; no message. */
+    @Test
+    fun `after a refused write the sheet shows the stored taste and note again`() {
+        stored = mapOf(0 to StepTasting(TasteProfile(umami = 2), note = "Nori"))
+        show(TimerStates.ready(stepIndex = 1))
+        openSheet()
+        val body = compose.onNodeWithTag(tasteSliderTag(TasteAxis.BODY))
+        body.performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(4f) }
+        compose.onNodeWithTag(INFUSION_NOTE_TAG).performTextInput(" und Gras")
+        compose.waitForIdle()
+        body.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "4 von 5"))
+
+        // The writes were refused: nothing changed in the store.
+        refusals = 1
+        compose.waitForIdle()
+
+        sheet().assertExists()
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.BODY))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "nicht gesetzt"))
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "2 von 5"))
+        compose.onNodeWithText("Nori").assertExists()
+        compose.onNodeWithText("Nori und Gras").assertDoesNotExist()
+    }
+
+    /** MIN-4 (6): the open sheet survives a configuration change; an alert in the first restored state closes it. */
+    @Test
+    fun `the open sheet is restored, but not over an alert in the first restored state`() {
+        val restoration = StateRestorationTester(compose)
+        state = TimerStates.running(stepIndex = 1)
+        restoration.setContent {
+            UmamiTheme(reduceMotion = true) {
+                TimerScreen(
+                    state = state,
+                    nowElapsedMs = { NOW },
+                    onEvent = {},
+                    onBack = {},
+                    onAdjustBrew = {},
+                    onOpenTimerSettings = {},
+                    tasting = TimerTasting(stored, { _, _, _ -> }, {}, { _, _ -> }),
+                )
+            }
+        }
+        openSheet()
+
+        restoration.emulateSavedInstanceStateRestore()
+        compose.waitForIdle()
+        sheet().assertExists()
+
+        // Restored with the alert ringing: the sheet does not show, and it does not come back after it.
+        state = TimerStates.alerting(stepIndex = 1)
+        restoration.emulateSavedInstanceStateRestore()
+        compose.waitForIdle()
+        sheetComposed().assertDoesNotExist()
+        compose.onNodeWithText("Abgegossen").assertExists()
+
+        state = TimerStates.ready(stepIndex = 2)
         compose.waitForIdle()
         sheet().assertDoesNotExist()
     }
