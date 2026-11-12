@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +24,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.umamit.core.designsystem.component.SlimSlider
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TastingLimits
 import kotlin.math.roundToInt
@@ -83,7 +83,7 @@ fun TasteSlider(axis: TasteAxis, value: Int?, onChange: (Int) -> Unit, modifier:
                 .widthIn(min = LABEL_WIDTH)
                 .clearAndSetSemantics {},
         )
-        Slider(
+        SlimSlider(
             value = (shown ?: TastingLimits.MIN_TASTE).toFloat(),
             onValueChange = {
                 val new = it.roundToInt()
@@ -93,6 +93,7 @@ fun TasteSlider(axis: TasteAxis, value: Int?, onChange: (Int) -> Unit, modifier:
             onValueChangeFinished = { currentOnChange.value(dragged ?: TastingLimits.MIN_TASTE) },
             valueRange = TastingLimits.MIN_TASTE.toFloat()..TastingLimits.MAX_TASTE.toFloat(),
             steps = TastingLimits.MAX_TASTE - TastingLimits.MIN_TASTE - 1,
+            unset = shown == null,
             modifier = Modifier
                 .weight(1f)
                 .testTag(tasteSliderTag(axis))

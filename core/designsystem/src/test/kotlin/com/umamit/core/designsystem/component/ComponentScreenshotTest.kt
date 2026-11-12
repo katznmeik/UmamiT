@@ -1,6 +1,8 @@
 package com.umamit.core.designsystem.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +12,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -22,6 +27,7 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import kotlinx.coroutines.delay
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -54,7 +60,7 @@ class ComponentScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, content: @Composable () -> Unit) {
+    private fun capture(name: String, settleMillis: Long = 0, content: @Composable () -> Unit) {
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = false) {
                 val density = LocalDensity.current
@@ -71,8 +77,49 @@ class ComponentScreenshotTest(private val dark: Boolean, private val fontScale: 
                 }
             }
         }
+        // Lets an animation driven by the content (the pressed pin) finish before the capture.
+        if (settleMillis > 0) {
+            compose.waitForIdle()
+            compose.mainClock.advanceTimeBy(settleMillis)
+            compose.waitForIdle()
+        }
         compose.onNodeWithTag(TAG)
             .captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/${name}_$variant.png")
+    }
+
+    @Test
+    fun slimSlider() = capture("SlimSlider", settleMillis = 500) {
+        val pressedSource = remember { MutableInteractionSource() }
+        LaunchedEffect(pressedSource) {
+            // After the slider's own collectors have started: the source does not replay.
+            delay(50)
+            pressedSource.emit(PressInteraction.Press(Offset.Zero))
+        }
+        Column(
+            modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
+            verticalArrangement = Arrangement.spacedBy(UmamiSpacing.Small),
+        ) {
+            SlimSlider(value = 3f, onValueChange = {
+            }, valueRange = 0f..5f, steps = 4, modifier = Modifier.fillMaxWidth())
+            SlimSlider(value = 0f, onValueChange = {
+            }, valueRange = 0f..5f, steps = 4, modifier = Modifier.fillMaxWidth())
+            SlimSlider(
+                value = 0f,
+                onValueChange = {},
+                valueRange = 0f..5f,
+                steps = 4,
+                unset = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            SlimSlider(
+                value = 3f,
+                onValueChange = {},
+                valueRange = 0f..5f,
+                steps = 4,
+                interactionSource = pressedSource,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 
     @Test
