@@ -46,6 +46,7 @@ import com.umamit.core.ui.HeroLeaf
 import com.umamit.core.ui.HeroPlaceholder
 import com.umamit.core.ui.PhotoHero
 import com.umamit.core.ui.rememberAlertGate
+import com.umamit.core.ui.rememberPhotoViewerOpener
 import com.umamit.feature.journal.R
 
 /** The hero's pager over the session's photos (SCR-16). */
@@ -147,6 +148,7 @@ internal fun SessionHeroPager(
         HeroPlaceholder(color, Modifier.testTag(SESSION_HERO_LOADING_TAG))
         return
     }
+    val viewer = rememberPhotoViewerOpener()
     PhotoHero(
         photos = hero.photos,
         key = SessionHeroPhoto::id,
@@ -159,7 +161,13 @@ internal fun SessionHeroPager(
         empty = {
             val cover = hero.coverPath?.let { photo(it) }
             if (cover != null) {
-                HeroImage(cover, color, Modifier.testTag(SESSION_HERO_COVER_TAG))
+                // The tea's cover opens the viewer too, as the one photo (SCR-16, SCR-28).
+                HeroImage(
+                    cover,
+                    color,
+                    Modifier.testTag(SESSION_HERO_COVER_TAG),
+                    onClick = { hero.coverPath?.let { viewer.open(listOf(it), 0) } },
+                )
             } else {
                 HeroLeaf(color, Modifier.testTag(SESSION_HERO_LEAF_TAG))
             }

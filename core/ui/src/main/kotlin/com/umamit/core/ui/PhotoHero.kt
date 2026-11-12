@@ -3,6 +3,7 @@ package com.umamit.core.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -70,6 +72,16 @@ fun <T> PhotoHero(
     // An added photo goes after the others: glide to it (from the page before it when further away).
     val shown = remember { mutableIntStateOf(photos.size) }
     val glide = UmamiTheme.motion.sheet<Float>()
+    // The full-screen viewer (SCR-28): a tap opens it on the shown photo; when it closes the pager shows the photo it
+    // ended on (D-114 Q9).
+    val viewer = rememberPhotoViewerOpener()
+    val viewedIndex = viewer.viewed
+    LaunchedEffect(viewedIndex) {
+        if (viewedIndex != null && photos.isNotEmpty()) {
+            pager.scrollToPage(viewedIndex.coerceIn(0, photos.lastIndex))
+            viewer.consume()
+        }
+    }
     LaunchedEffect(photos.size) {
         if (photos.size > shown.intValue && shown.intValue > 0) {
             if (pager.currentPage < photos.lastIndex - 1) pager.scrollToPage(photos.lastIndex - 1)
@@ -92,7 +104,9 @@ fun <T> PhotoHero(
                     .testTag(pagerTag),
             ) { page ->
                 val item = photos[page]
-                PagerPhoto(path(item), description(item, page, photos.size), placeholderColor, photo)
+                PagerPhoto(path(item), description(item, page, photos.size), placeholderColor, photo) {
+                    viewer.open(photos.map(path), page)
+                }
             }
         }
         // Dots at the start, the controls at the end: side by side, never over each other (font 2.0, short screens).
@@ -121,17 +135,25 @@ private fun PagerPhoto(
     description: String,
     placeholderColor: Color,
     photo: @Composable (path: String) -> Painter?,
+    onOpen: () -> Unit,
 ) {
     val painter = photo(path)
+    // A tap enlarges the photo (SCR-28); TalkBack offers it as „Foto vergrößern".
+    val open = Modifier.clickable(onClickLabel = stringResource(R.string.ui_photo_enlarge), onClick = onOpen)
     if (painter != null) {
         Image(
             painter = painter,
             contentDescription = description,
-            modifier = Modifier.fillMaxSize().background(placeholderColor.copy(alpha = PLACEHOLDER_ALPHA)),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(placeholderColor.copy(alpha = PLACEHOLDER_ALPHA))
+                .then(open),
             contentScale = ContentScale.Crop,
         )
     } else {
-        Box(Modifier.fillMaxSize().semantics { contentDescription = description }) { HeroLeaf(placeholderColor) }
+        Box(Modifier.fillMaxSize().semantics { contentDescription = description }.then(open)) {
+            HeroLeaf(placeholderColor)
+        }
     }
 }
 
@@ -141,13 +163,26 @@ fun HeroPlaceholder(color: Color, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().aspectRatio(HERO_ASPECT_RATIO).background(color.copy(alpha = PLACEHOLDER_ALPHA)))
 }
 
-/** A hero's still image (a session's tea cover, SCR-16): cropped on the style's tint, read by TalkBack as nothing. */
+/**
+ * A hero's still image (a session's tea cover, SCR-16): cropped on the style's tint, read by TalkBack as nothing. A
+ * tap ([onClick]) enlarges it (SCR-28).
+ */
 @Composable
-fun HeroImage(painter: Painter, placeholderColor: Color, modifier: Modifier = Modifier) {
+fun HeroImage(
+    painter: Painter,
+    placeholderColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+) {
+    val open = if (onClick != null) {
+        Modifier.clickable(onClickLabel = stringResource(R.string.ui_photo_enlarge), onClick = onClick)
+    } else {
+        Modifier
+    }
     Image(
         painter = painter,
         contentDescription = null,
-        modifier = modifier.fillMaxSize().background(placeholderColor.copy(alpha = PLACEHOLDER_ALPHA)),
+        modifier = modifier.fillMaxSize().background(placeholderColor.copy(alpha = PLACEHOLDER_ALPHA)).then(open),
         contentScale = ContentScale.Crop,
     )
 }

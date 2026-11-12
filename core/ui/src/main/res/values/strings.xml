@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Why the default recipe should be checked (CAT-05, 05 §5 RecipeCheckReason): on the catalog tea (SCR-21) and the setup (SCR-04). -->
     <string name="ui_recipe_reason_from_text">Werte stammen aus dem Beschreibungstext, nicht aus der Tabelle des Shops.</string>
     <string name="ui_recipe_reason_from_style">Der Shop nennt nicht alle Werte – die fehlenden stammen aus den Standardwerten der Sorte.</string>
@@ -136,4 +136,8 @@
     <string name="ui_descriptor_not_selected">nicht ausgewählt</string>
     <!-- Read-only DescriptorChip with a count: „Nori · 4". -->
     <string name="ui_descriptor_with_count">%1$s · %2$d</string>
+    <!-- The full-screen photo viewer (SCR-28, TEA-05, D-114 Q9): the hero's TalkBack action, the counter, and each photo. -->
+    <string name="ui_photo_enlarge">Foto vergrößern</string>
+    <string name="ui_photo_viewer_counter">%1$d / %2$d</string>
+    <string name="ui_photo_viewer_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d</string>
 </resources>

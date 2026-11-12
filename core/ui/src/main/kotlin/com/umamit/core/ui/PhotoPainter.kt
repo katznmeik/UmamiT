@@ -46,6 +46,17 @@ fun rememberPhotoPainter(path: String?, fallback: Painter): Painter = if (path =
     )
 }
 
+/**
+ * The painter of a photo in the full-screen viewer (SCR-28): the stored file at [source], or an image the photo picker
+ * returned (a content URI, still unsaved, SCR-14). Fitted whole, never cropped; Coil reads the EXIF rotation, and a
+ * stored photo is upright already (#58). Null while it has no source.
+ */
+@Composable
+fun rememberViewerPainter(source: String): Painter {
+    val data: Any = if ("://" in source) source else File(source)
+    return rememberAsyncImagePainter(model = photoRequest(data), contentScale = ContentScale.Fit)
+}
+
 /** A request for [data] that fades in (200 ms) unless the user asked for reduced motion. */
 @Composable
 private fun photoRequest(data: Any): ImageRequest = ImageRequest.Builder(LocalContext.current)
