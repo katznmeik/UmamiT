@@ -33,7 +33,12 @@ class TimerShortScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun capture(name: String, state: TimerUiState.Active, other: TimerUiState.Active? = null) {
+    private fun capture(
+        name: String,
+        state: TimerUiState.Active,
+        other: TimerUiState.Active? = null,
+        tasting: TimerTasting? = null,
+    ) {
         compose.mainClock.autoAdvance = false
         val start = compose.mainClock.currentTime
         compose.setContent {
@@ -50,6 +55,7 @@ class TimerShortScreenScreenshotTest {
                     // The longest stock line (BRW-11, D-098): it shares the space the band gives way for.
                     stock = TimerStock(14.0, StockLevel.LOW),
                     other = other,
+                    tasting = tasting,
                 )
             }
         }
@@ -79,7 +85,21 @@ class TimerShortScreenScreenshotTest {
     @Test
     fun alerting() = capture("Alerting_matchaPhase", TimerStates.alerting(overtimeMs = 7_000))
 
+    /**
+     * With the taste button (D-114): the band is down to the top bar already, so the button goes below the control
+     * and *Start* stays on the screen (D-096).
+     */
+    @Test
+    fun readyWithTaste() = capture("Ready_taste", TimerStates.ready(stepIndex = 1), tasting = TASTING)
+
+    /** The alert with the taste button's space kept below the control: *Abgegossen* where *Start* was. */
+    @Test
+    fun alertingWithTaste() =
+        capture("Alerting_taste", TimerStates.alerting(overtimeMs = 7_000, stepIndex = 1), tasting = TASTING)
+
     private companion object {
+        val TASTING = TimerTasting(emptyMap(), onTaste = { _, _, _ -> }, onReset = {}, onNote = { _, _ -> })
+
         /** A synthetic tea name (D-016) that takes two lines of the title here. */
         const val TWO_LINE_NAME = "Bio Japan Sencha Kagoshima Asatsuyu"
     }

@@ -47,4 +47,11 @@
         <item quantity="one">%1$d Sekunde vorher</item>
         <item quantity="other">%1$d Sekunden vorher</item>
     </plurals>
+    <!-- The taste of the infusion ended last on the timer (SCR-05 v0.6.1, D-114; JRN-03, JRN-05). -->
+    <string name="brew_timer_taste_infusion">%1$d. Aufguss</string>
+    <string name="brew_timer_taste_button">Geschmack · %1$s</string>
+    <string name="brew_timer_taste_button_done">Geschmack · %1$s ✓</string>
+    <string name="brew_timer_taste_description">Geschmack zum %1$s eintragen</string>
+    <string name="brew_timer_taste_description_done">Geschmack zum %1$s eintragen, eingetragen</string>
+    <string name="brew_timer_taste_sheet_done">Fertig</string>
 </resources>
