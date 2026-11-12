@@ -1,6 +1,6 @@
-# v0.6.0 design review (with `v0.6.0-rc.1`, #233)
+# v0.6.0 design review (with `v0.6.0-rc.1`, #233; the slim slider after it, D-113, #237)
 
-These are Roborazzi goldens of the screens v0.6.0 added or changed (`src/test/screenshots/` of `feature:journal` and `feature:collection`), scaled to 600 px wide and palette-optimised, as for v0.5.1.
+These are Roborazzi goldens of the screens v0.6.0 added or changed (`src/test/screenshots/` of `feature:journal`, `feature:collection`, `feature:settings` and `core:designsystem`), scaled to 600 px wide and palette-optimised, as for v0.5.1.
 - They use synthetic sample teas and placeholder photos only (flat tints, the app's own illustrations), no Tee-Kontor content (D-016).
 - Re-record the goldens with `./gradlew recordRoborazziDebug`.
 
@@ -21,12 +21,26 @@ Naming:
 | **Session editor** (#230; SCR-17, JRN-11) | `journal/` | `SessionEditor_untouched`: date, time, vessel, leaf, water, the steps with *Zeit* and the °C stepper, skipped and never brewed steps greyed; `SessionEditor_stock_line`: „Dein Vorrat wird um 2 g angepasst." under a changed leaf; `SessionEditor_error`: the inline messages. |
 | **Journal** (#231; SCR-15, JRN-08, JRN-09) | `journal/` | `Journal_withSessions`: „★ 4,5" in the rows, the search field and the filter icon; `Journal_searchActive`; `Journal_filterSheet`: *Tee*, *Bewertung*, *Mit Notizen*; `Journal_filterChips`: active filters as chips under the search; `Journal_noMatch`: „Keine Sitzung passt zu deiner Suche." with *Filter zurücksetzen*; `Journal_empty`: the A6 illustration. |
 | **Tea screens** (#232; SCR-08, SCR-09, TEA-08, TEA-11, TEA-13) | `collection/` | `TeaDetail_rating`: „★ 4,5 (12)" under the names; `TeaDetail_taste`: GESCHMACK with the average radar and the top descriptors; `TeaDetail_recent`: LETZTE SITZUNGEN with *Alle anzeigen*; `Collection_myTeas`: the average in the rows; `Collection_sortMenu`: the order *Bewertung*; `Collection_myTeas_short_font2x`. |
+| **The slim slider** (#237; D-113, 03 §3.8) | `journal/`, `settings/`, `components/` | `SessionPage_tasteTwoAxes`, `SessionPage_tasteAllSix`: the six taste sliders with the slim pin; an unset axis shows the short grey mark; `settings/Settings_volume`: *Lautstärke* with the same pin; `components/SlimSlider`: four rows, a value of 3, a value of 0, an unset axis, and the pin while pressed (4 × 24 dp). |
 
 Not rendered (behaviour, checked by tests and on the phone, 09 §4 „v0.6.0"): the stars' tap cycle (4,0 → 3,5 → none) and the sheet's 10 s restarting with each tap; the notes saving themselves; the radar easing in above the sliders when the third axis is set; the photo picker and the hero's swipe; accepting the recipe offer; the editor's effect on stock and date; the search matching notes and descriptors; *Alle anzeigen* opening the Journal filtered to the tea; TalkBack's readings.
 
-## Points to judge
+## To judge now: the slim slider (D-113)
 
-Collected while building (D-112's build notes) and in the reviews. None is decided; an answer goes through the process (grilling → spec → ticket).
+The PO tested `v0.6.0-rc.1` on 2026-11-12 and approved everything except the taste slider's handle (D-113). The slim pin (option B of four drawn designs) is built for the six taste sliders and for *Lautstärke*. There is no rc.2: the PO's OK on these renders starts the merge and the final release.
+
+Look at:
+- `journal/SessionPage_tasteTwoAxes_light.png` and `_dark.png`: two set axes (4 and 2) and four unset ones.
+- `journal/SessionPage_tasteAllSix_light.png` and `_dark.png`: six set axes under the radar.
+- `journal/SessionPage_tasteTwoAxes_light_font2x.png`: font scale 2.0.
+- `settings/Settings_volume_light.png` and `_dark.png`: *Lautstärke* at 60 %.
+- `components/SlimSlider_light.png` and `_dark.png`: the states side by side, the last row pressed.
+
+As specified (03 §3.8): the pin is 3 × 20 dp (4 × 24 dp while pressed or dragged), the line 2 dp with a 4 dp gap on each side of the pin, stop dots only beyond the pin, an unset axis a short grey mark of 1.5 × 10 dp. Not visible in a render: the pin growing under the finger, and the drag feel.
+
+## Points collected for rc.1 (record)
+
+Collected while building (D-112's build notes) and in the reviews, and shown to the PO with rc.1. The PO's answer of 2026-11-12: everything looks fine and works as expected, except the slider's handle (above). The GESCHMACK questions were answered one by one in D-113: TalkBack on an unset slider and the single-axis unset stay as built, the radar stays above the sliders.
 
 **„Gespeichert" sheet** (`Journal_savedSheet*`)
 - The empty stars are faint in the dark theme.
