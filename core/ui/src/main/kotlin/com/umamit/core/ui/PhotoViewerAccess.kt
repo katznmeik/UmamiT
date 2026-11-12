@@ -75,14 +75,14 @@ fun rememberPhotoViewerOpener(): PhotoViewerOpener {
  */
 @Composable
 fun rememberPhotoViewerAccess(open: (owner: String, sources: List<String>, index: Int) -> Unit): PhotoViewerAccess {
-    var owner by rememberSaveable { mutableStateOf<String?>(null) }
-    var index by rememberSaveable { mutableIntStateOf(0) }
+    var reportedOwner by rememberSaveable { mutableStateOf<String?>(null) }
+    var reportedIndex by rememberSaveable { mutableIntStateOf(0) }
     val currentOpen by rememberUpdatedState(open)
     return remember {
         object : PhotoViewerAccess {
             override fun open(owner: String, sources: List<String>, index: Int) = currentOpen(owner, sources, index)
 
-            override fun viewed(owner: String): Int? = if (owner == this.reportedOwner) reportedIndex else null
+            override fun viewed(owner: String): Int? = if (owner == reportedOwner) reportedIndex else null
 
             override fun report(owner: String, index: Int) {
                 reportedOwner = owner
@@ -92,18 +92,6 @@ fun rememberPhotoViewerAccess(open: (owner: String, sources: List<String>, index
             override fun consume(owner: String) {
                 if (owner == reportedOwner) reportedOwner = null
             }
-
-            private var reportedOwner: String?
-                get() = owner
-                set(value) {
-                    owner = value
-                }
-
-            private var reportedIndex: Int
-                get() = index
-                set(value) {
-                    index = value
-                }
         }
     }
 }
