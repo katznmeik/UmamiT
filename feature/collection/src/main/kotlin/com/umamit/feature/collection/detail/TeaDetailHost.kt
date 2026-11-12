@@ -14,6 +14,8 @@ package com.umamit.feature.collection.detail
  *   detail has none to open (its brew rows then open nothing). LETZTE SITZUNGEN's rows use it too (TEA-13).
  * @property onShowAllSessions LETZTE SITZUNGEN's *Alle anzeigen*: the Journal tab filtered to this tea (TEA-13,
  *   JRN-09); null where the detail has none (above the setup), where the button is hidden.
+ * @property onOpenCatalog ⋮ *Im Katalog ansehen* (D-114 Q10): the tea's catalog page (SCR-21) by its catalog key,
+ *   above the detail; back returns.
  */
 class TeaDetailHost(
     val onBack: () -> Unit,
@@ -26,4 +28,5 @@ class TeaDetailHost(
     val onAddRecipe: () -> Unit = {},
     val onOpenSession: ((sessionId: String) -> Unit)? = null,
     val onShowAllSessions: (() -> Unit)? = null,
+    val onOpenCatalog: (catalogKey: String) -> Unit = {},
 )

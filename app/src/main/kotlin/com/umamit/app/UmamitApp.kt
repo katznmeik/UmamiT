@@ -659,6 +659,8 @@ private fun TabHost(
                     onBrewAgain = resumedOnly(journal.openSetupFromSession),
                     onDeleted = { close() },
                     onEdit = resumedOnly { navController.navigate(JournalSessionEditorRoute(it)) },
+                    // ⋮ *Im Katalog ansehen* (D-114 Q11): the catalog tea in this stack; back returns to the page.
+                    onOpenCatalog = resumedOnly { key: String -> navController.navigate(CatalogTeaRoute(key)) },
                     alertKey = alertKey,
                 ),
             )
@@ -725,6 +727,8 @@ private fun TabHost(
                     },
                     // LETZTE SITZUNGEN's *Alle anzeigen*: the Journal tab at its root, not a list in this stack.
                     onShowAllSessions = dropUnlessResumed { collection.showInJournal(teaId) },
+                    // ⋮ *Im Katalog ansehen* (D-114 Q10): the catalog tea in this stack; back returns to the detail.
+                    onOpenCatalog = resumedOnly { key: String -> navController.navigate(CatalogTeaRoute(key)) },
                 ),
             )
         }

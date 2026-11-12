@@ -92,6 +92,7 @@
     <string name="collection_tea_stat_stock_value">%1$s g</string>
     <string name="collection_tea_stat_stock_description">Vorrat: %1$s</string>
     <!-- ⋮ (TEA-04, TEA-06): an item greyed out for the tea of the active brew session (E15). -->
+    <string name="collection_tea_catalog">Im Katalog ansehen</string>
     <string name="collection_tea_favorite">Favorit</string>
     <string name="collection_tea_archive">Archivieren</string>
     <string name="collection_tea_restore">Wiederherstellen</string>

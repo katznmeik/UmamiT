@@ -426,6 +426,12 @@ internal fun UmamitRoot(
                                 navigateAbove(route) { launchSingleTop = true }
                             }
                         },
+                        // ⋮ *Im Katalog ansehen* (D-114 Q10): the catalog page above this detail; back returns to it.
+                        openCatalog = { key ->
+                            unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                navigateAbove(SetupCatalogTeaRoute(key)) { launchSingleTop = true }
+                            }
+                        },
                         onArchived = { archivedTea = it },
                     ),
                 )
@@ -642,6 +648,7 @@ private fun setupTeaHost(
     alertKey: String?,
     openSetup: (BrewSetupRoute) -> Unit,
     openEditor: (Any) -> Unit,
+    openCatalog: (String) -> Unit,
     onArchived: (ArchivedTea) -> Unit,
 ): TeaDetailHost {
     val teaId = entry.toRoute<SetupTeaRoute>().teaId
@@ -661,6 +668,7 @@ private fun setupTeaHost(
         onEditTea = { if (resumed()) openEditor(SetupTeaEditorRoute(teaId)) },
         onEditRecipe = { recipeId -> if (resumed()) openEditor(SetupRecipeEditorRoute(teaId, recipeId)) },
         onAddRecipe = { if (resumed()) openEditor(SetupRecipeEditorRoute(teaId)) },
+        onOpenCatalog = { key -> if (resumed()) openCatalog(key) },
     )
 }
 
