@@ -534,6 +534,18 @@ words:
   hand-over waits for the next time the settings screen shows with no
   alert playing. The PO also kept M6 (*Anpassen* moves on unfold) and M8
   (the chip row returns to its start on clear) as built.
+- **Amended by the PO (2026-11-12, T4 review MIN-1, answered as an
+  option): the timer button's space is reserved from the session's first
+  READY**, before the button shows, so the first *Abgegossen* moves
+  nothing (the passage above on „not reserved before then" is replaced).
+  (Claude, T4 MAJ-1:) the timer layout excludes the keyboard's insets, so
+  a note being typed never reflows the timer and the keyboard leaving at
+  an alert moves nothing.
+- **Build note (Claude, 2026-11-12, T3 review m1):** 05 §9's „first ended
+  step" for the v0.6.0 taste is the first step poured: a skipped step
+  (`skipped = 1`, which records 0 s) is not ended for the migration, as
+  D-114's „a skipped step has no chip" and the checklist's „under
+  „1. Aufguss"" say.
 - **The quick-timer chips** wrap onto a second row as before; SCR-07's
   layout rules (polish 2, the band giving way) are re-checked at font 2.0.
 

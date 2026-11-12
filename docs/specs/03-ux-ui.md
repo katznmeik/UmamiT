@@ -823,9 +823,12 @@ timer screen offers the taste of the infusion ended last (JRN-03, JRN-05):
   strip, „Geschmack · 1. Aufguss" (the infusion ended last, *Spülen* never
   counts), „… ✓" once that infusion has a value or a note. It shows in
   READY, RUNNING and PAUSED from the first *Abgegossen* (or *Aufguss jetzt
-  beenden*) on, never before. From then its space is reserved; on the
-  alert surface it is hidden and the space kept, so nothing moves when the
-  alert starts (rule 8, D-096). The band gives way for it like for the
+  beenden*) on, never before. Its space is reserved from the session's
+  first READY on, before the button shows (PO, 2026-11-12, T4 review
+  MIN-1), so the first *Abgegossen* moves nothing either; on the alert
+  surface it is hidden and the space kept, so nothing moves when the alert
+  starts (rule 8, D-096). The timer's layout ignores the keyboard (a note
+  being typed in the sheet never reflows the screen behind it). The band gives way for it like for the
   other content above the control (D-096); below the control it scrolls
   with the banner where it does not fit. Each of two brews' screens offers
   its own session's infusion; the quick timer has none.
