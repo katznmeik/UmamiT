@@ -838,7 +838,11 @@ timer screen offers the taste of the infusion ended last (JRN-03, JRN-05):
   Körper, Aroma; unset „–"), the field „Notiz zum Aufguss …" (≤ 200, a
   counter from 180), *Zurücksetzen* (the six values) at the end. No radar.
   A slider's release saves; the note saves 1 s after the last key and when
-  the sheet closes. The keyboard does not open by itself.
+  the sheet closes. The keyboard does not open by itself. A slider still
+  being dragged when an alert closes the sheet was not released, so that
+  value is not saved (Claude, T4 review nit 6); a value that was not
+  stored (a write refused or failed) is not kept on screen: the sheet shows
+  the stored one again.
 - **Rule 8.** The pre-alert leaves the sheet open; an alert of any slot
   closes it (and the keyboard) in its first frame, a write already started
   completes, nothing entered is lost. The sheet never delays, covers or
