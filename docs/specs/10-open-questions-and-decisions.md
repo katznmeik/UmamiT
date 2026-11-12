@@ -526,6 +526,14 @@ words:
   failed or an alert started meanwhile (no re-creation under an alert).
   After a restore from backup the system has no stored choice yet: until
   the next pick, a start can show the phone's theme until the file is read.
+  **Amended by the PO (2026-11-12, v0.6.1 motion review M21, Q3 answered
+  as options):** the hand-over to the system happens when the *Design*
+  dialog closes (*Fertig*, back or a tap outside), not on each pick, so the
+  re-creation comes once, after the dialog is gone; a pick still stores
+  and recolours at once. (Claude:) when an alert closes the dialog, the
+  hand-over waits for the next time the settings screen shows with no
+  alert playing. The PO also kept M6 (*Anpassen* moves on unfold) and M8
+  (the chip row returns to its start on clear) as built.
 - **The quick-timer chips** wrap onto a second row as before; SCR-07's
   layout rules (polish 2, the band giving way) are re-checked at font 2.0.
 

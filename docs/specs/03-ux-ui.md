@@ -1786,9 +1786,11 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)): a section *Darstellung* first, below the
 *Timer-Zuverlässigkeit* card, with the row *Design* and its value
 („System"); it opens a choice dialog *System · Hell · Dunkel* (a pick
-applies at once, *Fertig* closes), like *Vorrats-Erinnerung*. The app
-switches without a restart and starts in the chosen theme with no flash of
-the other. The timer, the quick timer and the alert surface stay as they
+is stored and recolours the app at once, *Fertig* closes), like
+*Vorrats-Erinnerung*. The app switches without a restart and starts in the
+chosen theme with no flash of the other. The system's own night mode (which
+re-creates the app once) follows only when the dialog closes, so the dialog
+never shows again after a pick (PO, 2026-11-12, motion review M21). The timer, the quick timer and the alert surface stay as they
 are (Steeping, washi/matcha); the status-bar icons follow D-069 on the
 chosen theme.
 
