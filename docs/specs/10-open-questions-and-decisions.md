@@ -545,6 +545,23 @@ infusion: counted in the tea's radar, not listed in `infusions`. The tea
 average also reads a session's own taste columns (only v0.6.0 sessions
 without step rows).
 
+**Build notes (Claude, 2026-11-12, #243: GESCHMACK per infusion).** The
+shared editor is `com.umamit.core.ui.InfusionTasteEditor` (six sliders, the
+note, *Zurücksetzen*); it times the note save itself (1 s after the last
+key, and when the field, the fold, the page or the app is left) and the
+host's write completes even when the screen goes (rule 8). Details the
+spec left open, Claude's defaults for the design review: a note alone
+counts as a value (the chips show, never „Geschmack hinzufügen", so a note
+is never hidden); skipped steps get no chip unless they hold values (a
+v0.6.0 migration can produce that); the first numbered chip reads
+„1. Aufguss", the others „2." …, an *Aufschlagen* step „Aufschlagen" (TalkBack
+reads the full name); *Anpassen* stays in place when unfolded (a second tap
+folds on the same spot); *Zurücksetzen* keeps the chips (v0.6.0 folded back
+to „Geschmack hinzufügen"). `canTaste` stays: a session in progress has no
+page (SCR-16, its entry opens the timer), so its taste is entered on the
+timer (#244). Migrated values on a non-infusion row (see #242) show only in
+the tea's average.
+
 <a id="d-113"></a>
 ### D-113 — v0.6.0: the slim slider handle; the open points of rc.1 closed; the final without an rc.2 (03 §3.8, SCR-16, SET-27; JRN-03) · *Accepted* (PO, 2026-11-12, on `v0.6.0-rc.1`; seven questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
