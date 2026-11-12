@@ -1,6 +1,6 @@
 # 08 · Content & Catalog Import
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (the rows of the other categories ship with v0.4.0's *Sorte wählen*, D-100; 2026-10-29: a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-11-11 (descriptor keys, §4, D-112; 2026-10-31: the rows of the other categories ship with v0.4.0's *Sorte wählen*, D-100; 2026-10-29: a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
 > v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
@@ -781,6 +781,21 @@ unheaded group.
 | Fehlnoten (OFF_NOTE) | abgestanden, flach, zu bitter, metallisch, muffig, sauer |
 
 The umami taste is captured by the Umami slider, not a descriptor.
+
+**Keys (v0.6.0, D-112).** Each descriptor has a stable key
+`<group>.<slug>`, stored in `session_descriptor` (05 §3.8): the group's
+enum name in lower case (`marine`, `vegetal`,
+`sweet`, `roasted_nutty`, `floral`, `fruity`, `earthy_woody`, `spice_herb`,
+`mouthfeel`, `off_note`) and an ASCII slug of the German label (`nori`,
+`dashi`, `gemaehtes_gras`, `geroesteter_reis`, `klarer_abgang`,
+`zu_bitter`). The vocabulary is an enum-like list in `core:model`
+(`TasteDescriptor`: key, group; `core:ui` maps each to its label) with the
+labels in `strings.xml`; a test pins every key, so a label can be reworded but a key
+never changes. The picker and the chips show groups and descriptors in the
+table's order. The group names read as in the table's first column
+(„Meer", „Gemüse", „Süß", „Geröstet & nussig", „Blumig", „Fruchtig", „Erdig
+& holzig", „Würzig & kräutrig", „Mundgefühl", „Fehlnoten"). There are no
+custom descriptors (an idea kept for later).
 
 ## 5. (Removed) Sample teas
 

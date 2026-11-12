@@ -13,12 +13,15 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.feature.journal.JournalSessions.TODAY
@@ -40,9 +43,9 @@ import java.time.LocalTime
 /**
  * SCR-15 and SCR-06 in light and dark at font scale 1.0 and 2.0 (03 §6): the
  * journal with sessions (pinned, today, yesterday, an older date, an early
- * finish, a long German name, a photo and the leaf placeholder), the empty
- * journal, and the „Gespeichert" sheet over it. Photos are the placeholder
- * illustration only. Goldens: `src/test/screenshots/`.
+ * finish, rated rows, a long German name, a photo and the leaf placeholder), a
+ * search, filter chips, the filter sheet, no match (A10), the empty journal (A6),
+ * and the „Gespeichert" sheet over it. Photos are the placeholder illustration only. Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -58,6 +61,8 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
 
         /** Any path: the screenshot's thumbnail loader draws the placeholder illustration for it. */
         private val PLACEHOLDER_PHOTO = File("placeholder.jpg")
+
+        private val HISUI_OPTION = JournalTeaOption("t-hisui", "Bio Sencha Hisui")
     }
 
     @get:Rule
@@ -76,7 +81,13 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             steps = listOf(step(0, 60), step(1, 20, actualSeconds = null), step(2, 60, actualSeconds = null)),
             photo = PLACEHOLDER_PHOTO,
         ),
-        session("hisui", at(TODAY, 9, 12), photo = PLACEHOLDER_PHOTO),
+        session(
+            "hisui",
+            at(TODAY, 9, 12),
+            photo = PLACEHOLDER_PHOTO,
+            rating = 4.5,
+            notes = "Sehr frisch, grasig im Abgang",
+        ),
         session(
             "early",
             at(TODAY, 7, 21),
@@ -85,14 +96,22 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             baseTempC = 50,
             steps = listOf(step(0, 120), step(1, 20)),
             plannedStepCount = 3,
+            rating = 4.0,
         ),
-        session("yesterday", at(TODAY.minusDays(1), 18, 40), styleKey = "hojicha", baseTempC = 95),
+        session(
+            "yesterday",
+            at(TODAY.minusDays(1), 18, 40),
+            teaName = "Hojicha Kaga",
+            styleKey = "hojicha",
+            baseTempC = 95,
+            rating = 3.0,
+        ),
         session("older", at(LocalDate.of(2026, 10, 12), 6, 48), steps = listOf(step(0, 90))),
     )
 
     /**
      * [flaggedTea]: the sheet's session is of a tea flagged „Rezept prüfen", opened before. [newPackage]: of a
-     * tea not yet opened, which the session opens.
+     * tea not yet opened, which the session opens. [recipeOffer]: the recipe offer applies (PRF-07).
      */
     private fun capture(
         name: String,
@@ -100,6 +119,9 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         sheetFor: String? = null,
         flaggedTea: Boolean = false,
         newPackage: Boolean = false,
+        recipeOffer: Boolean = false,
+        filter: JournalFilter = JournalFilter(),
+        openFilterSheet: Boolean = false,
     ) {
         RuntimeEnvironment.setFontScale(fontScale)
         val collection = FakeCollection()
@@ -134,26 +156,74 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                         list = list,
                         onOpenSettings = {},
                         onOpenTimer = {},
+                        filter = filter,
                         thumbnail = { painterResource(UmamiIcons.LandscapePlaceholder) },
                     )
                     SavedSheetHost(
                         requests = requests,
                         sessions = data.sessions,
                         teas = collection.teas,
+                        tasting = data.tasting,
+                        offers = offersFor(sheetFor.takeIf { recipeOffer }),
+                        onOpenNotes = {},
                         alerting = false,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
+                    if (openFilterSheet) {
+                        // Composed open, as the catalog's goldens do: the sheet is a window of its own.
+                        JournalFilterSheet(filter, listOf(HISUI_OPTION), onFilterChange = {}, onDismissRequest = {})
+                    }
                 }
             }
         }
-        compose.mainClock.autoAdvance = false
-        compose.mainClock.advanceTimeBy(1_000)
+        if (!openFilterSheet) {
+            compose.mainClock.autoAdvance = false
+            compose.mainClock.advanceTimeBy(1_000)
+        }
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/Journal_${name}_$variant.png")
     }
 
+    /** The recipe offers: [sessionId], if any, has a proposal (PRF-07). */
+    private fun offersFor(sessionId: String?) = FakeRecipeOffers().apply {
+        if (sessionId != null) proposals[sessionId] = listOf(RecipeStep(StepKind.INFUSION, 50))
+    }
+
     @Test
     fun withSessions() = capture("withSessions", journalList(sessions, TODAY))
+
+    /** A typed search: the rows narrow, the day groups stay, the pinned session is gone (JRN-09). */
+    @Test
+    fun searchActive() = capture(
+        "searchActive",
+        journalList(sessions, TODAY),
+        filter = JournalFilter(search = "sencha"),
+    )
+
+    /** A rating and a tea set as chips under the search, the dot on the filter icon. */
+    @Test
+    fun filterChips() = capture(
+        "filterChips",
+        journalList(sessions, TODAY),
+        filter = JournalFilter(teaKey = "t-hisui", minRating = 4.0, withNotes = true),
+    )
+
+    /** The filter sheet: *Tee*, *Bewertung*, *Mit Notizen*, *Zurücksetzen*. */
+    @Test
+    fun filterSheet() = capture(
+        "filterSheet",
+        journalList(sessions, TODAY),
+        filter = JournalFilter(minRating = 4.0),
+        openFilterSheet = true,
+    )
+
+    /** Nothing passes: A10 with *Filter zurücksetzen*. */
+    @Test
+    fun noMatch() = capture(
+        "noMatch",
+        journalList(sessions, TODAY),
+        filter = JournalFilter(search = "zzzz"),
+    )
 
     @Test
     fun empty() = capture("empty", JournalList.EMPTY)
@@ -168,6 +238,29 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         journalList(sessions.drop(1), TODAY),
         sheetFor = "sheet",
         flaggedTea = true,
+    )
+
+    /**
+     * Every line of the sheet: stars, *Notizen hinzufügen*, *Zeiten ins Rezept übernehmen*, the opened date and
+     * *Rezept passt* (D-112).
+     */
+    @Test
+    fun savedSheetAllLines() = capture(
+        "savedSheetAllLines",
+        journalList(sessions.drop(1), TODAY),
+        sheetFor = "sheet",
+        flaggedTea = true,
+        newPackage = true,
+        recipeOffer = true,
+    )
+
+    /** A session with deliberate changes: *Zeiten ins Rezept übernehmen* below *Notizen hinzufügen* (PRF-07). */
+    @Test
+    fun savedSheetRecipeOffer() = capture(
+        "savedSheetRecipeOffer",
+        journalList(sessions.drop(1), TODAY),
+        sheetFor = "sheet",
+        recipeOffer = true,
     )
 
     /** The session that opened a new package: „Packung als geöffnet markiert" · *Rückgängig* (INV-06, D-104). */

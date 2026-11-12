@@ -163,3 +163,27 @@ data class ActiveBrewEntity(
     @ColumnInfo(name = "alert_ringing_since_elapsed_ms") val alertRingingSinceElapsedMs: Long?,
     @ColumnInfo(name = "alert_ringing_since_wall_ms") val alertRingingSinceWallMs: Long?,
 )
+
+/**
+ * Table `session_descriptor` (05 §3.8, umamit.db v6, D-112): one row per descriptor ticked on a session, at most
+ * 20 per session (checked in the write's transaction). [descriptorKey] is a built-in key of 08 §4
+ * (`marine.nori`); a key the app does not know is kept and not shown. The rows go with their session (CASCADE).
+ */
+@Entity(
+    tableName = "session_descriptor",
+    primaryKeys = ["session_id", "descriptor_key"],
+    foreignKeys = [
+        ForeignKey(
+            entity = BrewSessionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["session_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("descriptor_key")],
+)
+data class SessionDescriptorEntity(
+    @ColumnInfo(name = "session_id") val sessionId: String,
+    @ColumnInfo(name = "descriptor_key") val descriptorKey: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)

@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -38,10 +39,12 @@ import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.TasteAxis
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberAlertGate
+import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.feature.journal.R
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -51,6 +54,7 @@ const val SESSION_TEA_TAG = "session_tea"
 const val SESSION_BREW_AGAIN_TAG = "session_brew_again"
 const val SESSION_RESTORE_TAG = "session_restore"
 const val SESSION_MENU_TAG = "session_menu"
+const val SESSION_EDIT_TAG = "session_edit"
 
 private val CHEVRON_SIZE = 20.dp
 
@@ -65,6 +69,22 @@ class SessionPageActions(
     val restore: () -> Unit = {},
     /** *Löschen*, confirmed in its dialog (JRN-10, D-102). */
     val delete: () -> Unit = {},
+    /** ⋮ *Bearbeiten* (JRN-11, D-112): the session editor (SCR-17) of this session, by its id. */
+    val edit: (sessionId: String) -> Unit = {},
+    /** A tap on the stars (JRN-02): the new rating, null for none; saved at once. */
+    val setRating: (Double?) -> Unit = {},
+    /** A taste slider released on a value (JRN-03): saved at once. */
+    val setTaste: (TasteAxis, Int) -> Unit = { _, _ -> },
+    /** *Zurücksetzen* (JRN-03): all six taste values are unset. */
+    val clearTaste: () -> Unit = {},
+    /** The notes field changed (JRN-05): saved 1 s after the last key. */
+    val notesChanged: (String) -> Unit = {},
+    /** The notes field or the page is left (JRN-05): a pending note is saved now. */
+    val flushNotes: () -> Unit = {},
+    /** A chip ticked or unticked in the descriptor sheet (JRN-04): saved at once; `onRefused` runs if not stored. */
+    val setDescriptor: (key: String, ticked: Boolean, onRefused: () -> Unit) -> Unit = { _, _, _ -> },
+    /** *Zeiten ins Rezept übernehmen* (PRF-07, D-112): the session's changes into its recipe. */
+    val acceptRecipeOffer: () -> Unit = {},
 )
 
 /**
@@ -73,7 +93,11 @@ class SessionPageActions(
  * never started reads „nicht gebrüht", Q-19). *So nochmal brühen* (BRW-06) opens the setup prefilled with the
  * session; for an archived tea it is greyed out with „Tee ist archiviert" and *Wiederherstellen*, for a deleted tea
  * there is neither the link nor the button. ⋮ *Löschen* (D-102) asks „Sitzung löschen?" and removes a finished
- * session with its stock deduction. Rating, taste, notes, photos and *Bearbeiten* come with M4.
+ * session with its stock deduction. BEWERTUNG (the stars, JRN-02) and NOTIZEN (JRN-05) sit above the step table and
+ * save as they change (D-112), GESCHMACK (JRN-03) and BESCHREIBUNGEN (JRN-04) follow the step table; ⋮ *Bearbeiten*
+ * opens the editor (JRN-11). The hero (JRN-07) shows the session's photos ([hero], with *+ Foto* and *Löschen*
+ * through [heroActions]), else the tea's cover, else the type leaf; while [hero] is loading (null) only its tint;
+ * ← and ⋮ sit over it.
  *
  * The menu and the question give way to another alert than the one they were opened in ([alertKey], rule 8); the
  * host opens the alerting timer in place of the setup or the tea during an alert.
@@ -84,25 +108,42 @@ fun SessionPageScreen(
     modifier: Modifier = Modifier,
     actions: SessionPageActions = SessionPageActions(),
     alertKey: String? = null,
+    hero: SessionHero? = SessionHero(),
+    heroActions: SessionHeroActions = SessionHeroActions(),
+    photo: @Composable (path: String) -> Painter? = { rememberPhotoPainter(it) },
 ) {
     val deleteAsk = rememberAlertGate(alertKey)
-    val deletable = state is SessionPageUiState.Ready && !state.page.inProgress
-    ScreenScaffold(
-        title = stringResource(R.string.session_title),
-        modifier = modifier,
-        navigationIcon = { BackAction(actions.back) },
-        actions = { if (deletable) SessionMenu(alertKey, onDelete = deleteAsk::open) },
-        verticalArrangement = if (state is SessionPageUiState.Ready) Arrangement.Top else Arrangement.Center,
-    ) {
-        when (state) {
-            SessionPageUiState.Loading -> Unit
-
-            SessionPageUiState.NotFound -> EmptyState(
-                title = stringResource(R.string.session_not_found_title),
-                body = stringResource(R.string.session_not_found_body),
-            )
-
-            is SessionPageUiState.Ready -> SessionContent(state.page, actions)
+    if (state is SessionPageUiState.Ready) {
+        val page = state.page
+        // The hero carries ← and ⋮ on their translucent surfaces (SCR-16, D-112), as the tea detail does.
+        SessionHeroLayout(
+            onBack = actions.back,
+            menu = if (page.inProgress) {
+                null
+            } else {
+                { SessionMenu(alertKey, onEdit = { actions.edit(page.sessionId) }, onDelete = deleteAsk::open) }
+            },
+            hero = {
+                SessionHeroPager(hero, page.styleKey, canAdd = page.canTaste, heroActions, alertKey, photo)
+                Spacer(Modifier.height(UmamiSpacing.Small))
+            },
+            modifier = modifier,
+        ) {
+            SessionContent(page, actions, alertKey)
+        }
+    } else {
+        ScreenScaffold(
+            title = stringResource(R.string.session_title),
+            modifier = modifier,
+            navigationIcon = { BackAction(actions.back) },
+            verticalArrangement = Arrangement.Center,
+        ) {
+            if (state == SessionPageUiState.NotFound) {
+                EmptyState(
+                    title = stringResource(R.string.session_not_found_title),
+                    body = stringResource(R.string.session_not_found_body),
+                )
+            }
         }
     }
     AlertGated(deleteAsk) {
@@ -116,9 +157,9 @@ fun SessionPageScreen(
     }
 }
 
-/** ⋮ with *Löschen* (JRN-10, D-102); the menu gives way to another alert (rule 8). */
+/** ⋮ with *Bearbeiten* (JRN-11) above *Löschen* (JRN-10, D-102); the menu gives way to another alert (rule 8). */
 @Composable
-private fun SessionMenu(alertKey: String?, onDelete: () -> Unit) {
+private fun SessionMenu(alertKey: String?, onEdit: () -> Unit, onDelete: () -> Unit) {
     val menu = rememberAlertGate(alertKey)
     Box {
         IconButton(onClick = menu::open, modifier = Modifier.testTag(SESSION_MENU_TAG)) {
@@ -128,6 +169,14 @@ private fun SessionMenu(alertKey: String?, onDelete: () -> Unit) {
             )
         }
         AlertGatedDropdownMenu(menu) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.session_edit)) },
+                onClick = {
+                    menu.close()
+                    onEdit()
+                },
+                modifier = Modifier.testTag(SESSION_EDIT_TAG),
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.session_delete)) },
                 onClick = {
@@ -156,7 +205,7 @@ private fun DeleteDialog(onDelete: () -> Unit, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun SessionContent(page: SessionPage, actions: SessionPageActions) {
+private fun SessionContent(page: SessionPage, actions: SessionPageActions, alertKey: String?) {
     Column(modifier = Modifier.fillMaxWidth()) {
         TeaHeader(page, onOpenTea = page.teaId?.let { id -> { actions.openTea(id) } })
         Spacer(Modifier.height(UmamiSpacing.Small))
@@ -175,11 +224,15 @@ private fun SessionContent(page: SessionPage, actions: SessionPageActions) {
             page.ratioPer100Ml?.let { stringResource(R.string.session_ratio_value, GermanFormat.gramsOneDecimal(it)) }
                 ?: unknown(),
         )
+        if (page.canTaste) TastingInputs(page, actions)
         SectionHeader(
             title = stringResource(R.string.session_steps),
             modifier = Modifier.padding(top = UmamiSpacing.Medium),
         )
         SessionSteps(page.steps)
+        page.recipeOffer?.let { SessionRecipeOffer(it, actions.acceptRecipeOffer) }
+        if (page.canTaste) TasteSection(page, actions)
+        if (page.canTaste) DescriptorsSection(page, actions, alertKey)
         BrewAgain(page, actions)
     }
 }

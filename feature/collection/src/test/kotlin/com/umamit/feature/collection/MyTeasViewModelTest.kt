@@ -10,6 +10,7 @@ import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.SessionSnapshot
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
@@ -21,6 +22,8 @@ import com.umamit.core.testing.FakeCollectionList
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
+import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -251,6 +254,78 @@ class MyTeasViewModelTest {
 
         assertThat(state.empty).isEqualTo(MyTeasEmpty.NO_TEAS)
         assertThat(state.showControls).isTrue()
+    }
+
+    /** A finished session of [teaId] rated [rating] (null: unrated). */
+    private suspend fun rated(teaId: String, id: String, rating: Double?) {
+        val snapshot = SessionSnapshot(
+            teaId, teaId, null, null, null, null, null, null, BrewMethod.KYUSU, null, null, null, null, null,
+        )
+        sessions.sessions.startSession(
+            SessionStart(id, snapshot, listOf(PlannedStep(StepKind.INFUSION, 60, 70)), 10, 2_000L, "Europe/Berlin"),
+        )
+        sessions.sessions.recordStep(id, 0, StepRecord(60, 60, 0, 0, 2_000L, 62_000L, false, false))
+        sessions.sessions.completeSession(id, autoFinished = false)
+        if (rating != null) sessions.tasting.setRating(id, rating)
+    }
+
+    @Test
+    fun `a row carries the average of its rated sessions and none without a rating`() = runTest {
+        save(tea("a", "Asamushi"))
+        save(tea("b", "Bancha"))
+        rated("a", "s1", 4.0)
+        rated("a", "s2", 5.0)
+        rated("a", "s3", null)
+
+        val rows = viewModel().state.value.rows.associateBy { it.id }
+
+        assertThat(rows.getValue("a").rating).isEqualTo(4.5)
+        assertThat(rows.getValue("b").rating).isNull()
+    }
+
+    @Test
+    fun `the row follows a rating that changes at once`() = runTest {
+        save(tea("a", "Asamushi"))
+        rated("a", "s1", null)
+        val vm = viewModel()
+        assertThat(vm.state.value.rows.single().rating).isNull()
+
+        sessions.tasting.setRating("s1", 3.5)
+
+        assertThat(vm.state.value.rows.single().rating).isEqualTo(3.5)
+    }
+
+    @Test
+    fun `Bewertung puts the highest average first, unrated teas after, empty teas last`() = runTest {
+        save(tea("a", "Asamushi"))
+        save(tea("b", "Bancha"))
+        save(tea("c", "Cha"))
+        save(tea("d", "Dunkel"))
+        save(tea("e", "Empty"))
+        stock("e", 0.0)
+        rated("b", "s1", 3.0)
+        rated("c", "s2", 4.5)
+        rated("e", "s3", 5.0)
+        val vm = viewModel()
+
+        vm.setSort(CollectionSort.RATING)
+
+        assertThat(vm.state.value.sort).isEqualTo(CollectionSort.RATING)
+        assertThat(vm.ids).containsExactly("c", "b", "a", "d", "e").inOrder()
+    }
+
+    @Test
+    fun `Bewertung is remembered like the other orders`() = runTest {
+        save(tea("a", "Asamushi"))
+        save(tea("b", "Bancha"))
+        rated("b", "s1", 4.0)
+
+        viewModel().setSort(CollectionSort.RATING)
+
+        assertThat(settings.settings.first().collectionSort).isEqualTo(CollectionSort.RATING)
+        val next = viewModel()
+        assertThat(next.state.value.sort).isEqualTo(CollectionSort.RATING)
+        assertThat(next.ids).containsExactly("b", "a").inOrder()
     }
 
     private suspend fun brewed(teaId: String, startedAt: Long) {

@@ -47,6 +47,13 @@ internal data class BrewSetupRoute(
 internal data class JournalSessionRoute(val sessionId: String)
 
 /**
+ * Sitzung bearbeiten (SCR-17, JRN-11, D-112) above the session page in the Journal tab's stack; [sessionId] is named
+ * as its view model reads it (`SessionEditorViewModel.SESSION_ID`).
+ */
+@Serializable
+internal data class JournalSessionEditorRoute(val sessionId: String)
+
+/**
  * A catalog tea's detail (SCR-21) from the setup's ⋮ *Im Katalog ansehen* (D-098): full-screen above the setup,
  * whose back-stack entry keeps its draft, so back returns to it unchanged. [key] is the catalog key (05 §4.1), named
  * as the detail's view model reads it. It gives way to a new alert like every route above the shell (rule 8).
@@ -102,6 +109,10 @@ internal data class CatalogRefreshRoute(val sheetToken: Long)
 @Serializable
 internal data object StartRoute
 
+/**
+ * The Journal tab's root (SCR-15). The tea detail's *Alle anzeigen* (TEA-13) filters it to a tea through a request
+ * the shell holds (`JournalTeaRequest`), not through the route, so the root is never pushed a second time.
+ */
 @Serializable
 internal data object JournalRoute
 

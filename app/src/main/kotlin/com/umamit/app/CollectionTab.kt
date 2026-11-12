@@ -77,10 +77,12 @@ internal class RecipeEditorHost(val onClose: () -> Unit, val onDone: () -> Unit,
 /**
  * What the Sammlung tab's collection screens get from the shell: the [screens], [onArchivedChange] for the tea
  * archived on its detail (the shell shows its snackbar), and [openSetup], the setup of a tea
- * with a recipe (null: its default) above the shell.
+ * with a recipe (null: its default) above the shell, and [showInJournal], the tea detail's *Alle anzeigen* (TEA-13):
+ * the Journal tab at its root, filtered to the tea.
  */
 internal class CollectionWiring(
     val screens: CollectionStackScreens,
     val onArchivedChange: (ArchivedTea?) -> Unit,
     val openSetup: (teaId: String, recipeId: String?) -> Unit,
+    val showInJournal: (teaId: String) -> Unit = {},
 )

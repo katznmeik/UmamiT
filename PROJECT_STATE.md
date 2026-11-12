@@ -5,109 +5,133 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-10. **Feedback round v0.5.1: the rc [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2) is out (D-110, D-111; draft PR #219); the PO approved rc.2 on 2026-11-10; next is the final release, #218** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+**Last updated:** 2026-11-12. **v0.6.0 (the journal, M4 part 1; D-112, D-113) is approved by the PO**: the on-device checklist on [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (all twelve points) and the design review, with the slim pin slider (#237) approved from its renders; there is no rc.2. The full local gate passed on `4a15f547` and CI is green on the branch (`claude/wonderful-davinci-fu8tqi`, draft PR #235). **Next phase (fresh session): #234**, version `0.6.0`, the accuracy run with all three variants, the merge and the final release from `main`. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest full release (from `main` `73a97fc5`); details in `docs/history.md`.
 
-## Feedback round v0.5.1 (in progress): rc.2 approved, final release next
+## v0.6.0 (approved by the PO; the merge and the final release are next)
 
-The PO's four points of feedback on v0.5.0 (2026-11-10; D-110): Start's two
-sections into one; *Knapp ab* shows its value; the filter sheet's *Fertig*;
-a sans in place of the serif font. Spec issue #212, plan
-`docs/plans/v0.5.1.md`, draft milestone PR **#219** from
-`claude/wonderful-davinci-fu8tqi`.
-
-- **Build phase: done** (2026-11-10, started by the PO with
-  `/implement-spec #212`). #213–#216 are merged into the PR branch (head
-  `ba89af29` before this handover). Each implementer started from the draft
-  `75e4198b` and reviewed its part; the full local gate passed on the merged
-  branch (spotlessCheck, detekt, checkManifestPermissions, testDebugUnitTest,
-  lint, verifyRoborazziDebug, assembleDebugAndroidTest).
-  - #213 (T2): the draft stood; a test for the row's tap and its TalkBack
-    label was added.
-  - #214 (T2): the global value is drawn by a `VisualTransformation`, the
-    field's text stays empty (the draft made it the text, which could give
-    „1525").
-  - #215 (T1): with the motion review's S1 (*Fertig* slides the sheet out)
-    and N1 (a hairline under the pinned title while scrolled).
-  - #216 (T2): the draft's fonts, licence and roles stood; all 708 goldens
-    are re-recorded.
-- **Motion review: done** (`docs/plans/v0.5.1-motion-review.md`; S1 and N1
-  are built).
-- **Review and fix round: done** (2026-11-10; #217, first part).
-  - CI on `df9959c3` was green on all jobs; nothing to fix.
-  - Milestone review (T3): no must-fix; two should-fix (D-096's stale Start
-    note; TalkBack could not tell the shown global *Knapp ab* value from an
-    own one) and ten nits. No T4 review: no timer code changed.
-  - Fix round (T2, own worktree; merge `c24e9e90`): all twelve findings and
-    the four known items (rows keyed by tea; the font feature list in 03
-    §3.2; `ShowsGlobalTest` for the quieter colour; D-110's build notes).
-    New behaviour: TalkBack reads the state „Vorgabe" while *Knapp ab* shows
-    the global value (03 SCR-09, string in `feature:collection`). The filter
-    sheet dismisses only once hidden, with a test for the slide-out path.
-    No golden changed.
-  - The full local gate passed on `c24e9e90` (spotlessCheck, detekt,
-    checkManifestPermissions, testDebugUnitTest, lint, verifyRoborazziDebug,
-    assembleDebugAndroidTest). A fresh container needs the Robolectric SDK 35
-    jar fetched first (`v0.4.0-resume.md` §3).
-- **rc phase: done** (2026-11-10; #217, second part).
-  - Commit `06cf4ea8`: `umamit.version=0.5.1-rc.1` (versionCode 50101) and
-    the design review renders `docs/design/review/v0.5.1/` (92 renders,
-    600 px, placeholder images only; README with the points to judge).
-  - CI green on `06cf4ea8` (checks, build, emulator API 35 and 36; run
-    42832175360).
-  - Release run 42834765374: pre-release
-    [`v0.5.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.1)
-    (APK SHA-256 `645a6184…0e6d`), certificate `a500e2c6…2f67` =
-    `signing/release-cert-sha256.txt`.
-  - PR #219's body and #217 are updated; the PR stays in draft.
-- **Feedback on rc.1 and fix round: done** (2026-11-10; D-111, #220).
-  - The PO: the one list on Start looks good, but a tap on a *Zuletzt
-    gebrüht* row shows a different screen for a split second before the
-    timer. Diagnosis (confirmed by the PO): Start rearranges with the new
-    brew (card, bar) under the timer route's fade. The PO chose „Start
-    holds still" and gave the go for the fix round and rc.2.
-  - Specs in `0a092ce4`: D-111, 03 SCR-02, 09 §4 „v0.5.1" (last point).
-  - Built at T3 (Opus `medium`) in `debc7351`, reviewed through two lenses
-    (rule 8 at T3, spec at T2; no must-fix, two should-fix on test
-    strength), review fixes in `bee40f17`. New: `StartHandOff`
-    (`feature:home`), `BrewBarHold`/`heldBar` (`app`), tests in
-    `HomeViewModelTest` and `BrewAgainHandOffTest`. No timer code, no
-    route transition and no golden changed.
-  - Claude's details, not put to the PO (D-111 build notes): the answer to
-    „Welchen Timer beenden?" holds Start the same way; a bar already shown
-    stays live while held.
-  - The full local gate passed on `cd19b70a`.
-- **rc.2: done** (2026-11-10).
-  - Commit `cd19b70a`: `umamit.version=0.5.1-rc.2` (versionCode 50102).
-    CI green (run 42874910092).
-  - Release run 42878477934: pre-release
-    [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2)
-    (APK SHA-256 `aee6a142…9402`), certificate `a500e2c6…2f67` =
-    `signing/release-cert-sha256.txt`.
-- **PO approval: given** (2026-11-10, in the session, after Claude named
-  the hand-off check and the design review as what the approval covers):
-  „rc.2 works, the transition is clean now, approved". The last checklist
-  point (D-111) passes on the phone. Still to tick by the final session:
-  that point in PR #219's checklist and in #220.
-- **Next phase (fresh session, Sonnet
-  `medium`): #218.** Accuracy run first (09 §4a); `umamit.version=0.5.1`;
-  CI green; PR out of draft and merged with a merge commit; final `v0.5.1`
-  dispatched from `main`, certificate verified; tickets closed,
-  `docs/history.md` and this file updated; the working branch restarted
-  from `main`.
-- The branch `claude/modest-ptolemy-86vgji` is contained in the PR branch
-  and no longer needed.
+- **Review and rc phase (#233): done** (2026-11-11, one session).
+  - **[`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1)**
+    is published (pre-release, versionCode 60001, from `74237151` on the PR
+    branch; release run 43106966020; APK SHA-256 `7f9530bb…30a7`;
+    certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`). CI
+    was green on that commit (run 43103655084: checks, build, emulator
+    tests on API 35 and 36). No accuracy run for the rc: no timer code
+    changed.
+  - **CI on the way there.** Run 43094657346 (head `d902df8c`) failed in
+    „Emulator tests (API 35)": the brew-and-quick-timer test of
+    `ProcessDeathTest`
+    (`aBrewStepAndAQuickTimerDueTogetherSurviveTwoKillsAndAlertTheBrewFirst`)
+    saw the held quick-timer alert 2327 ms after *Abgegossen* (tolerance
+    2 s). This is not the flake of D-112 Q19 (other method, API 35, a
+    timing bound). Timer code is unchanged against `main`, GitHub's runners
+    were degraded at that time (artifact uploads failed, and the next run,
+    43096106697, hung in the queue for an hour), and the test passed on
+    both API levels in run 43103655084. Nothing was changed; the PO knows.
+    If it shows again: rerun once; if it repeats, stop and ask the PO
+    (timer).
+  - **Milestone review (T3):** no blocker. **Motion review (T2):**
+    `docs/plans/v0.6.0-motion-review.md`. What was fixed and what was left
+    is D-112's „Review and fix round".
+  - **Fix round, built at T2:** #236 (accepting the recipe offer keeps the
+    recipe's step notes by position, PRF-07 AC5); round A (the session page
+    reads one session, the session delete is uncancellable, unknown
+    descriptor keys are refused, a dead read removed); round B (the stars
+    keep the tapped value, the journal list is built off the main thread,
+    the radar eases in, the dividers' fade, the average's rounding).
+  - **One failure after the fix round:** the first full gate failed once in
+    `SessionPageFlowTest`: the app's tests clicked a journal row before the
+    off-thread list existed. A sweep found the same race in
+    `TeaDetailSessionsRouteTest` and `ShellNavigationTest`; fixed at T3,
+    test code only (`app/src/test/.../JournalWaits.kt`), and reviewed. The
+    full gate then passed on `efc061b6`.
+  - **No timer code changed:** the diff against `main` is still empty for
+    `core/timer`, `core/timer-engine`, `feature/brew` and the app's timer
+    routes; `core/database/schemas` gained only `6.json`.
+  - **Renders:** `docs/design/review/v0.6.0/` (147, light, dark and font
+    2.0, placeholder images only) with a README that lists the points to
+    judge.
+- **Feedback round after rc.1 (D-113, #237): built and approved**
+  (2026-11-12, same session).
+  - **The PO's approval (2026-11-12, in the session):** the slim slider's
+    renders: „Approved"; the on-device checklist of rc.1: „Yes, all twelve
+    passed". The checklist and the design review of v0.6.0 are approved
+    (D-113); nothing waits on the PO.
+  - **The PO's answer on rc.1:** „All looks good except the handle of the
+    taste slider is way to big and bulky. This needs to look more classy and
+    elegant. Everything else looks fine and works as expected." So the
+    on-device checklist and the design review are approved except for the
+    slider's handle.
+  - **D-113 (seven answers, as options):** the slim pin (option B of four
+    drawn designs) for the taste sliders and for the settings'
+    *Lautstärke*; TalkBack on an unset slider, the single-axis unset and
+    the radar's position stay as built; 03 notes the fold's 100 ms fade
+    with reduce motion; **no rc.2**: the PO approves the slider from its
+    renders, then the merge and the final follow.
+  - **#237 (T2), merged:** `SlimSlider` in `core:designsystem`, used by
+    `TasteSlider` and `VolumeRow`; 44 goldens changed or new (8 taste, 32
+    settings, 4 component). A read-only review measured the goldens against
+    03 §3.8 and found nothing to fix.
+  - **A second test flake of the off-thread journal list, fixed at T3:**
+    `JournalSearchTest` failed once with a wrong-thread error while #237
+    was built. In Compose UI tests the list's result was written on the
+    worker thread (the app was never affected). The context of the list
+    build is now injected (`JournalSources.listContext`); a test pins it.
+  - **Verified:** the full local gate passed on `4a15f547`; CI is green on
+    `284e83a2` (run 43174172386). No timer code changed.
+  - **Renders for the PO:** `docs/design/review/v0.6.0/` („To judge now" in
+    its README): the taste section, *Lautstärke*, the component sheet.
+- **Next phase, #234 (fresh session): the merge and the final release.**
+  1. Set `umamit.version=0.6.0`
+     (versionCode 60099), run the full local gate, push, wait for green CI.
+  2. Run the accuracy check with all three variants (09 §4a).
+  3. Mark PR #235 ready, merge it with a merge commit, dispatch
+     `release.yml` from `main`, verify the certificate.
+  4. Close #234, move this section to `docs/history.md` with a session-log
+     row, restart the working branch from `main`.
+  5. If an accuracy variant fails or CI shows a timer test failing twice:
+     stop and ask the PO (no timer code changes without the PO).
+- **Known, not blocking:** #231's „smooth with 10 000 sessions" is shown by
+  JVM timing only. A tab that comes back to the Journal can show the
+  earlier list for a frame (a session just deleted, yesterday's day
+  headings right after midnight) until the next build. The drag feel of
+  the slim pin is first seen in the final (D-113, answer 7).
+- **Environment:** Maven Central answered HTTP 429 all day; a local Gradle
+  init script (`~/.gradle/init.d`, not in the repository) pointed
+  `repo.maven.apache.org` at Google's Maven Central mirror
+  (`maven-central.storage-download.googleapis.com`), which the „UmamiT"
+  environment reaches. A new container needs it again if 429 persists:
+  set the URL of every `repo.maven.apache.org` repository in
+  `settingsEvaluated` (plugin and dependency repositories) and
+  `allprojects`. One Gradle build at a time (`flock` as in
+  `docs/plans/v0.4.0-resume.md` §3).
+- **Specify phase: done** (2026-11-11). The PO was grilled in five rounds
+  (Q1–Q18, all as options); the answers are D-112. The PO's rule for the
+  release: every tasting input is optional and skippable with as little
+  friction as possible.
+- **Scope:** rating, notes, taste sliders with radar, descriptors and session
+  photos in place on the session page; five stars and both actions on the
+  „Gespeichert" sheet; *Zeiten ins Rezept übernehmen* after deliberate
+  changes only (SET-18 retired); the session editor; journal search with
+  three filters and the A6 empty state; ratings, GESCHMACK and LETZTE
+  SITZUNGEN on the tea screens; umamit.db v6. No timer code changes.
+- **Specs written** (commit `b4d2aae7` and the plan commit): 02, 03, 05, 06,
+  08, 09, 10 (D-112), 12, the specs README.
+- **Tickets:** the PO approved the breakdown of thirteen (2026-11-11). One
+  refinement after the approval: #232 is also blocked by #231 (it uses the
+  Journal's tea-filter argument).
+- **After v0.6.0:** v0.6.1 (Statistik) gets its own specify session.
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **M4 → v0.6.0** (Journal & statistics, 09 §M4): not yet specified or planned. v0.5.0 is done: [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) from `main` `db2ba2b3` |
+| Current milestone | **v0.6.0** (the journal, M4 part 1; D-112, D-113, spec #221, plan `docs/plans/v0.6.0.md`): built (#222–#232, #236), reviewed and fixed (#233), `v0.6.0-rc.1` and the slim slider (#237) approved by the PO (2026-11-12); #234 (merge, final release) is next. Then v0.6.1 (Statistik, M4 part 2), not yet specified |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (draft PR #219; contains `claude/modest-ptolemy-86vgji`) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `73a97fc5`; v0.6.0's build and fix round, last full local gate on `4a15f547`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | **#219** (draft): v0.5.1 milestone PR |
-| Latest APK | rc [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2) (pre-release, 50102, from `cd19b70a`, certificate verified); rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (full release, versionCode 50099, from `main` `db2ba2b3`, certificate verified); rc `v0.5.0-rc.1` (50001) |
-| Decision numbers | Up to **D-111** used; the next free is **D-112** |
+| Open PR | **#235** (draft): v0.6.0 milestone PR, all build tickets, the fix round and #237 merged, rc.1 published |
+| Latest APK | rc [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (pre-release, versionCode 60001, from `74237151`, certificate verified); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (full release, versionCode 50199, from `main` `73a97fc5`, certificate verified); rc `v0.5.1-rc.2` (50102), rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
+| Decision numbers | Up to **D-113** used; the next free is **D-114** |
 
 ## Working agreements in effect
 
@@ -122,18 +146,18 @@ a sans in place of the serif font. Spec issue #212, plan
 
 ## Waiting on the PO
 
-0. **v0.5.1:** nothing; the approval is given, the final release (#218) is Claude's next phase.
-1. **M4 → v0.6.0:** nothing blocking; the next step is specifying M4 (e.g. `/to-spec`) when the PO wants to start.
+1. **v0.6.0:** nothing. The approval is given (D-113); #234 runs without the PO unless the accuracy run or CI fails on the timer.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
 
 ## Open for later
 
-- **M4 → v0.6.0** (Journal & statistics, 09 §M4; was v0.5.0 until D-108). Known starting points: A6 (Journal) and A9 (Statistik) empty states; v0.4.1's setup and session page show no tea photo yet (02 TEA-05).
+- **v0.6.1** (Statistik, M4 part 2, D-112): its own grilling and spec after v0.6.0; INS-01–INS-07 are the starting point, not yet confirmed by the PO; the A9 empty state comes with it.
+- **Ideas the PO kept for later (D-112, 09 §5):** custom descriptors, notes per infusion, manual journal entries, brew coach tips.
 - **Parked from v0.3.0:** the two *Pause* buttons and the shortened tea name in the brew row at font 2.0.
 - **#58:** its remaining optional review findings stay open for later milestones.
-- **Images:** all delivered. A6 (Journal) and A9 (Statistik) empty states are built in with M4.
+- **Images:** all delivered. A6 (Journal) is built in with v0.6.0 (#231), A9 (Statistik) with v0.6.1.
 
 ## Known caveats
 
@@ -141,4 +165,5 @@ a sans in place of the serif font. Spec issue #212, plan
 - Live Update / ProgressStyle and the full-screen alert were verified on the Galaxy with `v0.0.2-probe`; the full timer keeps those patterns (D-043, D-044, `docs/plans/M1-android16-api-notes.md`). Now Bar presence is best effort.
 - Tee-Kontor uses Cloudflare; refreshes may get blocked (handled by stopping without changes).
 - After a reboot, alerts fire only once the phone has been unlocked (E2); Samsung's automatic overnight restart should be disabled (ONB-02).
+- `ProcessDeathTest` (two brews, process death; emulator, API 36) can fail on its single read of the diagnostics log; rerun CI (D-112 Q19). Its brew-and-quick-timer test failed once on API 35 on a timing bound (2327 ms against 2 s, run 43094657346, runners degraded).
 - Robolectric fetches its runtime jar at test time; a network hiccup has failed CI before. Rerun once and comment on the PR.

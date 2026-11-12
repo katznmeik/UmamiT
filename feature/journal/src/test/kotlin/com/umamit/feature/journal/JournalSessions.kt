@@ -55,12 +55,16 @@ object JournalSessions {
         plannedStepCount: Int = steps.size,
         styleKey: String? = "sencha",
         photo: File? = null,
+        teaId: String? = "t-$id",
+        rating: Double? = null,
+        notes: String? = null,
+        descriptorKeys: List<String> = emptyList(),
     ) = JournalSession(
         session = BrewSession(
             id = id,
             status = status,
             snapshot = SessionSnapshot(
-                teaId = "t-$id",
+                teaId = teaId,
                 teaName = teaName,
                 teaSecondaryName = null,
                 teaType = "Sencha",
@@ -83,6 +87,9 @@ object JournalSessions {
             zoneId = zone.id,
             autoFinished = false,
             steps = steps,
+            rating = rating,
+            notes = notes,
+            descriptorKeys = descriptorKeys,
         ),
         coverPhoto = photo,
     )

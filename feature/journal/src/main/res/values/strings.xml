@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="journal_title">Journal</string>
     <string name="journal_empty_title">Deine erste Tasse wartet.</string>
     <string name="journal_empty_body">Jede Tasse, die du brühst, erscheint hier von selbst.</string>
@@ -20,6 +20,35 @@
         <item quantity="one">%1$d von %2$d Aufguss</item>
         <item quantity="other">%1$d von %2$d Aufgüssen</item>
     </plurals>
+    <!-- SCR-15 rows (JRN-08, D-112): „★ 4,5" under the meta line, and for TalkBack. -->
+    <string name="journal_rating">★ %1$s</string>
+    <string name="journal_rating_description">Bewertung %1$s von 5</string>
+    <!-- SCR-15 search and filters (JRN-09, D-112). -->
+    <string name="journal_search_hint">Tees, Notizen …</string>
+    <string name="journal_search_clear">Suche leeren</string>
+    <string name="journal_filter_open">Filter</string>
+    <string name="journal_filter_open_active">Filter, aktiv</string>
+    <string name="journal_filter_sheet_title">Filter</string>
+    <string name="journal_filter_done">Fertig</string>
+    <string name="journal_filter_tea">Tee</string>
+    <string name="journal_filter_rating">Bewertung</string>
+    <string name="journal_filter_rating_3">ab 3 ★</string>
+    <string name="journal_filter_rating_4">ab 4 ★</string>
+    <string name="journal_filter_rating_45">ab 4,5 ★</string>
+    <string name="journal_filter_rating_3_description">Bewertung ab 3 Sternen</string>
+    <string name="journal_filter_rating_4_description">Bewertung ab 4 Sternen</string>
+    <string name="journal_filter_rating_45_description">Bewertung ab 4,5 Sternen</string>
+    <string name="journal_filter_notes">Mit Notizen</string>
+    <string name="journal_filter_reset">Zurücksetzen</string>
+    <!-- TalkBack on an active filter's chip: „Filter entfernen: Mit Notizen". -->
+    <string name="journal_filter_remove">Filter entfernen: %1$s</string>
+    <string name="journal_no_match_title">Keine Sitzung passt zu deiner Suche.</string>
+    <string name="journal_no_match_action">Filter zurücksetzen</string>
+    <!-- Announced after a search or filter change (TalkBack live region). -->
+    <plurals name="journal_result_count">
+        <item quantity="one">%1$d Sitzung</item>
+        <item quantity="other">%1$d Sitzungen</item>
+    </plurals>
     <string name="journal_open_timer">Zum Timer</string>
     <!-- TalkBack: „doppeltippen zum Sitzung öffnen" on a past entry (SCR-15, D-100). -->
     <string name="journal_open_session">Sitzung öffnen</string>
@@ -28,6 +57,20 @@
     <string name="session_title">Sitzung</string>
     <string name="session_not_found_title">Diese Sitzung ist nicht mehr da</string>
     <string name="session_not_found_body">Sie wurde gelöscht.</string>
+    <!-- The session page's hero (SCR-16, JRN-07, D-112): the session's photos, else the tea's cover, else the leaf. -->
+    <string name="session_photos_description">Fotos der Sitzung</string>
+    <string name="session_photo_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d</string>
+    <string name="session_photo_add">+ Foto</string>
+    <string name="session_photo_limit">Höchstens 6 Fotos</string>
+    <string name="session_photo_more">Foto-Optionen</string>
+    <string name="session_photo_delete">Löschen</string>
+    <string name="session_photo_delete_title">Foto löschen?</string>
+    <string name="session_photo_delete_body">Das Foto wird aus der App entfernt.</string>
+    <string name="session_photo_delete_cancel">Abbrechen</string>
+    <string name="session_photo_delete_confirm">Löschen</string>
+    <string name="session_photo_unreadable">Das Foto konnte nicht gelesen werden.</string>
+    <string name="session_photo_failed">Das Foto konnte nicht gespeichert werden.</string>
+    <string name="session_photo_change_failed">Das Foto konnte nicht geändert werden.</string>
     <!-- TalkBack on the tea's name: „doppeltippen zum Tee öffnen". -->
     <string name="session_open_tea">Tee öffnen</string>
     <!-- „22. Okt. 2026 · 09:12". -->
@@ -42,6 +85,15 @@
     <string name="session_ml">%1$d ml</string>
     <string name="session_ratio_value">%1$s g / 100 ml</string>
     <string name="session_unknown">–</string>
+    <!-- BEWERTUNG and NOTIZEN of the session page (SCR-16, JRN-02, JRN-05, D-112). -->
+    <string name="session_rating">Bewertung</string>
+    <string name="session_notes">Notizen</string>
+    <string name="session_notes_placeholder">Notizen …</string>
+    <string name="session_notes_counter">%1$s / %2$s</string>
+    <!-- GESCHMACK of the session page (SCR-16, JRN-03, D-112). -->
+    <string name="session_taste">Geschmack</string>
+    <string name="session_taste_add">Geschmack hinzufügen</string>
+    <string name="session_taste_reset">Zurücksetzen</string>
     <string name="session_steps">Aufgüsse</string>
     <string name="session_column_step">Schritt</string>
     <string name="session_column_planned">geplant</string>
@@ -77,12 +129,52 @@
     <string name="session_method_cold_brew">Kaltaufguss</string>
     <string name="session_method_ice_brew">Eisaufguss</string>
     <string name="session_method_custom">Eigene</string>
+    <!-- ⋮ Bearbeiten on the session page and the editor SCR-17 (JRN-11, D-112). -->
+    <string name="session_edit">Bearbeiten</string>
+    <string name="session_editor_title">Sitzung bearbeiten</string>
+    <string name="session_editor_close">Schließen</string>
+    <string name="session_editor_save">Speichern</string>
+    <string name="session_editor_date">Datum</string>
+    <string name="session_editor_time">Uhrzeit</string>
+    <!-- TalkBack for the Datum and Uhrzeit buttons: „Datum, 21. Okt. 2026". -->
+    <string name="session_editor_start_field">%1$s, %2$s</string>
+    <string name="session_editor_pick_confirm">OK</string>
+    <string name="session_editor_pick_cancel">Abbrechen</string>
+    <string name="session_editor_vessel">Gefäß</string>
+    <string name="session_editor_leaf">Blattmenge</string>
+    <string name="session_editor_water">Wasser</string>
+    <string name="session_editor_unit_g">g</string>
+    <string name="session_editor_unit_ml">ml</string>
+    <!-- While the leaf differs from the recorded one: the BREW deduction follows (05 §3.7). -->
+    <string name="session_editor_stock_line">Dein Vorrat wird um %1$s\u00A0g angepasst.</string>
+    <string name="session_editor_steps">Schritte</string>
+    <!-- „1 · Aufguss": the step's place in the session and its kind. -->
+    <string name="session_editor_step">%1$d · %2$s</string>
+    <string name="session_editor_kind_infusion">Aufguss</string>
+    <!-- A step never started or skipped: „2 · Aufguss · übersprungen". -->
+    <string name="session_editor_step_greyed">%1$s · %2$s</string>
+    <string name="session_editor_step_time">Zeit</string>
+    <string name="session_editor_step_time_field">Zeit, Schritt %1$d</string>
+    <string name="session_editor_step_cooler">Temperatur senken, Schritt %1$d</string>
+    <string name="session_editor_step_warmer">Temperatur erhöhen, Schritt %1$d</string>
+    <string name="session_editor_error_leaf">0,1 bis 100 g, z. B. 4,5.</string>
+    <string name="session_editor_error_water">10 bis 3000 ml, in 5-ml-Schritten.</string>
+    <string name="session_editor_error_step_time">Als m:ss, z. B. 1:35.</string>
+    <!-- A well-formed time outside 1 s – 24 h (0:00, or over 24 h). -->
+    <string name="session_editor_error_step_time_range">Zwischen 0:01 und 24:00:00.</string>
+    <string name="session_editor_error_future">Die Sitzung kann nicht in der Zukunft liegen.</string>
+    <string name="session_editor_save_failed">Die Änderungen konnten nicht gespeichert werden.</string>
     <string name="journal_saved_title">Gespeichert im Journal</string>
     <!-- „3 Aufgüsse · 2:20": the infusions and the total steep time. -->
     <string name="journal_saved_summary">%1$s · %2$s</string>
     <!-- TalkBack for „3 Aufgüsse · 2:20": „3 Aufgüsse, 2 Minuten 20 Sekunden". -->
     <string name="journal_saved_summary_description">%1$s, %2$s</string>
     <string name="journal_saved_dismiss">Schließen</string>
+    <!-- SCR-06 (v0.6.0, D-112): closes the sheet and opens the session's page. -->
+    <string name="journal_saved_notes">Notizen hinzufügen</string>
+    <!-- SCR-06 and SCR-16 (PRF-07, D-112): writes the session's deliberate changes into its recipe. -->
+    <string name="journal_recipe_offer">Zeiten ins Rezept übernehmen</string>
+    <string name="journal_recipe_offer_done">Rezept aktualisiert.</string>
     <!-- SCR-06 for a tea flagged „Rezept prüfen" (CAT-05, D-073): the recipe fits, the flag goes. -->
     <string name="journal_saved_recipe_ok">Rezept passt</string>
     <string name="journal_saved_recipe_ok_done">„Rezept prüfen“ ist entfernt.</string>
@@ -90,4 +182,16 @@
     <string name="journal_saved_opened">Packung als geöffnet markiert</string>
     <string name="journal_saved_opened_undo">Rückgängig</string>
     <string name="journal_saved_opened_undone">Öffnungsdatum ist zurückgesetzt.</string>
+    <!-- SCR-16 BESCHREIBUNGEN (JRN-04, D-112) and SCR-30, the descriptor sheet. -->
+    <string name="session_descriptors">Beschreibungen</string>
+    <string name="session_descriptor_add">+ Beschreibung</string>
+    <string name="session_descriptor_add_description">Beschreibung hinzufügen</string>
+    <string name="session_descriptor_edit_description">Beschreibungen bearbeiten</string>
+    <string name="descriptor_sheet_title">Beschreibungen</string>
+    <string name="descriptor_sheet_count" tools:ignore="PluralsCandidate">%1$d von %2$d</string>
+    <string name="descriptor_sheet_count_full" tools:ignore="PluralsCandidate">%1$d von %2$d · Höchstens %2$d Beschreibungen</string>
+    <string name="descriptor_sheet_done">Fertig</string>
+    <string name="descriptor_search_hint">Beschreibung suchen …</string>
+    <string name="descriptor_search_clear">Suche löschen</string>
+    <string name="descriptor_none_found">Keine Beschreibung gefunden</string>
 </resources>

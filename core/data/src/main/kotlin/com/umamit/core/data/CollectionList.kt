@@ -1,8 +1,10 @@
 package com.umamit.core.data
 
+import com.umamit.core.database.dao.TastingDao
 import com.umamit.core.database.dao.TeaDao
 import com.umamit.core.model.CollectionRow
 import com.umamit.core.model.Photo
+import com.umamit.core.model.TeaRating
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -17,7 +19,8 @@ interface CollectionListRepository {
     /**
      * Every tea of the collection, archived ones included (the *Archiviert* filter), each with when it was added
      * (`tea.created_at`), the start of its latest session and its stock (the Σ of its events, null without any)
-     * at the level SET-16's „Knapp ab" or the tea's own threshold gives (INV-05). In no particular order: the
+     * at the level SET-16's „Knapp ab" or the tea's own threshold gives (INV-05), and the average of its rated
+     * sessions (TEA-08, D-112; null without one). In no particular order: the
      * list sorts with `CollectionBrowser`.
      */
     fun observeRows(): Flow<List<CollectionListEntry>>
@@ -26,14 +29,17 @@ interface CollectionListRepository {
 /** [CollectionListRepository] on Room and the settings; reads existing columns only (no schema change). */
 class RoomCollectionListRepository @Inject constructor(
     private val dao: TeaDao,
+    private val tasting: TastingDao,
     private val settings: SettingsRepository,
 ) : CollectionListRepository {
     override fun observeRows(): Flow<List<CollectionListEntry>> = combine(
         dao.observeAll(),
         dao.observeListFacts(),
+        tasting.observeTeaRatings(),
         settings.settings.map { it.lowStockGrams }.distinctUntilChanged(),
-    ) { teas, facts, lowStockGrams ->
+    ) { teas, facts, ratings, lowStockGrams ->
         val byId = facts.associateBy { it.teaId }
+        val ratingById = ratings.associate { it.teaId to TeaRating(it.average, it.count) }
         // The two queries emit apart: a tea just written may briefly lack its facts (never brewed, no stock).
         teas.map { details ->
             val overview = details.toOverview()
@@ -45,6 +51,7 @@ class RoomCollectionListRepository @Inject constructor(
                     lastBrewedAtMillis = fact?.lastBrewedAt,
                     remainingGrams = fact?.remainingGrams,
                     lowStockGrams = lowStockGrams,
+                    rating = ratingById[overview.tea.id],
                 ),
                 coverPhoto = overview.coverPhoto,
             )

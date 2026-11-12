@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
+> Status: **Draft v0.2** · Last updated: 2026-11-11 (v0.6.0: tasting writes, `EditSession`, the recipe offer's flags, `session_descriptor` and umamit.db v6, session photos, no `custom_descriptor` and no `session_fts`, `offerRecipeUpdate` retired, D-112; 2026-10-22: session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -180,10 +180,12 @@ Table `brew_session`
 | `taste_umami`, `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma` | INTEGER | | 0–5 each |
 | `notes` | TEXT | | ≤ 5000 |
 | `auto_finished` | INTEGER | ✓ | 1 when the app completed the session on its own: the midnight timeout (TMR-14; `CompleteSession.autoFinished`, D-054), or recovery after a device restore that found it in progress without its `active_brew` row (E11, D-063); 0 when the user finished it, also by *Beenden & neu starten* (TMR-21). |
-| `times_offered` | INTEGER | ✓ | boolean: PRF-07 prompt was applicable |
+| `times_offered` | INTEGER | ✓ | boolean: PRF-07 prompt was applicable. Never written: from v0.6.0 the offer is derived when read (PRF-07, D-112); the column stays for the frozen schema |
 | `times_applied` | INTEGER | ✓ | boolean: user accepted *Zeiten ins Rezept übernehmen*; the offer is not shown again |
 
-FTS4 `session_fts` (tea_name, notes); descriptor search via join.
+No full-text index: the journal's search runs in memory over tea name,
+notes and descriptor labels (JRN-09, D-112). The FTS4 table `session_fts`
+planned until then is not created.
 
 ### 3.7 SessionStep
 
@@ -230,6 +232,47 @@ effect of the timer engine, 04 §4; D-052):
   on a later day than `opened_date` and the stock had run out before it
   (INV-06). Completing a session that is no longer `IN_PROGRESS` changes
   nothing.
+- **Tasting writes** (v0.6.0, JRN-02–JRN-05, D-112; `SessionTasting` in
+  `core:data`): one small write per input of the session page and the
+  sheet, each its own transaction on a `COMPLETED` session only: `rating`
+  (0.5–5.0 in 0.5 steps, or null), one taste column (0–5, or null; *Zurücksetzen* nulls all six),
+  `notes` (trimmed; empty stored as null; ≤ 5000), and a descriptor ticked
+  or unticked (§3.8; a tick is refused beyond 20 and for a key the
+  vocabulary does not have; unticking a stored key always works). Each sets
+  `updated_at`. None
+  touches steps, stock, cost or `active_brew`.
+- **Edit** (v0.6.0, JRN-11, D-112; `EditSession`): one transaction on a
+  `COMPLETED` session; any other status changes nothing.
+  - *Start moved by Δ:* `started_at`, `ended_at` and every step's
+    `started_at` / `ended_at` shift by Δ; `zone_id` stays; refused when the
+    new end would be after now. The session's BREW event gets
+    `occurred_at` = the new `ended_at`.
+  - *Vessel:* `vessel_id` and the `vessel_name` snapshot (or both null).
+  - *Leaf:* `leaf_grams`; the session's BREW event (found by `session_id`)
+    gets `delta_grams` = −leaf, and is deleted when the new leaf is 0; a
+    session without the event gets none. `cost_cents` is set by the finish
+    rule (leaf × the tea's cost per gram now, half up; null without a
+    priced stock); for a session whose tea is gone it is the old cost ×
+    new leaf ÷ old leaf, half up (null stays null).
+  - *Water:* `water_ml`.
+  - *A brewed step's time:* `actual_seconds` = the entry (at least 1 s, at most the
+    longest step duration the Schritte-Sheet allows);
+    `overtime_seconds` = max(0, actual − planned); `ended_at` =
+    `started_at` + actual + `paused_seconds`. `planned_seconds`, `skipped`
+    and `overtime_auto_ack` stay. The session's `ended_at` is not moved by
+    a step edit.
+  - *A brewed step's temperature:* `temp_c`, snapped to 5 °C (GEN-12).
+  - The tea's `opened_date` is not recalculated.
+- **Accept the recipe offer** (v0.6.0, PRF-07, D-112): in one transaction
+  the recipe's `brew_step` rows are replaced by the proposal, as *Im
+  Rezept speichern* does (§3.9's note), and `times_applied` becomes 1.
+  Each new row takes the `note` of the recipe's row at its position when
+  both have the same kind (PO, D-112 Q22); *Im Rezept speichern* itself
+  writes no notes.
+  Refused, changing nothing, when the offer no longer applies at that
+  moment. „The recipe has not changed since the session" is read from the
+  recipe's and its steps' `updated_at` / `created_at` against the
+  session's `ended_at`.
 - **Discard** (`DiscardSession`, TMR-13): the session row is deleted; its
   steps, its stock event and the `active_brew` row go with it (FK CASCADE).
 
@@ -243,6 +286,17 @@ Built-in German vocabulary is bundled ([08 §4](08-content.md#4-tasting-descript
 `custom_descriptor` (`id`, `label` UNIQUE NOCASE 1–30, `group`);
 `session_descriptor` (`session_id` FK CASCADE, `descriptor_key`) — key is a
 built-in key or `custom:<id>`.
+
+v0.6.0 (D-112): only `session_descriptor` is created (umamit.db v6, §9):
+`session_id` TEXT NOT NULL (FK → `brew_session` CASCADE), `descriptor_key`
+TEXT NOT NULL, `created_at` INTEGER NOT NULL; primary key (`session_id`,
+`descriptor_key`); an index on `descriptor_key` for the per-tea counts. The
+key is a built-in key of 08 §4 (`marine.nori`). A stored key the app does
+not know (a later vocabulary change) is kept and not shown; the write
+refuses to tick such a key and still unticks it. At most 20 rows
+per session, checked in the write's transaction. `custom_descriptor` is not
+created: custom descriptors are an idea kept for later, and the `custom:<id>`
+form stays reserved for them.
 
 ### 3.9 Photo
 
@@ -278,6 +332,15 @@ files go after the commit. A failed transaction deletes the new file again;
 an unreadable image changes nothing. **Remove** clears the cover, deletes the
 row and, after the commit, the file. The editor calls these after the vessel
 row is stored by *Speichern*.
+Session photo writes (v0.6.0, JRN-07, D-112, `SessionPhotos`): like a tea's,
+with `session_id` as the owner and without a cover. **Add:** the processed
+file first, then the row (origin `OWN`, `position` = the session's highest
++ 1, else 0), refused at 6 photos of the session (checked before reading
+the image and again in the transaction) and for a session that is not
+`COMPLETED`; a refused or failed row deletes the file again. **Delete:** the
+row in a transaction, the file after the commit. **Session deleted**
+(JRN-10): the rows go by CASCADE; the delete collects their ids first and
+removes the files after its commit. Order: `position`, then `created_at`.
 Replacing a recipe's steps (*Im Rezept speichern*) writes new `brew_step` rows
 with new ids.
 
@@ -550,13 +613,13 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last reminder that was posted, which the interval counts from (v0.5.0, D-108); a due day with nothing to post leaves it (until v0.4.1 it also counted such a day). Not shown |
 | `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view the catalog kind's key (`green`, `herbal`, from v0.5.0 `black`, `white`, `oolong`, `dark`, `rooibos`, `fruit`, `chai`, D-108, #206), „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
-| `offerRecipeUpdate` | Boolean | true | SET-18 |
+| `offerRecipeUpdate` | Boolean | true | SET-18, retired in v0.6.0 (D-112): never read or written; the key is not added |
 | `weeklyDigest` | Boolean | false | SET-19 |
 | `backupReminder` | OFF/MONTHLY | MONTHLY | SET-20 |
 | `lastManualBackupAt` | Long? | null | BAK-01 |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
 | `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 (v0.4.0, D-100): the *Sammlung* segment used last |
-| `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100): *Zuletzt gebrüht*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*; empty teas last in each |
+| `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK/RATING | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100; `RATING` v0.6.0, D-112): *Zuletzt gebrüht*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*, *Bewertung* (highest average first, unrated after rated); empty teas last in each |
 | `statsRange` | enum | DAYS_90 | INS-07 |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
@@ -604,7 +667,8 @@ Time rounding for derived recipes: nearest 5 s (half up).
   `createdAt`, app version, database schema version, counts, SHA-256 of JSON
   entries.
 - `data.json`: arrays for teas, brewProfiles, brewSteps, vessels,
-  sessions, sessionSteps, customDescriptors, sessionDescriptors,
+  sessions, sessionSteps, customDescriptors (empty while custom descriptors
+  are not built, D-112), sessionDescriptors,
   inventoryEvents, photos, and from v0.2.2 catalogBookmarks (camelCase
   fields mirroring §3).
 - **Restore (post-1.0, BAK-02 `Won't` for 1.x, D-036):** if built later,
@@ -665,9 +729,10 @@ compares when it opens the database; a formatting-only difference (e.g. after
 a Room upgrade) passes with a warning. `SchemaVersionsTest` opens a database
 of every committed schema version with the production `umamiDatabaseBuilder`,
 whose migrations are the list `UMAMI_MIGRATIONS`, so a version bump without
-its migration in that list fails the unit tests. The descriptor and FTS
-tables of §3 (`custom_descriptor`, `session_descriptor`, `session_fts`)
-arrive with M4 through such migrations; `tag`, `tea_tag` and `tea_fts` are
+its migration in that list fails the unit tests. Of the descriptor and FTS
+tables of §3, `session_descriptor` arrives with v0.6.0 (umamit.db v6,
+below); `custom_descriptor` and `session_fts` are not created (D-112);
+`tag`, `tea_tag` and `tea_fts` are
 not planned, and M3 needs no migration (D-100). The
 catalog tables may be dropped and recreated in a migration (followed by a
 prompt to refresh), since they are re-downloadable.
@@ -761,6 +826,24 @@ stock warning, `MIGRATION_4_5` in `UMAMI_MIGRATIONS`:
   builder. `SchemaVersionsTest` opens v1–v5; the v1–v4 JSON keep their
   version and identity hash (`check-frozen-schemas.sh`). The v0.5.0 rc
   checklist installs it over v0.4.1 (09 §4).
+
+**umamit.db v6 (v0.6.0, D-112).** One schema step for the descriptors,
+`MIGRATION_5_6` in `UMAMI_MIGRATIONS`:
+- `CREATE TABLE session_descriptor` with its foreign key, primary key and
+  the index on `descriptor_key` (§3.8), exactly as Room's v6 schema names
+  them. It starts empty.
+- No other table changes. The rating, taste, notes and `times_*` columns
+  and `photo.session_id` exist since v1, so every finished session keeps
+  its row untouched; timers running during the update keep their
+  `active_brew` rows and alert on time (rule 8).
+- One transaction, never destructive. Tests: `Migration5To6Test` from a
+  populated v5 database (finished sessions with and without steps, a
+  session in progress with its `active_brew` row, a tea photo, stock
+  events); every row and value checked, a descriptor row then inserted and
+  deleted with its session (CASCADE), then opened with the production
+  builder. `SchemaVersionsTest` opens v1–v6; the v1–v5 JSON keep their
+  version and identity hash (`check-frozen-schemas.sh`). The v0.6.0 rc
+  checklist installs it over v0.5.1 (09 §4).
 
 **catalog.db and the black teas (v0.5.0, D-108, #203).** No schema change:
 a black tea is a `catalog_tea` row told apart by its style key (one of the

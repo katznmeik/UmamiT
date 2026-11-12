@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -14,9 +15,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.common.truth.Truth.assertThat
+import com.umamit.app.timer.TimerRequest
+import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionStart
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
@@ -31,10 +35,14 @@ import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCatalogRepository
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeRecipeOffers
+import com.umamit.core.testing.FakeSessionPhotos
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
+import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.feature.brew.setup.BrewSetupViewModel
@@ -43,7 +51,9 @@ import com.umamit.feature.brew.setup.SETUP_START_TAG
 import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.journal.session.SESSION_BREW_AGAIN_TAG
+import com.umamit.feature.journal.session.SESSION_NOTES_TAG
 import com.umamit.feature.journal.session.SESSION_TEA_TAG
+import com.umamit.feature.journal.session.SessionHeroViewModel
 import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.journal.session.SessionPageRoute
 import com.umamit.feature.journal.session.SessionPageViewModel
@@ -55,6 +65,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
@@ -79,6 +90,7 @@ class SessionPageFlowTest {
     private val archive = FakeTeaArchive(sessions)
     private val starter = FakeBrewStarter()
     private val alertKey = MutableStateFlow<String?>(null)
+    private val timerRequest = MutableStateFlow(TimerRequest(0L))
 
     @Before
     fun seed(): Unit = runBlocking {
@@ -135,13 +147,14 @@ class SessionPageFlowTest {
         sessions.sessions.completeSession(PAST, autoFinished = false)
     }
 
-    private fun show() {
+    private fun show(requests: SavedSheetRequests = SavedSheetRequests(FakeClock())) {
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 UmamitRoot(
                     activeBrewSource = NoActiveBrewSource,
-                    journalSources = testJournalSources(sessions, collection.teas),
+                    journalSources = testJournalSources(sessions, collection.teas, requests),
                     alertKey = alertKey,
+                    timerRequest = timerRequest,
                     journalScreens = JournalStackScreens(session = { host -> Page(host) }),
                     collectionScreens = CollectionStackScreens(
                         tea = { host ->
@@ -170,7 +183,22 @@ class SessionPageFlowTest {
         SessionPageRoute(
             host = host,
             viewModel = viewModel {
-                SessionPageViewModel(createSavedStateHandle(), sessions.journal, collection.teas, archive)
+                SessionPageViewModel(
+                    createSavedStateHandle(),
+                    sessions.journal,
+                    FakeRecipeOffers(),
+                    collection.teas,
+                    archive,
+                    sessions.tasting,
+                )
+            },
+            heroViewModel = viewModel {
+                SessionHeroViewModel(
+                    createSavedStateHandle(),
+                    sessions.journal,
+                    FakeSessionPhotos(sessions),
+                    PhotoFiles(File("no-photos")),
+                )
             },
         )
     }
@@ -199,9 +227,11 @@ class SessionPageFlowTest {
     private fun openSessionPage() {
         compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
         compose.waitForIdle()
-        compose.onNode(hasText("Sencha Morgentau") and hasClickAction()).performClick()
+        val row = hasText("Sencha Morgentau") and hasClickAction()
+        compose.awaitNode(row)
+        compose.onNode(row).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Sitzung").assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertIsDisplayed()
     }
 
     private fun brewAgain() {
@@ -271,7 +301,7 @@ class SessionPageFlowTest {
         compose.waitForIdle()
 
         compose.onNodeWithText(TEA_DETAIL).assertDoesNotExist()
-        compose.onNodeWithText("Sitzung").assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertIsDisplayed()
         compose.onNodeWithText("Sencha Morgentau archiviert").assertIsDisplayed()
         compose.onNodeWithText("Rückgängig").performClick()
         compose.waitForIdle()
@@ -290,6 +320,67 @@ class SessionPageFlowTest {
         compose.onNodeWithTag(SETUP_START_TAG).assertDoesNotExist()
         compose.onNodeWithText(TIMER).assertIsDisplayed()
         assertThat(starter.starts).isEmpty()
+    }
+
+    @Test
+    fun `Notizen hinzufuegen on the Gespeichert sheet opens the session page above the tab in use (SCR-06, D-112)`() {
+        val requests = SavedSheetRequests(FakeClock())
+        show(requests)
+        compose.onNodeWithTag(tabTag(Tab.Collection)).performClick()
+        compose.waitForIdle()
+
+        requests.showSavedSheet(PAST)
+        compose.waitForIdle()
+        compose.onNodeWithText("Notizen hinzufügen").assertIsDisplayed().performClick()
+        compose.waitForIdle()
+
+        // The page above Sammlung, the sheet gone, the notes field not focused (no keyboard).
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertIsDisplayed()
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_NOTES_TAG).performScrollTo().assertIsNotFocused()
+        assertThat(requests.pending.value).isNull()
+
+        // Back returns to the tab it came from.
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(tabTag(Tab.Collection)).assertIsSelected()
+    }
+
+    private fun typeNote(text: String) {
+        compose.onNodeWithTag(SESSION_NOTES_TAG).performScrollTo().performTextInput(text)
+        compose.waitForIdle()
+    }
+
+    private fun storedNotes() = runBlocking { sessions.sessions.getSession(PAST)!!.notes }
+
+    @Test
+    fun `a note typed is saved when another tab is chosen, and shown again on the page (JRN-05)`() {
+        show()
+        openSessionPage()
+        typeNote("Mild und cremig")
+
+        compose.onNodeWithTag(tabTag(Tab.Start)).performClick()
+        compose.waitForIdle()
+
+        assertThat(storedNotes()).isEqualTo("Mild und cremig")
+        compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Mild und cremig").assertExists()
+    }
+
+    @Test
+    fun `a note typed is saved when an alert brings the timer over the page (rule 8, JRN-05)`() {
+        show()
+        openSessionPage()
+        typeNote("Vor dem Alarm")
+
+        alertKey.value = "brew-1"
+        timerRequest.value = TimerRequest(1L)
+        compose.waitForIdle()
+
+        compose.onNodeWithText(TIMER).assertIsDisplayed()
+        assertThat(storedNotes()).isEqualTo("Vor dem Alarm")
     }
 
     private companion object {

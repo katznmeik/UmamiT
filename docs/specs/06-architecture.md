@@ -178,7 +178,9 @@ platform decodes (JPEG, PNG, WebP, HEIF …) up to 20 000 px a side and
 the provider's declared length (D-106); it is never held at full
 resolution. One that can't be read or decoded, or that runs out of memory,
 is refused and nothing
-is stored (`PhotoTranscoder.transcodePicked`, `RoomTeaPhotos`).
+is stored (`PhotoTranscoder.transcodePicked`, `RoomTeaPhotos`). Session
+photos (v0.6.0, JRN-07, D-112) take the same path with the session as
+owner (`SessionPhotos`, 05 §3.9; at most 6).
 Catalog photos: downloaded to `filesDir/catalog/`, resized to 1200 px WebP
 (quality 80) plus a WebP list thumbnail with a 256 px short side (never
 larger than the photo), both from one decode; downloaded again only when the

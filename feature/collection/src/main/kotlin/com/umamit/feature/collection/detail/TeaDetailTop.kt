@@ -49,6 +49,7 @@ internal fun Header(tea: TeaDetail) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        tea.rating?.let { RatingLine(it, Modifier.padding(top = UmamiSpacing.XXSmall)) }
         val tags = listOfNotNull(
             tea.teaType,
             stringResource(R.string.collection_tea_organic).takeIf { tea.details.isOrganic },

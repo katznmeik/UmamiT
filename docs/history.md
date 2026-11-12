@@ -11,6 +11,105 @@
 
 ## Releases and plans
 
+### v0.5.1: released (2026-11-10)
+
+- **PO approval (2026-11-10, in the session):** „rc.2 works, the transition is clean now, approved" (on-device checklist including the Start hand-off of D-111, and the design review). The last checklist point was ticked in PR #219 and in #220.
+- **Version:** `umamit.version=0.5.1` (versionCode 50199) in `5d461669`; CI green on it (run 42887719781).
+- **Accuracy on `5d461669` (09 §4a, API 36, 50 steps), all PASS:** standard (pre-alert p95 58 / max 222 ms, alert 43 / 171 ms; run 42887712480); alongside (brew pre-alert 44 / 587, alert 35 / 104 ms; quick timer pre-alert 14 / 230, alert 15 / 235 ms; run 42887719098); two-brews (brew 1 pre-alert 42 / 183, alert 23 / 360 ms; brew 2 pre-alert 15 / 154 ms; brew 2's held alert held 7944 / 8051 ms, release → sound p95 12 / max 18 ms, not gated; run 42887725778). The runs were on the branch tip before the merge; the merge commit has the same tree (`main` had no other commits).
+- PR #219 merged into `main` with a merge commit (`73a97fc5`); CI green on it (run 42899588780).
+- **Release:** run 42901966896, [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) from `main` `73a97fc5` (versionCode 50199, APK SHA-256 `d7d41691…155d`), certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`.
+- #212–#217 and #220 closed by the merge, #218 closed after the release. Working branch restarted from `main`.
+
+### v0.5.1: feedback round, rc.1 and rc.2 (2026-11-10)
+
+The PO's four points of feedback on v0.5.0 (2026-11-10; D-110): Start's two
+sections into one; *Knapp ab* shows its value; the filter sheet's *Fertig*;
+a sans in place of the serif font. Spec issue #212, plan
+`docs/plans/v0.5.1.md`, draft milestone PR **#219** from
+`claude/wonderful-davinci-fu8tqi`.
+
+- **Build phase: done** (2026-11-10, started by the PO with
+  `/implement-spec #212`). #213–#216 are merged into the PR branch (head
+  `ba89af29` before this handover). Each implementer started from the draft
+  `75e4198b` and reviewed its part; the full local gate passed on the merged
+  branch (spotlessCheck, detekt, checkManifestPermissions, testDebugUnitTest,
+  lint, verifyRoborazziDebug, assembleDebugAndroidTest).
+  - #213 (T2): the draft stood; a test for the row's tap and its TalkBack
+    label was added.
+  - #214 (T2): the global value is drawn by a `VisualTransformation`, the
+    field's text stays empty (the draft made it the text, which could give
+    „1525").
+  - #215 (T1): with the motion review's S1 (*Fertig* slides the sheet out)
+    and N1 (a hairline under the pinned title while scrolled).
+  - #216 (T2): the draft's fonts, licence and roles stood; all 708 goldens
+    are re-recorded.
+- **Motion review: done** (`docs/plans/v0.5.1-motion-review.md`; S1 and N1
+  are built).
+- **Review and fix round: done** (2026-11-10; #217, first part).
+  - CI on `df9959c3` was green on all jobs; nothing to fix.
+  - Milestone review (T3): no must-fix; two should-fix (D-096's stale Start
+    note; TalkBack could not tell the shown global *Knapp ab* value from an
+    own one) and ten nits. No T4 review: no timer code changed.
+  - Fix round (T2, own worktree; merge `c24e9e90`): all twelve findings and
+    the four known items (rows keyed by tea; the font feature list in 03
+    §3.2; `ShowsGlobalTest` for the quieter colour; D-110's build notes).
+    New behaviour: TalkBack reads the state „Vorgabe" while *Knapp ab* shows
+    the global value (03 SCR-09, string in `feature:collection`). The filter
+    sheet dismisses only once hidden, with a test for the slide-out path.
+    No golden changed.
+  - The full local gate passed on `c24e9e90` (spotlessCheck, detekt,
+    checkManifestPermissions, testDebugUnitTest, lint, verifyRoborazziDebug,
+    assembleDebugAndroidTest). A fresh container needs the Robolectric SDK 35
+    jar fetched first (`v0.4.0-resume.md` §3).
+- **rc phase: done** (2026-11-10; #217, second part).
+  - Commit `06cf4ea8`: `umamit.version=0.5.1-rc.1` (versionCode 50101) and
+    the design review renders `docs/design/review/v0.5.1/` (92 renders,
+    600 px, placeholder images only; README with the points to judge).
+  - CI green on `06cf4ea8` (checks, build, emulator API 35 and 36; run
+    42832175360).
+  - Release run 42834765374: pre-release
+    [`v0.5.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.1)
+    (APK SHA-256 `645a6184…0e6d`), certificate `a500e2c6…2f67` =
+    `signing/release-cert-sha256.txt`.
+  - PR #219's body and #217 are updated; the PR stays in draft.
+- **Feedback on rc.1 and fix round: done** (2026-11-10; D-111, #220).
+  - The PO: the one list on Start looks good, but a tap on a *Zuletzt
+    gebrüht* row shows a different screen for a split second before the
+    timer. Diagnosis (confirmed by the PO): Start rearranges with the new
+    brew (card, bar) under the timer route's fade. The PO chose „Start
+    holds still" and gave the go for the fix round and rc.2.
+  - Specs in `0a092ce4`: D-111, 03 SCR-02, 09 §4 „v0.5.1" (last point).
+  - Built at T3 (Opus `medium`) in `debc7351`, reviewed through two lenses
+    (rule 8 at T3, spec at T2; no must-fix, two should-fix on test
+    strength), review fixes in `bee40f17`. New: `StartHandOff`
+    (`feature:home`), `BrewBarHold`/`heldBar` (`app`), tests in
+    `HomeViewModelTest` and `BrewAgainHandOffTest`. No timer code, no
+    route transition and no golden changed.
+  - Claude's details, not put to the PO (D-111 build notes): the answer to
+    „Welchen Timer beenden?" holds Start the same way; a bar already shown
+    stays live while held.
+  - The full local gate passed on `cd19b70a`.
+- **rc.2: done** (2026-11-10).
+  - Commit `cd19b70a`: `umamit.version=0.5.1-rc.2` (versionCode 50102).
+    CI green (run 42874910092).
+  - Release run 42878477934: pre-release
+    [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2)
+    (APK SHA-256 `aee6a142…9402`), certificate `a500e2c6…2f67` =
+    `signing/release-cert-sha256.txt`.
+- **PO approval: given** (2026-11-10, in the session, after Claude named
+  the hand-off check and the design review as what the approval covers):
+  „rc.2 works, the transition is clean now, approved". The last checklist
+  point (D-111) passes on the phone. Still to tick by the final session:
+  that point in PR #219's checklist and in #220.
+- **Next phase (fresh session, Sonnet
+  `medium`): #218.** Accuracy run first (09 §4a); `umamit.version=0.5.1`;
+  CI green; PR out of draft and merged with a merge commit; final `v0.5.1`
+  dispatched from `main`, certificate verified; tickets closed,
+  `docs/history.md` and this file updated; the working branch restarted
+  from `main`.
+- The branch `claude/modest-ptolemy-86vgji` is contained in the PR branch
+  and no longer needed.
+
 ### v0.5.0: released (2026-11-10)
 
 - PR #210 merged into `main` with a merge commit (`db2ba2b3`); CI green on the branch tip `9ab3c689` and on `main`'s merge commit (run 42773576913).
@@ -302,6 +401,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Topic | Agreed |
 |---|---|
+| 2026-11-10 | **v0.5.1 done:** PO approved rc.2 (checklist with the Start hand-off of D-111, design review); all three accuracy variants PASS on `5d461669`; #219 merged (`73a97fc5`), `v0.5.1` released (versionCode 50199, certificate verified); #212–#218, #220 closed. Next: M4 → v0.6.0. |
 | 2026-11-10 | **v0.5.0 done:** PO approved rc.1 (checklist and design review); #210 merged (`db2ba2b3`), all three accuracy variants PASS on `main`, `v0.5.0` released (versionCode 50099, certificate verified); #194, #196–#208 closed. Next: M4 → v0.6.0. |
 | 2026-11-09 | **v0.5.0 built, rc.1 out:** `/implement-spec #194`, tickets #196–#206 on PR #210; T3/T4/motion reviews and two fix rounds; D-109 (held alarm rings once the other stops sounding). `0.5.0-rc.1` (`e53cc2b0`): CI green, all three accuracy variants PASS, pre-release published, checklist on #207. Next: the PO's checklist and design review. |
 | Start | 2026-10-22 09:05 Europe/Berlin via a scheduled task in session `session_01TEa8Scj1c19uHy7ruNYZYJ`; `/implement-spec` on spec #6 (tickets #8–#17) |

@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.pluralStringResource
 import com.umamit.core.designsystem.R
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.Locale
 
 private const val SECONDS_PER_MINUTE = 60
@@ -23,6 +25,13 @@ fun clockText(totalSeconds: Int): String {
 
 /** A rating with one decimal and a German comma: „4,5". */
 fun ratingText(rating: Float): String = "%.1f".format(Locale.GERMAN, rating)
+
+/**
+ * A tea's average rating to one decimal, rounded half up from the [average] itself and not from a float of it:
+ * 4,35 is „4,4", 4,45 „4,5", 3,25 „3,3" (TEA-08, TEA-11).
+ */
+fun averageRatingText(average: Double): String =
+    "%.1f".format(Locale.GERMAN, BigDecimal.valueOf(average).setScale(1, RoundingMode.HALF_UP))
 
 /** A duration for TalkBack: „1 Minute 30 Sekunden" instead of „1:30". */
 @Composable

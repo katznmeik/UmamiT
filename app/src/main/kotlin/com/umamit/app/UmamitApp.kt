@@ -75,6 +75,7 @@ import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
+import com.umamit.feature.journal.session.SessionEditorHost
 import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
@@ -192,6 +193,14 @@ internal fun UmamitApp(
         controllers.getValue(Tab.Start).popToRoot(Tab.Start)
         select(Tab.Start)
     }
+    // LETZTE SITZUNGEN's *Alle anzeigen* (TEA-13): the Journal tab's root, filtered to the tea.
+    val journalRequests = rememberSaveable(saver = JournalTeaRequests.Saver) { JournalTeaRequests() }
+    val showInJournal: (String) -> Unit = { teaId ->
+        journalRequests.ask(teaId)
+        brewFlow.leaveFor(Tab.Journal)
+        controllers.getValue(Tab.Journal).popToRoot(Tab.Journal)
+        select(Tab.Journal)
+    }
     val reselection = remember { TabReselection() }
     val brewBarHold = remember { BrewBarHold() }
     // While Start hands off to the timer, a bar not shown before stays away (D-111).
@@ -277,7 +286,11 @@ internal fun UmamitApp(
                             segment = segments.segment,
                             onSegmentChange = chooseSegment,
                             journalSources = journalSources,
-                            journal = JournalWiring(journalScreens, startNavigation.openSetupFromSession),
+                            journal = JournalWiring(
+                                journalScreens,
+                                startNavigation.openSetupFromSession,
+                                teaRequest = journalRequests.current,
+                            ),
                             onOpenTimer = onOpenTimer,
                             settings = settings,
                             alertKey = alertKey,
@@ -286,6 +299,7 @@ internal fun UmamitApp(
                                 screens = collectionScreens,
                                 onArchivedChange = onArchivedTeaChange,
                                 openSetup = startNavigation.openSetupWith,
+                                showInJournal = showInJournal,
                             ),
                             catalog = { catalogModifier, scrollToTop ->
                                 catalogScreen(
@@ -375,6 +389,12 @@ internal fun UmamitApp(
                     requests = journalSources.savedSheets,
                     sessions = journalSources.sessions,
                     teas = journalSources.teas,
+                    tasting = journalSources.tasting,
+                    offers = journalSources.recipeOffers,
+                    // *Notizen hinzufügen*: the session's page above the tab in use (SCR-06, SCR-16).
+                    onOpenNotes = { sessionId ->
+                        controllers.getValue(selected).navigate(JournalSessionRoute(sessionId))
+                    },
                     alerting = alerting,
                     modifier = Modifier.align(Alignment.BottomCenter),
                     // Like the brew bar: in the rail layout nothing below the content has applied the bottom inset.
@@ -614,7 +634,7 @@ private fun TabHost(
         },
     ) {
         composable<StartRoute> { start(openSettings, scrollToTopRequest) }
-        composable<JournalRoute> {
+        composable<JournalRoute> { entry ->
             JournalTab(
                 journalSources,
                 openSettings,
@@ -622,6 +642,9 @@ private fun TabHost(
                 scrollToTopRequest = scrollToTopRequest,
                 // Only from the resumed list: a double tap opens one page (D-090).
                 onOpenSession = resumedOnly { navController.navigate(JournalSessionRoute(it)) },
+                teaRequest = journal.teaRequest,
+                // An alert plays: the filter sheet gives way (rule 8).
+                alerting = alertKey != null,
             )
         }
         // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal brühen* opens the setup
@@ -635,6 +658,19 @@ private fun TabHost(
                     onOpenTea = resumedOnly { navController.navigate(CollectionTeaRoute(it)) },
                     onBrewAgain = resumedOnly(journal.openSetupFromSession),
                     onDeleted = { close() },
+                    onEdit = resumedOnly { navController.navigate(JournalSessionEditorRoute(it)) },
+                    alertKey = alertKey,
+                ),
+            )
+        }
+        // Sitzung bearbeiten (SCR-17, JRN-11): ✕ and *Speichern* return to the session page, which shows the new
+        // values.
+        composable<JournalSessionEditorRoute> { entry ->
+            val closeIfOnTop = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            journal.screens.sessionEditor(
+                SessionEditorHost(
+                    onClose = dropUnlessResumed { navController.popBackStack() },
+                    onSaved = { closeIfOnTop() },
                     alertKey = alertKey,
                 ),
             )
@@ -687,6 +723,8 @@ private fun TabHost(
                     onOpenSession = resumedOnly { sessionId: String ->
                         navController.navigate(JournalSessionRoute(sessionId))
                     },
+                    // LETZTE SITZUNGEN's *Alle anzeigen*: the Journal tab at its root, not a list in this stack.
+                    onShowAllSessions = dropUnlessResumed { collection.showInJournal(teaId) },
                 ),
             )
         }

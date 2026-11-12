@@ -3,6 +3,8 @@ package com.umamit.core.testing
 import com.umamit.core.data.CollectionListEntry
 import com.umamit.core.data.CollectionListRepository
 import com.umamit.core.model.CollectionRow
+import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.TeaRating
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -30,6 +32,10 @@ class FakeCollectionList(private val s: FakeSessions) : CollectionListRepository
         val lastBrewed = sessions.values.mapNotNull { session -> session.snapshot.teaId?.let { it to session } }
             .groupBy({ it.first }, { it.second.startedAtMs })
             .mapValues { (_, starts) -> starts.max() }
+        val ratings = sessions.values.filter { it.status != SessionStatus.IN_PROGRESS }
+            .mapNotNull { session -> session.snapshot.teaId?.let { id -> session.rating?.let { id to it } } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, values) -> TeaRating(values.average(), values.size) }
         teas.values.map { tea ->
             CollectionListEntry(
                 row = CollectionRow.of(
@@ -38,6 +44,7 @@ class FakeCollectionList(private val s: FakeSessions) : CollectionListRepository
                     lastBrewedAtMillis = lastBrewed[tea.id],
                     remainingGrams = stock[tea.id],
                     lowStockGrams = lowStockGrams,
+                    rating = ratings[tea.id],
                 ),
                 coverPhoto = tea.coverPhotoId?.let(photos::get),
             )

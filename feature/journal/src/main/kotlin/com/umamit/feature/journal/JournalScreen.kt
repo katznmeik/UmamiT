@@ -2,25 +2,47 @@ package com.umamit.feature.journal
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,25 +52,33 @@ import com.umamit.core.designsystem.component.OverflowSettingsAction
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.TeaThumbnail
+import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
+import com.umamit.core.designsystem.text.ratingText
 import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.GermanFormat
 import java.io.File
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 private const val TITLE_MAX_LINES = 2
 private val ThumbnailSize = 48.dp
+private val BottomClearance = 72.dp
+
+/** The journal's list, for tests. */
+const val JOURNAL_LIST_TAG = "journal_list"
 
 /**
- * The journal (SCR-15 minimal, JRN-08): read-only, the in-progress session
- * pinned on top (a tap opens the timer), then the finished sessions grouped
- * by day, newest first; a tap on one opens its page (SCR-16, D-100). Search,
- * filters and ratings come with M4.
+ * The journal (SCR-15, JRN-08, JRN-09): the in-progress session pinned on top (a tap opens the timer), then the
+ * finished sessions grouped by day, newest first; a tap on one opens its page (SCR-16, D-100). Rated sessions show
+ * „★ 4,5". The search „Tees, Notizen …" and the filter sheet narrow the rows in memory, keep the day groups and
+ * hide the pinned session; without a match A10 offers *Filter zurücksetzen*. The empty journal shows A6. The list is
+ * lazy, so 10 000 sessions scroll smoothly (NFR-PERF-03).
  *
- * @param list the journal; null while the first read is running (nothing is shown, not the empty state).
+ * @param list the journal, unfiltered; null while the first read is running (nothing is shown, not the empty state).
+ * @param filter the search and filters; [onFilterChange] reports a change (the host keeps it, JRN-09).
+ * @param alerting an alert plays: the filter sheet gives way (rule 8).
+ * @param teaNameFallback the name of the filtered tea when it has no finished session (so it is no sheet option).
  * @param thumbnail loads a tea's cover photo; tests pass a placeholder.
  * @param onOpenSession a past entry's tap: its session page (SCR-16) by the session's id.
  */
@@ -61,48 +91,178 @@ fun JournalScreen(
     scrollToTopRequest: Int = 0,
     thumbnail: @Composable (File) -> Painter? = { rememberAsyncImagePainter(it) },
     onOpenSession: (sessionId: String) -> Unit = {},
+    filter: JournalFilter = JournalFilter(),
+    onFilterChange: (JournalFilter) -> Unit = {},
+    alerting: Boolean = false,
+    teaNameFallback: String? = null,
 ) {
     ScreenScaffold(
         title = stringResource(R.string.journal_title),
         modifier = modifier,
         actions = { OverflowSettingsAction(onOpenSettings) },
-        scrollToTopRequest = scrollToTopRequest,
-        verticalArrangement = if (list?.isEmpty == false) Arrangement.Top else Arrangement.Center,
+        scrollable = false,
+        verticalArrangement = Arrangement.Top,
     ) {
         when {
             list == null -> Unit
 
-            list.isEmpty -> EmptyState(
+            list.isEmpty -> EmptyJournal()
+
+            else -> JournalContent(
+                list = list,
+                filter = filter,
+                onFilterChange = onFilterChange,
+                alerting = alerting,
+                teaNameFallback = teaNameFallback,
+                scrollToTopRequest = scrollToTopRequest,
+                thumbnail = thumbnail,
+                onOpenTimer = onOpenTimer,
+                onOpenSession = onOpenSession,
+            )
+        }
+    }
+}
+
+/** No session yet: A6 alone, centred while it fits, scrollable at a large font scale. */
+@Composable
+private fun EmptyJournal() {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(bottom = BottomClearance),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            EmptyState(
                 title = stringResource(R.string.journal_empty_title),
                 body = stringResource(R.string.journal_empty_body),
+                illustration = painterResource(
+                    if (UmamiTheme.isDark) UmamiIcons.JournalEmptyDark else UmamiIcons.JournalEmptyLight,
+                ),
+                illustrationTint = null,
+                modifier = Modifier.fillMaxWidth(),
             )
-
-            else -> Column(modifier = Modifier.fillMaxWidth().padding(bottom = UmamiSpacing.Large)) {
-                if (list.inProgress.isNotEmpty()) {
-                    val label = stringResource(R.string.journal_open_timer)
-                    Group(stringResource(R.string.journal_in_progress), list.inProgress, thumbnail, label) {
-                        onOpenTimer()
-                    }
-                }
-                val label = stringResource(R.string.journal_open_session)
-                list.days.forEach { group ->
-                    Group(dayTitle(group.day), group.entries, thumbnail, label) { onOpenSession(it.sessionId) }
-                }
-            }
         }
     }
 }
 
 @Composable
-private fun Group(
-    title: String,
+@Suppress("LongParameterList") // the screen's state and its three callbacks, passed through
+private fun JournalContent(
+    list: JournalList,
+    filter: JournalFilter,
+    onFilterChange: (JournalFilter) -> Unit,
+    alerting: Boolean,
+    teaNameFallback: String?,
+    scrollToTopRequest: Int,
+    thumbnail: @Composable (File) -> Painter?,
+    onOpenTimer: () -> Unit,
+    onOpenSession: (String) -> Unit,
+) {
+    val visible = remember(list, filter) { list.filtered(filter) }
+    val teas = remember(list) { list.teaOptions() }
+    val listState = rememberLazyListState()
+    // A counter, as in ScreenScaffold: only an increase while composed scrolls; never replayed (D-049).
+    var handled by remember { mutableIntStateOf(scrollToTopRequest) }
+    LaunchedEffect(scrollToTopRequest) {
+        if (scrollToTopRequest > handled) {
+            handled = scrollToTopRequest
+            listState.animateScrollToItem(0)
+        }
+    }
+    var sheetOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(alerting) { if (alerting) sheetOpen = false }
+    val openLabel = stringResource(R.string.journal_open_session)
+    val timerLabel = stringResource(R.string.journal_open_timer)
+    val inProgressTitle = stringResource(R.string.journal_in_progress)
+    // A tea without finished sessions is no option: its name comes from the host (teaNameFallback), else the label.
+    val teaName = teas.firstOrNull { it.key == filter.teaKey }?.name
+        ?: teaNameFallback
+        ?: stringResource(R.string.journal_filter_tea)
+    // The search row and the chips stay pinned under the title, so a scrolled journal can still be refined or
+    // cleared and the field keeps its focus and the keyboard.
+    Column(modifier = Modifier.fillMaxSize()) {
+        JournalSearchRow(filter, onFilterChange) { sheetOpen = true }
+        JournalFilterChips(filter, teaName, onFilterChange)
+        ResultCount(if (filter.isActive) visible.sessionCount else null)
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .testTag(JOURNAL_LIST_TAG),
+            state = listState,
+            contentPadding = PaddingValues(bottom = UmamiSpacing.Large),
+        ) {
+            // Only a search or filter can fail to match; a journal with just a running session is not "no match".
+            if (filter.isActive && visible.days.isEmpty()) {
+                item(key = "no_match") {
+                    EmptyState(
+                        title = stringResource(R.string.journal_no_match_title),
+                        body = null,
+                        actionLabel = stringResource(R.string.journal_no_match_action),
+                        onAction = { onFilterChange(JournalFilter()) },
+                        illustration = painterResource(
+                            if (UmamiTheme.isDark) UmamiIcons.NoResultsDark else UmamiIcons.NoResultsLight,
+                        ),
+                        illustrationTint = null,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            groups("running", { inProgressTitle }, visible.inProgress, thumbnail, timerLabel) { onOpenTimer() }
+            visible.days.forEach { group ->
+                val key = "day-${group.entries.first().startedAt.toLocalDate()}"
+                groups(key, { dayTitle(group.day) }, group.entries, thumbnail, openLabel) {
+                    onOpenSession(it.sessionId)
+                }
+            }
+        }
+    }
+    if (sheetOpen && !alerting) {
+        JournalFilterSheet(
+            filter = filter,
+            teas = teas,
+            onFilterChange = onFilterChange,
+            onDismissRequest = { sheetOpen = false },
+        )
+    }
+}
+
+/**
+ * The count of matching sessions, announced by TalkBack after a search or filter change (JRN-09). The node stays
+ * mounted and its text changes in place (empty while no search or filter is set, [count] null). It is a real,
+ * invisible [Text] one dp high, so TalkBack does not skip it.
+ */
+@Composable
+private fun ResultCount(count: Int?) {
+    val text = if (count == null) "" else pluralStringResource(R.plurals.journal_result_count, count, count)
+    Text(
+        text = text,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .clipToBounds()
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        color = Color.Transparent,
+    )
+}
+
+private fun LazyListScope.groups(
+    keyPrefix: String,
+    title: @Composable () -> String,
     entries: List<JournalEntry>,
     thumbnail: @Composable (File) -> Painter?,
     openLabel: String,
     onOpen: (JournalEntry) -> Unit,
 ) {
-    SectionHeader(title = title, modifier = Modifier.padding(top = UmamiSpacing.Medium))
-    entries.forEachIndexed { index, entry ->
+    if (entries.isEmpty()) return
+    item(key = "header-$keyPrefix") {
+        SectionHeader(title = title(), modifier = Modifier.padding(top = UmamiSpacing.Medium))
+    }
+    itemsIndexed(entries, key = { _, entry -> entry.sessionId }) { index, entry ->
         JournalRow(
             entry = entry,
             thumbnail = entry.photo?.let { thumbnail(it) },
@@ -113,7 +273,10 @@ private fun Group(
     }
 }
 
-/** A row as in mockup v2: round photo, display-font tea name with the time of day on the right, the meta line. */
+/**
+ * A row as in mockup v2: round photo, display-font tea name with the time of day on the right, the meta line and,
+ * for a rated session, „★ 4,5" (JRN-08, D-112). A session without notes carries no mark.
+ */
 @Composable
 private fun JournalRow(
     entry: JournalEntry,
@@ -161,6 +324,16 @@ private fun JournalRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                entry.rating?.let { rating ->
+                    val value = ratingText(rating.toFloat())
+                    val spokenRating = stringResource(R.string.journal_rating_description, value)
+                    Text(
+                        text = stringResource(R.string.journal_rating, value),
+                        modifier = Modifier.semantics { contentDescription = spokenRating },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
         }
         if (showDivider) {

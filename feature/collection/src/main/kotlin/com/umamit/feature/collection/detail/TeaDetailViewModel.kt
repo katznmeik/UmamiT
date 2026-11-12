@@ -10,6 +10,7 @@ import com.umamit.core.data.AddPhotoResult
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.DeleteResult
 import com.umamit.core.data.JournalRepository
+import com.umamit.core.data.PhotoFileContext
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.SettingsRepository
@@ -37,6 +38,7 @@ import com.umamit.core.model.StockLevel
 import com.umamit.core.model.StockSummary
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaOverview
+import com.umamit.core.model.TeaTasting
 import com.umamit.core.model.Vessel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -136,7 +138,9 @@ class TeaDetailViewModel @Inject constructor(
         // Either brew slot (v0.5.0, D-108): the tea's session may be the second brew.
         archive.observeActiveTeaIds().map { teaId in it }.distinctUntilChanged(),
         settings.settings.map { Globals(it.lowStockGrams, it.deductStock) }.distinctUntilChanged(),
-    ) { sessions, active, globals -> Brewed(sessions, active, globals) }
+        // The rating and GESCHMACK follow the sessions' tasting inputs at once (TEA-13, D-112).
+        journal.observeTeaTasting(teaId),
+    ) { sessions, active, globals, tasting -> Brewed(sessions, active, globals, tasting) }
 
     /** INV-09's link from the tea's catalog key, its catalog tea and the size bought last. */
     private val reorderUrl: Flow<String?> = combine(
@@ -374,12 +378,20 @@ class TeaDetailViewModel @Inject constructor(
             today = clock.today(),
             history = stockEvents.asReversed().map { it.entry(clock.zone()) },
             cost = CostRule.of(StockSummary.of(stockEvents), recipeList.firstOrNull { it.isDefault }, finished),
+            rating = brew.tasting.rating,
+            taste = DetailTasting.of(brew.tasting),
+            recentSessions = finished.sortedByDescending { it.startedAtMs }.take(RECENT_SESSIONS).map { it.recent() },
         )
     }
 
     private data class Globals(val lowStockGrams: Double, val deductStock: Boolean)
 
-    private data class Brewed(val sessions: List<BrewSession>, val active: Boolean, val globals: Globals) {
+    private data class Brewed(
+        val sessions: List<BrewSession>,
+        val active: Boolean,
+        val globals: Globals,
+        val tasting: TeaTasting,
+    ) {
         /** The leaf the active session of this tea deducts at *Sitzung beenden* (D-096), while deduction is on. */
         fun sessionLeaf(): Double? = sessions.takeIf { active && globals.deductStock }
             ?.filter { it.status == SessionStatus.IN_PROGRESS }
