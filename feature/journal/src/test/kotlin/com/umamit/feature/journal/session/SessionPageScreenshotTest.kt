@@ -70,7 +70,13 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    /** The 1st infusion with [first] and [note], and the 2nd (the skipped one has no chip) with [second]. */
+    /**
+     * The steps of the taste renders: as [page]'s, but the 3rd infusion poured (0:32), so its chip „3." matches the
+     * step table (a step never brewed has no chip, D-114).
+     */
+    private val tastedSteps = page.steps.map { if (it.infusionNumber == 3) it.copy(actualSeconds = 32) else it }
+
+    /** The 1st infusion with [first] and [note], and the 3rd (the skipped 2nd has no chip) with [second]. */
     private fun infusions(first: TasteProfile, note: String? = null, second: TasteProfile = TasteProfile.EMPTY) =
         listOf(
             SessionInfusion(position = 1, number = 1, kind = StepKind.INFUSION, taste = first, note = note),
@@ -122,6 +128,7 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
         "tasteFoldedRadar",
         SessionPageUiState.Ready(
             page.copy(
+                steps = tastedSteps,
                 infusions = infusions(
                     TasteProfile(umami = 5, sweetness = 3, bitterness = 1, astringency = 2, body = 4, aroma = 3),
                     note = "Weich, nach Nori, mit einer leichten Süße im Abgang und kaum Bitterkeit",
@@ -135,7 +142,9 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
     @Test
     fun tasteFoldedSummary() = capture(
         "tasteFoldedSummary",
-        SessionPageUiState.Ready(page.copy(infusions = infusions(TasteProfile(umami = 4, sweetness = 3)))),
+        SessionPageUiState.Ready(
+            page.copy(steps = tastedSteps, infusions = infusions(TasteProfile(umami = 4, sweetness = 3))),
+        ),
         scrollToTag = SESSION_TASTE_ADJUST_TAG,
     )
 
@@ -144,7 +153,10 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
     fun tasteUnfolded() = capture(
         "tasteUnfolded",
         SessionPageUiState.Ready(
-            page.copy(infusions = infusions(TasteProfile(umami = 5, sweetness = 3, body = 4), note = "Weich")),
+            page.copy(
+                steps = tastedSteps,
+                infusions = infusions(TasteProfile(umami = 5, sweetness = 3, body = 4), note = "Weich"),
+            ),
         ),
         scrollToTag = SESSION_TASTE_ADJUST_TAG,
         click = SESSION_TASTE_ADJUST_TAG,
@@ -157,6 +169,7 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
         "tasteAll",
         SessionPageUiState.Ready(
             page.copy(
+                steps = tastedSteps,
                 infusions = infusions(
                     TasteProfile(umami = 5, sweetness = 3, body = 4),
                     second = TasteProfile(umami = 4, sweetness = 2, body = 3, aroma = 2),
