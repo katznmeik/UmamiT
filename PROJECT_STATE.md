@@ -35,6 +35,9 @@
 - **Milestone PR:** none yet; the build opens it from `claude/wonderful-davinci-fu8tqi`.
 - **Then Statistik (v0.7.0, M4 part 2; not yet specified):** its own specify session. Starting point, not yet confirmed by the PO: INS-01–INS-07 (02 §12), SCR-18, the A9 empty state. With D-114 the taste data is per infusion.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
+- **Config housekeeping (2026-11-12, #253 on `main`):** a prompt audit of the Claude Code config pointed `CLAUDE.md` at the
+  per-release plans and plainly restated `emil-design-eng`'s review format (a local edit; its hash no longer
+  matches `skills-lock.json`, see `CLAUDE.md`). No app change.
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
   init script (`~/.gradle/init.d`, not in the repository) pointed
   `repo.maven.apache.org` at Google's Maven Central mirror
