@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -78,6 +79,7 @@ import com.umamit.core.ui.SystemPhotoPicker
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.core.ui.rememberPhotoPicker
+import com.umamit.core.ui.rememberPhotoViewerOpener
 import com.umamit.core.ui.rememberPickedPhotoPainter
 
 /** Test tags of SCR-14. */
@@ -398,6 +400,13 @@ private fun PhotoField(
         .height(PhotoHeight)
         .clip(MaterialTheme.shapes.medium)
     val emptyDescription = stringResource(R.string.vessel_editor_photo_empty_description)
+    // A tap on the photo opens it full screen (SCR-28); the stored file or the picked, still unsaved image.
+    val viewer = rememberPhotoViewerOpener()
+    val source = when (photo) {
+        VesselPhoto.None -> null
+        is VesselPhoto.Stored -> photo.path
+        is VesselPhoto.Picked -> photo.uri
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall)) {
         when (photo) {
             VesselPhoto.None -> Box(
@@ -415,7 +424,11 @@ private fun PhotoField(
                 )
             }
 
-            is VesselPhoto.Stored, is VesselPhoto.Picked -> PhotoImage(painter(photo), box)
+            is VesselPhoto.Stored, is VesselPhoto.Picked -> PhotoImage(
+                painter(photo),
+                onClick = { source?.let { viewer.open(listOf(it), 0) } },
+                modifier = box,
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Small)) {
             TextButton(onClick = actions.pickPhoto, modifier = Modifier.testTag(VesselEditorTags.PHOTO_PICK)) {
@@ -439,9 +452,11 @@ private fun PhotoField(
 }
 
 @Composable
-private fun PhotoImage(painter: Painter?, modifier: Modifier = Modifier) {
+private fun PhotoImage(painter: Painter?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val description = stringResource(R.string.vessel_editor_photo_description)
-    val tagged = modifier.testTag(VesselEditorTags.PHOTO)
+    val tagged = modifier
+        .testTag(VesselEditorTags.PHOTO)
+        .clickable(onClickLabel = stringResource(com.umamit.core.ui.R.string.ui_photo_enlarge), onClick = onClick)
     if (painter != null) {
         // The tint under the image, so a photo fading in comes out of the placeholder's colour.
         Image(

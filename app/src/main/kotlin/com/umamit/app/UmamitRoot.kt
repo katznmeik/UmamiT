@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -36,6 +37,9 @@ import com.umamit.app.timer.TimerRequest
 import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.ui.LocalPhotoViewer
+import com.umamit.core.ui.PhotoViewerScreen
+import com.umamit.core.ui.rememberPhotoViewerAccess
 import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.collection.detail.ArchivedTea
@@ -255,248 +259,276 @@ internal fun UmamitRoot(
             }
         },
     )
-    Box(modifier) {
-        NavHost(
-            navController = navController,
-            startDestination = if (startWithSetup) OnboardingRoute else ShellRoute,
-            modifier = Modifier.fillMaxSize(),
-            enterTransition = {
-                if (AnimatedTimer(initialState, targetState).instant()) EnterTransition.None else fadeIn(motion.fade())
-            },
-            exitTransition = {
-                if (AnimatedTimer(
-                        initialState,
-                        targetState,
-                    ).instant()
-                ) {
-                    ExitTransition.None
-                } else {
-                    ExitTransition.KeepUntilTransitionsFinished
+    // The full-screen photo viewer for the heroes and the vessel photo (SCR-28): above the shell, never over an alert
+    // (rule 8).
+    val photoViewer = rememberPhotoViewerAccess { owner, sources, index ->
+        unlessAlerting({ currentAlerting }, instead = openTimer) {
+            navigateAbove(PhotoViewerRoute(owner, sources, index)) { launchSingleTop = true }
+        }
+    }
+    CompositionLocalProvider(LocalPhotoViewer provides photoViewer) {
+        Box(modifier) {
+            NavHost(
+                navController = navController,
+                startDestination = if (startWithSetup) OnboardingRoute else ShellRoute,
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = {
+                    if (AnimatedTimer(initialState, targetState).instant()) {
+                        EnterTransition.None
+                    } else {
+                        fadeIn(motion.fade())
+                    }
+                },
+                exitTransition = {
+                    if (AnimatedTimer(
+                            initialState,
+                            targetState,
+                        ).instant()
+                    ) {
+                        ExitTransition.None
+                    } else {
+                        ExitTransition.KeepUntilTransitionsFinished
+                    }
+                },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = {
+                    if (AnimatedTimer(
+                            initialState,
+                            targetState,
+                        ).instant()
+                    ) {
+                        ExitTransition.None
+                    } else {
+                        fadeOut(motion.exitFade())
+                    }
+                },
+            ) {
+                composable<ShellRoute> {
+                    UmamitApp(
+                        activeBrewSource = activeBrewSource,
+                        journalSources = journalSources,
+                        alerting = alert != null,
+                        onOpenTimer = openTimer,
+                        onOpenTimerOf = openTimerOf,
+                        startNavigation = startNavigation,
+                        alertKey = alert,
+                        startScreen = startScreen,
+                        catalogScreen = catalogScreen,
+                        catalogScreens = catalogScreens,
+                        collectionSegments = collectionSegments,
+                        collectionScreens = collectionScreens,
+                        journalScreens = journalScreens,
+                        settings = settings.withRerunSetup(rerunSetup),
+                        teaLinkShare = share,
+                        onTakeTeaLinkShare = onTakeTeaLinkShare,
+                        startRequest = showStart,
+                        archivedTea = archivedTea,
+                        onArchivedTeaChange = { archivedTea = it },
+                    )
                 }
-            },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = {
-                if (AnimatedTimer(
-                        initialState,
-                        targetState,
-                    ).instant()
-                ) {
-                    ExitTransition.None
-                } else {
-                    fadeOut(motion.exitFade())
+                // A shell of its own above what was shown (D-097): back leaves it, its tabs work as the shell's.
+                composable<CatalogRefreshRoute> { entry ->
+                    // The token this entry shows, never a later tap's (#121).
+                    val sheetToken = entry.toRoute<CatalogRefreshRoute>().sheetToken
+                    UmamitApp(
+                        activeBrewSource = activeBrewSource,
+                        journalSources = journalSources,
+                        alerting = alert != null,
+                        onOpenTimer = openTimer,
+                        onOpenTimerOf = openTimerOf,
+                        startNavigation = startNavigation,
+                        alertKey = alert,
+                        startScreen = startScreen,
+                        catalogScreen = catalogScreen,
+                        catalogScreens = catalogScreens,
+                        collectionSegments = collectionSegments,
+                        collectionScreens = collectionScreens,
+                        journalScreens = journalScreens,
+                        settings = settings.withRerunSetup(rerunSetup),
+                        teaLinkShare = share,
+                        onTakeTeaLinkShare = onTakeTeaLinkShare,
+                        opening = ShellOpening.CatalogRefresh(sheetToken),
+                        archivedTea = archivedTea,
+                        onArchivedTeaChange = { archivedTea = it },
+                    )
                 }
-            },
-        ) {
-            composable<ShellRoute> {
-                UmamitApp(
-                    activeBrewSource = activeBrewSource,
-                    journalSources = journalSources,
-                    alerting = alert != null,
-                    onOpenTimer = openTimer,
-                    onOpenTimerOf = openTimerOf,
-                    startNavigation = startNavigation,
-                    alertKey = alert,
-                    startScreen = startScreen,
-                    catalogScreen = catalogScreen,
-                    catalogScreens = catalogScreens,
-                    collectionSegments = collectionSegments,
-                    collectionScreens = collectionScreens,
-                    journalScreens = journalScreens,
-                    settings = settings.withRerunSetup(rerunSetup),
-                    teaLinkShare = share,
-                    onTakeTeaLinkShare = onTakeTeaLinkShare,
-                    startRequest = showStart,
-                    archivedTea = archivedTea,
-                    onArchivedTeaChange = { archivedTea = it },
-                )
-            }
-            // A shell of its own above what was shown (D-097): back leaves it, its tabs work as the shell's.
-            composable<CatalogRefreshRoute> { entry ->
-                // The token this entry shows, never a later tap's (#121).
-                val sheetToken = entry.toRoute<CatalogRefreshRoute>().sheetToken
-                UmamitApp(
-                    activeBrewSource = activeBrewSource,
-                    journalSources = journalSources,
-                    alerting = alert != null,
-                    onOpenTimer = openTimer,
-                    onOpenTimerOf = openTimerOf,
-                    startNavigation = startNavigation,
-                    alertKey = alert,
-                    startScreen = startScreen,
-                    catalogScreen = catalogScreen,
-                    catalogScreens = catalogScreens,
-                    collectionSegments = collectionSegments,
-                    collectionScreens = collectionScreens,
-                    journalScreens = journalScreens,
-                    settings = settings.withRerunSetup(rerunSetup),
-                    teaLinkShare = share,
-                    onTakeTeaLinkShare = onTakeTeaLinkShare,
-                    opening = ShellOpening.CatalogRefresh(sheetToken),
-                    archivedTea = archivedTea,
-                    onArchivedTeaChange = { archivedTea = it },
-                )
-            }
-            composable<OnboardingRoute> { onboardingScreen(finishSetup) }
-            composable<TimerRoute> { timerEntry ->
-                val route = timerEntry.toRoute<TimerRoute>()
-                timerScreen(
-                    closeTimer,
-                    { navigateAbove(TimerSettingsRoute) {} },
-                    { sessionId ->
-                        // The setup replaces the timer; *Brühen starten* there opens it again (BRW-11).
-                        navigateAbove(BrewSetupRoute(sessionId = sessionId)) {
-                            popUpTo<TimerRoute> { inclusive = true }
-                        }
-                    },
-                    TimerShown(
-                        slot = route.slot,
-                        // The timer a route opened for none shows, for a later notification's request (04 §8.2).
-                        onPin = { pinned -> timerEntry.pinTimer(pinned) },
-                        onShowOther = { other -> navController.showOtherTimer(timerEntry, route, other) },
-                    ),
-                )
-            }
-            composable<BrewSetupRoute> { entry ->
-                setupScreen(
-                    SetupHost(
-                        // Only while resumed: a quick double tap never pops the shell under it (D-090).
-                        onBack = dropUnlessResumed { navController.popBackStack() },
-                        // The timer replaces the setup, so back from the timer returns to where the brew began. It is
-                        // the timer of the slot the brew started in (BREW_2 for a second brew, D-108), or of the tea's
-                        // own session; null during an alert: the timer in front.
-                        onOpenTimer = { slot ->
-                            navController.navigate(TimerRoute(slot)) {
-                                popUpTo<BrewSetupRoute> { inclusive = true }
+                composable<OnboardingRoute> { onboardingScreen(finishSetup) }
+                composable<TimerRoute> { timerEntry ->
+                    val route = timerEntry.toRoute<TimerRoute>()
+                    timerScreen(
+                        closeTimer,
+                        { navigateAbove(TimerSettingsRoute) {} },
+                        { sessionId ->
+                            // The setup replaces the timer; *Brühen starten* there opens it again (BRW-11).
+                            navigateAbove(BrewSetupRoute(sessionId = sessionId)) {
+                                popUpTo<TimerRoute> { inclusive = true }
+                            }
+                        },
+                        TimerShown(
+                            slot = route.slot,
+                            // The timer a route opened for none shows, for a later notification's request (04 §8.2).
+                            onPin = { pinned -> timerEntry.pinTimer(pinned) },
+                            onShowOther = { other -> navController.showOtherTimer(timerEntry, route, other) },
+                        ),
+                    )
+                }
+                composable<BrewSetupRoute> { entry ->
+                    setupScreen(
+                        SetupHost(
+                            // Only while resumed: a quick double tap never pops the shell under it (D-090).
+                            onBack = dropUnlessResumed { navController.popBackStack() },
+                            // The timer replaces the setup, so back from the timer returns to where the brew began. It
+                            // is the timer of the slot the brew started in (BREW_2 for a second brew, D-108), or of the
+                            // tea's own session; null during an alert: the timer in front.
+                            onOpenTimer = { slot ->
+                                navController.navigate(TimerRoute(slot)) {
+                                    popUpTo<BrewSetupRoute> { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            },
+                            // ⋮ *Im Katalog ansehen* (D-098) and *Tee ansehen* (D-100): the detail above the setup,
+                            // which keeps its draft in its entry. During an alert the alerting timer instead, never a
+                            // page over it (rule 8, D-062 S3).
+                            onOpenCatalog = { key ->
+                                unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                    navigateAbove(SetupCatalogTeaRoute(key)) { launchSingleTop = true }
+                                }
+                            },
+                            onOpenTea = { teaId ->
+                                unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                    navigateAbove(SetupTeaRoute(teaId)) { launchSingleTop = true }
+                                }
+                            },
+                            // *Neues Gefäß …* (WARE-02, D-100): the editor above the setup; *Speichern* leaves the new
+                            // vessel's id in this entry, and the setup selects it.
+                            onNewVessel = {
+                                unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                    navigateAbove(VesselEditorRoute()) { launchSingleTop = true }
+                                }
+                            },
+                            newVesselId = entry.savedVesselId(),
+                            onConsumeNewVessel = entry::forgetSavedVessel,
+                        ),
+                    )
+                }
+                composable<SetupCatalogTeaRoute> {
+                    catalogScreens.tea(
+                        // The tea is in the collection already: a saved purchase stays on the detail (no brew flow
+                        // here).
+                        CatalogTeaHost(
+                            onBack = dropUnlessResumed { navController.popBackStack() },
+                            alerting = alert != null,
+                            onPurchaseSave = {},
+                        ),
+                    )
+                }
+                // ⋮ *Tee ansehen* (D-100): the tea's detail above the setup. *Brühen* there starts a new setup in place
+                // of this one (the alerting timer during an alert, rule 8); *Archivieren* and *Löschen* close the setup
+                // too, as its tea has left the collection.
+                composable<SetupTeaRoute> { entry ->
+                    collectionScreens.tea(
+                        setupTeaHost(
+                            entry = entry,
+                            navController = navController,
+                            alertKey = alert,
+                            // A new setup in its place, or the alerting timer during an alert (rule 8).
+                            openSetup = { route ->
+                                unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                    navigateAbove(route) { popUpTo<BrewSetupRoute> { inclusive = true } }
+                                }
+                            },
+                            // The pencils: the editors above this detail, the alerting timer during an alert (rule 8).
+                            openEditor = { route ->
+                                unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                    navigateAbove(route) { launchSingleTop = true }
+                                }
+                            },
+                            // ⋮ *Im Katalog ansehen* (D-114 Q10): the catalog page above this detail; back returns to
+                            // it.
+                            openCatalog = { key ->
+                                unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                    navigateAbove(SetupCatalogTeaRoute(key)) { launchSingleTop = true }
+                                }
+                            },
+                            onArchived = { archivedTea = it },
+                        ),
+                    )
+                }
+                setupEditorRoutes(navController, collectionScreens, alert)
+                composable<QuickTimerRoute> {
+                    quickTimerScreen(
+                        dropUnlessResumed { navController.popBackStack() },
+                        // The timer replaces it, so back from the running quick timer returns to Start.
+                        {
+                            navController.navigate(TimerRoute(TimerSlot.QUICK)) {
+                                popUpTo<QuickTimerRoute> { inclusive = true }
                                 launchSingleTop = true
                             }
                         },
-                        // ⋮ *Im Katalog ansehen* (D-098) and *Tee ansehen* (D-100): the detail above the setup, which
-                        // keeps its draft in its entry. During an alert the alerting timer instead, never a page over
-                        // it (rule 8, D-062 S3).
-                        onOpenCatalog = { key ->
-                            unlessAlerting({ currentAlerting }, instead = openTimer) {
-                                navigateAbove(SetupCatalogTeaRoute(key)) { launchSingleTop = true }
-                            }
-                        },
-                        onOpenTea = { teaId ->
-                            unlessAlerting({ currentAlerting }, instead = openTimer) {
-                                navigateAbove(SetupTeaRoute(teaId)) { launchSingleTop = true }
-                            }
-                        },
-                        // *Neues Gefäß …* (WARE-02, D-100): the editor above the setup; *Speichern* leaves the new
-                        // vessel's id in this entry, and the setup selects it.
-                        onNewVessel = {
-                            unlessAlerting({ currentAlerting }, instead = openTimer) {
+                    )
+                }
+                composable<TimerSettingsRoute> {
+                    settings.screen(
+                        SettingsHost(
+                            onBack = dropUnlessResumed { navController.popBackStack() },
+                            onOpenAbout = { navigateAbove(AboutRoute) {} },
+                            alertKey = alert,
+                            onOpenTeaware = dropUnlessResumed { navigateAbove(TeawareRoute) {} },
+                        ),
+                    )
+                }
+                // Teegeschirr above the timer (from *Timer-Einstellungen*), and the vessel editor above it or above
+                // the setup (*Neues Gefäß …*, WARE-02); both give way to a new alert like every route above the
+                // shell (rule 8).
+                composable<TeawareRoute> { entry ->
+                    settings.teaware(
+                        TeawareHost(
+                            onBack = dropUnlessResumed { navController.popBackStack() },
+                            onOpenVessel = { id -> navigateAbove(VesselEditorRoute(id)) { launchSingleTop = true } },
+                            onAddVessel = dropUnlessResumed {
                                 navigateAbove(VesselEditorRoute()) { launchSingleTop = true }
-                            }
-                        },
-                        newVesselId = entry.savedVesselId(),
-                        onConsumeNewVessel = entry::forgetSavedVessel,
-                    ),
-                )
-            }
-            composable<SetupCatalogTeaRoute> {
-                catalogScreens.tea(
-                    // The tea is in the collection already: a saved purchase stays on the detail (no brew flow here).
-                    CatalogTeaHost(
+                            },
+                            archived = entry.archivedVessel(),
+                            onArchivedSnackbarEnd = entry::forgetArchivedVessel,
+                        ),
+                    )
+                }
+                composable<VesselEditorRoute> {
+                    settings.vesselEditor(
+                        VesselEditorHost(
+                            onClose = dropUnlessResumed { navController.popBackStack() },
+                            onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
+                            onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
+                            alertKey = alert,
+                        ),
+                    )
+                }
+                composable<AboutRoute> {
+                    settings.about(
+                        AboutHost(
+                            onBack = dropUnlessResumed { navController.popBackStack() },
+                            onRerunSetup = rerunSetup,
+                            onOpenDiagnostics = { navigateAbove(DiagnosticsRoute) {} },
+                        ),
+                    )
+                }
+                composable<DiagnosticsRoute> {
+                    settings.diagnostics(dropUnlessResumed { navController.popBackStack() })
+                }
+                // The photo viewer (SCR-28): fades in and out with the root's transitions; back closes it on the photo
+                // last shown, which the hero follows.
+                composable<PhotoViewerRoute> { viewerEntry ->
+                    val route = viewerEntry.toRoute<PhotoViewerRoute>()
+                    PhotoViewerScreen(
+                        sources = route.sources,
+                        startIndex = route.index,
                         onBack = dropUnlessResumed { navController.popBackStack() },
-                        alerting = alert != null,
-                        onPurchaseSave = {},
-                    ),
-                )
+                        onPageChange = { photoViewer.report(route.owner, it) },
+                    )
+                }
             }
-            // ⋮ *Tee ansehen* (D-100): the tea's detail above the setup. *Brühen* there starts a new setup in place of
-            // this one (the alerting timer during an alert, rule 8); *Archivieren* and *Löschen* close the setup too,
-            // as its tea has left the collection.
-            composable<SetupTeaRoute> { entry ->
-                collectionScreens.tea(
-                    setupTeaHost(
-                        entry = entry,
-                        navController = navController,
-                        alertKey = alert,
-                        // A new setup in its place, or the alerting timer during an alert (rule 8).
-                        openSetup = { route ->
-                            unlessAlerting({ currentAlerting }, instead = openTimer) {
-                                navigateAbove(route) { popUpTo<BrewSetupRoute> { inclusive = true } }
-                            }
-                        },
-                        // The pencils: the editors above this detail, the alerting timer during an alert (rule 8).
-                        openEditor = { route ->
-                            unlessAlerting({ currentAlerting }, instead = openTimer) {
-                                navigateAbove(route) { launchSingleTop = true }
-                            }
-                        },
-                        // ⋮ *Im Katalog ansehen* (D-114 Q10): the catalog page above this detail; back returns to it.
-                        openCatalog = { key ->
-                            unlessAlerting({ currentAlerting }, instead = openTimer) {
-                                navigateAbove(SetupCatalogTeaRoute(key)) { launchSingleTop = true }
-                            }
-                        },
-                        onArchived = { archivedTea = it },
-                    ),
-                )
-            }
-            setupEditorRoutes(navController, collectionScreens, alert)
-            composable<QuickTimerRoute> {
-                quickTimerScreen(
-                    dropUnlessResumed { navController.popBackStack() },
-                    // The timer replaces it, so back from the running quick timer returns to Start.
-                    {
-                        navController.navigate(TimerRoute(TimerSlot.QUICK)) {
-                            popUpTo<QuickTimerRoute> { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
-            composable<TimerSettingsRoute> {
-                settings.screen(
-                    SettingsHost(
-                        onBack = dropUnlessResumed { navController.popBackStack() },
-                        onOpenAbout = { navigateAbove(AboutRoute) {} },
-                        alertKey = alert,
-                        onOpenTeaware = dropUnlessResumed { navigateAbove(TeawareRoute) {} },
-                    ),
-                )
-            }
-            // Teegeschirr above the timer (from *Timer-Einstellungen*), and the vessel editor above it or above
-            // the setup (*Neues Gefäß …*, WARE-02); both give way to a new alert like every route above the
-            // shell (rule 8).
-            composable<TeawareRoute> { entry ->
-                settings.teaware(
-                    TeawareHost(
-                        onBack = dropUnlessResumed { navController.popBackStack() },
-                        onOpenVessel = { id -> navigateAbove(VesselEditorRoute(id)) { launchSingleTop = true } },
-                        onAddVessel = dropUnlessResumed {
-                            navigateAbove(VesselEditorRoute()) { launchSingleTop = true }
-                        },
-                        archived = entry.archivedVessel(),
-                        onArchivedSnackbarEnd = entry::forgetArchivedVessel,
-                    ),
-                )
-            }
-            composable<VesselEditorRoute> {
-                settings.vesselEditor(
-                    VesselEditorHost(
-                        onClose = dropUnlessResumed { navController.popBackStack() },
-                        onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
-                        onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
-                        alertKey = alert,
-                    ),
-                )
-            }
-            composable<AboutRoute> {
-                settings.about(
-                    AboutHost(
-                        onBack = dropUnlessResumed { navController.popBackStack() },
-                        onRerunSetup = rerunSetup,
-                        onOpenDiagnostics = { navigateAbove(DiagnosticsRoute) {} },
-                    ),
-                )
-            }
-            composable<DiagnosticsRoute> { settings.diagnostics(dropUnlessResumed { navController.popBackStack() }) }
+            ShellCover(requestPending = timerFirst.requestPending, timerOnTop = timerOnTop)
         }
-        ShellCover(requestPending = timerFirst.requestPending, timerOnTop = timerOnTop)
     }
     // The bars' one owner (D-069), from the back stack: it changes when navigation starts, so screens
     // overlapping in a crossfade never fight over it. Last, so it shifts no saveable key above.
@@ -504,6 +536,7 @@ internal fun UmamitRoot(
         systemBarDarkIcons(
             timerOnTop = timerShown,
             quickTimerOnTop = entry?.destination?.hasRoute<QuickTimerRoute>() == true,
+            photoViewerOnTop = entry?.destination?.hasRoute<PhotoViewerRoute>() == true,
             alerting = alert != null,
             darkTheme = UmamiTheme.isDark,
         ),

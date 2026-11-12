@@ -188,6 +188,14 @@ internal data object TeawareRoute
 @Serializable
 internal data class VesselEditorRoute(val vesselId: String? = null)
 
+/**
+ * The full-screen photo viewer (SCR-28, D-114 Q9), above the shell or the timer like the setup: [sources] are the
+ * photos of the hero (or the vessel's one) in its order, shown from [index]; [owner] names the hero it reports the
+ * last photo shown to. It gives way to a new alert like every route above the shell (rule 8).
+ */
+@Serializable
+internal data class PhotoViewerRoute(val owner: String, val sources: List<String>, val index: Int)
+
 /** The four areas of 03 §2.2, in navigation order. */
 internal enum class Tab(val root: Any, @StringRes val label: Int, @DrawableRes val icon: Int) {
     Start(StartRoute, R.string.tab_start, UmamiIcons.Start),

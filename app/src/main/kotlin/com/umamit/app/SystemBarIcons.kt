@@ -13,14 +13,20 @@ import androidx.core.view.WindowCompat
  *
  * - the timer on top: dark on the washi/matcha alert, light on the Steeping surface;
  * - the quick timer on top: light;
+ * - the photo viewer on top (SCR-28): light, on its black;
  * - anything else: the app theme's own (dark icons in the light theme).
  */
-internal fun systemBarDarkIcons(timerOnTop: Boolean, quickTimerOnTop: Boolean, alerting: Boolean, darkTheme: Boolean) =
-    when {
-        timerOnTop -> alerting
-        quickTimerOnTop -> false
-        else -> !darkTheme
-    }
+internal fun systemBarDarkIcons(
+    timerOnTop: Boolean,
+    quickTimerOnTop: Boolean,
+    alerting: Boolean,
+    darkTheme: Boolean,
+    photoViewerOnTop: Boolean = false,
+) = when {
+    timerOnTop -> alerting
+    quickTimerOnTop || photoViewerOnTop -> false
+    else -> !darkTheme
+}
 
 /**
  * Applies [darkIcons] to the window. The root is its only caller, so screens that overlap during a

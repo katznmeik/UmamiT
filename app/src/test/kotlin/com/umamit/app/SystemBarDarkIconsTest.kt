@@ -57,4 +57,21 @@ class SystemBarDarkIconsTest {
             .that(systemBarDarkIcons(timerOnTop = false, quickTimerOnTop = false, alerting = true, darkTheme = true))
             .isFalse()
     }
+
+    @Test
+    fun photoViewerOnTopIsAlwaysLight() {
+        for (darkTheme in listOf(false, true)) {
+            assertWithMessage("photo viewer, dark theme $darkTheme")
+                .that(
+                    systemBarDarkIcons(
+                        timerOnTop = false,
+                        quickTimerOnTop = false,
+                        alerting = false,
+                        darkTheme = darkTheme,
+                        photoViewerOnTop = true,
+                    ),
+                )
+                .isFalse()
+        }
+    }
 }
