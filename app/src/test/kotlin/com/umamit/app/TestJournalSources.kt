@@ -7,6 +7,7 @@ import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.feature.journal.JournalSources
+import kotlin.coroutines.EmptyCoroutineContext
 
 /** An empty journal and no saved sheet, on the fakes of core:testing; [teas] are the sessions' teas. */
 fun testJournalSources(
@@ -21,4 +22,5 @@ fun testJournalSources(
     teas,
     sessions.tasting,
     FakeRecipeOffers(),
+    EmptyCoroutineContext,
 )
