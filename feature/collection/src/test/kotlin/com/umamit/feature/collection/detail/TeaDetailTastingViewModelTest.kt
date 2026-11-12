@@ -175,14 +175,14 @@ class TeaDetailTastingViewModelTest {
     }
 
     @Test
-    fun `GESCHMACK averages each axis over the sessions that set it`() = runTest {
+    fun `GESCHMACK averages each axis over the infusions that set it`() = runTest {
         TeaDetailFixture.seed(collection)
         brewed("s1", daysAgo = 2)
         brewed("s2", daysAgo = 1)
-        sessions.tasting.setTaste("s1", TasteAxis.UMAMI, 5)
-        sessions.tasting.setTaste("s2", TasteAxis.UMAMI, 4)
-        sessions.tasting.setTaste("s1", TasteAxis.BODY, 2)
-        sessions.tasting.setTaste("s1", TasteAxis.AROMA, 3)
+        sessions.tasting.setInfusionTaste("s1", 0, TasteAxis.UMAMI, 5)
+        sessions.tasting.setInfusionTaste("s2", 0, TasteAxis.UMAMI, 4)
+        sessions.tasting.setInfusionTaste("s1", 0, TasteAxis.BODY, 2)
+        sessions.tasting.setInfusionTaste("s1", 0, TasteAxis.AROMA, 3)
 
         val taste = viewModel().tea.taste
 
@@ -194,8 +194,8 @@ class TeaDetailTastingViewModelTest {
     fun `two axes alone draw no radar and show no section`() = runTest {
         TeaDetailFixture.seed(collection)
         brewed("s1")
-        sessions.tasting.setTaste("s1", TasteAxis.UMAMI, 5)
-        sessions.tasting.setTaste("s1", TasteAxis.BODY, 2)
+        sessions.tasting.setInfusionTaste("s1", 0, TasteAxis.UMAMI, 5)
+        sessions.tasting.setInfusionTaste("s1", 0, TasteAxis.BODY, 2)
 
         assertThat(viewModel().tea.taste.hasData).isFalse()
     }

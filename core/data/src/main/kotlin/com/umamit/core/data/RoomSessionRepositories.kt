@@ -11,6 +11,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TastingLimits
@@ -74,7 +75,7 @@ class RoomSessionRepository @Inject constructor(
             if (row == null) {
                 Log.w(TAG, "session $sessionId has no step $stepIndex to record; left to the snapshot")
             } else {
-                sessions.updateSteps(listOf(row.recorded(record, now)))
+                sessions.updateSteps(listOf(row.recorded(record, now).timerColumns()))
             }
         }
     }
@@ -177,8 +178,10 @@ class RoomSessionRepository @Inject constructor(
 }
 
 /**
- * [SessionTasting] on Room (05 §3.7 „Tasting writes", §3.8): each write one transaction, on a `COMPLETED` session
- * only, setting its `updated_at`. Steps, stock, cost and `active_brew` are never read or written here.
+ * [SessionTasting] on Room (05 §3.7 „Tasting writes", „Infusion tasting writes", §3.8): each write one transaction.
+ * The session's inputs on a `COMPLETED` session only, setting its `updated_at`; an infusion's taste and note on its
+ * ended, non-*Spülen* step row of a session in progress or completed, column by column. Stock, cost and `active_brew`
+ * are never read or written here.
  */
 class RoomSessionTasting @Inject constructor(private val db: UmamiDatabase, private val time: WallClock) :
     SessionTasting {
@@ -189,13 +192,49 @@ class RoomSessionTasting @Inject constructor(private val db: UmamiDatabase, priv
         return tasting.setRating(sessionId, rating, time.nowMs()).written()
     }
 
-    override suspend fun setTaste(sessionId: String, axis: TasteAxis, value: Int?): TastingWrite {
+    override suspend fun setInfusionTaste(
+        sessionId: String,
+        position: Int,
+        axis: TasteAxis,
+        value: Int?,
+    ): TastingWrite {
         if (value != null && !TastingLimits.isValidTaste(value)) return TastingWrite.INVALID
-        return tasting.setTaste(sessionId, axis.name, value, time.nowMs()).written()
+        return infusionWrite(sessionId, position) { tasting.setInfusionTaste(sessionId, position, axis.name, value) }
     }
 
-    override suspend fun clearTaste(sessionId: String): TastingWrite =
-        tasting.clearTaste(sessionId, time.nowMs()).written()
+    override suspend fun clearInfusionTaste(sessionId: String, position: Int): TastingWrite =
+        infusionWrite(sessionId, position) { tasting.clearInfusionTaste(sessionId, position) }
+
+    override suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): TastingWrite {
+        val trimmed = note?.trim()?.takeIf { it.isNotEmpty() }
+        if (trimmed != null && trimmed.length > TastingLimits.MAX_INFUSION_NOTE_LENGTH) return TastingWrite.INVALID
+        return infusionWrite(sessionId, position) { tasting.setInfusionNote(sessionId, position, trimmed) }
+    }
+
+    /**
+     * One infusion write in its own transaction (05 §3.7 „Infusion tasting writes"): [write] runs only when the
+     * session is in progress or completed and its row at [position] is ended and not *Spülen*; a `COMPLETED`
+     * session's `updated_at` follows. An in-progress session's row and `active_brew` are never touched.
+     */
+    private suspend fun infusionWrite(sessionId: String, position: Int, write: suspend () -> Int): TastingWrite {
+        val now = time.nowMs()
+        return db.withTransaction {
+            val target = tasting.infusionTarget(sessionId, position)
+            when {
+                target == null || target.status !in INFUSION_STATUSES -> TastingWrite.NOT_COMPLETED
+
+                target.kind == null || target.kind == StepKind.RINSE || target.ended != true ->
+                    TastingWrite.NOT_AN_INFUSION
+
+                write() == 0 -> TastingWrite.NOT_AN_INFUSION
+
+                else -> {
+                    if (target.status == SessionStatus.COMPLETED) tasting.touch(sessionId, now)
+                    TastingWrite.SAVED
+                }
+            }
+        }
+    }
 
     override suspend fun setNotes(sessionId: String, notes: String?): TastingWrite {
         val trimmed = notes?.trim()?.takeIf { it.isNotEmpty() }
@@ -233,6 +272,9 @@ class RoomSessionTasting @Inject constructor(private val db: UmamiDatabase, priv
 }
 
 private const val TAG = "SessionRepository"
+
+/** The sessions whose infusions take tasting writes (05 §3.7, D-114): one running and one completed. */
+private val INFUSION_STATUSES = setOf(SessionStatus.IN_PROGRESS, SessionStatus.COMPLETED)
 
 /** Stock at or below this counts as run out (05 §7: grams are stored to 0.1 g). */
 private const val EMPTY_GRAMS = 0.001
@@ -358,14 +400,17 @@ class RoomActiveBrewStore @Inject constructor(private val db: UmamiDatabase, pri
         activeBrew.upsert(row.toEntity(slot = slot, createdAt = createdAt, updatedAt = now))
     }
 
-    /** Makes the session's rows equal [snapshot]'s step rows, keeping row ids, notes and creation times. */
+    /**
+     * Makes the session's rows equal [snapshot]'s step rows, keeping row ids, notes and creation times. The infusions'
+     * taste and notes are never written here (05 §3.7, D-114): the update leaves their columns out.
+     */
     private suspend fun syncSteps(sessionId: String, snapshot: TimerSnapshot, now: Long) {
         val existing = sessions.steps(sessionId).associateBy { it.position }
         val changed = snapshot.steps.mapNotNull { row ->
             existing[row.position]?.let { old -> old.with(row, now).takeIf { it !== old } }
         }
         sessions.deleteStepsFrom(sessionId, snapshot.steps.size)
-        sessions.updateSteps(changed)
+        sessions.updateSteps(changed.map { it.timerColumns() })
         sessions.insertSteps(snapshot.steps.filter { it.position !in existing }.map { it.toEntity(sessionId, now) })
     }
 }

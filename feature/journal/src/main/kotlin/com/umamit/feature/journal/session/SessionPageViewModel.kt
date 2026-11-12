@@ -130,15 +130,22 @@ class SessionPageViewModel @Inject constructor(
     /** Taste writes run one after another in release order, so the last one is the one stored (JRN-03). */
     private val tasteLock = Mutex()
 
-    /** A slider released on [value] (JRN-03): saved at once, after any earlier taste write. */
+    /**
+     * A slider released on [value] (JRN-03): saved at once, after any earlier taste write, on the first infusion
+     * (D-114; the chip per infusion comes with #243). Without an infusion nothing is written.
+     */
     fun setTaste(axis: TasteAxis, value: Int) {
-        launchWrite { tasteLock.withLock { tasting.setTaste(sessionId, axis, value) } }
+        val position = tastePosition ?: return
+        launchWrite { tasteLock.withLock { tasting.setInfusionTaste(sessionId, position, axis, value) } }
     }
 
-    /** *Zurücksetzen* (JRN-03): all six taste values are unset, in order with the slider writes. */
+    /** *Zurücksetzen* (JRN-03): the first infusion's six taste values are unset, in order with the slider writes. */
     fun clearTaste() {
-        launchWrite { tasteLock.withLock { tasting.clearTaste(sessionId) } }
+        val position = tastePosition ?: return
+        launchWrite { tasteLock.withLock { tasting.clearInfusionTaste(sessionId, position) } }
     }
+
+    private val tastePosition: Int? get() = (state.value as? SessionPageUiState.Ready)?.page?.tastePosition
 
     /** Descriptor writes run one after another in tap order, so the last tap is the one stored (JRN-04). */
     private val descriptorLock = Mutex()

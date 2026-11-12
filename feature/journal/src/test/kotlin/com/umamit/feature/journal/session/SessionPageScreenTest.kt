@@ -328,14 +328,14 @@ class SessionPageScreenTest {
 
         slider(TasteAxis.SWEETNESS).assert(hasStateDescription("nicht gesetzt"))
         slider(TasteAxis.UMAMI).assert(hasStateDescription("4 von 5"))
-        assertThat(session().taste.umami).isEqualTo(4)
-        assertThat(session().taste.sweetness).isNull()
-        assertThat(session().taste.setCount).isEqualTo(1)
+        assertThat(session().infusions.first().taste.umami).isEqualTo(4)
+        assertThat(session().infusions.first().taste.sweetness).isNull()
+        assertThat(session().infusions.first().taste.setCount).isEqualTo(1)
     }
 
     @Test
     fun `a taste value persists and the page shows it again when it opens, already unfolded`() {
-        runBlocking { sessions.tasting.setTaste(PAST, TasteAxis.BODY, 3) }
+        runBlocking { sessions.tasting.setInfusionTaste(PAST, 1, TasteAxis.BODY, 3) }
         show()
 
         slider(TasteAxis.BODY).assert(hasStateDescription("3 von 5"))
@@ -365,7 +365,7 @@ class SessionPageScreenTest {
         compose.onNodeWithTag(SESSION_TASTE_RESET_TAG).performScrollTo().performClick()
         compose.waitForIdle()
 
-        assertThat(session().taste.setCount).isEqualTo(0)
+        assertThat(session().infusions.first().taste.setCount).isEqualTo(0)
         compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
         compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).performScrollTo().assertExists()
     }
@@ -373,9 +373,9 @@ class SessionPageScreenTest {
     @Test
     fun `Zuruecksetzen clears all six and folds back to the one row`() {
         runBlocking {
-            sessions.tasting.setTaste(PAST, TasteAxis.UMAMI, 5)
-            sessions.tasting.setTaste(PAST, TasteAxis.BODY, 3)
-            sessions.tasting.setTaste(PAST, TasteAxis.AROMA, 1)
+            sessions.tasting.setInfusionTaste(PAST, 1, TasteAxis.UMAMI, 5)
+            sessions.tasting.setInfusionTaste(PAST, 1, TasteAxis.BODY, 3)
+            sessions.tasting.setInfusionTaste(PAST, 1, TasteAxis.AROMA, 1)
         }
         show()
         compose.onNodeWithTag(TASTE_RADAR_TAG).performScrollTo().assertExists()
@@ -383,7 +383,7 @@ class SessionPageScreenTest {
         compose.onNodeWithTag(SESSION_TASTE_RESET_TAG).performScrollTo().performClick()
         compose.waitForIdle()
 
-        assertThat(session().taste.setCount).isEqualTo(0)
+        assertThat(session().infusions.first().taste.setCount).isEqualTo(0)
         compose.onNodeWithTag(TASTE_RADAR_TAG).assertDoesNotExist()
         compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
         compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).performScrollTo().assertExists()

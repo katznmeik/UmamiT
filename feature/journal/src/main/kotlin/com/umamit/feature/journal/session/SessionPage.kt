@@ -70,8 +70,13 @@ data class SessionPage(
     val rating: Double? = null,
     /** The notes as stored (trimmed); null without (JRN-05). */
     val notes: String? = null,
-    /** The six taste values, each null while unset (JRN-03). */
+    /**
+     * The six taste values of the first infusion, each null while unset (JRN-03). From v0.6.1 the taste is per
+     * infusion (D-114); until the page's chip row (#243) it shows and writes the first one, at [tastePosition].
+     */
     val taste: TasteProfile = TasteProfile.EMPTY,
+    /** The step `position` of the first infusion, which the taste writes address; null without an infusion. */
+    val tastePosition: Int? = null,
     /** The ticked descriptor keys (JRN-04); keys the vocabulary lacks are kept and not shown. */
     val descriptorKeys: List<String> = emptyList(),
     /** The line under the step table (PRF-07, D-112): null without an offer. */
@@ -126,7 +131,8 @@ fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
         inProgress = session.status == SessionStatus.IN_PROGRESS,
         rating = session.rating,
         notes = session.notes,
-        taste = session.taste,
+        taste = session.infusions.firstOrNull()?.taste ?: TasteProfile.EMPTY,
+        tastePosition = session.infusions.firstOrNull()?.position,
         descriptorKeys = session.descriptorKeys,
     )
 }

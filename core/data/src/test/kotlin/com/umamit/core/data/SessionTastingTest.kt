@@ -4,9 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.WallClock
 import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.model.SessionStatus
-import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
-import com.umamit.core.model.TasteProfile
 import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -19,9 +17,10 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 
 /**
- * The tasting writes (05 §3.7 „Tasting writes", §3.8, JRN-02–JRN-05, D-112, #223): each input's bounds, the 20
- * descriptors, a `COMPLETED` session only, and nothing but the session's tasting columns, its descriptor rows and
- * its `updated_at` changes — never its steps, stock, cost or `active_brew`.
+ * The session's tasting writes (05 §3.7 „Tasting writes", §3.8, JRN-02, JRN-04, JRN-05, D-112, #223): each input's
+ * bounds, the 20 descriptors, a `COMPLETED` session only, and nothing but the session's tasting columns, its
+ * descriptor rows and its `updated_at` changes — never its steps, stock, cost or `active_brew`. The taste per
+ * infusion (D-114) is `InfusionTastingTest`'s.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -72,37 +71,6 @@ class SessionTastingTest {
             assertThat(tasting.setRating("done", rating)).isEqualTo(TastingWrite.INVALID)
         }
         assertThat(session().rating).isEqualTo(4.0)
-    }
-
-    @Test
-    fun `a taste value is set per axis from 0 to 5, unset alone, and Zuruecksetzen clears all six`() = runTest {
-        assertThat(tasting.setTaste("done", TasteAxis.UMAMI, 5)).isEqualTo(TastingWrite.SAVED)
-        assertThat(tasting.setTaste("done", TasteAxis.BITTERNESS, 0)).isEqualTo(TastingWrite.SAVED)
-        assertThat(tasting.setTaste("done", TasteAxis.AROMA, 3)).isEqualTo(TastingWrite.SAVED)
-        assertThat(session().taste).isEqualTo(TasteProfile(umami = 5, bitterness = 0, aroma = 3))
-
-        assertThat(tasting.setTaste("done", TasteAxis.AROMA, null)).isEqualTo(TastingWrite.SAVED)
-        assertThat(session().taste).isEqualTo(TasteProfile(umami = 5, bitterness = 0))
-
-        assertThat(tasting.clearTaste("done")).isEqualTo(TastingWrite.SAVED)
-        assertThat(session().taste).isEqualTo(TasteProfile.EMPTY)
-    }
-
-    @Test
-    fun `every axis has its own column`() = runTest {
-        TasteAxis.entries.forEachIndexed { i, axis -> tasting.setTaste("done", axis, i) }
-
-        val taste = session().taste
-        assertThat(TasteAxis.entries.map { taste[it] }).containsExactly(0, 1, 2, 3, 4, 5).inOrder()
-    }
-
-    @Test
-    fun `a taste value beyond 0 to 5 writes nothing`() = runTest {
-        tasting.setTaste("done", TasteAxis.BODY, 2)
-
-        assertThat(tasting.setTaste("done", TasteAxis.BODY, 6)).isEqualTo(TastingWrite.INVALID)
-        assertThat(tasting.setTaste("done", TasteAxis.BODY, -1)).isEqualTo(TastingWrite.INVALID)
-        assertThat(session().taste).isEqualTo(TasteProfile(body = 2))
     }
 
     @Test
@@ -171,8 +139,6 @@ class SessionTastingTest {
         val before = data.db.sessionDao().get("running")
 
         assertThat(tasting.setRating("running", 4.0)).isEqualTo(TastingWrite.NOT_COMPLETED)
-        assertThat(tasting.setTaste("running", TasteAxis.UMAMI, 4)).isEqualTo(TastingWrite.NOT_COMPLETED)
-        assertThat(tasting.clearTaste("running")).isEqualTo(TastingWrite.NOT_COMPLETED)
         assertThat(tasting.setNotes("running", "Notiz")).isEqualTo(TastingWrite.NOT_COMPLETED)
         assertThat(tasting.setDescriptor("running", "marine.nori", ticked = true)).isEqualTo(TastingWrite.NOT_COMPLETED)
         assertThat(
@@ -194,13 +160,12 @@ class SessionTastingTest {
         val active = data.db.activeBrewDao().get(com.umamit.core.model.TimerSlot.BREW)
 
         tasting.setRating("done", 4.5)
-        tasting.setTaste("done", TasteAxis.SWEETNESS, 4)
         tasting.setNotes("done", "Notiz")
         tasting.setDescriptor("done", "marine.nori", ticked = true)
 
         val after = checkNotNull(data.db.sessionDao().get("done"))
         assertThat(after).isEqualTo(
-            before.copy(rating = 4.5, tasteSweetness = 4, notes = "Notiz", updatedAt = WRITE_AT),
+            before.copy(rating = 4.5, notes = "Notiz", updatedAt = WRITE_AT),
         )
         assertThat(after.status).isEqualTo(SessionStatus.COMPLETED)
         assertThat(data.db.sessionDao().steps("done")).isEqualTo(steps)
