@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -32,9 +34,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The *Grüntee* and *Kräutertee* chips of Sammlung › Katalog (v0.2.1, #89; CAT-10, SCR-19, D-093, D-103) on fake
- * data: the list opens on the green teas with *Grüntee* selected, *Kräutertee* switches to the Kräutertees grouped by
- * *Sorte* (without „Pur", Q14) and back, and *Grüntee* returns too. Invented teas (D-016).
+ * The kind chips of Sammlung › Katalog (v0.2.1, #89; CAT-10, SCR-19, D-093, D-103; v0.6.1, #247, D-114) on fake data:
+ * the list opens with no kind, every tea grouped by kind; *Kräutertee* narrows to the Kräutertees grouped by *Sorte*
+ * (without „Pur", Q14), and a tap on the selected chip clears it again, never back to *Grüntee*. Invented teas (D-016).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -71,7 +73,18 @@ class CatalogHerbalChipTest {
 
     private fun chip(@StringRes id: Int) = compose.onNode(hasText(str(id)) and isChip)
 
+    private fun tap(@StringRes id: Int) {
+        chip(id).performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
     private fun shown(text: String) = compose.onNodeWithText(text).assertIsDisplayed()
+
+    /** [text] somewhere in the list, scrolled to. */
+    private fun listed(text: String) {
+        compose.onNodeWithTag(CATALOG_LIST_TAG).performScrollToNode(hasText(text))
+        shown(text)
+    }
 
     private fun hidden(text: String) = compose.onNodeWithText(text).assertDoesNotExist()
 
@@ -79,13 +92,12 @@ class CatalogHerbalChipTest {
     fun theChipSwitchesToTheKraeuterteesBySorteAndBack() {
         show()
 
-        // The list opens on the green teas (D-093 Q11).
+        // The list opens with no kind: every tea, the Kräutertees too (D-114 Q13).
         chip(R.string.catalog_filter_herbal).assertIsNotSelected()
         shown("Morgennebel Sencha")
-        hidden("Wiesenzauber")
+        listed("Wiesenzauber")
 
-        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
-        compose.waitForIdle()
+        tap(R.string.catalog_filter_herbal)
 
         chip(R.string.catalog_filter_herbal).assertIsSelected()
         compose.onNodeWithText("Tee-Kontor Kiel · 3 Kräutertees · aktualisiert am 22. Okt.").assertIsDisplayed()
@@ -97,49 +109,60 @@ class CatalogHerbalChipTest {
         shown("Zitronenwiese")
         chip(R.string.catalog_filter_pure).assertDoesNotExist()
         hidden("Morgennebel Sencha")
-        // The row shows the selected chip (#206): *Filter* may sit left of the screen.
-        compose.onNodeWithText(str(R.string.catalog_filter_button_count, 1)).performScrollTo().assertIsDisplayed()
+        // The kind doesn't count in „Filter (n)" (D-114).
+        compose.onNodeWithText(str(R.string.catalog_filter_button)).performScrollTo().assertIsDisplayed()
 
-        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
-        compose.waitForIdle()
+        tap(R.string.catalog_filter_herbal)
 
+        // Cleared: every tea again, never *Grüntee*.
         chip(R.string.catalog_filter_herbal).assertIsNotSelected()
-        chip(R.string.catalog_filter_pure).assertIsSelected()
+        chip(R.string.catalog_filter_green).assertIsNotSelected()
+        chip(R.string.catalog_filter_pure).assertDoesNotExist()
         shown("Morgennebel Sencha")
+        compose.onNodeWithText("Tee-Kontor Kiel · 5 Tees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        listed("Zitronenwiese")
+    }
+
+    /** D-114: no chip is selected at first; clearing *Grüntee* shows every tea and the row goes back to its start. */
+    @Test
+    fun noKindIsSelectedByDefaultAndClearingTheLastChipShowsEveryTea() {
+        show()
+        CatalogKind.ALL.forEach { chip(it.chipLabel).assertIsNotSelected() }
+        compose.onNodeWithTag(catalogKindGroupTag(CatalogKind.GREEN)).assertIsDisplayed()
+        shown("Grüntee · 2")
+        listed("Kräutertee · 3")
+
+        tap(R.string.catalog_filter_green)
+        chip(R.string.catalog_filter_green).assertIsSelected()
+        chip(R.string.catalog_filter_pure).assertIsSelected()
         hidden("Wiesenzauber")
         compose.onNodeWithText("Tee-Kontor Kiel · 2 Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
-    }
 
-    /** D-103: the green range has its own chip, selected by default; a tap returns from the Kräutertees. */
-    @Test
-    fun grunteeIsSelectedByDefaultAndReturnsFromTheKraeutertees() {
-        show()
-        chip(R.string.catalog_filter_green).assertIsSelected()
-
-        // A tap on the selected range changes nothing.
-        chip(R.string.catalog_filter_green).performScrollTo().performClick()
-        compose.waitForIdle()
-        chip(R.string.catalog_filter_green).assertIsSelected()
-        shown("Morgennebel Sencha")
-
-        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
-        compose.waitForIdle()
+        tap(R.string.catalog_filter_green)
         chip(R.string.catalog_filter_green).assertIsNotSelected()
-        hidden("Morgennebel Sencha")
-
-        chip(R.string.catalog_filter_green).performScrollTo().performClick()
-        compose.waitForIdle()
-
-        chip(R.string.catalog_filter_green).assertIsSelected()
-        chip(R.string.catalog_filter_herbal).assertIsNotSelected()
         shown("Morgennebel Sencha")
-        hidden("Wiesenzauber")
-        compose.onNodeWithText("Tee-Kontor Kiel · 2\u00A0Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        listed("Wiesenzauber")
     }
 
     @Test
-    fun aSearchHitAmongTheKraeuterteesIsHiddenAndShowAllOpensTheirView() {
+    fun clearingAChipOffScreenScrollsTheRowBackToItsStart() {
         show()
+        tap(R.string.catalog_filter_chai)
+        chip(R.string.catalog_filter_chai).assertIsSelected()
+        // *Chai* closes the row: *Filter* is scrolled off to the left.
+        compose.onNodeWithText(str(R.string.catalog_filter_button)).assertIsNotDisplayed()
+
+        chip(R.string.catalog_filter_chai).performClick()
+        compose.waitForIdle()
+
+        chip(R.string.catalog_filter_chai).assertIsNotSelected()
+        compose.onNodeWithText(str(R.string.catalog_filter_button)).assertIsDisplayed()
+    }
+
+    @Test
+    fun aSearchHitAmongTheKraeuterteesIsHiddenAndShowAllClearsTheKind() {
+        show()
+        tap(R.string.catalog_filter_green)
 
         compose.onNodeWithTag(CATALOG_SEARCH_TAG).performTextInput("bergminze")
         compose.waitForIdle()
@@ -149,7 +172,8 @@ class CatalogHerbalChipTest {
         compose.onNodeWithText(str(R.string.catalog_show_all)).performClick()
         compose.waitForIdle()
 
-        chip(R.string.catalog_filter_herbal).assertIsSelected()
+        // *Alle zeigen* clears the kind (D-114): no chip selected, every hit shown.
+        CatalogKind.ALL.forEach { chip(it.chipLabel).assertIsNotSelected() }
         shown("Bergminze")
     }
 
@@ -158,8 +182,7 @@ class CatalogHerbalChipTest {
         // Before the first refresh after the update the catalog has green teas only (Q20 is #91's hint).
         show(teas.filterNot { (it.kind == CatalogKind.HERBAL) })
 
-        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
-        compose.waitForIdle()
+        tap(R.string.catalog_filter_herbal)
 
         compose.onNodeWithText("Tee-Kontor Kiel · 0 Kräutertees · aktualisiert am 22. Okt.").assertIsDisplayed()
         hidden(str(R.string.catalog_empty_title))

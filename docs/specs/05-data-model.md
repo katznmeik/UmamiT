@@ -649,7 +649,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lowStockReminderInterval` | DAILY/EVERY_2_DAYS/EVERY_3_DAYS/WEEKLY/OFF | DAILY | SET-28, INV-11 (v0.5.0, D-108): every 1, 2, 3 or 7 days, or off. Settings `schemaVersion` 3 turns a stored `lowStockReminder` true into DAILY and false into OFF once; an unknown name reads DAILY |
 | `lowStockReminderTime` | Int (minute of the day, 0…1439) | 1080 (18:00) | SET-29, INV-11 (v0.3.0, D-098); local time |
 | `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last reminder that was posted, which the interval counts from (v0.5.0, D-108); a due day with nothing to post leaves it (until v0.4.1 it also counted such a day). Not shown |
-| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view the catalog kind's key (`green`, `herbal`, from v0.5.0 `black`, `white`, `oolong`, `dark`, `rooibos`, `fruit`, `chai`, D-108, #206), „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
+| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view the catalog kind's key (`green`, `herbal`, from v0.5.0 `black`, `white`, `oolong`, `dark`, `rooibos`, `fruit`, `chai`, D-108, #206), „Ohne Sorte" as `<view>/-`; from v0.6.1 (D-114, #247) the kind groups of the view without a kind as `all/<kind key>`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18, retired in v0.6.0 (D-112): never read or written; the key is not added |
 | `weeklyDigest` | Boolean | false | SET-19 |

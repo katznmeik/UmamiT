@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -101,6 +102,8 @@ class CatalogHerbalViewTest {
     @Test
     fun theGreenViewsFilterSheetOffersAromaAndUmami() {
         show()
+        chip(R.string.catalog_filter_green).performScrollTo().performClick()
+        compose.waitForIdle()
 
         openSheet()
 
@@ -130,7 +133,7 @@ class CatalogHerbalViewTest {
     }
 
     @Test
-    fun zuruecksetzenInTheKraeuterteeViewResetsTheFiltersAndStaysInTheView() {
+    fun zuruecksetzenInTheKraeuterteeViewResetsTheFiltersAndClearsTheKind() {
         show()
         switchToHerbal()
         chip(R.string.catalog_filter_organic).performScrollTo().performClick()
@@ -141,14 +144,15 @@ class CatalogHerbalViewTest {
         sheetNode(R.string.catalog_filter_reset).performScrollTo().performClick()
         compose.waitForIdle()
 
-        chip(R.string.catalog_filter_herbal).assertIsSelected()
+        // Since v0.6.1 (D-114) the default view has no kind: every tea shows.
+        chip(R.string.catalog_filter_herbal).assertIsNotSelected()
         compose.onNode(hasText("Wiesenzauber") and !inSheet).assertExists()
         compose.onNode(hasText("Bergminze") and !inSheet).assertExists()
-        compose.onNode(hasText("Morgennebel Sencha") and !inSheet).assertDoesNotExist()
+        compose.onNode(hasText("Morgennebel Sencha") and !inSheet).assertExists()
     }
 
     @Test
-    fun filterZuruecksetzenInTheKraeuterteeViewStaysInTheView() {
+    fun filterZuruecksetzenInTheKraeuterteeViewClearsTheKind() {
         show()
         switchToHerbal()
         // The chip row scrolls: with a third kind chip „Neu" starts off screen (#203).
@@ -159,16 +163,21 @@ class CatalogHerbalViewTest {
         compose.onNodeWithText(str(R.string.catalog_reset_filters)).performClick()
         compose.waitForIdle()
 
-        chip(R.string.catalog_filter_herbal).assertIsSelected()
-        compose.onNodeWithText("Wiesenzauber").assertIsDisplayed()
-        compose.onNodeWithText("Morgennebel Sencha").assertDoesNotExist()
+        chip(R.string.catalog_filter_herbal).assertIsNotSelected()
+        compose.onNodeWithText("Wiesenzauber").assertExists()
+        compose.onNodeWithText("Morgennebel Sencha").assertIsDisplayed()
     }
 
     @Test
     fun beforeTheFirstRefreshAfterTheUpdateTheEmptyKraeuterteeViewShowsTheHint() {
         show(green, herbalPending = true)
 
+        // Without a kind the hint is the Kräutertee group's body (D-114).
+        compose.onNodeWithTag(catalogKindGroupTag(CatalogKind.HERBAL)).assertExists()
+        compose.onNodeWithText(hint).assertExists()
         // Not in the green view.
+        chip(R.string.catalog_filter_green).performScrollTo().performClick()
+        compose.waitForIdle()
         compose.onNodeWithText(hint).assertDoesNotExist()
         switchToHerbal()
 
