@@ -1,6 +1,6 @@
 package com.umamit.core.ui
 
-import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +65,7 @@ import com.umamit.core.designsystem.component.OverPhoto
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.max
@@ -157,10 +159,13 @@ private fun ZoomablePhoto(painter: Painter?, description: String, onZoomChange: 
     var offset by remember { mutableStateOf(Offset.Zero) }
     var box by remember { mutableStateOf(IntSize.Zero) }
     val scope = rememberCoroutineScope()
-    val spec = UmamiTheme.motion.standard<Float>()
+    val spec = UmamiTheme.motion.sheet<Float>()
+    // The one double-tap animation: a new tap or the first finger down cancels it, and the gesture goes on from
+    // where the photo is.
+    var zoomJob by remember { mutableStateOf<Job?>(null) }
     val currentPainter by rememberUpdatedState(painter)
     val currentOnZoomed by rememberUpdatedState(onZoomChange)
-    val zoomed = scale > 1f
+    val zoomed by remember { derivedStateOf { scale > 1f } }
     LaunchedEffect(zoomed) { currentOnZoomed(zoomed) }
     DisposableEffect(Unit) { onDispose { currentOnZoomed(false) } }
 
@@ -183,18 +188,27 @@ private fun ZoomablePhoto(painter: Painter?, description: String, onZoomChange: 
                         val toScale = if (fromScale > 1f) 1f else DOUBLE_TAP_ZOOM
                         val center = Offset(box.width / 2f, box.height / 2f)
                         val toOffset = clamp((center - tap) * (toScale - 1f), toScale)
-                        scope.launch {
-                            animate(0f, 1f, animationSpec = spec) { t, _ ->
-                                scale = lerp(fromScale, toScale, t)
+                        zoomJob?.cancel()
+                        zoomJob = scope.launch {
+                            Animatable(0f).animateTo(1f, spec) {
+                                scale = lerp(fromScale, toScale, value)
                                 offset =
-                                    if (toScale == 1f) fromOffset * (1f - t) else lerpOffset(fromOffset, toOffset, t)
+                                    if (toScale ==
+                                        1f
+                                    ) {
+                                        fromOffset * (1f - value)
+                                    } else {
+                                        lerpOffset(fromOffset, toOffset, value)
+                                    }
                             }
+                            scale = toScale
+                            offset = if (toScale == 1f) Offset.Zero else toOffset
                         }
                     },
                 )
             }
             .pointerInput(Unit) {
-                detectZoomAndPan(isZoomed = { scale > 1f }) { centroid, pan, zoom ->
+                detectZoomAndPan(isZoomed = { scale > 1f }, onDown = { zoomJob?.cancel() }) { centroid, pan, zoom ->
                     val next = (scale * zoom).coerceIn(1f, MAX_ZOOM)
                     val point = centroid - Offset(box.width / 2f, box.height / 2f)
                     // The point under the fingers stays under them while the scale changes.
@@ -235,9 +249,11 @@ private fun Size?.fittedIn(box: IntSize): Size {
 /**
  * Pinch and pan that leave a one-finger drag alone while the photo is not zoomed in ([isZoomed] false), so the pager
  * swipes; with two fingers, or zoomed in, the movement is consumed and handed to [onGesture] (centroid, pan, zoom).
+ * [onDown] runs at every first finger down, so a running double-tap animation gives way to the gesture.
  */
 private suspend fun PointerInputScope.detectZoomAndPan(
     isZoomed: () -> Boolean,
+    onDown: () -> Unit,
     onGesture: (centroid: Offset, pan: Offset, zoom: Float) -> Unit,
 ) {
     awaitEachGesture {
@@ -245,6 +261,7 @@ private suspend fun PointerInputScope.detectZoomAndPan(
         var pan = Offset.Zero
         var pastSlop = false
         awaitFirstDown(requireUnconsumed = false)
+        onDown()
         do {
             val event = awaitPointerEvent()
             val consumed = event.changes.any { it.isConsumed }

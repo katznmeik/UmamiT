@@ -77,8 +77,8 @@ fun <T> PhotoHero(
     val viewer = rememberPhotoViewerOpener()
     val viewedIndex = viewer.viewed
     LaunchedEffect(viewedIndex) {
-        if (viewedIndex != null && photos.isNotEmpty()) {
-            pager.scrollToPage(viewedIndex.coerceIn(0, photos.lastIndex))
+        if (viewedIndex != null) {
+            if (photos.isNotEmpty()) pager.scrollToPage(viewedIndex.coerceIn(0, photos.lastIndex))
             viewer.consume()
         }
     }

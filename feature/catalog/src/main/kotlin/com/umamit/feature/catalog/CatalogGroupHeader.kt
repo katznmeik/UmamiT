@@ -21,7 +21,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -93,7 +93,7 @@ internal fun CatalogGroupHeader(
             painter = painterResource(UmamiIcons.ChevronRight),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.rotate(turn),
+            modifier = Modifier.graphicsLayer { rotationZ = turn },
         )
     }
 }
@@ -150,7 +150,7 @@ internal fun CatalogKindHeader(
                 painter = painterResource(UmamiIcons.ChevronRight),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.rotate(turn),
+                modifier = Modifier.graphicsLayer { rotationZ = turn },
             )
         }
     }
