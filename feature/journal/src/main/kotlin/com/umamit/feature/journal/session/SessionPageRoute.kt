@@ -64,6 +64,7 @@ fun SessionPageRoute(
             restore = viewModel::restore,
             delete = viewModel::delete,
             edit = { currentHost.onEdit(it) },
+            openCatalog = { currentHost.onOpenCatalog(it) },
             setRating = viewModel::setRating,
             setTaste = viewModel.infusionTasting::setTaste,
             clearTaste = viewModel.infusionTasting::clearTaste,

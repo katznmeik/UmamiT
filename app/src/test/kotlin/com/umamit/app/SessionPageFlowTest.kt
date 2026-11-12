@@ -24,6 +24,7 @@ import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionStart
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.SessionSnapshot
@@ -51,6 +52,9 @@ import com.umamit.feature.brew.setup.SETUP_START_TAG
 import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.journal.session.SESSION_BREW_AGAIN_TAG
+import com.umamit.feature.journal.session.SESSION_MENU_CATALOG_TAG
+import com.umamit.feature.journal.session.SESSION_MENU_TAG
+import com.umamit.feature.journal.session.SESSION_MENU_TEA_TAG
 import com.umamit.feature.journal.session.SESSION_NOTES_TAG
 import com.umamit.feature.journal.session.SESSION_TEA_TAG
 import com.umamit.feature.journal.session.SessionHeroViewModel
@@ -89,6 +93,7 @@ class SessionPageFlowTest {
     private val sessions = FakeSessions(collection, settings)
     private val archive = FakeTeaArchive(sessions)
     private val starter = FakeBrewStarter()
+    private val catalog = FakeCatalogRepository()
     private val alertKey = MutableStateFlow<String?>(null)
     private val timerRequest = MutableStateFlow(TimerRequest(0L))
 
@@ -156,6 +161,14 @@ class SessionPageFlowTest {
                     alertKey = alertKey,
                     timerRequest = timerRequest,
                     journalScreens = JournalStackScreens(session = { host -> Page(host) }),
+                    catalogScreens = CatalogStackScreens(
+                        tea = { host ->
+                            Column {
+                                Text(CATALOG_TEA)
+                                TextButton(onClick = host.onBack) { Text(CATALOG_BACK) }
+                            }
+                        },
+                    ),
                     collectionScreens = CollectionStackScreens(
                         tea = { host ->
                             Column {
@@ -190,6 +203,7 @@ class SessionPageFlowTest {
                     collection.teas,
                     archive,
                     sessions.tasting,
+                    catalog,
                 )
             },
             heroViewModel = viewModel {
@@ -218,7 +232,7 @@ class SessionPageFlowTest {
                     sessions.sessions,
                     settings,
                     starter,
-                    FakeCatalogRepository(),
+                    catalog,
                 )
             },
         )
@@ -383,7 +397,51 @@ class SessionPageFlowTest {
         assertThat(storedNotes()).isEqualTo("Vor dem Alarm")
     }
 
+    /** ⋮ *Im Katalog ansehen* on the session page opens SCR-21 above it; back returns to the page (D-114 Q11). */
+    @Test
+    fun `the menu's Im Katalog ansehen opens the catalog tea above the page, back returns to it (JRN-10)`() {
+        runBlocking {
+            collection.teas.saveTea(collection.teas.getTea(TEA)!!.copy(catalogKey = "TG0557"))
+        }
+        catalog.details.value = mapOf(
+            "TG0557" to
+                CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = "https://www.tee-kontor-kiel.de/hisui"),
+        )
+        show()
+        openSessionPage()
+
+        compose.onNodeWithTag(SESSION_MENU_TAG).performClick()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(CATALOG_TEA).assertIsDisplayed()
+        compose.onNodeWithText(CATALOG_BACK).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(CATALOG_TEA).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertIsDisplayed()
+    }
+
+    /** ⋮ *Tee ansehen* opens the tea's detail above the page; back returns to the page (D-114 Q11). */
+    @Test
+    fun `the menu's Tee ansehen opens the tea detail above the page, back returns to it (JRN-10)`() {
+        show()
+        openSessionPage()
+
+        compose.onNodeWithTag(SESSION_MENU_TAG).performClick()
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(TEA_DETAIL).assertIsDisplayed()
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        compose.onNodeWithText(TEA_DETAIL).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_TEA_TAG).assertIsDisplayed()
+    }
+
     private companion object {
+        const val CATALOG_TEA = "CATALOG_TEA"
+        const val CATALOG_BACK = "Zurück (Attrappe)"
         const val TEA = "morgentau"
         const val PAST = "past"
         const val TIMER = "TIMER"

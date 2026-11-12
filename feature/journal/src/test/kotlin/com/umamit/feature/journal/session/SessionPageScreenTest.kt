@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
@@ -22,11 +23,13 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SessionStart
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
@@ -59,6 +62,8 @@ class SessionPageScreenTest {
     private val collection = FakeCollection()
     private val sessions = FakeSessions(collection)
     private val archive = FakeTeaArchive(sessions)
+    private val catalog = FakeCatalogRepository()
+    private val openedCatalog = mutableListOf<String>()
     private val openedTeas = mutableListOf<String>()
     private val brewedAgain = mutableListOf<String>()
     private var deleted = 0
@@ -113,6 +118,7 @@ class SessionPageScreenTest {
                 collection.teas,
                 archive,
                 sessions.tasting,
+                catalog,
             )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
@@ -123,6 +129,7 @@ class SessionPageScreenTest {
                             onOpenTea = { openedTeas += it },
                             onBrewAgain = { brewedAgain += it },
                             onDeleted = { deleted++ },
+                            onOpenCatalog = { openedCatalog += it },
                         ),
                         viewModel = viewModel,
                         heroViewModel = heroViewModel(sessions, PAST),
@@ -219,6 +226,91 @@ class SessionPageScreenTest {
 
         assertThat(runBlocking { sessions.sessions.getSession(PAST) }).isNull()
         assertThat(deleted).isEqualTo(1)
+    }
+
+    /** The tea gets the catalog key TG0557; [inCatalog] says whether the catalog has that tea. */
+    private fun linkToCatalog(inCatalog: Boolean = true) {
+        runBlocking { collection.teas.saveTea(collection.teas.getTea(TEA)!!.copy(catalogKey = "TG0557")) }
+        if (inCatalog) {
+            catalog.details.value = mapOf(
+                "TG0557" to CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = "https://shop.example/hisui"),
+            )
+        }
+    }
+
+    private fun openMenu() {
+        compose.onNodeWithTag(SESSION_MENU_TAG).performClick()
+        compose.waitForIdle()
+    }
+
+    /** ⋮ (D-114 Q11): *Tee ansehen* and *Im Katalog ansehen* above *Bearbeiten* and *Löschen*; a tap hands over. */
+    @Test
+    fun `the menu of a catalog tea offers Tee ansehen and Im Katalog ansehen, each handing over its target`() {
+        linkToCatalog()
+        show()
+
+        openMenu()
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_EDIT_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(openedCatalog).containsExactly("TG0557")
+        // The menu closed with the tap.
+        compose.onNodeWithTag(SESSION_EDIT_TAG).assertDoesNotExist()
+
+        openMenu()
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(openedTeas).containsExactly(TEA)
+    }
+
+    @Test
+    fun `a tea without a catalog key has Tee ansehen, but no Im Katalog ansehen`() {
+        show()
+
+        openMenu()
+
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_EDIT_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a key whose catalog tea is gone has no Im Katalog ansehen`() {
+        linkToCatalog(inCatalog = false)
+        show()
+
+        openMenu()
+
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `an archived tea still offers Tee ansehen and Im Katalog ansehen`() {
+        linkToCatalog()
+        runBlocking { archive.archive(TEA) }
+        show()
+
+        openMenu()
+
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertIsDisplayed()
+    }
+
+    /** A deleted tea has neither item: the session keeps no catalog key of its own (D-114 details). */
+    @Test
+    fun `a deleted tea has neither Tee ansehen nor Im Katalog ansehen`() {
+        linkToCatalog()
+        runBlocking { archive.delete(TEA) }
+        show()
+
+        openMenu()
+
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_EDIT_TAG).assertIsDisplayed()
     }
 
     @Test

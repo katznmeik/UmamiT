@@ -175,6 +175,22 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
         scrollToTag = RECIPE_OFFER_TAG,
     )
 
+    /** ⋮ open for a catalog tea: *Tee ansehen*, *Im Katalog ansehen*, a divider, *Bearbeiten*, *Löschen*. */
+    @Test
+    fun menuCatalogOpen() = capture(
+        "menuCatalogOpen",
+        SessionPageUiState.Ready(page.copy(catalogKey = "TG0557")),
+        click = SESSION_MENU_TAG,
+    )
+
+    /** ⋮ open for a deleted tea: *Bearbeiten* and *Löschen* alone. */
+    @Test
+    fun menuDeletedOpen() = capture(
+        "menuDeletedOpen",
+        SessionPageUiState.Ready(page.copy(teaId = null, tea = SessionTea.DELETED)),
+        click = SESSION_MENU_TAG,
+    )
+
     @Test
     fun archivedTea() = capture("archivedTea", SessionPageUiState.Ready(page.copy(tea = SessionTea.ARCHIVED)))
 

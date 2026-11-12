@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +56,8 @@ const val SESSION_BREW_AGAIN_TAG = "session_brew_again"
 const val SESSION_RESTORE_TAG = "session_restore"
 const val SESSION_MENU_TAG = "session_menu"
 const val SESSION_EDIT_TAG = "session_edit"
+const val SESSION_MENU_TEA_TAG = "session_menu_tea"
+const val SESSION_MENU_CATALOG_TAG = "session_menu_catalog"
 
 private val CHEVRON_SIZE = 20.dp
 
@@ -71,6 +74,8 @@ class SessionPageActions(
     val delete: () -> Unit = {},
     /** ⋮ *Bearbeiten* (JRN-11, D-112): the session editor (SCR-17) of this session, by its id. */
     val edit: (sessionId: String) -> Unit = {},
+    /** ⋮ *Im Katalog ansehen* (D-114 Q11): the tea's catalog page (SCR-21) by its catalog key. */
+    val openCatalog: (catalogKey: String) -> Unit = {},
     /** A tap on the stars (JRN-02): the new rating, null for none; saved at once. */
     val setRating: (Double?) -> Unit = {},
     /** A taste slider of the infusion at `position` released on a value (JRN-03, D-114): saved at once. */
@@ -123,7 +128,15 @@ fun SessionPageScreen(
             menu = if (page.inProgress) {
                 null
             } else {
-                { SessionMenu(alertKey, onEdit = { actions.edit(page.sessionId) }, onDelete = deleteAsk::open) }
+                {
+                    SessionMenu(
+                        alertKey,
+                        onOpenTea = page.teaId?.let { id -> { actions.openTea(id) } },
+                        onOpenCatalog = page.catalogKey?.let { key -> { actions.openCatalog(key) } },
+                        onEdit = { actions.edit(page.sessionId) },
+                        onDelete = deleteAsk::open,
+                    )
+                }
             },
             hero = {
                 SessionHeroPager(hero, page.styleKey, canAdd = page.canTaste, heroActions, alertKey, photo)
@@ -159,9 +172,19 @@ fun SessionPageScreen(
     }
 }
 
-/** ⋮ with *Bearbeiten* (JRN-11) above *Löschen* (JRN-10, D-102); the menu gives way to another alert (rule 8). */
+/**
+ * ⋮ (D-114 Q11): *Tee ansehen* ([onOpenTea], null for a deleted tea) and *Im Katalog ansehen* ([onOpenCatalog], null
+ * without a catalog tea), a divider, then *Bearbeiten* (JRN-11) above *Löschen* (JRN-10, D-102); the menu gives way
+ * to another alert (rule 8).
+ */
 @Composable
-private fun SessionMenu(alertKey: String?, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun SessionMenu(
+    alertKey: String?,
+    onOpenTea: (() -> Unit)?,
+    onOpenCatalog: (() -> Unit)?,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     val menu = rememberAlertGate(alertKey)
     Box {
         IconButton(onClick = menu::open, modifier = Modifier.testTag(SESSION_MENU_TAG)) {
@@ -171,6 +194,27 @@ private fun SessionMenu(alertKey: String?, onEdit: () -> Unit, onDelete: () -> U
             )
         }
         AlertGatedDropdownMenu(menu) {
+            onOpenTea?.let { open ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.session_menu_tea)) },
+                    onClick = {
+                        menu.close()
+                        open()
+                    },
+                    modifier = Modifier.testTag(SESSION_MENU_TEA_TAG),
+                )
+            }
+            onOpenCatalog?.let { open ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.session_menu_catalog)) },
+                    onClick = {
+                        menu.close()
+                        open()
+                    },
+                    modifier = Modifier.testTag(SESSION_MENU_CATALOG_TAG),
+                )
+            }
+            if (onOpenTea != null || onOpenCatalog != null) HorizontalDivider()
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.session_edit)) },
                 onClick = {

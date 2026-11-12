@@ -2,6 +2,7 @@ package com.umamit.app
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
@@ -40,6 +42,7 @@ import com.umamit.core.testing.FakeTeaPhotos
 import com.umamit.feature.brew.setup.BrewSetupViewModel
 import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.collection.detail.TEA_DETAIL_BREW_TAG
+import com.umamit.feature.collection.detail.TEA_DETAIL_CATALOG_TAG
 import com.umamit.feature.collection.detail.TEA_DETAIL_TAG
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.collection.detail.TeaDetailRoute
@@ -120,6 +123,14 @@ class TeaDetailFlowTest {
                     activeBrewSource = NoActiveBrewSource,
                     journalSources = testJournalSources(sessions, collection.teas),
                     alertKey = alertKey,
+                    catalogScreens = CatalogStackScreens(
+                        tea = { host ->
+                            Column {
+                                Text(CATALOG_TEA)
+                                TextButton(onClick = host.onBack) { Text(CATALOG_BACK) }
+                            }
+                        },
+                    ),
                     collectionScreens = CollectionStackScreens(
                         myTeas = { tab -> MyTeas(tab) },
                         tea = { host -> Detail(host, photos) },
@@ -249,6 +260,29 @@ class TeaDetailFlowTest {
         compose.onNodeWithText(TIMER).assertIsDisplayed()
     }
 
+    /** ⋮ *Im Katalog ansehen* (TEA-13, D-114 Q10) opens SCR-21 above the detail; back returns to the detail. */
+    @Test
+    fun `the menu's Im Katalog ansehen opens the catalog tea above the detail, back returns to it`() {
+        runBlocking { collection.teas.saveTea(TEA.copy(catalogKey = "TG0557")) }
+        catalog.details.value = mapOf(
+            "TG0557" to
+                CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = "https://www.tee-kontor-kiel.de/h"),
+        )
+        show()
+        openDetail()
+
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithTag(TEA_DETAIL_CATALOG_TAG).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(CATALOG_TEA).assertIsDisplayed()
+        compose.onNodeWithText(CATALOG_BACK).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(CATALOG_TEA).assertDoesNotExist()
+        compose.onNodeWithTag(TEA_DETAIL_TAG).assertIsDisplayed()
+    }
+
     @Test
     fun `Archivieren closes the detail, the list below offers Rueckgaengig`() {
         show()
@@ -286,6 +320,8 @@ class TeaDetailFlowTest {
     private companion object {
         const val ID = "morgennebel"
         const val ROW = "Morgennebel öffnen"
+        const val CATALOG_TEA = "CATALOG_TEA"
+        const val CATALOG_BACK = "Zurück (Attrappe)"
         const val TIMER = "Timer (Attrappe)"
         val TEA = Tea(
             id = ID,

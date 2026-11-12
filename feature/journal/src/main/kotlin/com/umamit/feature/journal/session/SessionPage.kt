@@ -98,6 +98,11 @@ data class SessionPage(
     val descriptorKeys: List<String> = emptyList(),
     /** The line under the step table (PRF-07, D-112): null without an offer. */
     val recipeOffer: RecipeOfferState? = null,
+    /**
+     * The tea's catalog key while its catalog tea exists, discontinued or not, else null (SCR-04, D-114 Q11): ⋮ *Im
+     * Katalog ansehen* shows only then. Never set for a deleted tea, as the session keeps no key of its own.
+     */
+    val catalogKey: String? = null,
 ) {
     /** The tasting inputs are offered for a finished session only (05 §3.7: the writes refuse one in progress). */
     val canTaste: Boolean get() = !inProgress
@@ -118,8 +123,11 @@ data class SessionPage(
     }
 }
 
-/** The page of [session], whose tea is now [tea]. Every stored step is listed, never-started ones included (Q-19). */
-fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
+/**
+ * The page of [session], whose tea is now [tea], with [catalogKey] while the tea's catalog tea exists. Every stored
+ * step is listed, never-started ones included (Q-19).
+ */
+fun sessionPage(session: BrewSession, tea: SessionTea, catalogKey: String? = null): SessionPage {
     val snapshot = session.snapshot
     var infusions = 0
     val steps = session.steps.sortedBy { it.position }.map { row ->
@@ -150,6 +158,7 @@ fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
         notes = session.notes,
         infusions = infusionsOf(session),
         descriptorKeys = session.descriptorKeys,
+        catalogKey = catalogKey.takeIf { tea != SessionTea.DELETED },
     )
 }
 

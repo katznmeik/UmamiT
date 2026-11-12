@@ -149,20 +149,27 @@ class TeaDetailViewModel @Inject constructor(
         ::Pair,
     ).flatMapLatest { (link, events) -> reorderUrl(link, events) }
 
+    /** The tea's catalog key while the catalog has its tea, discontinued or not, else null (SCR-04, D-114 Q10). */
+    private val catalogEntry: Flow<String?> = teas.observeTea(teaId).map { it?.tea?.catalogKey }
+        .distinctUntilChanged()
+        .flatMapLatest { key ->
+            if (key == null) flowOf(null) else catalog.observeTea(key).map { tea -> key.takeIf { tea != null } }
+        }.distinctUntilChanged()
+
     val state: StateFlow<TeaDetailUiState> = combine(
         teas.observeTea(teaId),
         combine(recipes.observeRecipes(teaId), vessels.observeVessels(), teaPhotos.observePhotos(teaId), ::Triple),
         stock.observeEvents(teaId),
         brewed,
-        combine(reorderUrl, catalogReset.observePlan(teaId), ::Pair),
-    ) { overview, (recipeList, vesselList, photoList), stockEvents, brew, (reorder, resetPlan) ->
+        combine(reorderUrl, catalogReset.observePlan(teaId), catalogEntry, ::Triple),
+    ) { overview, (recipeList, vesselList, photoList), stockEvents, brew, (reorder, resetPlan, catalogKey) ->
         if (overview == null) {
             TeaDetailUiState.Gone
         } else {
             TeaDetailUiState.Ready(
                 detail(overview, recipeList, vesselList, stockEvents, brew, reorder)
                     .withPhotos(overview, photoList)
-                    .copy(catalogReset = resetPlan?.let { CatalogResetOffer(it.leftOut) }),
+                    .copy(catalogReset = resetPlan?.let { CatalogResetOffer(it.leftOut) }, catalogKey = catalogKey),
             )
         }
     }.flowOn(photoFileContext) // the photo files are checked off the main thread (the app provides IO)

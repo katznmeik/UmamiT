@@ -66,6 +66,9 @@ const val TEA_DETAIL_BREW_TAG = "tea_detail_brew"
 /** The pencil FAB: the tea editor (SCR-10). */
 const val TEA_DETAIL_EDIT_TAG = "tea_detail_edit"
 
+/** ⋮ *Im Katalog ansehen* (D-114 Q10). */
+const val TEA_DETAIL_CATALOG_TAG = "tea_detail_catalog"
+
 /** ⋮ *Aus Katalog zurücksetzen*'s confirmation (PRF-06). */
 const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
 
@@ -78,6 +81,7 @@ const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
  * The confirmed ⋮ *Aus Katalog zurücksetzen* (PRF-06). VORRAT's *Warnung* and *Knapp ab* (D-108).
  * LETZTE SITZUNGEN (TEA-13, D-112): a row opens its session page through [openSession] (null: the rows open
  * nothing), and the header's *Alle anzeigen* [showAllSessions] the Journal filtered to the tea (null: hidden).
+ * ⋮ *Im Katalog ansehen* [openCatalog] (D-114 Q10), first, while the tea has a catalog tea.
  */
 class TeaDetailActions(
     val back: () -> Unit = {},
@@ -101,6 +105,7 @@ class TeaDetailActions(
     val setStockWarning: (on: Boolean) -> Unit = {},
     val setLowStockGrams: (grams: Int?) -> Unit = {},
     val showAllSessions: (() -> Unit)? = null,
+    val openCatalog: (catalogKey: String) -> Unit = {},
 )
 
 /**
@@ -349,6 +354,16 @@ private fun ColumnScope.TeaMenu(
     onReset: () -> Unit,
     close: () -> Unit,
 ) {
+    tea.catalogKey?.let { key ->
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.collection_tea_catalog)) },
+            onClick = {
+                close()
+                actions.openCatalog(key)
+            },
+            modifier = Modifier.testTag(TEA_DETAIL_CATALOG_TAG),
+        )
+    }
     DropdownMenuItem(
         text = { Text(stringResource(R.string.collection_tea_favorite)) },
         onClick = {

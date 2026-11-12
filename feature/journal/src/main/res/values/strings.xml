@@ -143,6 +143,8 @@
     <string name="session_method_ice_brew">Eisaufguss</string>
     <string name="session_method_custom">Eigene</string>
     <!-- ⋮ Bearbeiten on the session page and the editor SCR-17 (JRN-11, D-112). -->
+    <string name="session_menu_tea">Tee ansehen</string>
+    <string name="session_menu_catalog">Im Katalog ansehen</string>
     <string name="session_edit">Bearbeiten</string>
     <string name="session_editor_title">Sitzung bearbeiten</string>
     <string name="session_editor_close">Schließen</string>
