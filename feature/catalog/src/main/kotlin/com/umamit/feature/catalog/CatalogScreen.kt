@@ -67,8 +67,8 @@ const val CATALOG_GUIDES_ROW_TAG = "catalog_guides_row"
 /**
  * Sammlung › Katalog (SCR-19) with its view model, as the content below Sammlung's segmented
  * control: the empty state with *Katalog laden* (D-073), or the teas under the header
- * „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." (in the *Kräutertee* view „… · 38
- * Kräutertees · …", D-093) with search, filter chips and the filter sheet (CAT-10). A tap on
+ * „Tee-Kontor Kiel · 274 Tees · aktualisiert am 21. Okt." (N the view's count, D-114 Q16) with search,
+ * filter chips and the filter sheet (CAT-10). A tap on
  * *Katalog laden*, or on *Katalog aktualisieren* in Sammlung's ⋮ menu ([refreshRequest]), starts
  * the refresh and opens its sheet (SCR-22).
  *
@@ -391,14 +391,13 @@ private fun CatalogList(
 internal fun showAll(filter: CatalogFilter): CatalogFilter = filter.withoutFilters()
 
 /**
- * „Tee-Kontor Kiel · 312 Tees · aktualisiert am 21. Okt." without a kind (D-114); „274 Grüntees", „38 Kräutertees",
- * „4 gemerkt" in their views.
+ * „Tee-Kontor Kiel · 312 Tees · aktualisiert am 21. Okt." in every view (D-114 Q16), „4 gemerkt" on the Merkliste.
  */
 @Composable
 private fun Header(listing: CatalogListing, filter: CatalogFilter, zone: ZoneId) {
     val plurals = when {
         filter.marked -> R.plurals.catalog_marked_count
-        else -> filter.kind?.countPlural ?: R.plurals.catalog_all_count
+        else -> R.plurals.catalog_all_count
     }
     val count = pluralStringResource(plurals, listing.totalCount, listing.totalCount)
     val updated = listing.lastRefreshAtMillis

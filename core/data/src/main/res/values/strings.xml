@@ -10,11 +10,11 @@
     <string name="data_catalog_cancel">Abbrechen</string>
     <string name="data_catalog_result_success_title">Katalog geladen</string>
     <plurals name="data_catalog_tea_count">
-        <item quantity="one">%1$d Grüntee</item>
-        <item quantity="other">%1$d Grüntees</item>
+        <item quantity="one">%1$d Tee</item>
+        <item quantity="other">%1$d Tees</item>
     </plurals>
-    <!-- The summary line after the count of green teas (CAT-07 AC3, D-086), as in the refresh sheet:
-         „274 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen". -->
+    <!-- The summary line after the count of teas (CAT-07 AC3, D-086), as in the refresh sheet:
+         „274 Tees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen". -->
     <!-- Non-breaking spaces keep each part on one line and the dot after the part before it. -->
     <string name="data_catalog_summary_separator">" · "</string>
     <string name="data_catalog_summary_new" tools:ignore="PluralsCandidate">%1$d neu</string>

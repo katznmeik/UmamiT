@@ -72,7 +72,7 @@ enum class BlockCause { CHALLENGE, BLOCKED, TOO_MANY_REQUESTS, RETRY_AFTER }
 
 /**
  * One part of a successful refresh's summary line (CAT-07 AC3, SCR-22, the result notification):
- * „274 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen".
+ * „274 Tees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen".
  */
 sealed interface SummaryPart {
     data class Teas(val count: Int) : SummaryPart

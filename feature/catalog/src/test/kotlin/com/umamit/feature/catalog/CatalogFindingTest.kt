@@ -108,7 +108,7 @@ class CatalogFindingTest {
     fun theDefaultViewGroupsAvailablePureTeasBySorte() {
         show()
 
-        compose.onNodeWithText("Tee-Kontor Kiel · 4\u00A0Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        compose.onNodeWithText("Tee-Kontor Kiel · 4\u00A0Tees · aktualisiert am 22. Okt.").assertIsDisplayed()
         // The Sorte headers fold since v0.3.0 (D-098).
         compose.onNodeWithTag(catalogGroupTag("Gyokuro")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Sencha")).assertIsDisplayed()

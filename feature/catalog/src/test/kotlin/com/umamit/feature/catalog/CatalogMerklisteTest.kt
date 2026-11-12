@@ -165,8 +165,8 @@ class CatalogMerklisteTest {
         compose.waitForIdle()
 
         chip(R.string.catalog_filter_herbal).assertIsSelected()
-        val herbalCount = compose.activity.resources.getQuantityString(R.plurals.catalog_herbal_count, 1, 1)
-        shown(str(R.string.catalog_header, herbalCount, "22. Okt."))
+        val teaCount = compose.activity.resources.getQuantityString(R.plurals.catalog_all_count, 1, 1)
+        shown(str(R.string.catalog_header, teaCount, "22. Okt."))
         shown("Wiesenzauber")
     }
 

@@ -107,7 +107,7 @@ class CatalogBlackViewTest {
         switchToBlack()
 
         chip(R.string.catalog_filter_black).assertIsSelected()
-        shown("Tee-Kontor Kiel · 4 Schwarztees · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 4 Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Assam")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Darjeeling")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag(null)).assertIsDisplayed()

@@ -5,7 +5,7 @@
     <string name="ui_recipe_reason_from_style">Der Shop nennt nicht alle Werte – die fehlenden stammen aus den Standardwerten der Sorte.</string>
     <string name="ui_recipe_reason_conflict">Tabelle und Beschreibungstext des Shops widersprechen sich – das Rezept folgt der Tabelle.</string>
     <string name="ui_recipe_reason_implausible">Ein Wert des Shops wirkt unplausibel – stattdessen gilt der Standardwert der Sorte.</string>
-    <string name="ui_recipe_reason_unmapped">Der Tee passt zu keiner bekannten Sorte – Umami-Stufe und Ersatzwerte sind allgemeine Grüntee-Werte.</string>
+    <string name="ui_recipe_reason_unmapped">Der Tee passt zu keiner bekannten Sorte – Umami-Stufe und Ersatzwerte sind allgemeine Werte.</string>
     <!-- The stock sheet „Wie viel ist noch da?" (SCR-04, BRW-02, INV-03; D-093). -->
     <string name="ui_stock_title">Wie viel ist noch da?</string>
     <string name="ui_stock_field">Noch da</string>

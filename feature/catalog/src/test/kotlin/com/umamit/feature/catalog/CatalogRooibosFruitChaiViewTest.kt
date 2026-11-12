@@ -106,19 +106,19 @@ class CatalogRooibosFruitChaiViewTest {
 
         switchTo(R.string.catalog_filter_rooibos)
         chip(R.string.catalog_filter_rooibos).assertIsSelected()
-        shown("Tee-Kontor Kiel · 3\u00a0Rotbuschtees · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 3\u00a0Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Grüner Rotbusch")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Honeybush")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag(null)).assertIsDisplayed()
         hidden("Beerenwolke")
 
         switchTo(R.string.catalog_filter_fruit)
-        shown("Tee-Kontor Kiel · 2\u00a0Früchtetees · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 2\u00a0Tees · aktualisiert am 22. Okt.")
         shown("Apfelgarten")
         hidden("Pfirsichtal")
 
         switchTo(R.string.catalog_filter_chai)
-        shown("Tee-Kontor Kiel · 3\u00a0Chais · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 3\u00a0Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Schwarztee")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Rotbusch")).assertIsDisplayed()
         hidden("Morgennebel Sencha")

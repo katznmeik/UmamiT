@@ -100,7 +100,7 @@ class CatalogHerbalChipTest {
         tap(R.string.catalog_filter_herbal)
 
         chip(R.string.catalog_filter_herbal).assertIsSelected()
-        compose.onNodeWithText("Tee-Kontor Kiel · 3 Kräutertees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        compose.onNodeWithText("Tee-Kontor Kiel · 3 Tees · aktualisiert am 22. Okt.").assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Einzelkräuter")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Mischungen")).assertIsDisplayed()
         shown("Bergminze")
@@ -136,7 +136,7 @@ class CatalogHerbalChipTest {
         chip(R.string.catalog_filter_green).assertIsSelected()
         chip(R.string.catalog_filter_pure).assertIsSelected()
         hidden("Wiesenzauber")
-        compose.onNodeWithText("Tee-Kontor Kiel · 2 Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        compose.onNodeWithText("Tee-Kontor Kiel · 2 Tees · aktualisiert am 22. Okt.").assertIsDisplayed()
 
         tap(R.string.catalog_filter_green)
         chip(R.string.catalog_filter_green).assertIsNotSelected()
@@ -184,7 +184,7 @@ class CatalogHerbalChipTest {
 
         tap(R.string.catalog_filter_herbal)
 
-        compose.onNodeWithText("Tee-Kontor Kiel · 0 Kräutertees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        compose.onNodeWithText("Tee-Kontor Kiel · 0 Tees · aktualisiert am 22. Okt.").assertIsDisplayed()
         hidden(str(R.string.catalog_empty_title))
         chip(R.string.catalog_filter_herbal).assertIsSelected()
     }
