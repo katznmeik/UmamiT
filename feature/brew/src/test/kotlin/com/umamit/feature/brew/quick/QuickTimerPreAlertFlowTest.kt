@@ -201,15 +201,18 @@ class QuickTimerPreAlertFlowTest {
 
     private fun showTimer() {
         val collection = FakeCollection()
+        val sessions = FakeSessions(collection)
         val viewModel = TimerViewModel(
             timer,
             clock,
             settings,
             FakeTimerReliability(),
-            FakeSessions(collection).sessions,
+            sessions.sessions,
             collection.teas,
             PhotoFiles(folder.newFolder()),
             collection.stock,
+            sessions.journal,
+            sessions.tasting,
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {

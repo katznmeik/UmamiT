@@ -42,11 +42,11 @@ internal enum class TimerConfirmation {
 }
 
 /**
- * The menu, the question and the Schritte-Sheet of the timer. Each menu or
+ * The menu, the question, the Schritte-Sheet and the taste sheet of the timer. Each menu or
  * question remembers the alert it was opened in ([alertKey]); it shows only
  * while no alert plays or while that same alert plays, so whatever was opened
  * before an alert, or during an earlier one, never covers it (rule 8, D-058).
- * The sheet never shows while alerting (D-051). All of it survives a
+ * The sheets never show while alerting (D-051, D-114). All of it survives a
  * configuration change (GEN-07).
  */
 internal class TimerOverlays {
@@ -58,10 +58,13 @@ internal class TimerOverlays {
     var confirmationAlert by mutableStateOf<String?>(null)
     var stepsOpen by mutableStateOf(false)
 
+    /** The taste sheet (SCR-05 v0.6.1, D-114): the step position of the infusion it was opened for; null: closed. */
+    var tasteFor by mutableStateOf<Int?>(null)
+
     private val alerting: Boolean get() = currentAlert != null
     val menuShown: Boolean get() = menuOpen && (!alerting || menuAlert == currentAlert)
     val confirmationShown: Boolean get() = confirmation != null && (!alerting || confirmationAlert == currentAlert)
-    val anyOpen: Boolean get() = menuShown || confirmationShown || (stepsOpen && !alerting)
+    val anyOpen: Boolean get() = menuShown || confirmationShown || ((stepsOpen || tasteFor != null) && !alerting)
 
     /** Whether the menu may stay composed: not while an alert it was not opened in plays (no exit animation). */
     val menuComposable: Boolean get() = !alerting || menuShown
@@ -85,12 +88,20 @@ internal class TimerOverlays {
         if (menuAlert != alert) menuOpen = false
         if (confirmationAlert != alert) confirmation = null
         stepsOpen = false
+        tasteFor = null
     }
 
     companion object {
         val Saver: Saver<TimerOverlays, Any> = Saver(
             save = {
-                listOf(it.menuOpen, it.menuAlert, it.confirmation?.name, it.confirmationAlert, it.stepsOpen)
+                listOf(
+                    it.menuOpen,
+                    it.menuAlert,
+                    it.confirmation?.name,
+                    it.confirmationAlert,
+                    it.stepsOpen,
+                    it.tasteFor,
+                )
             },
             restore = { saved ->
                 val values = saved as List<*>
@@ -100,6 +111,7 @@ internal class TimerOverlays {
                     confirmation = (values[2] as String?)?.let(TimerConfirmation::valueOf)
                     confirmationAlert = values[3] as String?
                     stepsOpen = values[4] as Boolean
+                    tasteFor = values[5] as Int?
                 }
             },
         )

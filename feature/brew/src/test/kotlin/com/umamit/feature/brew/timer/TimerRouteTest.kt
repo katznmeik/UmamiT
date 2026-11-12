@@ -60,15 +60,18 @@ class TimerRouteTest {
 
     private fun show(timer: FakeBrewTimer, slot: TimerSlot? = null) {
         val collection = FakeCollection()
+        val sessions = FakeSessions(collection)
         val viewModel = TimerViewModel(
             timer,
             clock,
             FakeSettingsRepository(),
             FakeTimerReliability(),
-            FakeSessions(collection).sessions,
+            sessions.sessions,
             collection.teas,
             PhotoFiles(folder.newFolder()),
             collection.stock,
+            sessions.journal,
+            sessions.tasting,
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {

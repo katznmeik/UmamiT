@@ -82,8 +82,18 @@ class TimerViewModelTest {
     private val sessions = FakeSessions(collection)
     private val photos by lazy { PhotoFiles(folder.newFolder("photos")) }
 
-    private fun viewModel() =
-        TimerViewModel(timer, clock, settings, reliability, sessions.sessions, collection.teas, photos, stock)
+    private fun viewModel() = TimerViewModel(
+        timer,
+        clock,
+        settings,
+        reliability,
+        sessions.sessions,
+        collection.teas,
+        photos,
+        stock,
+        sessions.journal,
+        sessions.tasting,
+    )
 
     /** The stock the view model reads; a test swaps in a failing one (rule 8). */
     private var stock: StockRepository = collection.stock
