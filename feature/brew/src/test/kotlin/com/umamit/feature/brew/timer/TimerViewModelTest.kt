@@ -2,6 +2,7 @@ package com.umamit.feature.brew.timer
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
@@ -14,8 +15,10 @@ import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.StepTasting
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.StockSummary
+import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
@@ -37,6 +40,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -82,7 +88,7 @@ class TimerViewModelTest {
     private val sessions = FakeSessions(collection)
     private val photos by lazy { PhotoFiles(folder.newFolder("photos")) }
 
-    private fun viewModel() = TimerViewModel(
+    private fun viewModel(journal: JournalRepository = sessions.journal) = TimerViewModel(
         timer,
         clock,
         settings,
@@ -91,9 +97,25 @@ class TimerViewModelTest {
         collection.teas,
         photos,
         stock,
-        sessions.journal,
+        journal,
         sessions.tasting,
     )
+
+    /** Each session's taste as the journal has it; every read is counted in [tasteReads] (MIN-3). */
+    private val stepTastings = mapOf(
+        "s1" to mapOf(0 to StepTasting(TasteProfile(umami = 4))),
+        "s2" to mapOf(0 to StepTasting(note = "Nori")),
+        "s3" to emptyMap(),
+    )
+    private val tasteReads = mutableListOf<String>()
+    private val countingJournal = object : JournalRepository by sessions.journal {
+        override fun observeStepTastings(sessionId: String): Flow<Map<Int, StepTasting>> =
+            flowOf(stepTastings.getValue(sessionId)).onStart { tasteReads += sessionId }
+    }
+
+    /** The 2nd brew session (D-108) in its own slot, waiting for its 2nd infusion. */
+    private val secondBrew = TimerStates.ready(stepIndex = 1)
+        .copy(kind = SessionKind.Brew("s2"), inSlot = TimerSlot.BREW_2)
 
     /** The stock the view model reads; a test swaps in a failing one (rule 8). */
     private var stock: StockRepository = collection.stock
@@ -278,6 +300,58 @@ class TimerViewModelTest {
         timer.show(TimerStates.running())
         assertThat(timer.sent).containsExactly(TimerSlot.BREW to TimerEvent.Start)
         assertThat(vm.state.value).isEqualTo(TimerStates.running())
+    }
+
+    @Test
+    fun `each brew slot reads its own session's taste, and only while a screen shows it (D-108, MIN-3)`() = runTest {
+        val first = TimerStates.ready(stepIndex = 1)
+        timer.showSlots(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to secondBrew), front = first)
+        val vm = viewModel(countingJournal)
+        // Nothing collects yet: nothing is read.
+        assertThat(tasteReads).isEmpty()
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.stepTastings(TimerSlot.BREW).collect {} }
+        assertThat(vm.stepTastings(TimerSlot.BREW).value)
+            .isEqualTo(TimerSessionTastings("s1", stepTastings.getValue("s1")))
+        // The other slot's session is not read while its screen is not shown.
+        assertThat(tasteReads).containsExactly("s1")
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.stepTastings(TimerSlot.BREW_2).collect {} }
+        assertThat(vm.stepTastings(TimerSlot.BREW_2).value)
+            .isEqualTo(TimerSessionTastings("s2", stepTastings.getValue("s2")))
+        assertThat(tasteReads).containsExactly("s1", "s2")
+        assertThat(vm.stepTastings(TimerSlot.QUICK).value).isNull()
+    }
+
+    @Test
+    fun `the slot's next session is read with its own id, none without one`() = runTest {
+        timer.show(TimerStates.ready(stepIndex = 1))
+        val vm = viewModel(countingJournal)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.stepTastings(TimerSlot.BREW).collect {} }
+        assertThat(vm.stepTastings(TimerSlot.BREW).value?.sessionId).isEqualTo("s1")
+
+        timer.show(TimerStates.ready(stepIndex = 1).copy(kind = SessionKind.Brew("s3")))
+        assertThat(vm.stepTastings(TimerSlot.BREW).value).isEqualTo(TimerSessionTastings("s3", emptyMap()))
+
+        timer.show(TimerStates.quick(TimerPhase.RUNNING))
+        assertThat(vm.stepTastings(TimerSlot.BREW).value).isNull()
+    }
+
+    @Test
+    fun `a failed taste read is null, not empty, and leaves the timer alone (rule 8)`() = runTest {
+        val failing = object : JournalRepository by sessions.journal {
+            override fun observeStepTastings(sessionId: String): Flow<Map<Int, StepTasting>> =
+                flow { throw IOException("disk") }
+        }
+        timer.show(TimerStates.ready(stepIndex = 1))
+        val vm = viewModel(failing)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.stepTastings(TimerSlot.BREW).collect {} }
+
+        // Null: the sheet's editor waits instead of starting with an empty note over a stored one (Nit 5).
+        assertThat(vm.stepTastings(TimerSlot.BREW).value).isNull()
+        vm.send(TimerSlot.BREW, TimerEvent.Start)
+        assertThat(timer.sent).containsExactly(TimerSlot.BREW to TimerEvent.Start)
+        assertThat(vm.state.value).isEqualTo(TimerStates.ready(stepIndex = 1))
     }
 
     @Test

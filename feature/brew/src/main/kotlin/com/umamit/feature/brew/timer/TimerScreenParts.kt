@@ -123,14 +123,16 @@ internal fun TimerBody(args: TimerBodyArgs) {
             Spacer(Modifier.height(UmamiSpacing.Small))
             TimerHeader(state)
         },
-        // The taste of the infusion ended last, below the step strip (D-114): from the first *Abgegossen* its space is
-        // kept in every phase, hidden on the alert surface, so nothing moves when the alert starts. Where it would
-        // push the primary control off a short screen, it goes below the controls (D-096).
+        // The taste of the infusion ended last, below the step strip (D-114): its space is kept from the session's
+        // first READY in every phase, before the button shows and while it is hidden on the alert surface, so
+        // nothing moves at the first *Abgegossen* or when the alert starts. Where it would push the primary control
+        // off a short screen, it goes below the controls (D-096), decided as if the other timer's row were there.
         flexible = {
             args.tasting?.let { tasting ->
                 TasteButtonSlot(state, tasting, onOpen = { overlays.tasteFor = it.position })
             }
         },
+        reservedRowHeight = if (state.isQuick) 0.dp else TimerOtherRowHeight,
         aboveControls = {
             Spacer(Modifier.height(UmamiSpacing.Large))
             TimerRingArea(state, now, args.nowElapsedMs, actions)

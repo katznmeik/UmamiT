@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -152,7 +154,12 @@ internal fun TimerBand(modifier: Modifier = Modifier) {
  * gives way for [flexible] like for the other content, as far as it can (down to the top bar, with the seal's lower
  * half); where [flexible] would still push the primary control off the screen, it is placed below the controls
  * instead and scrolls with [afterControls]. The choice follows only the screen, the insets and the measured content,
- * never the phase, so nothing moves when the alert starts.
+ * never the phase, so nothing moves when the alert starts. It is made as if the other timer's row were there, at
+ * least [reservedRowHeight] tall, so the row coming or going never moves the button between above and below.
+ *
+ * **Insets.** The page follows the safe drawing insets without the keyboard's (SCR-05 v0.6.1, D-114): the timer has
+ * no text field of its own, so the taste sheet's keyboard never reflows it, and the keyboard leaving at an alert
+ * moves nothing (rule 8, D-096).
  */
 @Composable
 internal fun TimerBandPage(
@@ -170,8 +177,9 @@ internal fun TimerBandPage(
     belowBand: @Composable () -> Unit = {},
     header: @Composable ColumnScope.() -> Unit = {},
     flexible: @Composable ColumnScope.() -> Unit = {},
+    reservedRowHeight: Dp = 0.dp,
 ) {
-    val insets = WindowInsets.safeDrawing
+    val insets = WindowInsets.safeDrawing.exclude(WindowInsets.ime)
     val top: @Composable () -> Unit = {
         Box(modifier = Modifier.fillMaxSize()) { topBar() }
     }
@@ -271,7 +279,15 @@ internal fun TimerBandPage(
             } else {
                 null
             }
-            val flexibleRow = flexibleRow(flexiblePlaceable.height, fitsWithout, withSeal, sealSize, lowest)
+            // Decided as if the other timer's row were there: the row coming or going never moves the button.
+            val decidedRowHeight = maxOf(rowHeight, reservedRowHeight.roundToPx())
+            val flexibleRow = flexibleRow(
+                height = flexiblePlaceable.height,
+                fitsWithout = fitsWithout?.let { it + rowHeight - decidedRowHeight },
+                withSeal = withSeal,
+                sealSize = sealSize,
+                lowest = lowest,
+            )
             val contentHeight = fixedContentHeight + flexibleRow.heightAbove
             val fits = fitsWithout?.minus(flexibleRow.heightAbove)
             val sealYields = sealYieldsToRow(withSeal, rowHeight, fits, sealSize / 2, lowest)

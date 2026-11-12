@@ -6,6 +6,7 @@ import com.umamit.core.common.WallClock
 import com.umamit.core.database.entity.SessionStepEntity
 import com.umamit.core.model.Infusion
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TimerPhase
@@ -354,6 +355,20 @@ class InfusionTastingTest {
         assertThat(row.infusions.single()).isEqualTo(Infusion(1, 1, TasteProfile(umami = 5), "Nori"))
         assertThat(row.hasInfusionNotes).isTrue()
         assertThat(data.sessions.getSession(SESSION_ID)).isEqualTo(row)
+    }
+
+    @Test
+    fun `the timer's narrow read has the steps with a taste or a note, as the session read has them`() = runTest {
+        runningAtSecondInfusion()
+        assertThat(journal.observeStepTastings(SESSION_ID).first()).isEmpty()
+
+        tasting.setInfusionTaste(SESSION_ID, 1, TasteAxis.BODY, 3)
+        tasting.setInfusionNote(SESSION_ID, 1, "Nori")
+
+        val narrow = journal.observeStepTastings(SESSION_ID).first()
+        assertThat(narrow).containsExactly(1, StepTasting(TasteProfile(body = 3), "Nori"))
+        assertThat(narrow).isEqualTo(session().stepTastings)
+        assertThat(journal.observeStepTastings("gone").first()).isEmpty()
     }
 
     private companion object {

@@ -61,8 +61,9 @@ import org.robolectric.annotation.Config
  * The timer's taste sheet on the real path (04 §10 v0.6.1, D-114, rule 8): the real controller (Room, fakes at its
  * ports), the real [TimerViewModel] with Room's `SessionTasting` and journal, and the timer route. A taste write in
  * READY and in RUNNING leaves the engine state, the due times (alarms, wake-up) and the next step's recorded values
- * as they were; the pre-alert leaves the sheet open; the alert at its deadline closes it and shows the alert surface,
- * and what was entered is stored.
+ * as they were; the pre-alert leaves the sheet open; the alert starts at its deadline, closes the sheet and shows the
+ * alert surface, and what was entered is stored. The 2nd infusion, poured, records the same times as in a brew
+ * without any taste write.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -169,6 +170,18 @@ class TimerTasteFlowTest {
         compose.waitForIdle()
     }
 
+    /** The recorded times of the step at [position]: its actual, paused and overtime seconds. */
+    private fun recorded(sessionId: String, position: Int) = runBlocking {
+        db.sessionDao().steps(sessionId).single { it.position == position }
+            .let { listOf(it.actualSeconds, it.pausedSeconds, it.overtimeSeconds) }
+    }
+
+    /** The 2nd infusion (0:20) started, run to its deadline and poured at once. */
+    private fun pourSecondAtItsDeadline() {
+        runBlocking { controller.send(TimerEvent.Poured) }
+        idle()
+    }
+
     private fun storedTaste(sessionId: String, position: Int) =
         runBlocking { checkNotNull(sessions.getSession(sessionId)).stepTastings[position] }
 
@@ -206,6 +219,7 @@ class TimerTasteFlowTest {
         // RUNNING: the 2nd step steeps; writes leave its deadline, its pre-alert and the 3rd step as they were.
         runBlocking { controller.send(TimerEvent.Start) }
         idle()
+        val deadline = checkNotNull(active().deadlineElapsedMs)
         val running = timerSnapshot(id, from = 1)
         compose.onNodeWithTag(TIMER_TASTE_BUTTON_TAG).performClick()
         idle()
@@ -221,20 +235,46 @@ class TimerTasteFlowTest {
         idle()
         assertThat(alert.ticks).isEqualTo(ticks + 1)
         compose.onNodeWithTag(TIMER_TASTE_SHEET_TAG).assertExists()
+        val started = alert.started.size
 
         // The deadline: the alert rings on time, the sheet is gone and the alert surface shows *Abgegossen*.
         runBlocking { wakeUp.advanceBy(5_000) }
         idle()
         assertThat(active().phase).isEqualTo(TimerPhase.ALERTING)
+        // Started once, at that reading, for its deadline (TMR-30).
+        assertThat(alert.started).hasSize(started + 1)
+        assertThat(alert.scheduled.last()?.atMs).isEqualTo(deadline)
+        assertThat(clock.elapsedMs()).isEqualTo(deadline)
         compose.onNodeWithTag(TIMER_TASTE_SHEET_TAG).assertDoesNotExist()
         compose.onNodeWithText("Abgegossen").assertIsDisplayed()
         compose.onNodeWithText("Geschmack", substring = true).assertDoesNotExist()
         assertThat(storedTaste(id, 0)?.taste).isEqualTo(TasteProfile(aroma = 4))
+
+        // Poured: the 2nd infusion records what it records without a taste write.
+        pourSecondAtItsDeadline()
+        assertThat(recorded(id, 1)).isEqualTo(UNTASTED_SECOND)
+    }
+
+    @Test
+    fun `without a taste write the 2nd infusion records the same times`() {
+        val id = pouredFirst()
+        showRoute()
+        runBlocking {
+            controller.send(TimerEvent.Start)
+            wakeUp.advanceBy(20_000)
+        }
+        idle()
+        assertThat(active().phase).isEqualTo(TimerPhase.ALERTING)
+        pourSecondAtItsDeadline()
+        assertThat(recorded(id, 1)).isEqualTo(UNTASTED_SECOND)
     }
 
     private companion object {
         const val TIMEOUT_MS = 5_000L
         const val POLL_MS = 10L
+
+        /** The 2nd infusion's actual, paused and overtime seconds: 0:20 run through, poured at its deadline. */
+        val UNTASTED_SECOND = listOf(20, 0, 0)
         val STEPS = listOf(
             PlannedStep(StepKind.INFUSION, 60, 60),
             PlannedStep(StepKind.INFUSION, 20, 60),
