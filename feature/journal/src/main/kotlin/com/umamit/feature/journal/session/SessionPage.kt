@@ -45,6 +45,24 @@ data class SessionPageStep(
 }
 
 /**
+ * One chip of GESCHMACK (JRN-03, JRN-05, D-114).
+ *
+ * @property position the step's `position`, which the tasting writes address.
+ * @property number the step table's number („2. Aufguss"); null for an *Aufschlagen* step, which reads its kind.
+ * @property note the infusion's short note (≤ 200), trimmed; null without.
+ */
+data class SessionInfusion(
+    val position: Int,
+    val number: Int?,
+    val kind: StepKind,
+    val taste: TasteProfile = TasteProfile.EMPTY,
+    val note: String? = null,
+) {
+    /** The chip's dot: a taste value or a note is stored (SCR-16 v0.6.1). */
+    val hasData: Boolean get() = taste.setCount > 0 || note != null
+}
+
+/**
  * The session page (SCR-16, read-only in v0.4.0, D-100): the tea, the start in the session's own time zone, method,
  * vessel, leaf / water / ratio and the step table, all from the session's snapshot (05 §1.5), so a renamed or deleted
  * tea never changes it.
@@ -71,12 +89,11 @@ data class SessionPage(
     /** The notes as stored (trimmed); null without (JRN-05). */
     val notes: String? = null,
     /**
-     * The six taste values of the first infusion, each null while unset (JRN-03). From v0.6.1 the taste is per
-     * infusion (D-114); until the page's chip row (#243) it shows and writes the first one, at [tastePosition].
+     * The infusions GESCHMACK offers a chip for (JRN-03, D-114): the ended steps that are not *Spülen* and not
+     * skipped, in the step table's order, each with its taste and note. A skipped step that still carries values
+     * (a v0.6.0 migration, 05 §9) keeps its chip, so nothing stored is hidden.
      */
-    val taste: TasteProfile = TasteProfile.EMPTY,
-    /** The step `position` of the first infusion, which the taste writes address; null without an infusion. */
-    val tastePosition: Int? = null,
+    val infusions: List<SessionInfusion> = emptyList(),
     /** The ticked descriptor keys (JRN-04); keys the vocabulary lacks are kept and not shown. */
     val descriptorKeys: List<String> = emptyList(),
     /** The line under the step table (PRF-07, D-112): null without an offer. */
@@ -131,10 +148,19 @@ fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
         inProgress = session.status == SessionStatus.IN_PROGRESS,
         rating = session.rating,
         notes = session.notes,
-        taste = session.infusions.firstOrNull()?.taste ?: TasteProfile.EMPTY,
-        tastePosition = session.infusions.firstOrNull()?.position,
+        infusions = infusionsOf(session),
         descriptorKeys = session.descriptorKeys,
     )
+}
+
+/** The session's infusions with a chip: skipped ones only when they carry values (D-114). */
+private fun infusionsOf(session: BrewSession): List<SessionInfusion> {
+    val rows = session.steps.associateBy { it.position }
+    return session.infusions.mapNotNull { infusion ->
+        val row = rows.getValue(infusion.position)
+        SessionInfusion(infusion.position, infusion.number, row.kind, infusion.taste, infusion.note)
+            .takeIf { !row.skipped || it.hasData }
+    }
 }
 
 /** The session's zone; one this device doesn't know counts as the device's (as in the journal, D-054). */

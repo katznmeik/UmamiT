@@ -9,7 +9,6 @@ import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TastingWrite
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaRepository
-import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TastingLimits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineStart
@@ -127,25 +126,8 @@ class SessionPageViewModel @Inject constructor(
         launchWrite { ratingLock.withLock { tasting.setRating(sessionId, rating) } }
     }
 
-    /** Taste writes run one after another in release order, so the last one is the one stored (JRN-03). */
-    private val tasteLock = Mutex()
-
-    /**
-     * A slider released on [value] (JRN-03): saved at once, after any earlier taste write, on the first infusion
-     * (D-114; the chip per infusion comes with #243). Without an infusion nothing is written.
-     */
-    fun setTaste(axis: TasteAxis, value: Int) {
-        val position = tastePosition ?: return
-        launchWrite { tasteLock.withLock { tasting.setInfusionTaste(sessionId, position, axis, value) } }
-    }
-
-    /** *Zurücksetzen* (JRN-03): the first infusion's six taste values are unset, in order with the slider writes. */
-    fun clearTaste() {
-        val position = tastePosition ?: return
-        launchWrite { tasteLock.withLock { tasting.clearInfusionTaste(sessionId, position) } }
-    }
-
-    private val tastePosition: Int? get() = (state.value as? SessionPageUiState.Ready)?.page?.tastePosition
+    /** GESCHMACK's writes per infusion (JRN-03, JRN-05, D-114): the sliders, *Zurücksetzen* and the infusion note. */
+    internal val infusionTasting = InfusionTastingWrites(tasting, sessionId, viewModelScope)
 
     /** Descriptor writes run one after another in tap order, so the last tap is the one stored (JRN-04). */
     private val descriptorLock = Mutex()
