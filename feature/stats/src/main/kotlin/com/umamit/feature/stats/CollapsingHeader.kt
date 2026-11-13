@@ -44,15 +44,19 @@ internal class CollapsingHeader {
         offset = 0f
     }
 
-    /** Lays the title out [offset] up, taking only the height that is left. */
-    fun modifier(): Modifier = Modifier
-        .clipToBounds()
-        .layout { measurable, constraints ->
-            val placeable = measurable.measure(constraints)
-            height = placeable.height.toFloat()
-            val visible = (placeable.height + offset).roundToInt().coerceAtLeast(0)
-            layout(placeable.width, visible) { placeable.place(0, offset.roundToInt()) }
-        }
+    /** The title's measured height, and the offset it is laid out at (read in the layout phase only). */
+    internal fun measured(heightPx: Int): Int {
+        height = heightPx.toFloat()
+        return (heightPx + offset).roundToInt().coerceAtLeast(0)
+    }
+
+    internal val offsetPx: Int get() = offset.roundToInt()
 }
 
-internal fun Modifier.collapsing(header: CollapsingHeader): Modifier = then(header.modifier())
+/** Lays the title out up by the header's offset, taking only the height that is left. */
+internal fun Modifier.collapsing(header: CollapsingHeader): Modifier =
+    clipToBounds().layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        val visible = header.measured(placeable.height)
+        layout(placeable.width, visible) { placeable.place(0, header.offsetPx) }
+    }

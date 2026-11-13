@@ -27,6 +27,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -39,11 +40,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -239,8 +242,13 @@ private fun StatsPages(
     }
     Column(modifier = Modifier.fillMaxSize().nestedScroll(header.connection)) {
         StatsHeader(onOpenSettings, modifier = Modifier.collapsing(header))
-        RangeSelector(state.range, onRangeChange)
-        TabBar(state.tab, onTabChange)
+        // The pinned chrome keeps its labels on one line: it scales up to 1.15, the content below up to 2.0.
+        CappedFontScale {
+            Column {
+                RangeSelector(state.range, onRangeChange)
+                TabBar(state.tab, onTabChange)
+            }
+        }
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -304,6 +312,18 @@ private fun TabBar(tab: StatsTab, onTabChange: (StatsTab) -> Unit) {
             )
         }
     }
+}
+
+/** The largest font scale of the pinned selector and tabs (their labels are single words in a fixed row). */
+private const val CHROME_MAX_FONT_SCALE = 1.15f
+
+@Composable
+private fun CappedFontScale(content: @Composable () -> Unit) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(
+        LocalDensity provides Density(density.density, minOf(density.fontScale, CHROME_MAX_FONT_SCALE)),
+        content = content,
+    )
 }
 
 private val StatsRange.labelRes: Int

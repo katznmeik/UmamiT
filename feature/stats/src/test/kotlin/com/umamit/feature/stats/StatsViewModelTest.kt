@@ -1,5 +1,6 @@
 package com.umamit.feature.stats
 
+import androidx.lifecycle.viewModelScope
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.ObserveStats
 import com.umamit.core.domain.stats.StatsSession
@@ -12,9 +13,11 @@ import com.umamit.core.testing.FakeStatsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -36,9 +39,16 @@ class StatsViewModelTest {
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
     @After
-    fun tearDown() = Dispatchers.resetMain()
+    fun tearDown() {
+        created.forEach { it.viewModelScope.cancel() }
+        // The cancelled flows finish on Default and hand over to Main: wait for them before Main goes away.
+        runBlocking { created.forEach { it.viewModelScope.coroutineContext[Job]?.join() } }
+        Dispatchers.resetMain()
+    }
 
-    private fun viewModel() = StatsViewModel(ObserveStats(repository, clock), settings, clock)
+    private val created = mutableListOf<StatsViewModel>()
+
+    private fun viewModel() = StatsViewModel(ObserveStats(repository, clock), settings, clock).also { created += it }
 
     private fun session(id: String, daysAgo: Long) = StatsSession(
         id = id,

@@ -3,6 +3,7 @@ package com.umamit.feature.stats
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -123,7 +124,5 @@ class StatsScreenTest {
         compose.onNodeWithText("In diesem Zeitraum nichts").assertExists()
     }
 
-    private fun isTab() = SemanticsMatcher("is a tab") {
-        it.config.getOrNull(SemanticsProperties.Role) == androidx.compose.ui.semantics.Role.Tab
-    }
+    private fun isTab() = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
 }
