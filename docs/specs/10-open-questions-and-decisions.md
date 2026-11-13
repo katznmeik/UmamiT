@@ -659,6 +659,16 @@ cover as the single photo; the vessel's picked, unsaved photo opens too.
 Pinch, double-tap and the swipe lock while zoomed are not covered by JVM
 tests: an on-device check.
 
+**Approval (PO, 2026-11-13, in the session).** Asked for the result on
+`v0.6.1-rc.1` (the on-device checklist 09 §4 „v0.6.1" and the seven points of
+`docs/design/review/v0.6.1/README.md`), the PO answered **„Approve
+everything"**: every checklist item passed, and Claude's defaults in the seven
+points stand as built (the timer button's `Tune` icon and place, the chip
+labels, *Anpassen* staying put, no GESCHMACK for a session without a poured
+infusion, the viewer's 2.5× double-tap and „1 / 1", the chips' three rows at
+font 2.0, the kind group headers). There is no rc.2; #251 (the merge and the
+final release) follows.
+
 <a id="d-113"></a>
 ### D-113 — v0.6.0: the slim slider handle; the open points of rc.1 closed; the final without an rc.2 (03 §3.8, SCR-16, SET-27; JRN-03) · *Accepted* (PO, 2026-11-12, on `v0.6.0-rc.1`; seven questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 

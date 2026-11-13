@@ -9,7 +9,7 @@
 
 ## After rc.1 (2026-11-12)
 
-1. **Waiting on the PO:** checklist 09 §4 „v0.6.1" on `v0.6.1-rc.1` and the design review (`docs/design/review/v0.6.1/`, seven points to judge in its README).
+1. **Approved (PO, 2026-11-13):** checklist 09 §4 „v0.6.1" on `v0.6.1-rc.1` all passed and the seven design-review points stand as built (D-114 „Approval"). No rc.2. #251 in progress: `umamit.version=0.6.1` set.
 2. **On approval (#251):** set `umamit.version=0.6.1` (versionCode 60199), full local gate, CI, all three accuracy variants on that commit; merge #252 (merge commit); dispatch `release.yml` from `main` (`version` 0.6.1); verify the certificate; close #240–#251 as the PR does; restart the working branch from `main`; move v0.6.1 to `docs/history.md`.
 3. **On findings:** each point goes through the process (grilling as options → spec/D-115 → tickets → build), then `v0.6.1-rc.2`.
 4. **Open, accepted as Claude's note (D-114 build notes):** the activity re-creation after the *Design* hand-over can still meet an alert starting in the same ≈ 0.5 s; m6 (GESCHMACK hidden for a finished session without a poured infusion) is a design-review point.
@@ -65,7 +65,7 @@
 
 ## Waiting on the PO
 
-1. **The on-device checklist and design review of `v0.6.1-rc.1`** (09 §4 „v0.6.1", `docs/design/review/v0.6.1/`).
+1. Nothing blocking: v0.6.1 was approved on 2026-11-13.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
