@@ -23,6 +23,7 @@
     <string name="my_teas_filter_archived">Archiviert</string>
     <string name="my_teas_filter_count">%1$s (%2$d)</string>
     <string name="my_teas_stock_low">Knapp</string>
+    <string name="my_teas_stock_low_chip">%1$s g · knapp</string>
     <string name="my_teas_stock_empty">Leer</string>
     <!-- Sort (TEA-11); the chip reads „Sortierung: Zuletzt gebrüht" to TalkBack. -->
     <string name="my_teas_sort_last_brewed">Zuletzt gebrüht</string>
