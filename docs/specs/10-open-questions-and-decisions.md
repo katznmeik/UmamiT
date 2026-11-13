@@ -473,6 +473,28 @@ in the design review for the PO to see).**
   within 28 dp, the donut its ring. The distribution and habit bars print
   their numbers and take no tap.
 - **TalkBack** reads each value with its unit („KW 44: 6 Sitzungen.").
+- **After the milestone review (#263):**
+  - **Grow once:** a chart grows the first time it is at least half on
+    screen on the settled tab, and never again for that tab while the
+    screen lives (also not after swiping away and back).
+  - **Range change with a different number of periods** (30 T ↔ 90 T ↔ 12 M
+    ↔ Gesamt): the old bars fade out in 100 ms and the new set grows in
+    250 ms without stagger; with the same number of periods the bars morph
+    (250 ms). The donut morphs per Sorte. Stagger spread at most 120 ms.
+  - **Header:** „Deine Tee-Reise" settles fully open or fully closed after
+    a scroll (200 ms; snaps with reduce motion) and comes back when a tab is
+    switched to at its top.
+  - **Value label:** one at a time on the screen; a tap anywhere else, a
+    scroll or a tab change hides it. It appears without animation.
+  - **Large font:** the range selector and the tabs stop growing at font
+    scale 1,15 („Bewertungen" and „Gesamt" would wrap); from 1,5 the habit
+    bars become rows like the star distribution (the donut's legend moves
+    below at the same scale). The title row carries ⋮ (Einstellungen) and
+    scrolls away with the title.
+  - **Descriptor chips** read „Nori · 12×" on Statistik; the tea detail
+    keeps „Nori · 4".
+  - **Day change:** the figures move to the new day when the screen is
+    resumed (not at midnight while it stays open).
 
 <a id="d-114"></a>
 ### D-114 — v0.6.1: the PO's feedback on v0.6.0: taste per infusion (also on the timer), folding taste, quick-timer chips, photo viewer, catalog links in ⋮, all kinds without a chip, „N Tees", the *Design* setting; Statistik becomes v0.7.0 (TMR-22, JRN-03, JRN-05, JRN-09, JRN-10, TEA-05, TEA-13, CAT-07, CAT-10, SET-05; SCR-05, SCR-07, SCR-09, SCR-16, SCR-19, SCR-25, SCR-28; amends D-112's taste per session and Q1's numbering, D-103's default kind, D-097's 8:00 chip row) · *Accepted* (PO, 2026-11-12, grilled in the session Q1–Q19 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
