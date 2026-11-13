@@ -61,7 +61,7 @@ private val LEGEND_SPACING = 6.dp
 private val DONUT_LEGEND_SPACING = 16.dp
 private const val FULL_CIRCLE = 360f
 private const val QUARTER_TURN = 90f
-private const val BELOW_FONT_SCALE = 1.5f
+internal const val BELOW_FONT_SCALE = 1.5f
 private const val MAX_SLICES = 6
 private const val MORPH_MILLIS = 250
 
