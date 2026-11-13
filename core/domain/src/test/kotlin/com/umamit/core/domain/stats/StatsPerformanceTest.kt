@@ -7,12 +7,13 @@ import com.umamit.core.domain.stats.StatsFixtures.infusion
 import com.umamit.core.domain.stats.StatsFixtures.purchase
 import com.umamit.core.domain.stats.StatsFixtures.session
 import com.umamit.core.domain.stats.StatsFixtures.tea
+import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
-import com.umamit.core.model.TasteProfile
 import org.junit.Test
 import java.time.LocalTime
+import java.time.YearMonth
 
 /**
  * NFR-PERF-06: the statistics compute within 500 ms for 10 000 sessions. Dating the sessions and all three tabs for
@@ -34,11 +35,10 @@ class StatsPerformanceTest {
             costCents = if (index % 3 == 0) 120L else null,
             steps = listOf(
                 StatsStep(StepKind.RINSE, ended = true),
-                infusion(TasteProfile(umami = index % 6, body = 3)),
-                infusion(TasteProfile(sweetness = 2)),
+                infusion(),
+                infusion(),
                 StatsStep(StepKind.INFUSION, ended = false),
             ),
-            descriptorKeys = listOf("marine.nori", "sweet.honig"),
         )
     }
     private val teas = List(TEA_COUNT) { tea("t$it", grams = it.toDouble(), level = StockLevel.LOW) }
@@ -46,8 +46,9 @@ class StatsPerformanceTest {
 
     @Test
     fun `all three tabs for 10 000 sessions within 500 ms`() {
-        fun all(range: StatsRange) = calculator(sessions, teas, events, setOf("marine.nori")).run {
-            Triple(overview(range), ratings(range), consumption(range))
+        val span = MonthSpan(YearMonth.of(2026, 1), YearMonth.of(2026, 9))
+        fun all(range: StatsRange) = calculator(sessions, teas, events).run {
+            Triple(overview(range, span), ratings(range, span), consumption(range, span))
         }
         repeat(WARM_UP) { all(StatsRange.ALL) }
 

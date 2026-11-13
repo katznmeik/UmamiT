@@ -8,6 +8,7 @@ import com.umamit.core.model.AlertLength
 import com.umamit.core.model.CollectionSegment
 import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.LowStockReminderInterval
+import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StatsTab
 import com.umamit.core.model.ThemeMode
@@ -75,6 +76,9 @@ data class StoredSettings(
     val collectionSegment: String = CollectionSegment.MY_TEAS.name,
     /** INS-07 (v0.7.0, D-115); a file of v0.6.x has neither key and reads the defaults, no migration. */
     val statsRange: String = StatsRange.DAYS_90.name,
+    /** The custom range's months as `yyyy-MM` (D-115 Amendment 1); a file of v0.7.0-rc.1 has neither, no migration. */
+    val statsRangeFrom: String? = null,
+    val statsRangeTo: String? = null,
     val statsTab: String = StatsTab.OVERVIEW.name,
     /** *Tassengröße* (D-115 Amendment 1); a file of v0.7.0-rc.1 or older has no key and reads 150 ml, no migration. */
     val cupSizeMl: Int = UserSettings.DEFAULT_CUP_SIZE_ML,
@@ -236,6 +240,8 @@ private fun StoredSettings.toModel() = UserSettings(
     collectionSort = enumOrDefault(collectionSort, CollectionSort.LAST_BREWED),
     collectionSegment = enumOrDefault(collectionSegment, CollectionSegment.MY_TEAS),
     statsRange = enumOrDefault(statsRange, StatsRange.DAYS_90),
+    statsRangeFrom = MonthSpan.parse(statsRangeFrom),
+    statsRangeTo = MonthSpan.parse(statsRangeTo),
     statsTab = enumOrDefault(statsTab, StatsTab.OVERVIEW),
     cupSizeMl = cupSizeMl,
 )
@@ -268,6 +274,8 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     collectionSort = collectionSort.name,
     collectionSegment = collectionSegment.name,
     statsRange = statsRange.name,
+    statsRangeFrom = statsRangeFrom?.toString(),
+    statsRangeTo = statsRangeTo?.toString(),
     statsTab = statsTab.name,
     cupSizeMl = cupSizeMl,
     seedDataCreated = markersOf.seedDataCreated,

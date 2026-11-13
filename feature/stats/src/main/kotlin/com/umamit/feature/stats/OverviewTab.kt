@@ -96,10 +96,11 @@ private fun Numerals(stats: OverviewStats) {
             )
         }
         val teas = pluralStringResource(R.plurals.stats_overview_teas_label, stats.teaCount)
+        val added = stats.teasAddedInRange ?: 0
         Numeral(
             stats.teaCount,
-            if (stats.teasAddedInRange > 0) {
-                stringResource(R.string.stats_overview_teas_added, teas, stats.teasAddedInRange)
+            if (added > 0) {
+                stringResource(R.string.stats_overview_teas_added, teas, added)
             } else {
                 teas
             },

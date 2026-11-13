@@ -11,6 +11,7 @@ import com.umamit.core.domain.stats.ConsumptionStats
 import com.umamit.core.domain.stats.OverviewStats
 import com.umamit.core.domain.stats.RatingsStats
 import com.umamit.core.domain.stats.StatsCalculator
+import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StatsTab
 import com.umamit.core.model.UserSettings
@@ -80,7 +81,19 @@ class StatsViewModel @Inject constructor(
         .map { it.statsRange to it.statsTab }
         .distinctUntilChanged()
 
-    private val range: Flow<StatsRange> = choice.map { it.first }.distinctUntilChanged()
+    /** The range with the custom months (*Monate*, D-115 Amendment 1); the months only count under CUSTOM. */
+    private val range: Flow<Pair<StatsRange, MonthSpan?>> = settings.settings
+        .map {
+            it.statsRange to
+                if (it.statsRange ==
+                    StatsRange.CUSTOM
+                ) {
+                    MonthSpan.of(it.statsRangeFrom?.toString(), it.statsRangeTo?.toString())
+                } else {
+                    null
+                }
+        }
+        .distinctUntilChanged()
 
     private val calculator: SharedFlow<StatsCalculator> = dayChanges
         .flatMapLatest { observeStats.calculator() }
@@ -93,17 +106,19 @@ class StatsViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), StatsUiState.Loading)
 
     /** *Überblick*'s figures with their range; null until the first read. A range change replaces them in place. */
-    val overview: StateFlow<TabFigures<OverviewStats>?> = figures { calculator, range -> calculator.overview(range) }
+    val overview: StateFlow<TabFigures<OverviewStats>?> =
+        figures { calculator, range, custom -> calculator.overview(range, custom) }
 
     /** *Bewertungen*'s figures with their range; null until the first read. */
-    val ratings: StateFlow<TabFigures<RatingsStats>?> = figures { calculator, range -> calculator.ratings(range) }
+    val ratings: StateFlow<TabFigures<RatingsStats>?> =
+        figures { calculator, range, custom -> calculator.ratings(range, custom) }
 
     /** *Verbrauch*'s figures with their range; null until the first read. */
     val consumption: StateFlow<TabFigures<ConsumptionStats>?> =
-        figures { calculator, range -> calculator.consumption(range) }
+        figures { calculator, range, custom -> calculator.consumption(range, custom) }
 
-    private fun <T : Any> figures(of: (StatsCalculator, StatsRange) -> T): StateFlow<TabFigures<T>?> =
-        combine(calculator, range) { calculator, range -> TabFigures(range, of(calculator, range)) }
+    private fun <T : Any> figures(of: (StatsCalculator, StatsRange, MonthSpan?) -> T): StateFlow<TabFigures<T>?> =
+        combine(calculator, range) { calculator, (range, custom) -> TabFigures(range, of(calculator, range, custom)) }
             .flowOn(computeDispatcher)
             .map<TabFigures<T>, TabFigures<T>?> { it }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)

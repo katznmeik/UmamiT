@@ -323,6 +323,28 @@ class SettingsDataSourceTest {
     }
 
     @Test
+    fun theCustomStatsMonthsAreStoredAsYearMonthAndReadBack() = runTest {
+        // INS-07 (D-115 Amendment 1): `statsRangeFrom` / `statsRangeTo` as `yyyy-MM`, null until chosen (05 §6).
+        val file = File(folder.root, "custom-range.json")
+        val source = dataSource(file)
+        assertThat(source.settings.first().statsRangeFrom).isNull()
+
+        source.update {
+            it.copy(
+                statsRange = StatsRange.CUSTOM,
+                statsRangeFrom = java.time.YearMonth.of(2026, 3),
+                statsRangeTo = java.time.YearMonth.of(2026, 9),
+            )
+        }
+
+        val settings = source.settings.first()
+        assertThat(settings.statsRange).isEqualTo(StatsRange.CUSTOM)
+        assertThat(settings.statsRangeFrom).isEqualTo(java.time.YearMonth.of(2026, 3))
+        assertThat(settings.statsRangeTo).isEqualTo(java.time.YearMonth.of(2026, 9))
+        assertThat(file.readText()).contains("\"2026-03\"")
+    }
+
+    @Test
     fun aFileOfVersion060WithoutTheStatsKeysReadsTheDefaultsAndACorruptValueDoes() = runTest {
         val old = File(folder.root, "v060-stats.json")
         old.writeText("""{"collectionSort":"NAME","alertSound":"glocke"}""")

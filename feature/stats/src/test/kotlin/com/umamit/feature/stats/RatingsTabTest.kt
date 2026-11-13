@@ -23,7 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** SCR-18 *Bewertungen* (INS-02, INS-04) with fixed results. */
+/** SCR-18 *Bewertungen* (INS-02) with fixed results. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -45,14 +45,13 @@ class RatingsTabTest {
     }
 
     @Test
-    fun averageAndCountInGermanFormat() {
+    fun ratedCountInGermanFormat() {
         show(RatingsFixtures.withData)
-        compose.onNodeWithText("Ø 4,2 ★").assertIsDisplayed()
         compose.onNodeWithText("18 von 25 Sitzungen bewertet").assertIsDisplayed()
     }
 
     @Test
-    fun topRatedRowsAndTaps() {
+    fun rankingRowsAndTaps() {
         show(RatingsFixtures.withData)
         compose.onNodeWithText("Ø 4,6 ★ · 5 Bewertungen").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Gyokuro Hisui", substring = true)[0].performScrollTo().performClick()
@@ -80,28 +79,6 @@ class RatingsTabTest {
     }
 
     @Test
-    fun radarWithThreeAxesAndInfusionCount() {
-        show(RatingsFixtures.withData)
-        compose.onNodeWithTag(TASTE_RADAR_TAG).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("aus 34 Aufgüssen").assertExists()
-        compose.onAllNodesWithTag(RATINGS_TASTE_SUMMARY_TAG).assertCountEquals(0)
-    }
-
-    @Test
-    fun summaryLineBelowThreeAxes() {
-        show(RatingsFixtures.withoutRatings)
-        compose.onNodeWithTag(RATINGS_TASTE_SUMMARY_TAG).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Umami 4 · Süße 3,5").assertExists()
-        compose.onAllNodesWithTag(TASTE_RADAR_TAG).assertCountEquals(0)
-    }
-
-    @Test
-    fun descriptorChipsWithCounts() {
-        show(RatingsFixtures.withData)
-        compose.onNodeWithText("Nori · 12×").performScrollTo().assertIsDisplayed()
-    }
-
-    @Test
     fun noRatingAtAll() {
         show(RatingsFixtures.withoutRatings)
         compose.onAllNodesWithTag(RATINGS_NO_RATING_TAG).assertCountEquals(3)
@@ -111,7 +88,7 @@ class RatingsTabTest {
     @Test
     fun emptyRangeSaysNothing() {
         show(RatingsFixtures.emptyRange)
-        compose.onAllNodes(hasText("In diesem Zeitraum nichts")).assertCountEquals(5)
+        compose.onAllNodes(hasText("In diesem Zeitraum nichts")).assertCountEquals(3)
         compose.onAllNodesWithTag(RATINGS_NO_RATING_TAG).assertCountEquals(0)
     }
 }

@@ -138,7 +138,7 @@ class ConsumptionStatsTest {
         val sessions = listOf(session(waterMl = 300, costCents = 100, steps = listOf(infusion(), infusion())))
         val at150 = StatsFixtures.calculator(sessions).consumption(StatsRange.DAYS_30)
         val at300 = StatsCalculator(
-            StatsInput(sessions, emptyList(), emptyList(), emptySet(), cupSizeMl = 300),
+            StatsInput(sessions, emptyList(), emptyList(), cupSizeMl = 300),
             StatsFixtures.clock(),
         )
             .consumption(StatsRange.DAYS_30)

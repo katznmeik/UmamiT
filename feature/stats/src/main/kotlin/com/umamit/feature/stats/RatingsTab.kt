@@ -1,10 +1,7 @@
 package com.umamit.feature.stats
 
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,30 +21,19 @@ import com.umamit.core.domain.stats.BestRecipeTea
 import com.umamit.core.domain.stats.RatingsStats
 import com.umamit.core.domain.stats.TeaRatingRow
 import com.umamit.core.model.StatsRange
-import com.umamit.core.model.TasteDescriptor
-import com.umamit.core.ui.DescriptorChip
-import com.umamit.core.ui.TasteRadar
-import com.umamit.core.ui.TasteRadarShape
-import com.umamit.core.ui.labelRes
-import com.umamit.core.ui.tasteSummary
 import com.umamit.feature.stats.charts.ChartNumbers
-import com.umamit.feature.stats.charts.DistributionBars
 import com.umamit.feature.stats.charts.RatingLineChart
 import com.umamit.feature.stats.charts.RatingPoint
 import java.io.File
 
-const val RATINGS_AVERAGE_TAG = "ratings_average"
 const val RATINGS_NO_RATING_TAG = "ratings_no_rating"
-const val RATINGS_TASTE_SUMMARY_TAG = "ratings_taste_summary"
 const val RATINGS_BEST_RECIPE_TAG = "ratings_best_recipe"
-const val RATINGS_DESCRIPTORS_TAG = "ratings_descriptors"
 
 private const val LIST_LIMIT = 5
-private const val STAR_LEVELS = 5
 
 /**
- * *Bewertungen* (INS-02, INS-04): the average and its distribution, the rating over the range's periods, the top
- * rated teas, the best recipe per tea, the taste radar and the top descriptors. [figures] are null until the first
+ * *Bewertungen* (INS-02): how many sessions are rated, the rating over the range's periods, the rated teas and the
+ * best recipe per tea (the full tab is rebuilt in #271). [figures] are null until the first
  * read and change in place with their range; [onOpenTea] opens a collection tea's detail (SCR-09), never called for a
  * deleted tea. [thumbnail] loads a tea's cover photo (tests pass a placeholder).
  */
@@ -72,21 +58,14 @@ fun RatingsTab(
         }
         StatsSection(
             title = stringResource(R.string.stats_ratings_top),
-            isEmpty = noSessions || (stats.topRated.isEmpty() && !unrated),
+            isEmpty = noSessions || (stats.teaRanking.isEmpty() && !unrated),
         ) {
-            if (unrated) NoRating() else TopRatedRows(stats.topRated.take(LIST_LIMIT), onOpenTea, thumbnail)
+            if (unrated) NoRating() else TopRatedRows(stats.teaRanking.take(LIST_LIMIT), onOpenTea, thumbnail)
         }
         if (stats.bestRecipes.isNotEmpty()) {
             StatsSection(title = stringResource(R.string.stats_ratings_best_recipe)) {
                 BestRecipeRows(stats.bestRecipes.take(LIST_LIMIT), onOpenTea, thumbnail)
             }
-        }
-        TasteSection(stats, noSessions)
-        StatsSection(
-            title = stringResource(R.string.stats_ratings_descriptors),
-            isEmpty = stats.topDescriptors.isEmpty(),
-        ) {
-            DescriptorChips(stats)
         }
     }
 }
@@ -106,18 +85,11 @@ private fun NoRating() {
 @Composable
 private fun AverageSection(stats: RatingsStats, noSessions: Boolean) {
     StatsSection(title = stringResource(R.string.stats_tab_ratings), isEmpty = noSessions) {
-        val average = stats.average
-        if (average == null) {
+        if (stats.ratedCount == 0) {
             NoRating()
             return@StatsSection
         }
         Column(Modifier.padding(horizontal = UmamiSpacing.SideMargin)) {
-            Text(
-                text = stringResource(R.string.stats_ratings_average, ChartNumbers.rating(average)),
-                style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.testTag(RATINGS_AVERAGE_TAG),
-            )
             Text(
                 text = pluralStringResource(
                     R.plurals.stats_ratings_rated_of,
@@ -127,13 +99,6 @@ private fun AverageSection(stats: RatingsStats, noSessions: Boolean) {
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            DistributionBars(
-                countsByStars = List(STAR_LEVELS) { index ->
-                    stats.distribution.firstOrNull { it.stars == index + 1 }?.count ?: 0
-                },
-                title = stringResource(R.string.stats_ratings_distribution),
-                modifier = Modifier.padding(top = UmamiSpacing.Medium),
             )
         }
     }
@@ -231,60 +196,5 @@ private fun BestRecipeRows(
             thumbnail = thumbnail,
             modifier = Modifier.testTag(RATINGS_BEST_RECIPE_TAG),
         )
-    }
-}
-
-@Composable
-private fun TasteSection(stats: RatingsStats, noSessions: Boolean) {
-    val taste = stats.taste
-    StatsSection(
-        title = stringResource(R.string.stats_ratings_taste),
-        isEmpty = noSessions || taste.infusionCount == 0 || taste.averages.isEmpty(),
-    ) {
-        Column(
-            Modifier.padding(horizontal = UmamiSpacing.SideMargin),
-            verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
-        ) {
-            if (TasteRadarShape.isDrawn(taste.averages)) {
-                TasteRadar(taste.averages, Modifier.fillMaxWidth())
-            } else {
-                Text(
-                    text = tasteSummary(taste.averages),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.testTag(RATINGS_TASTE_SUMMARY_TAG),
-                )
-            }
-            Text(
-                text = pluralStringResource(
-                    R.plurals.stats_ratings_taste_infusions,
-                    taste.infusionCount,
-                    taste.infusionCount,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun DescriptorChips(stats: RatingsStats) {
-    val resources = LocalResources.current
-    FlowRow(
-        modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin).testTag(RATINGS_DESCRIPTORS_TAG),
-        horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
-        verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
-    ) {
-        stats.topDescriptors.take(LIST_LIMIT).forEach { descriptor ->
-            val label = TasteDescriptor.fromKey(descriptor.key)?.let { resources.getString(it.labelRes()) }
-            if (label != null) {
-                DescriptorChip(
-                    label = label,
-                    count = descriptor.count,
-                    countFormat = R.string.stats_descriptor_with_count,
-                )
-            }
-        }
     }
 }

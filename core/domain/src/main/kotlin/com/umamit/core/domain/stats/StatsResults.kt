@@ -1,11 +1,11 @@
 package com.umamit.core.domain.stats
 
+import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.domain.collection.CupAverage
-import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.StockLevel
-import com.umamit.core.model.TasteAxis
 import java.io.File
 import java.time.DayOfWeek
+import java.time.LocalDate
 
 /**
  * The tab *Überblick* (INS-01, INS-03, INS-06) for one range.
@@ -13,10 +13,12 @@ import java.time.DayOfWeek
  * @property sessionCount the finished sessions in the range.
  * @property cupCount their cups (INV-08).
  * @property teaCount the non-archived teas now („24 Tees").
- * @property teasAddedInRange the non-archived teas created in the range („+3 im Zeitraum", hidden at 0).
+ * @property teasAddedInRange the non-archived teas created in the range („+3 im Zeitraum", hidden at 0); null under
+ * *Gesamt*, where it would be every tea (D-115 Amendment 1, R12).
  * @property sessionsPerPeriod the bars, one per period of the range.
  * @property streak over all time, never the range.
  * @property mostBrewed the top 5 teas by sessions in the range.
+ * @property teaDonut the second donut „Tees" (INS-03, R6): the five teas with most sessions, then „Andere".
  * @property sorten the donut: the five largest Sorten, then „Andere" ([SorteShare.sorte] null) when it has any.
  * @property dayParts the four day parts, in [DayPart] order, with their shares.
  * @property weekdays Mo–So with their shares.
@@ -25,18 +27,19 @@ data class OverviewStats(
     val sessionCount: Int,
     val cupCount: Int,
     val teaCount: Int,
-    val teasAddedInRange: Int,
+    val teasAddedInRange: Int?,
     val sessionsPerPeriod: List<PeriodValue<Int>>,
     val streak: Streak,
     val mostBrewed: List<TeaSessions>,
+    val teaDonut: List<TeaShare>,
     val sorten: List<SorteShare>,
     val dayParts: List<Share<DayPart>>,
     val weekdays: List<Share<DayOfWeek>>,
 )
 
 /**
- * The streak („Serie", INS-01) in days; [current] 0 reads „Keine Serie gerade". The current streak includes today
- * when today has a session, else it ends yesterday.
+ * The streak („Serie", INS-01) in days; [current] 0 reads „Keine Serie gerade", with „ · längste N Tage" when
+ * [longest] is above 0 (R13). The current streak includes today when today has a session, else it ends yesterday.
  */
 data class Streak(val current: Int, val longest: Int)
 
@@ -61,6 +64,18 @@ data class TeaSessions(
  */
 data class SorteShare(val sorte: String?, val sessions: Int, val percent: Int)
 
+/**
+ * A slice of the tea donut (INS-03, R6): the share of the range's sessions of one tea. [isOther] marks „Andere" (the
+ * teas beyond the five largest; [teaName] is then empty). [teaId] is null for a deleted tea, named by its snapshot.
+ */
+data class TeaShare(
+    val teaId: String?,
+    val teaName: String,
+    val sessions: Int,
+    val percent: Int,
+    val isOther: Boolean = false,
+)
+
 /** A share of the range's sessions (INS-06): [percent] whole numbers that sum to 100 over the row (0 when empty). */
 data class Share<K>(val key: K, val sessions: Int, val percent: Int)
 
@@ -80,34 +95,29 @@ enum class DayPart {
 }
 
 /**
- * The tab *Bewertungen* (INS-02, INS-04) for one range.
+ * The tab *Bewertungen* (INS-02, D-115 Amendment 1) for one range.
  *
- * @property average the average rating of the rated sessions; null without one.
- * @property ratedCount „18 von [sessionCount] Sitzungen bewertet".
- * @property distribution five buckets 1–5 ★ (half stars rounded down, 0,5 counts as 1 ★), in star order.
- * @property topRated the top 5 teas by average among those with ≥ 3 rated sessions.
+ * @property ratedCount „18 von [sessionCount] Sitzungen bewertet"; 0 reads „In diesem Zeitraum nichts bewertet".
+ * @property teaRanking the Tee-Rangliste (R4, R11): every tea with at least one rating in the range, best average
+ * first, ties by more ratings, then by name. All rows; the screen shows the first 10.
+ * @property newlyDiscovered „Neu entdeckt" (R4): the teas whose first finished session ever falls in the range,
+ * newest first; always empty under *Gesamt*.
  * @property ratingPerPeriod the line: the average per period, null for a period without a rating (the line breaks).
  * @property bestRecipes up to 5 teas with ≥ 2 recipes rated ≥ 2× each, the largest gap first; empty hides it.
- * @property taste the radar.
- * @property topDescriptors the five most frequent known descriptor keys, most frequent first, then by key.
  */
 data class RatingsStats(
-    val average: Double?,
     val ratedCount: Int,
     val sessionCount: Int,
-    val distribution: List<StarBucket>,
-    val topRated: List<TeaRatingRow>,
+    val teaRanking: List<TeaRatingRow>,
+    val newlyDiscovered: List<NewTea>,
     val ratingPerPeriod: List<PeriodValue<Double?>>,
     val bestRecipes: List<BestRecipeTea>,
-    val taste: TasteStats,
-    val topDescriptors: List<DescriptorCount>,
 )
 
-/** The rated sessions whose rating rounds down to [stars] (1–5). */
-data class StarBucket(val stars: Int, val count: Int)
-
 /**
- * „Ø 4,6 ★ · 5 Bewertungen"; [teaId] null for a deleted tea (no tap). [coverPhoto] and [styleKey] as in [TeaSessions].
+ * „4,6 ★ · 5×" in the Tee-Rangliste: [average] over the tea's rated sessions in the range, rounded to one decimal
+ * (half up) so the order matches what is shown; [teaId] null for a deleted tea (no tap). [coverPhoto] and
+ * [styleKey] as in [TeaSessions].
  */
 data class TeaRatingRow(
     val teaId: String?,
@@ -136,10 +146,19 @@ data class BestRecipeTea(
 data class RecipeRating(val profileId: String, val profileName: String?, val average: Double, val ratingCount: Int)
 
 /**
- * The taste radar (INS-04): [averages] per axis over the infusions that set it (an axis none set is absent);
- * [infusionCount] the infusions with any taste („aus 34 Aufgüssen").
+ * A tea of „Neu entdeckt" (R4): [firstDay] is the day of its first finished session ever. [average] is its average
+ * rating over its rated sessions in the range, one decimal, null when none was rated („ohne Bewertung");
+ * [ratingCount] their number. [teaId], [coverPhoto] and [styleKey] as in [TeaRatingRow].
  */
-data class TasteStats(val averages: Map<TasteAxis, Double>, val infusionCount: Int)
+data class NewTea(
+    val teaId: String?,
+    val teaName: String,
+    val firstDay: LocalDate,
+    val average: Double?,
+    val ratingCount: Int,
+    val coverPhoto: File? = null,
+    val styleKey: String? = null,
+)
 
 /**
  * The tab *Verbrauch* (INS-05) for one range.
@@ -148,7 +167,12 @@ data class TasteStats(val averages: Map<TasteAxis, Double>, val infusionCount: I
  * @property cups Σ cups of the range's sessions.
  * @property moneyCents Σ `price_cents` of the priced INITIAL and PURCHASE events dated in the range; 0 reads
  * „Keine Käufe mit Preis" when [hasPurchases] is false.
- * @property costPerCup Σ `cost_cents` ÷ Σ cups over the range's sessions with a cost; null hides it.
+ * @property costPerCup „Ø € pro Tasse" (GETRUNKEN, R9): Σ `cost_cents` ÷ Σ cups ([CostRule.sessionCups] with the cup
+ * size) over the range's sessions with a cost; null hides it.
+ * @property drunkCents GETRUNKEN (R9): Σ `cost_cents` of the range's sessions; sessions without one add nothing.
+ * @property drunkSessionCount the sessions with a `cost_cents` („aus 20 Sitzungen mit Preis"); 0 reads „Keine
+ * Sitzungen mit Preis".
+ * @property drunkPerPeriod the bars of GETRUNKEN: Σ `cost_cents` per period.
  * @property runningOut the non-archived teas *Leer* or *Knapp* with the warning on, *Leer* first, then by grams;
  * not limited by the range.
  */
@@ -161,6 +185,9 @@ data class ConsumptionStats(
     val hasPurchases: Boolean,
     val moneyPerPeriod: List<PeriodValue<Long>>,
     val costPerCup: CupAverage?,
+    val drunkCents: Long,
+    val drunkSessionCount: Int,
+    val drunkPerPeriod: List<PeriodValue<Long>>,
     val runningOut: List<RunningOutTea>,
 )
 

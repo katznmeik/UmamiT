@@ -5,7 +5,6 @@ import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.common.WallClock
 import com.umamit.core.database.entity.BrewSessionEntity
 import com.umamit.core.database.entity.PhotoEntity
-import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.database.entity.SessionStepEntity
 import com.umamit.core.domain.stats.StatsInput
 import com.umamit.core.model.BrewMethod
@@ -16,7 +15,6 @@ import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
-import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -62,8 +60,6 @@ class StatsRepositoryTest {
         teaId: String? = "t1",
         status: SessionStatus = SessionStatus.COMPLETED,
         steps: List<SessionStepEntity> = emptyList(),
-        sessionTaste: TasteProfile = TasteProfile.EMPTY,
-        descriptors: List<String> = emptyList(),
     ) {
         data.db.sessionDao().insert(
             BrewSessionEntity(
@@ -90,12 +86,12 @@ class StatsRepositoryTest {
                 endedAt = if (status == SessionStatus.IN_PROGRESS) null else 2_000L,
                 zoneId = "Europe/Berlin",
                 rating = 4.5,
-                tasteUmami = sessionTaste.umami,
-                tasteSweetness = sessionTaste.sweetness,
-                tasteBitterness = sessionTaste.bitterness,
-                tasteAstringency = sessionTaste.astringency,
-                tasteBody = sessionTaste.body,
-                tasteAroma = sessionTaste.aroma,
+                tasteUmami = null,
+                tasteSweetness = null,
+                tasteBitterness = null,
+                tasteAstringency = null,
+                tasteBody = null,
+                tasteAroma = null,
                 notes = null,
                 autoFinished = false,
                 timesOffered = false,
@@ -105,13 +101,10 @@ class StatsRepositoryTest {
             ),
         )
         data.db.sessionDao().insertSteps(steps.map { it.copy(sessionId = id) })
-        descriptors.forEachIndexed { i, key ->
-            data.db.tastingDao().insertDescriptor(SessionDescriptorEntity(id, key, createdAt = i.toLong()))
-        }
     }
 
-    private fun step(position: Int, umami: Int? = null, ended: Boolean = true) = SessionStepEntity(
-        id = "step-$position-${umami ?: "x"}",
+    private fun step(position: Int, ended: Boolean = true) = SessionStepEntity(
+        id = "step-$position",
         sessionId = "",
         position = position,
         kind = StepKind.INFUSION,
@@ -128,7 +121,6 @@ class StatsRepositoryTest {
         createdAt = 1L,
         updatedAt = 1L,
         preAlertSeconds = null,
-        tasteUmami = umami,
     )
 
     private suspend fun event(id: String, type: InventoryEventType, grams: Double, price: Long?, teaId: String = "t1") =
@@ -184,25 +176,11 @@ class StatsRepositoryTest {
     }
 
     @Test
-    fun `an unknown descriptor key is dropped and the known ones keep their order`() = runTest {
+    fun `the steps of a session are delivered with whether they ended`() = runTest {
         data.teas.saveTea(tea("t1"))
-        session("s1", descriptors = listOf("marine.nori", "erfunden.zeug", "vegetal.spinat"))
+        session("v7", steps = listOf(step(0), step(1, ended = false)))
 
-        assertThat(input().sessions.single().descriptorKeys).containsExactly("marine.nori", "vegetal.spinat").inOrder()
-    }
-
-    @Test
-    fun `per-step taste and the session-level taste of a v0_6_0 session are delivered`() = runTest {
-        data.teas.saveTea(tea("t1"))
-        session("v7", steps = listOf(step(0, umami = 4), step(1, umami = 2, ended = false)))
-        session("v6", sessionTaste = TasteProfile(umami = 3, aroma = 5))
-
-        val sessions = input().sessions.associateBy { it.id }
-
-        assertThat(sessions.getValue("v7").steps.map { it.taste.umami }).containsExactly(4, 2).inOrder()
-        assertThat(sessions.getValue("v7").steps.map { it.ended }).containsExactly(true, false).inOrder()
-        assertThat(sessions.getValue("v7").sessionTaste).isEqualTo(TasteProfile.EMPTY)
-        assertThat(sessions.getValue("v6").sessionTaste).isEqualTo(TasteProfile(umami = 3, aroma = 5))
+        assertThat(input().sessions.single().steps.map { it.ended }).containsExactly(true, false).inOrder()
     }
 
     @Test

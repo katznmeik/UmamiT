@@ -10,8 +10,6 @@ import com.umamit.core.domain.stats.StatsSession
 import com.umamit.core.domain.stats.StatsStep
 import com.umamit.core.domain.stats.StatsTea
 import com.umamit.core.model.StockLevel
-import com.umamit.core.model.TasteDescriptor
-import com.umamit.core.model.TasteProfile
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -26,9 +24,9 @@ import javax.inject.Inject
 interface StatsRepository {
     /**
      * Everything the statistics read, from the existing rows (no schema change): the finished sessions (`COMPLETED`
-     * or `MANUAL`; also those of a deleted or archived tea) with steps and known descriptor keys, every tea
+     * or `MANUAL`; also those of a deleted or archived tea) with steps, every tea
      * (archived ones too) and the priced INITIAL / PURCHASE events. Emits again on every write to the sessions,
-     * their steps or descriptors, the teas, their stock events, or SET-16's „Knapp ab".
+     * their steps, the teas, their stock events, or SET-16's „Knapp ab".
      */
     fun observeInput(): Flow<StatsInput>
 }
@@ -50,14 +48,10 @@ class RoomStatsRepository @Inject constructor(
             sessions = sessions.map { it.toStatsSession() },
             teas = teas.map { it.toStatsTea(lowStockGrams, photos) },
             inventoryEvents = events.map { it.toModel() },
-            knownDescriptorKeys = KNOWN_DESCRIPTOR_KEYS,
             cupSizeMl = cupSizeMl,
         )
     }.flowOn(dispatcher)
 }
-
-/** The descriptor vocabulary of 08 §4; every other key is dropped from the sessions (INS-04). */
-private val KNOWN_DESCRIPTOR_KEYS: Set<String> = TasteDescriptor.entries.mapTo(HashSet()) { it.key }
 
 private fun StatsSessionRow.toStatsSession() = StatsSession(
     id = session.id,
@@ -78,22 +72,8 @@ private fun StatsSessionRow.toStatsSession() = StatsSession(
             kind = step.kind,
             ended = step.actualSeconds != null,
             skipped = step.skipped,
-            taste = step.tasting().taste,
         )
     },
-    // Only a v0.6.0 session without a step row still has values here; the v7 migration nulled the others (05 §9).
-    sessionTaste = TasteProfile(
-        umami = session.tasteUmami,
-        sweetness = session.tasteSweetness,
-        bitterness = session.tasteBitterness,
-        astringency = session.tasteAstringency,
-        body = session.tasteBody,
-        aroma = session.tasteAroma,
-    ),
-    descriptorKeys = descriptors
-        .sortedWith(compareBy({ it.createdAt }, { it.descriptorKey }))
-        .map { it.descriptorKey }
-        .filter { it in KNOWN_DESCRIPTOR_KEYS },
 )
 
 /** A tea without any stock event is not tracked (as in the collection list): never *Knapp* or *Leer*. */

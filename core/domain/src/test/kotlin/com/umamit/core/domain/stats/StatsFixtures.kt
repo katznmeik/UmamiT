@@ -4,7 +4,6 @@ import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
-import com.umamit.core.model.TasteProfile
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -23,7 +22,7 @@ internal object StatsFixtures {
 
     fun ms(at: LocalDateTime, zone: ZoneId = BERLIN): Long = at.atZone(zone).toInstant().toEpochMilli()
 
-    fun infusion(taste: TasteProfile = TasteProfile.EMPTY) = StatsStep(StepKind.INFUSION, ended = true, taste = taste)
+    fun infusion() = StatsStep(StepKind.INFUSION, ended = true)
 
     @Suppress("LongParameterList")
     fun session(
@@ -38,8 +37,6 @@ internal object StatsFixtures {
         leafGrams: Double? = null,
         costCents: Long? = null,
         steps: List<StatsStep> = listOf(infusion()),
-        sessionTaste: TasteProfile = TasteProfile.EMPTY,
-        descriptorKeys: List<String> = emptyList(),
         zone: ZoneId = BERLIN,
         styleKey: String? = null,
         waterMl: Int? = null,
@@ -56,8 +53,6 @@ internal object StatsFixtures {
         leafGrams = leafGrams,
         costCents = costCents,
         steps = steps,
-        sessionTaste = sessionTaste,
-        descriptorKeys = descriptorKeys,
         styleKey = styleKey,
         waterMl = waterMl,
     )
@@ -81,7 +76,6 @@ internal object StatsFixtures {
         sessions: List<StatsSession> = emptyList(),
         teas: List<StatsTea> = emptyList(),
         events: List<InventoryEvent> = emptyList(),
-        known: Set<String> = emptySet(),
         clock: Clock = clock(),
-    ) = StatsCalculator(StatsInput(sessions, teas, events, known), clock)
+    ) = StatsCalculator(StatsInput(sessions, teas, events), clock)
 }

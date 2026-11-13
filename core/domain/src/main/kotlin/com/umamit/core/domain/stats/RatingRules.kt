@@ -1,39 +1,33 @@
 package com.umamit.core.domain.stats
 
-import com.umamit.core.model.DescriptorCount
-import com.umamit.core.model.TasteProfile
 import kotlin.math.floor
 
-// The rules of *Bewertungen* (INS-02, INS-04, D-115). Every function takes the range's rated (or all) sessions.
+// The rules of *Bewertungen* (INS-02, D-115). Every function takes the range's rated (or all) sessions.
 
 private const val TOP = 5
-private const val MAX_STARS = 5
-private const val TOP_RATED_MIN_RATINGS = 3
+private const val TEN = 10.0
+private const val HALF = 0.5
 private const val BEST_RECIPE_MIN_RECIPES = 2
 private const val BEST_RECIPE_MIN_RATINGS = 2
 
-/** Five buckets 1–5 ★: half stars rounded down, 0,5 counts as 1 ★. */
-internal fun starBuckets(rated: List<DatedSession>): List<StarBucket> {
-    val counts = rated.groupingBy { floor(it.rating).toInt().coerceIn(1, MAX_STARS) }.eachCount()
-    return (1..MAX_STARS).map { StarBucket(it, counts[it] ?: 0) }
-}
-
-/** The top 5 teas by average among those with ≥ 3 rated sessions; ties by more ratings, then by name. */
-internal fun topRated(
+/**
+ * The Tee-Rangliste (D-115 Amendment 1, R4, R11): every tea with at least one rating in [rated], best average first
+ * (one decimal, half up), ties by more ratings, then by name.
+ */
+internal fun teaRanking(
     rated: List<DatedSession>,
     names: Map<String, String>,
     teas: Map<String, StatsTea> = emptyMap(),
 ): List<TeaRatingRow> = rated
     .groupBy { it.session.teaKey() }
     .values
-    .filter { it.size >= TOP_RATED_MIN_RATINGS }
     .map { group ->
         val teaId = group.first().session.teaId
         val tea = teaId?.let(teas::get)
         TeaRatingRow(
             teaId = teaId,
             teaName = group.teaName(names),
-            average = group.map { it.rating }.average(),
+            average = oneDecimal(group.map { it.rating }.average()),
             ratingCount = group.size,
             coverPhoto = tea?.coverPhoto,
             styleKey = tea?.styleKey ?: group.maxBy { it.session.startedAtMs }.session.styleKey,
@@ -42,7 +36,44 @@ internal fun topRated(
     .sortedWith(
         compareByDescending<TeaRatingRow> { it.average }.thenByDescending { it.ratingCount }.thenBy { it.teaName },
     )
-    .take(TOP)
+
+/**
+ * „Neu entdeckt" (R4): the teas whose first finished session ever ([all], not only the range's) falls in [window],
+ * newest first, with their average over [rated] (the range's rated sessions). Under *Gesamt* nothing is new.
+ */
+internal fun newlyDiscovered(
+    all: List<DatedSession>,
+    rated: List<DatedSession>,
+    window: StatsWindow,
+    names: Map<String, String>,
+    teas: Map<String, StatsTea> = emptyMap(),
+): List<NewTea> {
+    if (window.from == null) return emptyList()
+    val ratedByTea = rated.groupBy { it.session.teaKey() }
+    return all
+        .groupBy { it.session.teaKey() }
+        .mapNotNull { (key, group) ->
+            val first = group.minBy { it.session.startedAtMs }
+            if (first.day !in window) return@mapNotNull null
+            val ratings = ratedByTea[key].orEmpty()
+            val teaId = first.session.teaId
+            val tea = teaId?.let(teas::get)
+            NewTea(
+                teaId = teaId,
+                teaName = group.teaName(names),
+                firstDay = first.day,
+                average = ratings.takeIf { it.isNotEmpty() }?.let { oneDecimal(it.map { r -> r.rating }.average()) },
+                ratingCount = ratings.size,
+                coverPhoto = tea?.coverPhoto,
+                styleKey = tea?.styleKey ?: group.maxBy { it.session.startedAtMs }.session.styleKey,
+            ) to first.session.startedAtMs
+        }
+        .sortedWith(compareByDescending<Pair<NewTea, Long>> { it.second }.thenBy { it.first.teaName })
+        .map { it.first }
+}
+
+/** [value] rounded half up to one decimal. */
+private fun oneDecimal(value: Double): Double = floor(value * TEN + HALF) / TEN
 
 /** The average rating per period; null where a period has none. */
 internal fun ratingPerPeriod(window: StatsWindow, rated: List<DatedSession>): List<PeriodValue<Double?>> =
@@ -88,25 +119,4 @@ internal fun bestRecipes(
         )
     }
     .sortedWith(compareByDescending<BestRecipeTea> { it.gap }.thenBy { it.teaName })
-    .take(TOP)
-
-/**
- * The radar (INS-04): per axis over every infusion that set it: the taste on the step rows and, for a v0.6.0
- * session without step rows, the session's own (05 §9 v7), as the tea detail averages.
- */
-internal fun taste(sessions: List<DatedSession>): TasteStats {
-    val profiles = sessions.flatMap { dated ->
-        dated.session.steps.map { it.taste } + dated.session.sessionTaste
-    }.filter { it.setCount > 0 }
-    return TasteStats(TasteProfile.averages(profiles), profiles.size)
-}
-
-/** The five most frequent known descriptor keys, most frequent first, then by key. */
-internal fun topDescriptors(sessions: List<DatedSession>, known: Set<String>): List<DescriptorCount> = sessions
-    .flatMap { it.session.descriptorKeys.distinct() }
-    .filter { it in known }
-    .groupingBy { it }
-    .eachCount()
-    .map { (key, count) -> DescriptorCount(key, count) }
-    .sortedWith(compareByDescending<DescriptorCount> { it.count }.thenBy { it.key })
     .take(TOP)
