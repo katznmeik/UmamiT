@@ -24,6 +24,7 @@ internal object ConsumptionFixtures {
         grams: Double = 38.0,
         hasPurchases: Boolean = true,
         costPerCup: CupAverage? = CupAverage(cupCents = 27, sessionCount = 20),
+        drunkSessions: Int = 20,
         runningOut: List<RunningOutTea> = RUNNING_OUT,
     ) = ConsumptionStats(
         grams = grams,
@@ -34,9 +35,9 @@ internal object ConsumptionFixtures {
         hasPurchases = hasPurchases,
         moneyPerPeriod = if (hasPurchases) cents(periods) else periods.map { PeriodValue(it.period, 0L) },
         costPerCup = costPerCup,
-        drunkCents = 0L,
-        drunkSessionCount = 0,
-        drunkPerPeriod = emptyList(),
+        drunkCents = if (drunkSessions > 0) 2340L else 0L,
+        drunkSessionCount = drunkSessions,
+        drunkPerPeriod = periods.map { PeriodValue(it.period, if (drunkSessions > 0) it.value * 45L else 0L) },
         runningOut = runningOut,
     )
 
@@ -45,5 +46,6 @@ internal object ConsumptionFixtures {
         grams = 0.0,
         hasPurchases = false,
         costPerCup = null,
+        drunkSessions = 0,
     ).copy(cups = 0)
 }

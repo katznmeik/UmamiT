@@ -51,7 +51,7 @@ class ConsumptionScreenshotTest(private val dark: Boolean, private val fontScale
 
     private fun shot(name: String, stats: ConsumptionStats, range: StatsRange) {
         RuntimeEnvironment.setFontScale(fontScale)
-        val height = if (fontScale > 1f) 3400.dp else 1900.dp
+        val height = if (fontScale > 1f) 4400.dp else 2500.dp
         compose.setContent { Page(stats, range, height) }
         compose.waitForIdle()
         compose.onNodeWithTag("shot")

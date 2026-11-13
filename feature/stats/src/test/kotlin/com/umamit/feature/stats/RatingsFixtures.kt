@@ -1,6 +1,7 @@
 package com.umamit.feature.stats
 
 import com.umamit.core.domain.stats.BestRecipeTea
+import com.umamit.core.domain.stats.NewTea
 import com.umamit.core.domain.stats.PeriodUnit
 import com.umamit.core.domain.stats.PeriodValue
 import com.umamit.core.domain.stats.RatingsStats
@@ -31,8 +32,12 @@ internal object RatingsFixtures {
             TeaRatingRow("tea-1", "Gyokuro Hisui", 4.6, 5, styleKey = "gyokuro"),
             TeaRatingRow("tea-2", "Sencha Asahi", 4.2, 4, styleKey = "sencha"),
             TeaRatingRow(null, "Gelöschter Tee", 4.0, 3),
-        ),
-        newlyDiscovered = emptyList(),
+        ) + (1..9).map { TeaRatingRow("extra-$it", "Testtee $it", 3.9 - it * 0.1, 2) },
+        newlyDiscovered = listOf(
+            NewTea("tea-1", "Gyokuro Hisui", LocalDate.of(2026, 11, 2), 4.6, 5, styleKey = "gyokuro"),
+            NewTea("new-2", "Neuling ohne Wertung", LocalDate.of(2026, 10, 20), null, 0),
+            NewTea(null, "Gelöschter Neuling", LocalDate.of(2026, 10, 14), 3.0, 1),
+        ) + (4..7).map { NewTea("new-$it", "Neuer Tee $it", LocalDate.of(2026, 10, 1), 4.0, 1) },
         ratingPerPeriod = weeks.mapIndexed { index, period -> PeriodValue(period, ratings[index]) },
         bestRecipes = listOf(
             BestRecipeTea(
@@ -51,6 +56,9 @@ internal object RatingsFixtures {
         ratingPerPeriod = weeks.map { PeriodValue(it, null) },
         bestRecipes = emptyList(),
     )
+
+    /** Sessions in the range, none rated, but a tea discovered. */
+    val withoutRatingsNew = withoutRatings.copy(newlyDiscovered = withData.newlyDiscovered.take(2))
 
     val emptyRange = RatingsStats(
         ratedCount = 0,

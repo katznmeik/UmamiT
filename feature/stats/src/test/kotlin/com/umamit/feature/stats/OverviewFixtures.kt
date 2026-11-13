@@ -9,6 +9,7 @@ import com.umamit.core.domain.stats.SorteShare
 import com.umamit.core.domain.stats.StatsPeriod
 import com.umamit.core.domain.stats.Streak
 import com.umamit.core.domain.stats.TeaSessions
+import com.umamit.core.domain.stats.TeaShare
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.IsoFields
@@ -52,7 +53,7 @@ internal object OverviewFixtures {
 
     fun data(
         periods: List<PeriodValue<Int>> = weekly(),
-        teasAdded: Int = 3,
+        teasAdded: Int? = 3,
         streak: Streak = Streak(current = 7, longest = 21),
     ) = OverviewStats(
         sessionCount = 42,
@@ -68,7 +69,14 @@ internal object OverviewFixtures {
             TeaSessions("t4", "Röstduft Hojicha", 5, styleKey = "hojicha"),
             TeaSessions("t5", "Reisaroma Genmaicha", 4, styleKey = "genmaicha"),
         ),
-        teaDonut = emptyList(),
+        teaDonut = listOf(
+            TeaShare("t1", "Hisui Gyokuro", 12, 29),
+            TeaShare("t2", "Morgentau Sencha", 9, 21),
+            TeaShare(null, "Gelöschter Matcha", 7, 17),
+            TeaShare("t4", "Röstduft Hojicha", 5, 12),
+            TeaShare("t5", "Reisaroma Genmaicha", 4, 10),
+            TeaShare(null, "", 5, 11, isOther = true),
+        ),
         sorten = listOf(
             SorteShare("Sencha", 17, 40),
             SorteShare("Gyokuro", 12, 29),

@@ -17,7 +17,6 @@ import coil3.compose.rememberAsyncImagePainter
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.domain.collection.CupAverage
 import com.umamit.core.domain.stats.ConsumptionStats
 import com.umamit.core.domain.stats.PeriodUnit
 import com.umamit.core.domain.stats.PeriodValue
@@ -50,13 +49,17 @@ private val GRAMS_TITLES = BarTitles(
     R.string.stats_consumption_grams_per_month,
 )
 private val CUPS_TITLES = BarTitles(R.string.stats_consumption_cups_per_week, R.string.stats_consumption_cups_per_month)
+private val DRUNK_TITLES = BarTitles(
+    R.string.stats_consumption_drunk_per_week,
+    R.string.stats_consumption_drunk_per_month,
+)
 private val MONEY_TITLES = BarTitles(
     R.string.stats_consumption_money_per_week,
     R.string.stats_consumption_money_per_month,
 )
 
 /**
- * *Verbrauch* (INS-05): grams, cups, money spent, the average cost per cup and the teas running out. [figures]
+ * *Verbrauch* (INS-05): grams, cups, money spent, money drunk (GETRUNKEN, with the average cost per cup) and the teas running out. [figures]
  * are null until the first read and change in place with their range; [onOpenTea] opens a collection tea's
  * detail (SCR-09),
  * never called for a deleted tea. [thumbnail] loads a tea's cover photo (tests pass a placeholder).
@@ -106,12 +109,16 @@ fun ConsumptionTab(
         ) {
             Money(stats, bars)
         }
-        stats.costPerCup?.let { average ->
-            StatsSection(
-                key = "consumption.cost",
-                title = stringResource(R.string.stats_consumption_section_cost),
-                summary = stringResource(R.string.stats_chart_euros, GermanFormat.euros(average.cupCents)),
-            ) { CostLine(average) }
+        StatsSection(
+            key = "consumption.drunk",
+            title = stringResource(R.string.stats_consumption_section_drunk),
+            summary = if (stats.drunkSessionCount > 0) {
+                stringResource(R.string.stats_chart_euros, GermanFormat.euros(stats.drunkCents))
+            } else {
+                null
+            },
+        ) {
+            Drunk(stats, bars)
         }
         if (stats.runningOut.isNotEmpty()) {
             StatsSection(
@@ -195,18 +202,42 @@ private fun MoneySpent(stats: ConsumptionStats, setup: BarSetup) {
     }
 }
 
+/** GETRUNKEN (R9): the € value of the leaf brewed, per period, and the average per cup. */
 @Composable
-private fun CostLine(average: CupAverage) {
-    Text(
-        text = stringResource(
-            R.string.stats_consumption_cost_per_cup,
-            GermanFormat.euros(average.cupCents),
-            pluralStringResource(R.plurals.stats_consumption_sessions, average.sessionCount, average.sessionCount),
-        ),
-        modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurface,
-    )
+private fun Drunk(stats: ConsumptionStats, setup: BarSetup) {
+    if (stats.drunkSessionCount == 0) {
+        Text(
+            text = stringResource(R.string.stats_consumption_no_priced_sessions),
+            modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    DrunkPriced(stats, setup)
+}
+
+@Composable
+private fun DrunkPriced(stats: ConsumptionStats, setup: BarSetup) {
+    Column {
+        Numeral(
+            value = stringResource(R.string.stats_chart_euros, GermanFormat.euros(stats.drunkCents)),
+            label = pluralStringResource(
+                R.plurals.stats_consumption_priced_sessions,
+                stats.drunkSessionCount,
+                stats.drunkSessionCount,
+            ),
+        )
+        Bars(stats.drunkPerPeriod, ChartUnit.EUROS, DRUNK_TITLES, setup) { it / CENTS }
+        stats.costPerCup?.let { average ->
+            Text(
+                text = stringResource(R.string.stats_consumption_cost_per_cup, GermanFormat.euros(average.cupCents)),
+                modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
 }
 
 @Composable
