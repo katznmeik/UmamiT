@@ -5,12 +5,13 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-13. **`v0.6.1` is released** (full release from `main` `22b84788`, versionCode 60199, certificate verified; D-114). The PO approved rc.1's checklist and design review (D-114 „Approval"); #240–#251 are closed. **Next:** Statistik (v0.7.0, M4 part 2), its own specify session (grilling → spec → tickets → plan); no development before the PO approves the tickets.
+**Last updated:** 2026-11-13. **Statistik (v0.7.0, M4 part 2) is specified:** the PO answered the grilling (Q1–Q20, D-115); spec issue #255 with tickets #256–#264 and the plan `docs/plans/v0.7.0.md` **wait for the PO's approval**. `v0.6.1` is released (versionCode 60199). **Next:** the v0.7.0 build session, once the PO approves the tickets.
 
-## Next: Statistik (v0.7.0, M4 part 2; not yet specified)
+## Next: Statistik build (v0.7.0, M4 part 2; specified, waiting for approval)
 
-- **Starting point, not yet confirmed by the PO:** INS-01–INS-07 (02 §12), SCR-18, the A9 empty state (`docs/design/assets.md`). With D-114 the taste data is per infusion (the tea's radar averages every infusion).
-- **Process (CLAUDE.md rule 1):** grilling as selectable options → spec issue and D-115 in `docs/specs/10-open-questions-and-decisions.md` → tickets → plan `docs/plans/v0.7.0.md` → the PO's approval of the tickets; the build is the session after.
+- **Spec:** #255, D-115 (Q1–Q20), 02 §12 INS-01–INS-08, 03 SCR-18, 05 §6 `statsRange`/`statsTab`, 09 §4 „v0.7.0". **Tickets:** #256–#264 (tiers T2–T3, blockers in each). **Plan:** `docs/plans/v0.7.0.md` (task graph, order, verification).
+- **Gate:** the build starts only after the PO approves the tickets and the plan (its per-ticket verification is proposed as in v0.6.1), with `/implement-spec #255`.
+- **No timer code, no migration:** no T4 timer review; only the final release needs the accuracy run (09 §4a). `git diff main -- feature/brew core/timer core/timer-engine core/database/schemas` must stay empty.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
 - **Open from D-114 (Claude's note, accepted):** the activity re-creation after the *Design* hand-over can still meet an alert starting in the same ≈ 0.5 s.
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
@@ -19,20 +20,21 @@
   `buildscript`) at Google's Maven Central mirror (`maven-central.storage-download.googleapis.com`), which the
   „UmamiT" environment reaches. Robolectric's runtime jars (SDK 35 `15-robolectric-13954326-i7`, SDK 36
   `16-robolectric-13921718-i7`) are pre-fetched from the mirror and checked against the sha512 as
-  `docs/plans/v0.4.0-resume.md` §3 shows. One Gradle build at a time (gw.sh/gate.sh, same §3).
+  `docs/plans/v0.4.0-resume.md` §3 shows. One Gradle build at a time (gw.sh/gate.sh, same §3). A new container
+  needs all of this again (the specify session of 2026-11-13 set it up in its own container).
 - **Release dispatch:** `release.yml` refuses a commit without a successful CI run, so dispatch it only after CI on the merge commit in `main` has finished. `accuracy.yml` needs the full 40-character SHA as `ref`.
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **Statistik (v0.7.0, M4 part 2)**, not yet specified: its specify session is next. v0.6.1 is released (2026-11-13) |
+| Current milestone | **Statistik (v0.7.0, M4 part 2)**: specified (D-115, #255), tickets #256–#264 and the plan wait for the PO's approval. v0.6.1 is released (2026-11-13) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `22b84788` after #252) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `ba3bb2a1` after #254) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none |
+| Open PR | the specify PR (docs only), merged when CI is green |
 | Latest APK | [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-114** used; the next free is **D-115** |
+| Decision numbers | Up to **D-115** used; the next free is **D-116** |
 
 ## Working agreements in effect
 
@@ -48,7 +50,7 @@
 
 ## Waiting on the PO
 
-1. **The Statistik specify session (v0.7.0):** the grilling questions come to the PO as selectable options.
+1. **Approve the v0.7.0 tickets and plan:** #256–#264 and `docs/plans/v0.7.0.md` (incl. its per-ticket verification); then start the build session.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
@@ -58,7 +60,7 @@
 - **Ideas the PO kept for later (D-112, 09 §5):** custom descriptors, manual journal entries, brew coach tips (notes per infusion came with v0.6.1, D-114).
 - **Parked from v0.3.0:** the two *Pause* buttons and the shortened tea name in the brew row at font 2.0.
 - **#58:** its remaining optional review findings stay open for later milestones.
-- **Images:** all delivered. A6 (Journal) is built in since v0.6.0 (#231); A9 (Statistik) comes with the Statistik release.
+- **Images:** all delivered. A6 (Journal) is built in since v0.6.0 (#231); A9 (Statistik) comes with v0.7.0 (#259).
 
 ## Known caveats
 
