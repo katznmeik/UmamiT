@@ -49,13 +49,19 @@ object CostRule {
         val priced = sessions.filter { it.status != SessionStatus.IN_PROGRESS && it.costCents != null }
         if (priced.isEmpty()) return null
         val cost = priced.sumOf { it.costCents ?: 0L }
-        // A priced session whose every step was skipped still used its leaf: it counts as one cup.
         val cups = priced.sumOf { session ->
-            val poured = session.steps.filter { it.actualSeconds != null && !it.skipped }.map { it.kind }
-            cups(poured).coerceAtLeast(1)
+            sessionCups(session.steps.filter { it.actualSeconds != null && !it.skipped }.map { it.kind })
         }
         return CupAverage(cupCents = (cost.toDouble() / cups).roundToLong(), sessionCount = priced.size)
     }
+
+    /**
+     * A finished session's cups (INV-08, INS-01): one per poured non-rinse step, whisking only is one; a session
+     * that poured no cup (every step skipped, only a rinse, no step rows) still used its leaf and is one cup.
+     *
+     * @param poured the kinds of the session's poured steps: ended (an actual time) and not skipped.
+     */
+    fun sessionCups(poured: List<StepKind>): Int = cups(poured).coerceAtLeast(1)
 
     /** The cups of these brewing step kinds: one per non-rinse step, one for whisking only. */
     private fun cups(kinds: List<StepKind>): Int {
