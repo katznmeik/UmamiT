@@ -11,7 +11,7 @@ private val MONTH_YEAR = DateTimeFormatter.ofPattern("MMM yyyy", Locale.GERMAN)
 
 /** „KW 44" for a week (its ISO number), „Okt." for a month. */
 internal fun StatsPeriod.label(resources: Resources): String = when (unit) {
-    PeriodUnit.WEEK -> resources.getString(R.string.stats_overview_week, isoWeek)
+    PeriodUnit.WEEK -> resources.getString(R.string.stats_period_week, isoWeek)
     PeriodUnit.MONTH -> MONTH_SHORT.format(start)
 }
 

@@ -3,6 +3,7 @@ package com.umamit.feature.stats.charts
 import android.content.res.Resources
 import com.umamit.core.ui.GermanFormat
 import com.umamit.feature.stats.R
+import com.umamit.feature.stats.consumptionGrams
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.ceil
@@ -24,7 +25,7 @@ enum class ChartUnit {
     fun format(resources: Resources, value: Double): String = when (this) {
         SESSIONS -> resources.getQuantityString(R.plurals.stats_chart_sessions, value.roundToInt(), count(value))
         CUPS -> resources.getQuantityString(R.plurals.stats_chart_cups, value.roundToInt(), count(value))
-        GRAMS -> resources.getString(R.string.stats_chart_grams, GermanFormat.gramsTrimmed(value))
+        GRAMS -> resources.getString(R.string.stats_chart_grams, consumptionGrams(value))
         EUROS -> resources.getString(R.string.stats_chart_euros, GermanFormat.euros((value * CENTS).roundToLong()))
     }
 

@@ -35,7 +35,12 @@ class RatingsTabTest {
 
     private fun show(stats: RatingsStats) = compose.setContent {
         UmamiTheme(reduceMotion = true) {
-            RatingsTab(stats, StatsRange.DAYS_90, rememberScrollState(), onOpenTea = { opened += it })
+            RatingsTab(
+                TabFigures(StatsRange.DAYS_90, stats),
+                rememberScrollState(),
+                onOpenTea = { opened += it },
+                thumbnail = { null },
+            )
         }
     }
 
@@ -93,7 +98,7 @@ class RatingsTabTest {
     @Test
     fun descriptorChipsWithCounts() {
         show(RatingsFixtures.withData)
-        compose.onNodeWithText("Nori · 12").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Nori · 12×").performScrollTo().assertIsDisplayed()
     }
 
     @Test
