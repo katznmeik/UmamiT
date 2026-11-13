@@ -128,7 +128,12 @@ private fun AverageSection(stats: RatingsStats, noSessions: Boolean) {
                 modifier = Modifier.testTag(RATINGS_AVERAGE_TAG),
             )
             Text(
-                text = stringResource(R.string.stats_ratings_rated_of, stats.ratedCount, stats.sessionCount),
+                text = pluralStringResource(
+                    R.plurals.stats_ratings_rated_of,
+                    stats.sessionCount,
+                    stats.ratedCount,
+                    stats.sessionCount,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

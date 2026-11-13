@@ -26,7 +26,10 @@
     <string name="stats_ratings_descriptors">Beschreibungen</string>
     <string name="stats_ratings_none">Noch keine Bewertung in diesem Zeitraum</string>
     <string name="stats_ratings_average">Ø %1$s ★</string>
-    <string name="stats_ratings_rated_of">%1$d von %2$d Sitzungen bewertet</string>
+    <plurals name="stats_ratings_rated_of">
+        <item quantity="one">%1$d von %2$d Sitzung bewertet</item>
+        <item quantity="other">%1$d von %2$d Sitzungen bewertet</item>
+    </plurals>
     <string name="stats_ratings_distribution">Verteilung der Bewertungen</string>
     <string name="stats_ratings_top_meta">Ø %1$s ★ · %2$s</string>
     <string name="stats_ratings_open_tea">Tee öffnen</string>
