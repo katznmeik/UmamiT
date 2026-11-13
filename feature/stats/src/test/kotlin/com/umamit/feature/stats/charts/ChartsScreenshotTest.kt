@@ -27,7 +27,7 @@ import kotlin.math.roundToInt
 /**
  * The chart components of SCR-18 with placeholder data, in light and dark at font scale 1.0 and 2.0 (03 §6):
  * 13 and 30 weekly bars, a scrolled Gesamt chart, the rating line with a gap, the donut with 6 slices and with 1,
- * the distribution and both habit rows. Goldens: `src/test/screenshots/`.
+ * both habit rows. Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -124,9 +124,6 @@ class ChartsScreenshotTest(private val dark: Boolean, private val fontScale: Flo
     fun donut1() = shot("donut1") {
         SortenDonut(listOf(DonutSlice("Sencha", 12, 100, Color(0xFF7C9A5B))), "Tee-Sorten")
     }
-
-    @Test
-    fun distribution() = shot("distribution") { DistributionBars(listOf(1, 3, 5, 8, 6), "Bewertungen") }
 
     @Test
     fun habitsDayPart() = shot("habitsDayPart") {

@@ -1,10 +1,14 @@
 package com.umamit.feature.stats
 
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -13,6 +17,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.domain.stats.OverviewStats
 import com.umamit.core.domain.stats.Streak
 import com.umamit.core.model.StatsRange
+import com.umamit.feature.stats.charts.STATS_CHART_TAG
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,6 +60,39 @@ class OverviewTabTest {
     }
 
     @Test
+    fun `sessions, cups and teas sit in one row`() {
+        show(OverviewFixtures.data())
+
+        val tops = listOf("42", "96", "24").map { compose.onNodeWithText(it).fetchSemanticsNode().boundsInRoot.top }
+        assertThat(tops.distinct()).hasSize(1)
+    }
+
+    @Test
+    fun `no plus under Gesamt`() {
+        show(OverviewFixtures.data(teasAdded = null), StatsRange.ALL)
+
+        compose.onNodeWithText("Tees").assertExists()
+        assertThat(compose.onAllNodesWithText("im Zeitraum", substring = true).fetchSemanticsNodes()).isEmpty()
+    }
+
+    @Test
+    fun `the Tees donut follows Tee-Sorten with a TalkBack list`() {
+        show(OverviewFixtures.data())
+
+        val sorten = compose.onNodeWithTag(statsSectionTag("overview.sorten")).fetchSemanticsNode().boundsInRoot.top
+        val tees = compose.onNodeWithTag(statsSectionTag("overview.tees")).performScrollTo()
+            .fetchSemanticsNode().boundsInRoot.top
+        assertThat(tees).isGreaterThan(sorten)
+        compose.onNodeWithText("TEES").assertExists()
+        val description = compose.onAllNodesWithTag(STATS_CHART_TAG)
+            .fetchSemanticsNodes()
+            .map { it.config[SemanticsProperties.ContentDescription].joinToString() }
+            .single { it.startsWith("Tees.") }
+        assertThat(description).contains("Hisui Gyokuro: 29 %, 12 Sitzungen.")
+        assertThat(description).contains("Andere: 11 %, 5 Sitzungen.")
+    }
+
+    @Test
     fun `the plus is hidden at 0, a thousand is grouped and one is singular`() {
         show(OverviewFixtures.data(teasAdded = 0).copy(sessionCount = 1234, cupCount = 1))
 
@@ -82,6 +120,13 @@ class OverviewTabTest {
     fun `no current streak reads Keine Serie gerade`() {
         show(OverviewFixtures.data(streak = Streak(0, 21)))
 
+        compose.onNodeWithText("Keine Serie gerade · längste 21 Tage").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun `no current streak and no longest reads Keine Serie gerade alone`() {
+        show(OverviewFixtures.data(streak = Streak(0, 0)))
+
         compose.onNodeWithText("Keine Serie gerade").performScrollTo().assertExists()
     }
 
@@ -103,9 +148,9 @@ class OverviewTabTest {
     fun `an empty range reads the quiet line in every section but the streak`() {
         show(OverviewFixtures.emptyRange())
 
-        assertThat(compose.onAllNodesWithText("In diesem Zeitraum nichts").fetchSemanticsNodes()).hasSize(4)
+        assertThat(compose.onAllNodesWithText("In diesem Zeitraum nichts").fetchSemanticsNodes()).hasSize(5)
         assertThat(compose.onAllNodesWithText("0").fetchSemanticsNodes()).hasSize(2)
-        compose.onNodeWithText("Keine Serie gerade").performScrollTo().assertExists()
+        compose.onNodeWithText("Keine Serie gerade · längste 21 Tage").performScrollTo().assertExists()
     }
 
     @Test

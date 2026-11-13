@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import coil3.compose.rememberAsyncImagePainter
 import com.umamit.core.designsystem.component.TeaListItem
@@ -28,21 +27,17 @@ import com.umamit.core.model.StatsRange
 import com.umamit.feature.stats.charts.ChartNumbers
 import com.umamit.feature.stats.charts.ChartUnit
 import com.umamit.feature.stats.charts.DonutSlice
-import com.umamit.feature.stats.charts.HabitBars
-import com.umamit.feature.stats.charts.HabitShare
 import com.umamit.feature.stats.charts.PeriodBarChart
 import com.umamit.feature.stats.charts.PeriodValue
 import com.umamit.feature.stats.charts.SortenDonut
 import java.io.File
 import java.util.Locale
 
-private const val PERCENT = 100.0
-
 /**
  * *Überblick* (INS-01, INS-03, INS-06): the big numerals, sessions per period, the streak, the most brewed teas,
- * the Sorten donut and the habits. [figures] are null until the first read and change in place with their range;
- * [onOpenTea] opens a collection tea's detail (SCR-09), never called for a deleted tea. [thumbnail] loads a tea's
- * cover photo (tests pass a placeholder).
+ * the Sorten and Tees donuts and the habits. [figures] are null until the first read and change in place with their
+ * range; [onOpenTea] opens a collection tea's detail (SCR-09), never called for a deleted tea. [thumbnail] loads a
+ * tea's cover photo (tests pass a placeholder).
  */
 @Composable
 fun OverviewTab(
@@ -90,44 +85,49 @@ fun OverviewTab(
             Sorten(stats, range)
         }
         StatsSection(
-            key = "overview.habits",
-            title = stringResource(R.string.stats_overview_section_habits),
+            key = "overview.tees",
+            title = stringResource(R.string.stats_overview_tees),
+            summary = stats.teaDonut.firstOrNull { !it.isOther }?.teaName,
             isEmpty = none,
         ) {
-            Habits(stats)
+            Tees(stats, range)
+        }
+        val dayPartNames = dayPartNames()
+        StatsSection(
+            key = "overview.habits",
+            title = stringResource(R.string.stats_overview_section_habits),
+            summary = stats.dayParts.maxByOrNull { it.percent }?.takeIf { it.percent > 0 }
+                ?.let { dayPartNames.getValue(it.key) },
+            isEmpty = none,
+        ) {
+            Habits(stats, dayPartNames)
         }
     }
 }
 
-/** „42 Sitzungen · 96 Tassen" and „24 Tees · +3 im Zeitraum" (the plus hidden at 0), in the display font. */
+/** „42 Sitzungen · 96 Tassen · 24 Tees (+3 im Zeitraum)" in ONE row (R10), in the display font. */
 @Composable
 private fun Numerals(stats: OverviewStats) {
-    Column(
+    Row(
         Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
-        verticalArrangement = Arrangement.spacedBy(UmamiSpacing.Small),
+        horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Medium),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Medium)) {
-            Numeral(
-                stats.sessionCount,
-                pluralStringResource(R.plurals.stats_overview_sessions_label, stats.sessionCount),
-                Modifier.weight(1f),
-            )
-            Numeral(
-                stats.cupCount,
-                pluralStringResource(R.plurals.stats_overview_cups_label, stats.cupCount),
-                Modifier.weight(1f),
-            )
-        }
+        Numeral(
+            stats.sessionCount,
+            pluralStringResource(R.plurals.stats_overview_sessions_label, stats.sessionCount),
+            Modifier.weight(1f),
+        )
+        Numeral(
+            stats.cupCount,
+            pluralStringResource(R.plurals.stats_overview_cups_label, stats.cupCount),
+            Modifier.weight(1f),
+        )
         val teas = pluralStringResource(R.plurals.stats_overview_teas_label, stats.teaCount)
         val added = stats.teasAddedInRange ?: 0
         Numeral(
             stats.teaCount,
-            if (added > 0) {
-                stringResource(R.string.stats_overview_teas_added, teas, added)
-            } else {
-                teas
-            },
-            Modifier.fillMaxWidth(),
+            if (added > 0) stringResource(R.string.stats_overview_teas_added, teas, added) else teas,
+            Modifier.weight(1f),
         )
     }
 }
@@ -180,7 +180,11 @@ private fun StreakLine(stats: OverviewStats) {
             days(streak.longest),
         )
     } else {
-        stringResource(R.string.stats_overview_streak_none)
+        if (streak.longest > 0) {
+            stringResource(R.string.stats_overview_streak_none_longest, days(streak.longest))
+        } else {
+            stringResource(R.string.stats_overview_streak_none)
+        }
     }
     Text(
         text = text,
@@ -231,40 +235,17 @@ private fun Sorten(stats: OverviewStats, range: StatsRange) {
     )
 }
 
+/** The donut „Tees" (R6): the share of sessions per tea, the five largest named, the rest „Andere". */
 @Composable
-private fun Habits(stats: OverviewStats) {
-    val dayPartTitle = stringResource(R.string.stats_overview_day_part)
-    val weekdayTitle = stringResource(R.string.stats_overview_weekday)
-    val dayPartNames = mapOf(
-        DayPart.MORGEN to stringResource(R.string.stats_overview_morning),
-        DayPart.MITTAG to stringResource(R.string.stats_overview_noon),
-        DayPart.NACHMITTAG to stringResource(R.string.stats_overview_afternoon),
-        DayPart.ABEND to stringResource(R.string.stats_overview_evening),
+private fun Tees(stats: OverviewStats, range: StatsRange) {
+    val other = stringResource(R.string.stats_overview_other)
+    val slices = stats.teaDonut.map { share ->
+        DonutSlice(if (share.isOther) other else share.teaName, share.sessions, share.percent, isOther = share.isOther)
+    }
+    SortenDonut(
+        slices = slices,
+        title = stringResource(R.string.stats_overview_tees),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin),
+        selectionResetKey = range,
     )
-    val weekdayNames = stringArrayResource(R.array.stats_overview_weekdays_short)
-    Column(
-        Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin),
-        verticalArrangement = Arrangement.spacedBy(UmamiSpacing.Medium),
-    ) {
-        HabitRow(
-            dayPartTitle,
-            stats.dayParts.map { HabitShare(dayPartNames.getValue(it.key), it.percent / PERCENT) },
-        )
-        HabitRow(
-            weekdayTitle,
-            stats.weekdays.map { HabitShare(weekdayNames[it.key.value - 1], it.percent / PERCENT) },
-        )
-    }
-}
-
-@Composable
-private fun HabitRow(title: String, entries: List<HabitShare>) {
-    Column(verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        HabitBars(entries = entries, title = title, modifier = Modifier.fillMaxWidth())
-    }
 }

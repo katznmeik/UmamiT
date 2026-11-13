@@ -5,6 +5,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -49,7 +50,25 @@ class ConsumptionTabTest {
         compose.onNodeWithText("38 g").assertExists()
         compose.onNodeWithText("64,80 €").performScrollTo().assertExists()
         assertThat(compose.onAllNodesWithText("im Zeitraum").fetchSemanticsNodes()).hasSize(2)
-        compose.onNodeWithText("Ø 0,27 € pro Tasse · aus 20 Sitzungen").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun `GETRUNKEN sits below AUSGABEN with total, sessions and cost per cup`() {
+        show(ConsumptionFixtures.data())
+
+        compose.onNodeWithText("23,40 €").performScrollTo().assertExists()
+        compose.onNodeWithText("aus 20 Sitzungen mit Preis").performScrollTo().assertExists()
+        compose.onNodeWithText("Ø 0,27 € pro Tasse").performScrollTo().assertExists()
+        val money = compose.onNodeWithTag(statsSectionTag("consumption.money")).fetchSemanticsNode().boundsInRoot.top
+        val drunk = compose.onNodeWithTag(statsSectionTag("consumption.drunk")).fetchSemanticsNode().boundsInRoot.top
+        assertThat(drunk).isGreaterThan(money)
+    }
+
+    @Test
+    fun `GETRUNKEN without a priced session says so`() {
+        show(ConsumptionFixtures.data(drunkSessions = 0, costPerCup = null))
+
+        compose.onNodeWithText("Keine Sitzungen mit Preis").performScrollTo().assertExists()
     }
 
     @Test
@@ -65,9 +84,10 @@ class ConsumptionTabTest {
 
     @Test
     fun `one session is singular`() {
-        show(ConsumptionFixtures.data(costPerCup = CupAverage(45, 1)))
+        show(ConsumptionFixtures.data(costPerCup = CupAverage(45, 1), drunkSessions = 1))
 
-        compose.onNodeWithText("Ø 0,45 € pro Tasse · aus 1 Sitzung").performScrollTo().assertExists()
+        compose.onNodeWithText("aus 1 Sitzung mit Preis").performScrollTo().assertExists()
+        compose.onNodeWithText("Ø 0,45 € pro Tasse").performScrollTo().assertExists()
     }
 
     @Test
@@ -112,9 +132,10 @@ class ConsumptionTabTest {
     fun `an empty range reads the quiet line but running out stays`() {
         show(ConsumptionFixtures.emptyRange())
 
-        // Gramm, Tassen; Ausgaben says „Keine Käufe mit Preis".
+        // Gramm, Tassen; Ausgaben and Getrunken say „Keine … mit Preis".
         assertThat(compose.onAllNodesWithText("In diesem Zeitraum nichts").fetchSemanticsNodes()).hasSize(2)
         compose.onNodeWithText("Keine Käufe mit Preis").performScrollTo().assertExists()
+        compose.onNodeWithText("Keine Sitzungen mit Preis").performScrollTo().assertExists()
         compose.onNodeWithText("Hisui Gyokuro").performScrollTo().assertExists()
     }
 

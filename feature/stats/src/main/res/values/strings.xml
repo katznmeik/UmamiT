@@ -35,31 +35,18 @@
     <!-- ===== end of #259 ===== -->
 
     <!-- ===== #261: Bewertungen tab (INS-02, INS-04) ===== -->
+    <string name="stats_ratings_ranking">Tee-Rangliste</string>
+    <string name="stats_ratings_new">Neu entdeckt</string>
+    <string name="stats_ratings_show_all">Alle anzeigen (%1$d)</string>
+    <string name="stats_ratings_rank_meta">%1$s ★ · %2$d×</string>
+    <string name="stats_ratings_unrated">ohne Bewertung</string>
     <string name="stats_ratings_history">Bewertung im Verlauf</string>
-    <string name="stats_ratings_top">Am besten bewertet</string>
     <string name="stats_ratings_best_recipe">Bestes Rezept</string>
-    <string name="stats_ratings_taste">Geschmack</string>
-    <string name="stats_descriptor_with_count">%1$s · %2$d×</string>
-    <string name="stats_ratings_descriptors">Beschreibungen</string>
-    <string name="stats_ratings_none">Noch keine Bewertung in diesem Zeitraum</string>
+    <string name="stats_ratings_none">In diesem Zeitraum nichts bewertet</string>
     <string name="stats_ratings_average">Ø %1$s ★</string>
-    <plurals name="stats_ratings_rated_of">
-        <item quantity="one">%1$d von %2$d Sitzung bewertet</item>
-        <item quantity="other">%1$d von %2$d Sitzungen bewertet</item>
-    </plurals>
-    <string name="stats_ratings_distribution">Verteilung der Bewertungen</string>
-    <string name="stats_ratings_top_meta">Ø %1$s ★ · %2$s</string>
         <string name="stats_ratings_recipe_item">%1$s %2$s ★</string>
     <string name="stats_ratings_recipe_separator">" · "</string>
     <string name="stats_ratings_recipe_unnamed">Rezept</string>
-        <plurals name="stats_ratings_count">
-        <item quantity="one">%1$d Bewertung</item>
-        <item quantity="other">%1$d Bewertungen</item>
-    </plurals>
-    <plurals name="stats_ratings_taste_infusions">
-        <item quantity="one">aus %1$d Aufguss</item>
-        <item quantity="other">aus %1$d Aufgüssen</item>
-    </plurals>
     <!-- ===== end of #261 ===== -->
 
     <!-- ===== #260: Überblick (INS-01, INS-03, INS-06) ===== -->
@@ -87,6 +74,8 @@
     <string name="stats_overview_section_streak">Serie</string>
     <string name="stats_overview_streak">%1$s in Folge · längste %2$s · seit Beginn</string>
     <string name="stats_overview_streak_none">Keine Serie gerade</string>
+    <string name="stats_overview_streak_none_longest">Keine Serie gerade · längste %1$s</string>
+    <string name="stats_overview_tees">Tees</string>
     <string name="stats_overview_section_most_brewed">Am häufigsten</string>
     <string name="stats_overview_times">%1$d×</string>
     <string name="stats_open_tea">Tee öffnen</string>
@@ -114,7 +103,15 @@
     <string name="stats_consumption_section_grams">Gramm</string>
     <string name="stats_consumption_section_cups">Tassen</string>
     <string name="stats_consumption_section_money">Ausgaben</string>
-    <string name="stats_consumption_section_cost">Kosten pro Tasse</string>
+    <string name="stats_consumption_section_drunk">Getrunken</string>
+    <string name="stats_consumption_drunk_per_week">Getrunken pro Woche</string>
+    <string name="stats_consumption_drunk_per_month">Getrunken pro Monat</string>
+    <string name="stats_consumption_no_priced_sessions">Keine Sitzungen mit Preis</string>
+    <plurals name="stats_consumption_priced_sessions">
+        <item quantity="one">aus %d Sitzung mit Preis</item>
+        <item quantity="other">aus %d Sitzungen mit Preis</item>
+    </plurals>
+    <string name="stats_consumption_cost_per_cup">Ø %1$s € pro Tasse</string>
     <string name="stats_consumption_section_running_out">Geht zur Neige</string>
     <string name="stats_consumption_in_range">im Zeitraum</string>
     <string name="stats_consumption_grams_per_week">Gramm pro Woche</string>
@@ -124,11 +121,6 @@
     <string name="stats_consumption_money_per_week">Ausgaben pro Woche</string>
     <string name="stats_consumption_money_per_month">Ausgaben pro Monat</string>
     <string name="stats_consumption_no_purchases">Keine Käufe mit Preis</string>
-    <string name="stats_consumption_cost_per_cup">Ø %1$s € pro Tasse · aus %2$s</string>
-    <plurals name="stats_consumption_sessions">
-        <item quantity="one">%d Sitzung</item>
-        <item quantity="other">%d Sitzungen</item>
-    </plurals>
     <string name="stats_consumption_empty">leer</string>
     <string name="stats_consumption_low">%1$s g · knapp</string>
     <!-- ===== end of #262 ===== -->

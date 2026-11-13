@@ -81,6 +81,7 @@ private val BottomClearance = 72.dp
 
 /** The segments' side padding: five labels share the row (the M3 default of 12 dp would clip „Gesamt"). */
 private val SEGMENT_PADDING = 4.dp
+private val TAB_HEIGHT = 48.dp
 
 /**
  * Statistik (SCR-18; INS-07, INS-08, D-115) with its [StatsViewModel]. [onOpenTea] opens a collection tea's detail
@@ -437,11 +438,20 @@ private fun RangeSelector(
 private fun TabBar(pagerState: PagerState, onSelect: (StatsTab) -> Unit) {
     PrimaryTabRow(selectedTabIndex = pagerState.targetPage, containerColor = MaterialTheme.colorScheme.background) {
         StatsTab.entries.forEach { entry ->
+            // The content slot has no 16 dp text padding, so „Bewertungen" fits a third of 360 dp at font scale 1,15.
             Tab(
                 selected = entry.ordinal == pagerState.targetPage,
                 onClick = { onSelect(entry) },
-                text = { Text(text = stringResource(entry.labelRes), maxLines = 1) },
-            )
+            ) {
+                Box(Modifier.heightIn(min = TAB_HEIGHT).padding(horizontal = UmamiSpacing.XSmall), Alignment.Center) {
+                    Text(
+                        text = stringResource(entry.labelRes),
+                        maxLines = 1,
+                        softWrap = false,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
         }
     }
 }

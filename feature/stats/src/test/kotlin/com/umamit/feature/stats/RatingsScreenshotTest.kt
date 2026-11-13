@@ -61,7 +61,10 @@ class RatingsScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     fun withData() = capture("data", RatingsFixtures.withData)
 
     @Test
-    fun withoutRatings() = capture("unrated", RatingsFixtures.withoutRatings)
+    fun withoutRatings() = capture("unrated_plain", RatingsFixtures.withoutRatings)
+
+    @Test
+    fun withoutRatingsNewTea() = capture("unrated", RatingsFixtures.withoutRatingsNew)
 
     @Test
     fun emptyRange() = capture("empty", RatingsFixtures.emptyRange)
