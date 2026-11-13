@@ -18,6 +18,32 @@
     <string name="stats_section_empty">In diesem Zeitraum nichts</string>
     <!-- ===== end of #259 ===== -->
 
+    <!-- ===== #261: Bewertungen tab (INS-02, INS-04) ===== -->
+    <string name="stats_ratings_history">Bewertung im Verlauf</string>
+    <string name="stats_ratings_top">Am besten bewertet</string>
+    <string name="stats_ratings_best_recipe">Bestes Rezept</string>
+    <string name="stats_ratings_taste">Geschmack</string>
+    <string name="stats_ratings_descriptors">Beschreibungen</string>
+    <string name="stats_ratings_none">Noch keine Bewertung in diesem Zeitraum</string>
+    <string name="stats_ratings_average">Ø %1$s ★</string>
+    <string name="stats_ratings_rated_of">%1$d von %2$d Sitzungen bewertet</string>
+    <string name="stats_ratings_distribution">Verteilung der Bewertungen</string>
+    <string name="stats_ratings_top_meta">Ø %1$s ★ · %2$s</string>
+    <string name="stats_ratings_open_tea">Tee öffnen</string>
+    <string name="stats_ratings_recipe_item">%1$s %2$s ★</string>
+    <string name="stats_ratings_recipe_separator">" · "</string>
+    <string name="stats_ratings_recipe_unnamed">Rezept</string>
+    <string name="stats_period_week">KW %1$d</string>
+    <plurals name="stats_ratings_count">
+        <item quantity="one">%1$d Bewertung</item>
+        <item quantity="other">%1$d Bewertungen</item>
+    </plurals>
+    <plurals name="stats_ratings_taste_infusions">
+        <item quantity="one">aus %1$d Aufguss</item>
+        <item quantity="other">aus %1$d Aufgüssen</item>
+    </plurals>
+    <!-- ===== end of #261 ===== -->
+
     <!-- Charts (SCR-18, INS-08): value labels and TalkBack lists; numbers arrive in German format. -->
     <plurals name="stats_chart_sessions">
         <item quantity="one">%1$s Sitzung</item>
