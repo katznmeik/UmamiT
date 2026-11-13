@@ -16,6 +16,22 @@
     <string name="stats_tab_ratings">Bewertungen</string>
     <string name="stats_tab_consumption">Verbrauch</string>
     <string name="stats_section_empty">In diesem Zeitraum nichts</string>
+    <string name="stats_range_months">Monate</string>
+    <string name="stats_range_months_description">Zeitraum: Monate wählen</string>
+    <string name="stats_range_months_chosen_description">Zeitraum: %1$s bis %2$s</string>
+    <string name="stats_range_span">%1$s–%2$s</string>
+    <string name="stats_range_span_years">%1$s&#160;%2$s–%3$s&#160;%4$s</string>
+    <string name="stats_months_sheet_title">Monate wählen</string>
+    <string name="stats_months_from">Von</string>
+    <string name="stats_months_to">Bis</string>
+    <string name="stats_months_done">Fertig</string>
+    <string name="stats_months_earlier">%1$s: früherer Monat</string>
+    <string name="stats_months_later">%1$s: späterer Monat</string>
+    <string name="stats_section_folded_title">%1$s · %2$s</string>
+    <string name="stats_section_folded">eingeklappt</string>
+    <string name="stats_section_unfolded">ausgeklappt</string>
+    <string name="stats_section_unfold">Ausklappen</string>
+    <string name="stats_section_fold">Einklappen</string>
     <!-- ===== end of #259 ===== -->
 
     <!-- ===== #261: Bewertungen tab (INS-02, INS-04) ===== -->

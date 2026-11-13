@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 
 /**
@@ -49,7 +50,16 @@ sealed interface StatsUiState {
     data object Empty : StatsUiState
 
     /** At least one finished session: the selector, the tabs and the [tab]'s content for [range] (INS-07). */
-    data class Data(val range: StatsRange, val tab: StatsTab) : StatsUiState
+    data class Data(
+        val range: StatsRange,
+        val tab: StatsTab,
+        /** The custom months (*Monate*, R7), kept while [range] is [StatsRange.CUSTOM]; null until chosen. */
+        val custom: MonthSpan? = null,
+        /** The months the pickers offer: the first session's month … the current one (D-115 A1); null without. */
+        val months: MonthSpan? = null,
+        /** The keys of the folded sections (`statsFolded`, INS-08, R8). */
+        val folded: Set<String> = emptySet(),
+    ) : StatsUiState
 }
 
 /** A tab's [stats] with the [range] they were computed for: the page takes its range-bound state from here (INS-07). */
@@ -77,8 +87,22 @@ class StatsViewModel @Inject constructor(
     /** Counts the re-reads for a new day; the shared calculator flow restarts on a change. */
     private val dayChanges = MutableStateFlow(0)
 
-    private val choice: Flow<Pair<StatsRange, StatsTab>> = settings.settings
-        .map { it.statsRange to it.statsTab }
+    private data class Choice(
+        val range: StatsRange,
+        val tab: StatsTab,
+        val custom: MonthSpan?,
+        val folded: Set<String>,
+    )
+
+    private val choice: Flow<Choice> = settings.settings
+        .map {
+            Choice(
+                it.statsRange,
+                it.statsTab,
+                MonthSpan.of(it.statsRangeFrom?.toString(), it.statsRangeTo?.toString()),
+                it.statsFolded,
+            )
+        }
         .distinctUntilChanged()
 
     /** The range with the custom months (*Monate*, D-115 Amendment 1); the months only count under CUSTOM. */
@@ -99,10 +123,20 @@ class StatsViewModel @Inject constructor(
         .flatMapLatest { observeStats.calculator() }
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), replay = 1)
 
-    private val hasSessions: Flow<Boolean> = calculator.map { it.hasSessions }.distinctUntilChanged()
+    /** The pickers' months: from the first finished session's month to the current one; null without a session. */
+    private val months: Flow<MonthSpan?> = calculator
+        .map { calculator ->
+            val window = calculator.window(StatsRange.ALL)
+            window.periods.firstOrNull()?.let { MonthSpan(it.month, YearMonth.from(window.to)) }
+        }
+        .distinctUntilChanged()
 
-    val state: StateFlow<StatsUiState> = combine(choice, hasSessions) { (range, tab), any ->
-        if (any) StatsUiState.Data(range, tab) else StatsUiState.Empty
+    val state: StateFlow<StatsUiState> = combine(choice, months) { choice, months ->
+        if (months != null) {
+            StatsUiState.Data(choice.range, choice.tab, choice.custom, months, choice.folded)
+        } else {
+            StatsUiState.Empty
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), StatsUiState.Loading)
 
     /** *Überblick*'s figures with their range; null until the first read. A range change replaces them in place. */
@@ -125,6 +159,16 @@ class StatsViewModel @Inject constructor(
 
     /** The selector's choice, remembered across app starts (INS-07). */
     fun selectRange(range: StatsRange) = write { it.copy(statsRange = range) }
+
+    /** *Monate*: the months of the custom range, remembered like the others (INS-07, R7); *Von* never after *Bis*. */
+    fun selectCustom(from: YearMonth, to: YearMonth) = write {
+        it.copy(statsRange = StatsRange.CUSTOM, statsRangeFrom = minOf(from, to), statsRangeTo = maxOf(from, to))
+    }
+
+    /** Folds or opens the section [key] (INS-08, R8), remembered across app starts (`statsFolded`). */
+    fun setFolded(key: String, folded: Boolean) = write {
+        it.copy(statsFolded = if (folded) it.statsFolded + key else it.statsFolded - key)
+    }
 
     /** The tab shown, remembered across app starts (INS-07). */
     fun selectTab(tab: StatsTab) = write { it.copy(statsTab = tab) }

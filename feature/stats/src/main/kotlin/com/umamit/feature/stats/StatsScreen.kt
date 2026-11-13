@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -33,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -42,11 +44,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -58,6 +62,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.motion.LocalReduceMotion
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StatsTab
 import com.umamit.feature.stats.charts.ChartPageState
@@ -69,9 +74,13 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import java.time.YearMonth
 import kotlin.math.abs
 
 private val BottomClearance = 72.dp
+
+/** The segments' side padding: five labels share the row (the M3 default of 12 dp would clip „Gesamt"). */
+private val SEGMENT_PADDING = 4.dp
 
 /**
  * Statistik (SCR-18; INS-07, INS-08, D-115) with its [StatsViewModel]. [onOpenTea] opens a collection tea's detail
@@ -97,6 +106,8 @@ fun StatsRoute(
         onOpenSettings = onOpenSettings,
         modifier = modifier,
         scrollToTopRequest = scrollToTopRequest,
+        onCustomRange = viewModel::selectCustom,
+        onFoldedChange = viewModel::setFolded,
     ) { tab, _, scrollState ->
         when (tab) {
             StatsTab.OVERVIEW -> OverviewTab(
@@ -134,6 +145,8 @@ fun StatsContent(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
+    onCustomRange: (from: YearMonth, to: YearMonth) -> Unit = { _, _ -> },
+    onFoldedChange: (key: String, folded: Boolean) -> Unit = { _, _ -> },
     tabContent: @Composable (tab: StatsTab, range: StatsRange, scrollState: ScrollState) -> Unit =
         { tab, _, scrollState -> PlaceholderTab(tab, scrollState) },
 ) {
@@ -155,6 +168,8 @@ fun StatsContent(
                     onTabChange = onTabChange,
                     onOpenSettings = onOpenSettings,
                     scrollToTopRequest = scrollToTopRequest,
+                    onCustomRange = onCustomRange,
+                    onFoldedChange = onFoldedChange,
                     tabContent = tabContent,
                 )
             }
@@ -234,6 +249,8 @@ private fun StatsPages(
     onTabChange: (StatsTab) -> Unit,
     onOpenSettings: () -> Unit,
     scrollToTopRequest: Int,
+    onCustomRange: (YearMonth, YearMonth) -> Unit,
+    onFoldedChange: (String, Boolean) -> Unit,
     tabContent: @Composable (StatsTab, StatsRange, ScrollState) -> Unit,
 ) {
     val header = remember { CollapsingHeader() }
@@ -249,6 +266,8 @@ private fun StatsPages(
         StatsTab.entries.map { ChartPageState(it.name, revealed, active = it == state.tab) }
     }
     val selection = remember { ChartSelectionHolder() }
+    var monthsSheet by rememberSaveable { mutableStateOf(false) }
+    val folds = remember(state.folded, onFoldedChange) { StatsFolds(state.folded, onFoldedChange) }
     val currentOnTabChange by rememberUpdatedState(onTabChange)
     val seededTab = remember { state.tab }
     LaunchedEffect(pagerState) {
@@ -289,7 +308,16 @@ private fun StatsPages(
             pinned = {
                 CappedFontScale {
                     Column {
-                        RangeSelector(state.range, onRangeChange)
+                        RangeSelector(state.range, state.custom, onRangeChange) {
+                            monthsSheet = true
+                            state.months?.let { bounds ->
+                                // *Monate* applies at once: the remembered months, else the last three.
+                                val span = chosenMonths(state, bounds)
+                                if (state.range != StatsRange.CUSTOM || state.custom != span) {
+                                    onCustomRange(span.from, span.to)
+                                }
+                            }
+                        }
                         TabBar(pagerState) { tab ->
                             scope.launch {
                                 // A jump of more than one page does not scroll through (and compose) the middle one.
@@ -310,7 +338,7 @@ private fun StatsPages(
                     beyondViewportPageCount = 0,
                     key = { it },
                 ) { page ->
-                    CompositionLocalProvider(LocalChartPage provides pages[page]) {
+                    CompositionLocalProvider(LocalChartPage provides pages[page], LocalStatsFolds provides folds) {
                         Box(Modifier.fillMaxSize().chartViewport(pages[page])) {
                             tabContent(StatsTab.entries[page], state.range, scrollStates[page])
                         }
@@ -320,28 +348,85 @@ private fun StatsPages(
             modifier = Modifier.fillMaxSize(),
         )
     }
+    val bounds = state.months
+    if (monthsSheet && bounds != null) {
+        MonthsSheet(
+            bounds = bounds,
+            selected = chosenMonths(state, bounds),
+            onChange = { onCustomRange(it.from, it.to) },
+            onDismissRequest = { monthsSheet = false },
+        )
+    }
 }
 
-/** The selector: one segmented row, pinned (INS-07). TalkBack reads „Zeitraum: 90 Tage" and the selected state. */
+/** The custom months within [bounds]: the remembered ones, else the last three months (R7). */
+private fun chosenMonths(state: StatsUiState.Data, bounds: MonthSpan): MonthSpan {
+    val to = state.custom?.to?.coerceIn(bounds.from, bounds.to) ?: bounds.to
+    val from = state.custom?.from?.coerceIn(bounds.from, to) ?: maxOf(bounds.from, to.minusMonths(2))
+    return MonthSpan(from, to)
+}
+
+/**
+ * The segments' shares of the row: the short labels need less than „Gesamt", and *Monate* with its months
+ * („Dez. 25–Aug. 26", on two lines) the most, so the row fits at the font scale cap of 1,15 on a narrow phone.
+ */
+private fun StatsRange.segmentWeight(withMonths: Boolean): Float = when (this) {
+    StatsRange.DAYS_30, StatsRange.DAYS_90, StatsRange.MONTHS_12 -> SHORT_SEGMENT_WEIGHT
+    StatsRange.ALL -> ALL_SEGMENT_WEIGHT
+    StatsRange.CUSTOM -> if (withMonths) MONTHS_SEGMENT_WEIGHT else MONTHS_PLAIN_SEGMENT_WEIGHT
+}
+
+private const val SHORT_SEGMENT_WEIGHT = 0.85f
+private const val ALL_SEGMENT_WEIGHT = 1.15f
+private const val MONTHS_PLAIN_SEGMENT_WEIGHT = 1.1f
+private const val MONTHS_SEGMENT_WEIGHT = 1.45f
+
+/**
+ * The selector: one segmented row, pinned (INS-07). TalkBack reads „Zeitraum: 90 Tage" and the selected state. The
+ * fifth segment *Monate* (R7) opens the sheet through [onOpenMonths] and, with [custom] months chosen, reads
+ * „Dez.–Aug." (two lines when it carries the years, so the row still fits at font 1,15).
+ */
 @Composable
-private fun RangeSelector(range: StatsRange, onRangeChange: (StatsRange) -> Unit) {
-    val ranges = StatsRange.entries.filter { it != StatsRange.CUSTOM }
+private fun RangeSelector(
+    range: StatsRange,
+    custom: MonthSpan?,
+    onRangeChange: (StatsRange) -> Unit,
+    onOpenMonths: () -> Unit,
+) {
+    val ranges = StatsRange.entries
+    val resources = LocalResources.current
+    val span = custom?.label(resources)
     SingleChoiceSegmentedButtonRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
     ) {
         ranges.forEachIndexed { index, entry ->
-            val description = stringResource(entry.descriptionRes)
+            val isCustom = entry == StatsRange.CUSTOM
+            val label = if (isCustom && span != null) span else stringResource(entry.labelRes)
+            val description = if (isCustom && span != null && custom != null) {
+                stringResource(
+                    R.string.stats_range_months_chosen_description,
+                    custom.from.fullLabel(),
+                    custom.to.fullLabel(),
+                )
+            } else {
+                stringResource(entry.descriptionRes)
+            }
             SegmentedButton(
                 selected = entry == range,
-                onClick = { onRangeChange(entry) },
+                onClick = { if (isCustom) onOpenMonths() else onRangeChange(entry) },
                 shape = SegmentedButtonDefaults.itemShape(index, ranges.size),
+                modifier = Modifier.weight(entry.segmentWeight(withMonths = span != null)),
+                contentPadding = PaddingValues(horizontal = SEGMENT_PADDING),
+                icon = {},
             ) {
                 Text(
-                    text = stringResource(entry.labelRes),
+                    text = label,
                     modifier = Modifier.semantics { contentDescription = description },
-                    maxLines = 1,
+                    maxLines = if (isCustom) 2 else 1,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
         }
@@ -378,7 +463,8 @@ private val StatsRange.labelRes: Int
         StatsRange.DAYS_30 -> R.string.stats_range_30
         StatsRange.DAYS_90 -> R.string.stats_range_90
         StatsRange.MONTHS_12 -> R.string.stats_range_12m
-        StatsRange.ALL, StatsRange.CUSTOM -> R.string.stats_range_all
+        StatsRange.ALL -> R.string.stats_range_all
+        StatsRange.CUSTOM -> R.string.stats_range_months
     }
 
 private val StatsRange.descriptionRes: Int
@@ -386,7 +472,8 @@ private val StatsRange.descriptionRes: Int
         StatsRange.DAYS_30 -> R.string.stats_range_30_description
         StatsRange.DAYS_90 -> R.string.stats_range_90_description
         StatsRange.MONTHS_12 -> R.string.stats_range_12m_description
-        StatsRange.ALL, StatsRange.CUSTOM -> R.string.stats_range_all_description
+        StatsRange.ALL -> R.string.stats_range_all_description
+        StatsRange.CUSTOM -> R.string.stats_range_months_description
     }
 
 private val StatsTab.labelRes: Int

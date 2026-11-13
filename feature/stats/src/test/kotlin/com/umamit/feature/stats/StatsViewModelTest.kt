@@ -2,8 +2,10 @@ package com.umamit.feature.stats
 
 import androidx.lifecycle.viewModelScope
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.common.today
 import com.umamit.core.data.ObserveStats
 import com.umamit.core.domain.stats.StatsSession
+import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StatsTab
 import com.umamit.core.model.UserSettings
@@ -26,6 +28,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.time.Duration
+import java.time.YearMonth
 
 /** SCR-18's view model (INS-07, INS-08, D-115 Q15, Q19) on fakes; the figures come through the real calculator. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -86,7 +89,11 @@ class StatsViewModelTest {
         val vm = viewModel()
         keepAlive(vm)
 
-        assertThat(vm.settled()).isEqualTo(StatsUiState.Data(StatsRange.DAYS_90, StatsTab.OVERVIEW))
+        val state = vm.settled() as StatsUiState.Data
+        assertThat(state.range).isEqualTo(StatsRange.DAYS_90)
+        assertThat(state.tab).isEqualTo(StatsTab.OVERVIEW)
+        assertThat(state.custom).isNull()
+        assertThat(state.folded).isEmpty()
     }
 
     @Test
@@ -122,11 +129,63 @@ class StatsViewModelTest {
 
         assertThat(settings.settings.first().statsRange).isEqualTo(StatsRange.MONTHS_12)
         assertThat(settings.settings.first().statsTab).isEqualTo(StatsTab.CONSUMPTION)
-        assertThat(vm.state.value).isEqualTo(StatsUiState.Data(StatsRange.MONTHS_12, StatsTab.CONSUMPTION))
+        assertThat(vm.state.value.choice()).isEqualTo(StatsRange.MONTHS_12 to StatsTab.CONSUMPTION)
 
         val restored = viewModel()
         keepAlive(restored)
-        assertThat(restored.settled()).isEqualTo(StatsUiState.Data(StatsRange.MONTHS_12, StatsTab.CONSUMPTION))
+        assertThat(restored.settled().choice()).isEqualTo(StatsRange.MONTHS_12 to StatsTab.CONSUMPTION)
+    }
+
+    private fun StatsUiState.choice() = (this as StatsUiState.Data).let { it.range to it.tab }
+
+    @Test
+    fun `the pickers offer the first session's month up to the current month`() = runTest {
+        sessions(session("a", daysAgo = 100))
+        val vm = viewModel()
+        keepAlive(vm)
+
+        val months = (vm.settled() as StatsUiState.Data).months!!
+
+        assertThat(months.from).isEqualTo(YearMonth.from(clock.today().minusDays(100)))
+        assertThat(months.to).isEqualTo(YearMonth.from(clock.today()))
+    }
+
+    @Test
+    fun `Monate is written with its months, Von before Bis, and restored by the next view model`() = runTest {
+        sessions(session("a", daysAgo = 200))
+        val vm = viewModel()
+        keepAlive(vm)
+        vm.settled()
+
+        // Bis before Von: the earlier month is Von.
+        vm.selectCustom(from = YearMonth.of(2026, 9), to = YearMonth.of(2026, 3))
+
+        val stored = settings.settings.first()
+        assertThat(stored.statsRange).isEqualTo(StatsRange.CUSTOM)
+        assertThat(stored.statsRangeFrom).isEqualTo(YearMonth.of(2026, 3))
+        assertThat(stored.statsRangeTo).isEqualTo(YearMonth.of(2026, 9))
+        val restored = viewModel()
+        keepAlive(restored)
+        val state = restored.settled() as StatsUiState.Data
+        assertThat(state.range).isEqualTo(StatsRange.CUSTOM)
+        assertThat(state.custom).isEqualTo(MonthSpan(YearMonth.of(2026, 3), YearMonth.of(2026, 9)))
+    }
+
+    @Test
+    fun `a folded section is written and restored, an opened one is dropped from the set`() = runTest {
+        sessions(session("a", daysAgo = 1))
+        val vm = viewModel()
+        keepAlive(vm)
+        vm.settled()
+
+        vm.setFolded("overview.sessions", true)
+        vm.setFolded("ratings.top", true)
+        vm.setFolded("overview.sessions", false)
+
+        assertThat(settings.settings.first().statsFolded).containsExactly("ratings.top")
+        val restored = viewModel()
+        keepAlive(restored)
+        assertThat((restored.settled() as StatsUiState.Data).folded).containsExactly("ratings.top")
     }
 
     @Test
@@ -169,7 +228,7 @@ class StatsViewModelTest {
 
         vm.selectRange(StatsRange.ALL)
 
-        assertThat(vm.state.value).isEqualTo(StatsUiState.Data(StatsRange.DAYS_90, StatsTab.OVERVIEW))
+        assertThat(vm.state.value.choice()).isEqualTo(StatsRange.DAYS_90 to StatsTab.OVERVIEW)
     }
 
     @Test

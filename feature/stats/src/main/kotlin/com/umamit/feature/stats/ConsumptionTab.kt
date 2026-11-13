@@ -25,6 +25,7 @@ import com.umamit.core.domain.stats.RunningOutTea
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StockLevel
 import com.umamit.core.ui.GermanFormat
+import com.umamit.feature.stats.charts.ChartNumbers
 import com.umamit.feature.stats.charts.ChartUnit
 import com.umamit.feature.stats.charts.PeriodBarChart
 import java.io.File
@@ -74,24 +75,50 @@ fun ConsumptionTab(
         val none = stats.grams <= 0.0 && stats.cups == 0
         val monthly = stats.gramsPerPeriod.firstOrNull()?.period?.unit == PeriodUnit.MONTH
         val bars = BarSetup(monthly, figures.range)
-        StatsSection(title = stringResource(R.string.stats_consumption_section_grams), isEmpty = none) {
+        StatsSection(
+            key = "consumption.grams",
+            title = stringResource(R.string.stats_consumption_section_grams),
+            summary = stringResource(R.string.stats_chart_grams, consumptionGrams(stats.grams)),
+            isEmpty = none,
+        ) {
             Numeral(
                 value = stringResource(R.string.stats_chart_grams, consumptionGrams(stats.grams)),
                 label = stringResource(R.string.stats_consumption_in_range),
             )
             Bars(stats.gramsPerPeriod, ChartUnit.GRAMS, GRAMS_TITLES, bars) { it }
         }
-        StatsSection(title = stringResource(R.string.stats_consumption_section_cups), isEmpty = none) {
+        StatsSection(
+            key = "consumption.cups",
+            title = stringResource(R.string.stats_consumption_section_cups),
+            summary = ChartNumbers.axis(stats.cups.toDouble()),
+            isEmpty = none,
+        ) {
             Bars(stats.cupsPerPeriod, ChartUnit.CUPS, CUPS_TITLES, bars) { it.toDouble() }
         }
-        StatsSection(title = stringResource(R.string.stats_consumption_section_money)) {
+        StatsSection(
+            key = "consumption.money",
+            title = stringResource(R.string.stats_consumption_section_money),
+            summary = if (stats.hasPurchases) {
+                stringResource(R.string.stats_chart_euros, GermanFormat.euros(stats.moneyCents))
+            } else {
+                null
+            },
+        ) {
             Money(stats, bars)
         }
         stats.costPerCup?.let { average ->
-            StatsSection(title = stringResource(R.string.stats_consumption_section_cost)) { CostLine(average) }
+            StatsSection(
+                key = "consumption.cost",
+                title = stringResource(R.string.stats_consumption_section_cost),
+                summary = stringResource(R.string.stats_chart_euros, GermanFormat.euros(average.cupCents)),
+            ) { CostLine(average) }
         }
         if (stats.runningOut.isNotEmpty()) {
-            StatsSection(title = stringResource(R.string.stats_consumption_section_running_out)) {
+            StatsSection(
+                key = "consumption.running_out",
+                title = stringResource(R.string.stats_consumption_section_running_out),
+                summary = stats.runningOut.size.toString(),
+            ) {
                 stats.runningOut.forEachIndexed { index, tea ->
                     RunningOutRow(tea, showDivider = index < stats.runningOut.lastIndex, onOpenTea, thumbnail)
                 }
@@ -138,7 +165,7 @@ private fun <T> Bars(
         unit = unit,
         title = stringResource(if (setup.monthly) titles.month else titles.week),
         modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin),
-        scrollable = setup.range == StatsRange.ALL,
+        scrollable = setup.range == StatsRange.ALL || setup.range == StatsRange.CUSTOM,
         selectionResetKey = setup.range,
     )
 }

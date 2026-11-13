@@ -1,5 +1,7 @@
 package com.umamit.feature.stats.charts
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -41,6 +43,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.motion.LocalReduceMotion
 import com.umamit.core.designsystem.motion.MotionTokens
@@ -50,7 +53,10 @@ import kotlin.math.roundToInt
 /** The test tag of every chart's plot node (the one TalkBack node of the chart). */
 const val STATS_CHART_TAG = "stats_chart"
 
-private val PLOT_HEIGHT = 160.dp
+private val LINE_PLOT_HEIGHT = 160.dp
+
+/** The plot of a bar chart: about half as tall as in rc.1 (D-115 Amendment 1, R10). */
+internal val BAR_PLOT_HEIGHT = 80.dp
 private val SCROLL_SLOT_MIN = 36.dp
 private val AXIS_LABEL_GAP = 8.dp
 private val X_LABEL_GAP = 6.dp
@@ -63,6 +69,10 @@ private val BASELINE_WIDTH = 1.dp
 private const val SAMPLE_X_LABEL = "KW 44"
 private const val HALF = 0.5f
 private const val SCROLL_GLIDE_MILLIS = 250
+
+/** The value label's fade (D-115 Amendment 1, R15): 0,12 s in, 0,1 s out; reduce motion: at once. */
+private const val TOOLTIP_FADE_IN_MILLIS = 120
+private const val TOOLTIP_FADE_OUT_MILLIS = 100
 
 /** The pixel geometry of one chart's plot area: [count] equal slots over [width], values from [yMin] to [yMax]. */
 internal class PlotGeometry(
@@ -112,6 +122,8 @@ internal class XYChartSpec(
     val hitTest: Density.(Offset, PlotGeometry) -> Int?,
     /** The point the value label sits above (plot pixels). */
     val anchor: Density.(Int, PlotGeometry) -> Offset,
+    /** The plot's height without the x labels: the bar charts are half as tall as the line chart. */
+    val plotHeight: Dp = LINE_PLOT_HEIGHT,
 )
 
 /**
@@ -132,7 +144,7 @@ internal fun XYChartFrame(
     val labelHeight = remember(labelStyle, density) { measurer.measure(SAMPLE_X_LABEL, labelStyle).size.height }
     val topPad = labelHeight / 2f
     val bandPx = labelHeight + with(density) { X_LABEL_GAP.toPx() }
-    val plotPx = with(density) { PLOT_HEIGHT.toPx() }
+    val plotPx = with(density) { spec.plotHeight.toPx() }
     val axisWidthPx = spec.yTicks.maxOfOrNull { measurer.measure(it.text, labelStyle).size.width }
         ?.plus(with(density) { AXIS_LABEL_GAP.toPx() }) ?: 0f
     val baseline = topPad + plotPx
@@ -249,10 +261,10 @@ private fun PlotContent(
             drawXLabels(spec.xLabels, geo, measurer, style)
             draw(geo, selected)
         }
-        selected?.let { index ->
+        FadingTooltip(selected, spec.count) { index, fade ->
             ChartTooltip(
                 text = spec.tooltip(index),
-                modifier = Modifier.layout { measurable, constraints ->
+                modifier = Modifier.graphicsLayer { alpha = fade }.layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                     val anchor = with(spec) { anchor(index, geometry(constraints.maxWidth.toFloat())) }
                     val x = (anchor.x - placeable.width / 2f).coerceIn(
@@ -290,6 +302,29 @@ private fun DrawScope.drawXLabels(labels: List<String>, geo: PlotGeometry, measu
             limit = x
         }
     }
+}
+
+/**
+ * Shows the value label of [selected] with the fade of INS-08 (R15): in 0,12 s, out 0,1 s (at once under reduce
+ * motion). The last index is kept while it fades out; it is dropped once gone or when it no longer exists
+ * (a chart of [count] entries).
+ */
+@Composable
+internal fun FadingTooltip(selected: Int?, count: Int, content: @Composable (index: Int, fade: Float) -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
+    var held by remember { mutableStateOf<Int?>(null) }
+    if (selected != null && held != selected) held = selected
+    val fade by animateFloatAsState(
+        targetValue = if (selected != null) 1f else 0f,
+        animationSpec = when {
+            reduceMotion -> snap()
+            selected != null -> tween(TOOLTIP_FADE_IN_MILLIS, easing = MotionTokens.CalmEaseOut)
+            else -> tween(TOOLTIP_FADE_OUT_MILLIS, easing = MotionTokens.CalmEaseOut)
+        },
+        label = "chartTooltipFade",
+    )
+    val index = held?.takeIf { it in 0 until count }
+    if (index != null && (selected != null || fade > 0f)) content(index, fade)
 }
 
 /** The value label (INS-08, SCR-18): a small `inverseSurface` tooltip, announced politely to TalkBack. */
