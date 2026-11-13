@@ -76,6 +76,8 @@ data class StoredSettings(
     /** INS-07 (v0.7.0, D-115); a file of v0.6.x has neither key and reads the defaults, no migration. */
     val statsRange: String = StatsRange.DAYS_90.name,
     val statsTab: String = StatsTab.OVERVIEW.name,
+    /** *Tassengröße* (D-115 Amendment 1); a file of v0.7.0-rc.1 or older has no key and reads 150 ml, no migration. */
+    val cupSizeMl: Int = UserSettings.DEFAULT_CUP_SIZE_ML,
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
@@ -235,6 +237,7 @@ private fun StoredSettings.toModel() = UserSettings(
     collectionSegment = enumOrDefault(collectionSegment, CollectionSegment.MY_TEAS),
     statsRange = enumOrDefault(statsRange, StatsRange.DAYS_90),
     statsTab = enumOrDefault(statsTab, StatsTab.OVERVIEW),
+    cupSizeMl = cupSizeMl,
 )
 
 private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
@@ -266,6 +269,7 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     collectionSegment = collectionSegment.name,
     statsRange = statsRange.name,
     statsTab = statsTab.name,
+    cupSizeMl = cupSizeMl,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
     seedTeaLinksDone = markersOf.seedTeaLinksDone,

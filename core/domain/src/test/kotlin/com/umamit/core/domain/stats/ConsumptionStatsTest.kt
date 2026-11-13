@@ -21,17 +21,17 @@ class ConsumptionStatsTest {
 
     @Test
     fun `cups - one per poured non-rinse step, whisk-only, all-skipped and no rows are one, never-started rows none`() {
-        assertThat(session(steps = listOf(rinse, infusion(), infusion())).cups).isEqualTo(2)
-        assertThat(session(steps = listOf(whisk)).cups).isEqualTo(1)
-        assertThat(session(steps = listOf(whisk, whisk)).cups).isEqualTo(1)
+        assertThat(session(steps = listOf(rinse, infusion(), infusion())).cups(150)).isEqualTo(2.0)
+        assertThat(session(steps = listOf(whisk)).cups(150)).isEqualTo(1.0)
+        assertThat(session(steps = listOf(whisk, whisk)).cups(150)).isEqualTo(1.0)
         val skipped = StatsStep(StepKind.INFUSION, ended = false, skipped = true)
-        assertThat(session(steps = listOf(skipped, skipped)).cups).isEqualTo(1)
-        assertThat(session(steps = listOf(rinse)).cups).isEqualTo(1)
-        assertThat(session(steps = emptyList()).cups).isEqualTo(1)
+        assertThat(session(steps = listOf(skipped, skipped)).cups(150)).isEqualTo(1.0)
+        assertThat(session(steps = listOf(rinse)).cups(150)).isEqualTo(1.0)
+        assertThat(session(steps = emptyList()).cups(150)).isEqualTo(1.0)
         val neverStarted = StatsStep(StepKind.INFUSION, ended = false)
-        assertThat(session(steps = listOf(infusion(), infusion(), neverStarted)).cups).isEqualTo(2)
-        assertThat(session(steps = listOf(StatsStep(StepKind.INFUSION, ended = true, skipped = true))).cups)
-            .isEqualTo(1)
+        assertThat(session(steps = listOf(infusion(), infusion(), neverStarted)).cups(150)).isEqualTo(2.0)
+        assertThat(session(steps = listOf(StatsStep(StepKind.INFUSION, ended = true, skipped = true))).cups(150))
+            .isEqualTo(1.0)
     }
 
     @Test
@@ -115,5 +115,37 @@ class ConsumptionStatsTest {
 
         assertThat(out.coverPhoto).isEqualTo(photo)
         assertThat(out.styleKey).isEqualTo("sencha")
+    }
+
+    @Test
+    fun `cups by volume - a 1 l Kanne session of two infusions is 13 cups, sums stay unrounded until shown`() {
+        val kanne = session(waterMl = 1_000, steps = listOf(infusion(), infusion()))
+        val kyusu = session(waterMl = 120, steps = listOf(infusion()))
+        val noWater = session(steps = listOf(infusion(), infusion()))
+
+        assertThat(kanne.cups(150)).isWithin(1e-9).of(40.0 / 3)
+        assertThat(kyusu.cups(150)).isEqualTo(1.0)
+        assertThat(noWater.cups(150)).isEqualTo(2.0)
+
+        // 13,33 + 1 + 2 = 16,33 → 16; per period each bar rounds on its own.
+        val use = calculator(listOf(kanne, kyusu, noWater)).consumption(StatsRange.DAYS_30)
+        assertThat(use.cups).isEqualTo(16)
+        assertThat(calculator(listOf(kanne, kyusu, noWater)).overview(StatsRange.DAYS_30).cupCount).isEqualTo(16)
+    }
+
+    @Test
+    fun `the cup size setting recomputes cups and the cost per cup`() {
+        val sessions = listOf(session(waterMl = 300, costCents = 100, steps = listOf(infusion(), infusion())))
+        val at150 = StatsFixtures.calculator(sessions).consumption(StatsRange.DAYS_30)
+        val at300 = StatsCalculator(
+            StatsInput(sessions, emptyList(), emptyList(), emptySet(), cupSizeMl = 300),
+            StatsFixtures.clock(),
+        )
+            .consumption(StatsRange.DAYS_30)
+
+        assertThat(at150.cups).isEqualTo(4)
+        assertThat(at150.costPerCup?.cupCents).isEqualTo(25)
+        assertThat(at300.cups).isEqualTo(2)
+        assertThat(at300.costPerCup?.cupCents).isEqualTo(50)
     }
 }

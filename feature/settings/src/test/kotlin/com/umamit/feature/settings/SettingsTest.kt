@@ -531,6 +531,24 @@ class SettingsTest {
     }
 
     @Test
+    fun `Tassengroesse reads 150 ml and steps by 10 ml (INV-08)`() {
+        show()
+        compose.onNodeWithText("150 ml").performScrollTo().assertIsDisplayed()
+
+        clickRow("Tassengröße")
+        compose.onNodeWithContentDescription("10 ml mehr").performClick()
+        compose.waitForIdle()
+        assertThat(stored().cupSizeMl).isEqualTo(160)
+        compose.onNodeWithContentDescription("10 ml weniger").performClick()
+        compose.onNodeWithContentDescription("10 ml weniger").performClick()
+        compose.waitForIdle()
+        assertThat(stored().cupSizeMl).isEqualTo(140)
+        compose.onNodeWithText("Fertig").performClick()
+
+        compose.onNodeWithText("140 ml").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun `Knapp ab stops at 0 and 500 g`() {
         runBlocking { settings.update { it.copy(lowStockGrams = 500.0) } }
         show()

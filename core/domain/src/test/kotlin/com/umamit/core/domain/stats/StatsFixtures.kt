@@ -42,6 +42,7 @@ internal object StatsFixtures {
         descriptorKeys: List<String> = emptyList(),
         zone: ZoneId = BERLIN,
         styleKey: String? = null,
+        waterMl: Int? = null,
     ) = StatsSession(
         id = "s${counter++}",
         teaId = teaId,
@@ -58,6 +59,7 @@ internal object StatsFixtures {
         sessionTaste = sessionTaste,
         descriptorKeys = descriptorKeys,
         styleKey = styleKey,
+        waterMl = waterMl,
     )
 
     fun tea(

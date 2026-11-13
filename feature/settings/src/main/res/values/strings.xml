@@ -76,6 +76,11 @@
     <string name="settings_low_stock">Knapp ab</string>
     <string name="settings_low_stock_grams">%1$d g</string>
     <string name="settings_low_stock_detail">Ab dieser Menge erinnert dich Start ans Nachbestellen.</string>
+    <string name="settings_cup_size">Tassengröße</string>
+    <string name="settings_cup_size_ml">%1$d ml</string>
+    <string name="settings_cup_size_detail">So viel Wasser zählt als eine Tasse, in Statistik und auf der Tee-Seite.</string>
+    <string name="settings_cup_size_less">10 ml weniger</string>
+    <string name="settings_cup_size_more">10 ml mehr</string>
     <string name="settings_low_stock_less">5 g weniger</string>
     <string name="settings_low_stock_more">5 g mehr</string>
     <!-- The low-stock reminder (SET-28, SET-29, INV-11; D-098) and its interval (v0.5.0, D-108). -->

@@ -1595,6 +1595,15 @@ Shown on tea detail („0,24 € pro Tasse") and in statistics.
     cup size changes the average at once (nothing is stored per session). Sessions without a cost and the
     running one are left out. The stored `cost_cents` stays as it was at
     completion; a later purchase changes only the price and the estimate.
+  - **Cups by volume (D-115 Amendment 1, #268):** a cup is poured water ÷
+    the **cup size** (*Tassengröße* in *Einstellungen*, `cupSizeMl`, default
+    150 ml, 50–500 in 10 ml steps). A session's cups = Σ over its poured
+    non-rinse infusions of `water_ml` ÷ cup size; whisk-only or all-skipped
+    counts one infusion; without `water_ml` each infusion is one cup; never
+    below 1 per session. Sums stay unrounded and display rounds half up. The
+    estimate uses recipe water × its non-rinse steps ÷ cup size. Changing the
+    setting recomputes every figure (nothing is stored per session); this
+    replaces „one infusion = one cup" above.
   - **No price, no cost:** without a priced INITIAL or PURCHASE event none
     of the three lines shows (never „0 €"). The lines update at once after
     a purchase, a correction or a history delete.
