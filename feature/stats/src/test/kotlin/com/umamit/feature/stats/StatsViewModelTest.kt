@@ -17,7 +17,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -35,20 +34,25 @@ class StatsViewModelTest {
     private val repository = FakeStatsRepository()
     private val settings = FakeSettingsRepository(UserSettings())
 
+    /** Main, and the dispatcher the figures are computed on: no thread hops, so nothing outlives a test. */
+    private val dispatcher = UnconfinedTestDispatcher()
+
     @Before
-    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+    fun setUp() = Dispatchers.setMain(dispatcher)
 
     @After
     fun tearDown() {
         created.forEach { it.viewModelScope.cancel() }
-        // The cancelled flows finish on Default and hand over to Main: wait for them before Main goes away.
-        runBlocking { created.forEach { it.viewModelScope.coroutineContext[Job]?.join() } }
         Dispatchers.resetMain()
     }
 
     private val created = mutableListOf<StatsViewModel>()
 
-    private fun viewModel() = StatsViewModel(ObserveStats(repository, clock), settings, clock).also { created += it }
+    private fun viewModel() =
+        StatsViewModel(ObserveStats(repository, clock, dispatcher), settings, clock, dispatcher).also {
+            created +=
+                it
+        }
 
     private fun session(id: String, daysAgo: Long) = StatsSession(
         id = id,
@@ -103,7 +107,7 @@ class StatsViewModelTest {
         keepAlive(vm)
 
         assertThat(vm.settled()).isInstanceOf(StatsUiState.Data::class.java)
-        assertThat(vm.overview.first { it != null }!!.sessionCount).isEqualTo(0)
+        assertThat(vm.overview.first { it != null }!!.stats.sessionCount).isEqualTo(0)
     }
 
     @Test
@@ -131,11 +135,28 @@ class StatsViewModelTest {
         val vm = viewModel()
         keepAlive(vm)
         vm.overview.onEach { }.launchIn(backgroundScope)
-        assertThat(vm.overview.first { it != null }!!.sessionCount).isEqualTo(2)
+        assertThat(vm.overview.first { it != null }!!.stats.sessionCount).isEqualTo(2)
 
         vm.selectRange(StatsRange.DAYS_30)
 
-        assertThat(vm.overview.first { it?.sessionCount == 1 }).isNotNull()
+        // The range arrives with the figures it belongs to, never ahead of them.
+        val after = vm.overview.first { it?.stats?.sessionCount == 1 }
+        assertThat(after!!.range).isEqualTo(StatsRange.DAYS_30)
+    }
+
+    @Test
+    fun `the three tabs share one calculator read`() = runTest {
+        sessions(session("a", daysAgo = 1))
+        val vm = viewModel()
+        keepAlive(vm)
+        vm.overview.onEach { }.launchIn(backgroundScope)
+        vm.ratings.onEach { }.launchIn(backgroundScope)
+        vm.consumption.onEach { }.launchIn(backgroundScope)
+
+        assertThat(vm.overview.first { it != null }).isNotNull()
+        assertThat(vm.ratings.first { it != null }).isNotNull()
+        assertThat(vm.consumption.first { it != null }).isNotNull()
+        assertThat(repository.input.subscriptionCount.value).isEqualTo(1)
     }
 
     @Test

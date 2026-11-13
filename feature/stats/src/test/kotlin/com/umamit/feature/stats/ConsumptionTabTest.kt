@@ -32,8 +32,7 @@ class ConsumptionTabTest {
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 ConsumptionTab(
-                    stats = stats,
-                    range = range,
+                    figures = stats?.let { TabFigures(range, it) },
                     scrollState = rememberScrollState(),
                     onOpenTea = { opened += it },
                     thumbnail = { null },

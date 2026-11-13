@@ -1,5 +1,6 @@
 package com.umamit.core.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip
@@ -47,7 +48,7 @@ fun DescriptorChip(
 
 /**
  * The read-only form of `DescriptorChip`: the chosen look, with an optional [count] („Nori · 4", the tea detail's
- * most frequent descriptors). With [onClick] it is a button (the session page's chosen chips open the sheet), announced as [onClickLabel].
+ * most frequent descriptors; [countFormat] takes the label and the count, the statistics read „Nori · 12×"). With [onClick] it is a button (the session page's chosen chips open the sheet), announced as [onClickLabel].
  */
 @Composable
 fun DescriptorChip(
@@ -56,8 +57,9 @@ fun DescriptorChip(
     count: Int? = null,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
+    @StringRes countFormat: Int = R.string.ui_descriptor_with_count,
 ) {
-    val text = if (count == null) label else stringResource(R.string.ui_descriptor_with_count, label, count)
+    val text = if (count == null) label else stringResource(countFormat, label, count)
     val content: @Composable () -> Unit = {
         Text(
             text = text,

@@ -65,8 +65,7 @@ class OverviewScreenshotTest(private val dark: Boolean, private val fontScale: F
                 Modifier.width(411.dp).height(height).background(MaterialTheme.colorScheme.background).testTag("shot"),
             ) {
                 OverviewTab(
-                    stats = stats,
-                    range = range,
+                    figures = TabFigures(range, stats),
                     scrollState = rememberScrollState(),
                     onOpenTea = {},
                     thumbnail = { null },

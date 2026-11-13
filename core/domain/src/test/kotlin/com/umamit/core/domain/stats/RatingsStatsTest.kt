@@ -5,6 +5,7 @@ import com.umamit.core.domain.stats.StatsFixtures.TODAY
 import com.umamit.core.domain.stats.StatsFixtures.calculator
 import com.umamit.core.domain.stats.StatsFixtures.infusion
 import com.umamit.core.domain.stats.StatsFixtures.session
+import com.umamit.core.domain.stats.StatsFixtures.tea
 import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StepKind
@@ -107,6 +108,25 @@ class RatingsStatsTest {
         val six = (1..6).flatMap { rated("t$it", "x", 5.0, 5.0) + rated("t$it", "y", 5.0 - it * 0.5, 5.0 - it * 0.5) }
         val best = calculator(six).ratings(StatsRange.DAYS_30).bestRecipes
         assertThat(best.map { it.teaId }).containsExactly("t6", "t5", "t4", "t3", "t2").inOrder()
+    }
+
+    @Test
+    fun `top rated and best recipe rows carry the cover photo and the style key, a deleted tea the snapshot style`() {
+        val photo = java.io.File("cover.jpg")
+        val sessions = listOf(4.0, 5.0, 4.5).map { session(teaId = "a", rating = it) } +
+            listOf(3.0, 3.0, 3.0).map { session(teaId = null, teaName = "Weg", rating = it, styleKey = "gyokuro") } +
+            rated("a", "kalt", 4.0, 4.0) + rated("a", "heiss", 3.0, 3.0)
+        val teas = listOf(tea("a", coverPhoto = photo, styleKey = "sencha"))
+
+        val ratings = calculator(sessions, teas).ratings(StatsRange.DAYS_30)
+
+        val top = ratings.topRated.associateBy { it.teaId }
+        assertThat(top.getValue("a").coverPhoto).isEqualTo(photo)
+        assertThat(top.getValue("a").styleKey).isEqualTo("sencha")
+        assertThat(top.getValue(null).coverPhoto).isNull()
+        assertThat(top.getValue(null).styleKey).isEqualTo("gyokuro")
+        assertThat(ratings.bestRecipes.single().coverPhoto).isEqualTo(photo)
+        assertThat(ratings.bestRecipes.single().styleKey).isEqualTo("sencha")
     }
 
     @Test

@@ -65,14 +65,15 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
         val inRange = sessions.filter { it.day in window }
         val rated = inRange.filter { it.session.rating != null }
         val names = teaNames()
+        val teas = input.teas.associateBy { it.id }
         return RatingsStats(
             average = rated.map { it.rating }.takeIf { it.isNotEmpty() }?.average(),
             ratedCount = rated.size,
             sessionCount = inRange.size,
             distribution = starBuckets(rated),
-            topRated = topRated(rated, names),
+            topRated = topRated(rated, names, teas),
             ratingPerPeriod = ratingPerPeriod(window, rated),
-            bestRecipes = bestRecipes(rated, names),
+            bestRecipes = bestRecipes(rated, names, teas),
             taste = taste(inRange),
             topDescriptors = topDescriptors(inRange, input.knownDescriptorKeys),
         )

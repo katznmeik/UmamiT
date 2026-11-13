@@ -97,25 +97,22 @@ fun StatsRoute(
         onOpenSettings = onOpenSettings,
         modifier = modifier,
         scrollToTopRequest = scrollToTopRequest,
-    ) { tab, range, scrollState ->
+    ) { tab, _, scrollState ->
         when (tab) {
             StatsTab.OVERVIEW -> OverviewTab(
-                stats = viewModel.overview.collectAsStateWithLifecycle().value,
-                range = range,
+                figures = viewModel.overview.collectAsStateWithLifecycle().value,
                 scrollState = scrollState,
                 onOpenTea = onOpenTea,
             )
 
             StatsTab.RATINGS -> RatingsTab(
-                stats = viewModel.ratings.collectAsStateWithLifecycle().value,
-                range = range,
+                figures = viewModel.ratings.collectAsStateWithLifecycle().value,
                 scrollState = scrollState,
                 onOpenTea = onOpenTea,
             )
 
             StatsTab.CONSUMPTION -> ConsumptionTab(
-                stats = viewModel.consumption.collectAsStateWithLifecycle().value,
-                range = range,
+                figures = viewModel.consumption.collectAsStateWithLifecycle().value,
                 scrollState = scrollState,
                 onOpenTea = onOpenTea,
             )
@@ -138,7 +135,7 @@ fun StatsContent(
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     tabContent: @Composable (tab: StatsTab, range: StatsRange, scrollState: ScrollState) -> Unit =
-        { tab, range, scrollState -> PlaceholderTab(tab, range, scrollState) },
+        { tab, _, scrollState -> PlaceholderTab(tab, scrollState) },
 ) {
     Scaffold(
         modifier = modifier,
@@ -166,11 +163,11 @@ fun StatsContent(
 }
 
 @Composable
-private fun PlaceholderTab(tab: StatsTab, range: StatsRange, scrollState: ScrollState) {
+private fun PlaceholderTab(tab: StatsTab, scrollState: ScrollState) {
     when (tab) {
-        StatsTab.OVERVIEW -> OverviewTab(null, range, scrollState, onOpenTea = {})
-        StatsTab.RATINGS -> RatingsTab(null, range, scrollState, onOpenTea = {})
-        StatsTab.CONSUMPTION -> ConsumptionTab(null, range, scrollState, onOpenTea = {})
+        StatsTab.OVERVIEW -> OverviewTab(null, scrollState, onOpenTea = {})
+        StatsTab.RATINGS -> RatingsTab(null, scrollState, onOpenTea = {})
+        StatsTab.CONSUMPTION -> ConsumptionTab(null, scrollState, onOpenTea = {})
     }
 }
 

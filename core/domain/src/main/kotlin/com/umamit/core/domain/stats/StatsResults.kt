@@ -106,15 +106,31 @@ data class RatingsStats(
 /** The rated sessions whose rating rounds down to [stars] (1–5). */
 data class StarBucket(val stars: Int, val count: Int)
 
-/** „Ø 4,6 ★ · 5 Bewertungen"; [teaId] null for a deleted tea (no tap). */
-data class TeaRatingRow(val teaId: String?, val teaName: String, val average: Double, val ratingCount: Int)
+/**
+ * „Ø 4,6 ★ · 5 Bewertungen"; [teaId] null for a deleted tea (no tap). [coverPhoto] and [styleKey] as in [TeaSessions].
+ */
+data class TeaRatingRow(
+    val teaId: String?,
+    val teaName: String,
+    val average: Double,
+    val ratingCount: Int,
+    val coverPhoto: File? = null,
+    val styleKey: String? = null,
+)
 
 /**
  * A tea's recipes by average rating, best first („Gyokuro Hisui · Kalt 4,6 ★ · Klassisch 4,0 ★").
  *
  * @property gap the best recipe's average minus the worst's.
  */
-data class BestRecipeTea(val teaId: String?, val teaName: String, val recipes: List<RecipeRating>, val gap: Double)
+data class BestRecipeTea(
+    val teaId: String?,
+    val teaName: String,
+    val recipes: List<RecipeRating>,
+    val gap: Double,
+    val coverPhoto: File? = null,
+    val styleKey: String? = null,
+)
 
 /** A recipe's average over its rated sessions; [profileName] is the latest session's `profile_name` snapshot. */
 data class RecipeRating(val profileId: String, val profileName: String?, val average: Double, val ratingCount: Int)

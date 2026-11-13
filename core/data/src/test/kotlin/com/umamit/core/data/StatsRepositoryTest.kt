@@ -49,7 +49,8 @@ class StatsRepositoryTest {
 
     private val settings = FakeSettingsRepository(UserSettings(lowStockGrams = 20.0))
     private val data = TestDatabase(settings = settings)
-    private val stats = RoomStatsRepository(data.db.statsDao(), settings, PhotoFiles(java.io.File("photos")))
+    private val stats =
+        RoomStatsRepository(data.db.statsDao(), settings, PhotoFiles(java.io.File("photos")), Dispatchers.Default)
 
     @After
     fun tearDown() = data.close()
@@ -276,12 +277,13 @@ class StatsRepositoryTest {
 
             override fun zone(): ZoneId = ZoneOffset.UTC
         }
-        val observe = ObserveStats(stats, clock)
+        val observe = ObserveStats(stats, clock, Dispatchers.Default)
 
-        assertThat(observe.overview(StatsRange.ALL).first().sessionCount).isEqualTo(1)
-        assertThat(observe.ratings(StatsRange.ALL).first().ratedCount).isEqualTo(1)
-        assertThat(observe.consumption(StatsRange.ALL).first().grams).isEqualTo(4.0)
-        assertThat(observe.calculator().first().hasSessions).isTrue()
+        val calculator = observe.calculator().first()
+        assertThat(calculator.overview(StatsRange.ALL).sessionCount).isEqualTo(1)
+        assertThat(calculator.ratings(StatsRange.ALL).ratedCount).isEqualTo(1)
+        assertThat(calculator.consumption(StatsRange.ALL).grams).isEqualTo(4.0)
+        assertThat(calculator.hasSessions).isTrue()
     }
 
     private companion object {

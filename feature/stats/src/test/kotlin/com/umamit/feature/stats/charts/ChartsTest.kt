@@ -172,7 +172,7 @@ class ChartsTest {
             PeriodBarChart(listOf(PeriodValue("Okt.", 1234.5), PeriodValue("Nov.", 1.0)), ChartUnit.GRAMS, "Gramm")
         }
         val description = chart().fetchSemanticsNode().config[SemanticsProperties.ContentDescription].joinToString()
-        assertThat(description).isEqualTo("Gramm. Okt.: 1.234,5 g. Nov.: 1 g.")
+        assertThat(description).isEqualTo("Gramm. Okt.: 1.235 g. Nov.: 1,0 g.")
     }
 
     @Test

@@ -55,24 +55,25 @@ private val MONEY_TITLES = BarTitles(
 )
 
 /**
- * *Verbrauch* (INS-05): grams, cups, money spent, the average cost per cup and the teas running out. [stats] is
- * null until the first read and changes in place with [range]; [onOpenTea] opens a collection tea's detail (SCR-09),
+ * *Verbrauch* (INS-05): grams, cups, money spent, the average cost per cup and the teas running out. [figures]
+ * are null until the first read and change in place with their range; [onOpenTea] opens a collection tea's
+ * detail (SCR-09),
  * never called for a deleted tea. [thumbnail] loads a tea's cover photo (tests pass a placeholder).
  */
 @Composable
 fun ConsumptionTab(
-    stats: ConsumptionStats?,
-    range: StatsRange,
+    figures: TabFigures<ConsumptionStats>?,
     scrollState: ScrollState,
     onOpenTea: (teaId: String) -> Unit,
     modifier: Modifier = Modifier,
     thumbnail: @Composable (File) -> Painter? = { rememberAsyncImagePainter(it) },
 ) {
     StatsTabColumn(scrollState, modifier) {
-        if (stats == null) return@StatsTabColumn
+        if (figures == null) return@StatsTabColumn
+        val stats = figures.stats
         val none = stats.grams <= 0.0 && stats.cups == 0
         val monthly = stats.gramsPerPeriod.firstOrNull()?.period?.unit == PeriodUnit.MONTH
-        val bars = BarSetup(monthly, range)
+        val bars = BarSetup(monthly, figures.range)
         StatsSection(title = stringResource(R.string.stats_consumption_section_grams), isEmpty = none) {
             Numeral(
                 value = stringResource(R.string.stats_chart_grams, consumptionGrams(stats.grams)),
@@ -196,7 +197,7 @@ private fun RunningOutRow(
             stringResource(R.string.stats_consumption_low, consumptionGrams(tea.remainingGrams))
         },
         onClick = { onOpenTea(tea.teaId) },
-        onClickLabel = stringResource(R.string.stats_overview_open_tea),
+        onClickLabel = stringResource(R.string.stats_open_tea),
         thumbnail = tea.coverPhoto?.let { thumbnail(it) },
         placeholderColor = UmamiTheme.extendedColors.teaTypes.forStyle(tea.styleKey),
         showDivider = showDivider,

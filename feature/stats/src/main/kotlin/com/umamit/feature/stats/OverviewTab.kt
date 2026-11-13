@@ -40,21 +40,22 @@ private const val PERCENT = 100.0
 
 /**
  * *Überblick* (INS-01, INS-03, INS-06): the big numerals, sessions per period, the streak, the most brewed teas,
- * the Sorten donut and the habits. [stats] is null until the first read and changes in place with [range];
+ * the Sorten donut and the habits. [figures] are null until the first read and change in place with their range;
  * [onOpenTea] opens a collection tea's detail (SCR-09), never called for a deleted tea. [thumbnail] loads a tea's
  * cover photo (tests pass a placeholder).
  */
 @Composable
 fun OverviewTab(
-    stats: OverviewStats?,
-    range: StatsRange,
+    figures: TabFigures<OverviewStats>?,
     scrollState: ScrollState,
     onOpenTea: (teaId: String) -> Unit,
     modifier: Modifier = Modifier,
     thumbnail: @Composable (File) -> Painter? = { rememberAsyncImagePainter(it) },
 ) {
     StatsTabColumn(scrollState, modifier) {
-        if (stats == null) return@StatsTabColumn
+        if (figures == null) return@StatsTabColumn
+        val stats = figures.stats
+        val range = figures.range
         val none = stats.sessionCount == 0
         Numerals(stats)
         StatsSection(title = stringResource(R.string.stats_overview_section_sessions), isEmpty = none) {
@@ -66,7 +67,7 @@ fun OverviewTab(
                 MostBrewedRow(tea, showDivider = index < stats.mostBrewed.lastIndex, onOpenTea, thumbnail)
             }
         }
-        StatsSection(title = stringResource(R.string.stats_overview_section_sorten), isEmpty = none) {
+        StatsSection(title = stringResource(R.string.stats_overview_sorten), isEmpty = none) {
             Sorten(stats, range)
         }
         StatsSection(title = stringResource(R.string.stats_overview_section_habits), isEmpty = none) {
@@ -181,7 +182,7 @@ private fun MostBrewedRow(
         title = tea.teaName,
         meta = stringResource(R.string.stats_overview_times, tea.sessions),
         onClick = teaId?.let { { onOpenTea(it) } },
-        onClickLabel = stringResource(R.string.stats_overview_open_tea),
+        onClickLabel = stringResource(R.string.stats_open_tea),
         thumbnail = tea.coverPhoto?.let { thumbnail(it) },
         placeholderColor = UmamiTheme.extendedColors.teaTypes.forStyle(tea.styleKey),
         showDivider = showDivider,
@@ -200,7 +201,7 @@ private fun Sorten(stats: OverviewStats, range: StatsRange) {
     }
     SortenDonut(
         slices = slices,
-        title = stringResource(R.string.stats_overview_sorten_title),
+        title = stringResource(R.string.stats_overview_sorten),
         modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin),
         selectionResetKey = range,
     )
