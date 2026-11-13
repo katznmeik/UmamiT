@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-12
+> Status: **Living document** · Last updated: 2026-11-13
 
 ## Open questions
 
@@ -322,6 +322,124 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-115"></a>
+### D-115 — v0.7.0 Statistik: three tabs, a remembered rolling range, neutral streaks, Sorten donut, ratings with their history and the best recipe, taste over every infusion, purchases as money spent, brewing habits (INS-01–INS-08; SCR-18; 05 §6 `statsRange`, `statsTab`) · *Accepted* (PO, 2026-11-13, grilled in the session Q1–Q20 as options in five rounds; details marked „Claude" are Claude's defaults and were not put to the PO)
+
+**Context.** Statistik is M4's second release (D-112 Q1, renumbered v0.7.0
+by D-114 Q1). 02 §12 (INS-01–INS-07), SCR-18 and the A9 vignette were the
+starting point, not confirmed by the PO. Since D-114 taste is stored per
+infusion.
+
+**Decision (the PO's answers).**
+
+1. **Q1, layout:** three tabs **Überblick · Bewertungen · Verbrauch** under
+   „Deine Tee-Reise", as in the mockup.
+2. **Q2, range:** **30 T · 90 T · 12 M · Gesamt**, rolling, one selector for
+   every tab; 90 T the first time.
+3. **Q3, streaks:** current and longest, shown neutrally (no flame, no
+   reminder, no pressure when it breaks).
+4. **Q4, the donut** groups sessions by the tea's **Sorte**: the five
+   largest, the rest „Andere", percentages in the legend.
+5. **Q5, ratings:** all four parts: **average and distribution**,
+   **top-rated teas** (≥ 3 ratings), **rating over time**, **best recipe
+   per tea**.
+6. **Q6, taste:** a radar averaged over **every infusion with taste** in the
+   range („aus 34 Aufgüssen"), as the tea detail does.
+7. **Q7, descriptors:** the **top 5 with counts**.
+8. **Q8, what counts:** **finished sessions, including those of archived or
+   deleted teas** (by the snapshot); a running session never counts.
+9. **Q9, Verbrauch:** grams and cups per period, money spent, average cost
+   per cup, running out.
+10. **Q10, money spent** is **purchases**: the prices of the priced
+    purchases (and priced initial stock) dated in the range.
+11. **Q11, bars adapt to the range:** 30 T and 90 T per week, 12 M per
+    month, Gesamt per month and scrollable from the first session.
+12. **Q12, rating over time and best recipe** both live in *Bewertungen*;
+    the line follows the range's periods (only periods with ratings); best
+    recipe lists teas with ≥ 2 recipes, each rated ≥ 2×.
+13. **Q13, Überblick:** sessions, cups and teas („24 Tees · +3 im
+    Zeitraum"); the sessions chart and the streak; the most brewed top 5
+    and the donut; and **brewing habits** (new, INS-06).
+14. **Q14, taps:** a tap on a bar or slice shows its value; tea rows open
+    the tea (none for a deleted tea); **no** drill-down into the journal.
+15. **Q15, empty state:** A9 only when there is **no finished session at
+    all**; with data but an empty range each section says „In diesem
+    Zeitraum nichts".
+16. **Q16, accessibility and release:** each chart reads as a **list for
+    TalkBack**, no visible table toggle; `v0.7.0-rc.1`, then the final; an
+    rc.2 only if the checklist finds something.
+17. **Q17, habits:** two small bar rows: **day part** (Morgen 5–11 · Mittag
+    11–14 · Nachmittag 14–18 · Abend 18–5) and **weekday** (Mo–So), as
+    shares of the range's sessions.
+18. **Q18, streaks ignore the range:** always over all time („seit
+    Beginn"); a day counts with a finished session.
+19. **Q19, remembered:** the last range **and** tab are kept across app
+    starts; the first start is 90 T · *Überblick*.
+20. **Q20, motion:** bars and donut **grow once** when a tab first shows
+    (≈ 300 ms, ease-out); a range change **morphs** the bars; reduce
+    motion: fade only.
+
+**Details (Claude; not asked, open to the PO's correction in the review).**
+
+- **Sessions** are `COMPLETED` or `MANUAL`, auto-finished ones included;
+  each belongs to the day of its `started_at` in its own `zone_id`. Cups
+  follow INV-08's rule (poured non-rinse steps; whisk-only or all-skipped =
+  1).
+- **Teas „+n im Zeitraum"** counts non-archived teas whose `created_at` is
+  in the range; hidden at 0. The total is the non-archived teas now.
+- **Current streak:** includes today when today has a session, else ends
+  yesterday (a day is not broken before it is over); 0 reads „Keine Serie
+  gerade".
+- **Periods:** ISO weeks (Monday first, „KW 44"), the edge weeks counting
+  only the range's days; months „Okt."; the period in progress is drawn in
+  full `primary`, earlier ones at 70 %.
+- **Donut:** a session without a Sorte counts as „Andere"; percentages are
+  whole numbers that sum to 100 (largest remainder); slice colours from the
+  type colours (03 §3.1) without repeats.
+- **Distribution:** half stars rounded down (0,5 counts as 1 ★), as INS-02
+  already said.
+- **Best recipe:** sessions count for their `profile_id` (named by the
+  `profile_name` snapshot); sessions without a recipe don't count; up to 5
+  teas, ordered by the gap between their best and worst recipe; hidden when
+  none qualifies.
+- **Money spent:** INITIAL and PURCHASE events with a `price_cents`, by
+  `occurred_at`; a deleted tea's events are gone with it (cascade).
+  Without one: „Keine Käufe mit Preis".
+- **Cost per cup:** Σ `cost_cents` ÷ Σ cups over the range's sessions that
+  have a cost (as INV-08's average); hidden without one.
+- **Running out** ignores the range: non-archived teas *Leer* or *Knapp*
+  with the warning on, *Leer* first, then by remaining grams.
+- **Descriptors:** unknown keys (a later vocabulary change) are not shown.
+- **Rating line:** y from 1 to 5 ★, points only on periods with a rating,
+  the line breaks across gaps.
+- **Value label:** an `inverseSurface` tooltip; a second tap or a tap
+  elsewhere hides it.
+- **Header:** „Deine Tee-Reise" scrolls away; the range selector (a
+  segmented button) and the tabs stay pinned; the tabs are a swipeable
+  pager.
+- **Motion details:** bars stagger by ≤ 20 ms, the donut sweeps from 12
+  o'clock, morphs ≈ 250 ms, numerals switch without a count-up.
+- **Charts:** Vico for the bars and the line, a custom Canvas donut (06 §4,
+  as planned); the radar is the shared `TasteRadar`.
+- **Settings:** `statsRange` (DAYS_30/DAYS_90/MONTHS_12/ALL) and `statsTab`
+  (OVERVIEW/RATINGS/CONSUMPTION) in DataStore; no database migration.
+- **Performance:** the figures are computed off the main thread by pure
+  functions in `core:domain` over one read of the finished sessions with
+  their steps, descriptors, the teas and the stock events; NFR-PERF-06
+  (500 ms for 10 000 sessions) is checked by a JVM test.
+
+**Not in v0.7.0.** A journal filter from Statistik; a visible table toggle;
+streak reminders or goals; statistics per tea on the tea detail (beyond
+what it has); custom descriptors (D-112).
+
+**Consequences.**
+
+- **No timer code** (`feature:brew`, `core:timer`, `core:timer-engine`
+  unchanged) and **no migration**: tiers T2–T3, no T4 timer review; only the
+  final release needs the accuracy run (09 §4a), as v0.6.0.
+- **Specs written:** 02 §12 (INS-01–INS-08), 03 SCR-18, 05 §6, 09 (§2,
+  §4), 11, 12, `docs/design/assets.md` (A9), the specs README.
 
 <a id="d-114"></a>
 ### D-114 — v0.6.1: the PO's feedback on v0.6.0: taste per infusion (also on the timer), folding taste, quick-timer chips, photo viewer, catalog links in ⋮, all kinds without a chip, „N Tees", the *Design* setting; Statistik becomes v0.7.0 (TMR-22, JRN-03, JRN-05, JRN-09, JRN-10, TEA-05, TEA-13, CAT-07, CAT-10, SET-05; SCR-05, SCR-07, SCR-09, SCR-16, SCR-19, SCR-25, SCR-28; amends D-112's taste per session and Q1's numbering, D-103's default kind, D-097's 8:00 chip row) · *Accepted* (PO, 2026-11-12, grilled in the session Q1–Q19 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
@@ -7549,6 +7667,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-13 | D-115: Statistik (v0.7.0) grilled with the PO (Q1–Q20): three tabs, a remembered rolling range 30 T · 90 T · 12 M · Gesamt with weekly or monthly bars, a neutral all-time streak, the Sorten donut, brewing habits, ratings with distribution, top rated, rating over time and best recipe, taste over every infusion, top descriptors, money spent as purchases, cost per cup, running out; A9 only without any session; TalkBack lists. No migration, no timer code. |
 | 2026-11-12 | D-114: PO feedback after v0.6.0 → v0.6.1 (Statistik becomes v0.7.0): taste per infusion with a short note, also on the timer screen (umamit.db v7); GESCHMACK folds; quick-timer chips 1:00–15:00; a full-screen photo viewer; *Tee ansehen* / *Im Katalog ansehen* in the ⋮ of the session page and the tea detail; the Katalog opens with every kind and groups by kind; „N Tees" everywhere; *Design* (System · Hell · Dunkel). Timer code: T3+, T4 timer review, accuracy runs per rc. |
 | 2026-11-11 | D-112: M4 is specified with the PO (Q1–Q18) and split: **v0.6.0** is the journal (rating, taste, descriptors, notes and session photos entered in place on the session page, all optional; stars on the „Gespeichert" sheet; the session editor for date, vessel, leaf, water and step times; journal search with three filters; *Zeiten ins Rezept übernehmen* only after deliberate changes, without a setting, SET-18 retired; ratings on the tea detail and in *Meine Tees*; LETZTE SITZUNGEN and GESCHMACK; umamit.db v6), **v0.6.1** is Statistik. JRN-08's no-notes dot is dropped; custom descriptors, notes per infusion, manual entries and coach tips stay ideas for later. The anchors of D-110 and D-111 are corrected. |
 | 2026-11-10 | D-110: PO feedback after v0.5.0 → v0.5.1: Start's *Nochmal brühen* and *Zuletzt gebrüht* become one section of six teas whose rows brew again; *Knapp ab* shows the value in effect; the catalog filter sheet's *Fertig* is pinned beside the title; the display font becomes Alegreya Sans in place of Cormorant Garamond (amends D-027). 02 BRW-11, 03 §1, §3.2, SCR-02, SCR-09, SCR-19, 09 and 11 updated. |

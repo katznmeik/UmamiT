@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.2** · Last updated: 2026-11-12 (catalog kind default, infusion taste, D-114; 2026-11-09: active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
+> Status: **Draft v0.2** · Last updated: 2026-11-13 (Serie, Zeitraum, Tageszeit, D-115; 2026-11-12: catalog kind default, infusion taste, D-114; 2026-11-09: active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
 
 ## Tea terms
 
@@ -96,3 +96,6 @@
 | **MoSCoW** | Must / Should / Could / Won't prioritisation. |
 | **TTID / TTFD** | Time to initial / full display (startup metrics). |
 | **PO** | Product owner. |
+| **Serie** (streak) | Statistik (INS-01, D-115): consecutive calendar days with at least one finished session, over all time; shown neutrally as „7 Tage in Folge · längste 21 Tage". |
+| **Zeitraum** | Statistik's range (INS-07): 30 T, 90 T, 12 M or Gesamt, rolling up to today; the charts' periods are ISO weeks (30 T, 90 T) or months (12 M, Gesamt). |
+| **Tageszeit** | Statistik's day parts (INS-06): Morgen 05–11, Mittag 11–14, Nachmittag 14–18, Abend 18–05 Uhr. |

@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-12 (v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-13 (v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -1652,40 +1652,127 @@ Start.
 
 ## 12. Statistics (INS) — SCR-18
 
-**v0.7.0 ([D-112](10-open-questions-and-decisions.md#d-112); v0.6.1 until
-[D-114](10-open-questions-and-decisions.md#d-114)).** Statistik is
-M4's second release and gets its own spec and grilling after v0.6.0; the
-lines below are the starting point, not yet confirmed by the PO. Until then
-SCR-18 keeps its placeholder.
+**v0.7.0 ([D-115](10-open-questions-and-decisions.md#d-115); grilled
+2026-11-13, Q1–Q20).** Top-level tab „Statistik" with the title „Deine
+Tee-Reise", a range selector (INS-07) and three tabs **Überblick ·
+Bewertungen · Verbrauch** (as in the mockup). No database migration: every
+figure is computed from the existing tables when read.
 
-Top-level tab „Statistik" with tabs **Überblick · Bewertungen · Verbrauch**
-(as in the mockup's "Your Tea Journey").
+**Counting rules (all INS).**
+- A session counts when it is **finished** (`COMPLETED` or `MANUAL`; a
+  session still `IN_PROGRESS` never counts), also when its tea was archived
+  or deleted: it is counted under its snapshot (`tea_name`, `tea_type`).
+  Sessions the app finished on its own (`auto_finished`) count too.
+- A session belongs to the **day of its `started_at`** in its own `zone_id`
+  (the journal's day).
+- **Cups** as INV-08: one per poured non-rinse step (ended, not skipped); a
+  whisk-only session, or a session whose every step was skipped, is one cup.
+- **Taste** is per infusion (D-114): averages run per axis over the
+  infusions that set that axis (and the v0.6.0 sessions without step rows,
+  05 §3.6).
+- The figures update while the screen shows, when a session finishes or is
+  edited or deleted, and when a purchase or a tea changes.
 
-**INS-01 — Activity** `Must`
-Sessions this week / month, total teas in collection („+3 diesen Monat"),
-sessions per week (last 12 weeks), current and longest streak (shown neutrally),
-most-brewed teas (top 5).
+**INS-01 — Activity (Überblick)** `Must`
+- Big numerals: **sessions** in the range, **cups** in the range, and
+  **teas** in the collection („24 Tees · +3 im Zeitraum": non-archived teas
+  now; the plus counts teas created in the range and is hidden at 0).
+- **Sessions per period** as bars (the periods of INS-07).
+- **Streak** („Serie"), always over all time, never the range, shown
+  neutrally: „7 Tage in Folge · längste 21 Tage · seit Beginn". A day counts
+  with at least one finished session; the current streak includes today
+  when today has a session, else it ends yesterday (a day without a session
+  yet does not break it before the day is over); 0 shows „Keine Serie
+  gerade". No flame, no reminder, no message when it breaks.
+- **Most brewed:** the top 5 teas by sessions in the range („12×"); a tap
+  opens the tea's detail (SCR-09); a deleted tea's row has no tap.
 
-**INS-02 — Ratings** `Must`
-Average rating and distribution in five buckets 1–5 ★ (half stars rounded
-down, 0,5 counts as 1 ★; rated sessions only, with count of rated vs.
-total), top-rated teas (≥ 3 ratings).
+**INS-06 — Brewing habits (Überblick)** `Should`
+Share of sessions in the range by **day part** — Morgen (05:00–10:59) ·
+Mittag (11:00–13:59) · Nachmittag (14:00–17:59) · Abend (18:00–04:59) —
+and by **weekday** (Mo–So), as two small bar rows with percentages.
 
-**INS-03 — Tea types** `Must`
-Share of sessions by type (Gyokuro, Sencha, Matcha, …) as donut with legend
-and percentages.
+**INS-03 — Tea types (Überblick)** `Must`
+Share of sessions in the range by the tea's **Sorte** (`tea_type` snapshot:
+Gyokuro, Sencha, Matcha, Darjeeling …) as a donut with legend and
+percentages: the five largest, the rest as „Andere"; a session without a
+Sorte counts as „Andere". Percentages are rounded to whole numbers and sum
+to 100 (largest remainder).
 
-**INS-04 — Taste** `Should`
-Average taste radar of sessions rated ≥ 4 ★; most frequent descriptors.
+**INS-02 — Ratings (Bewertungen)** `Must`
+- **Average and distribution:** „Ø 4,2 ★ · 18 von 25 Sitzungen bewertet"
+  and five bars 1–5 ★ (half stars rounded down; 0,5 counts as 1 ★); rated
+  sessions only.
+- **Top-rated teas:** the top 5 teas by average rating among teas with
+  **≥ 3 rated sessions** in the range („Ø 4,6 ★ · 5 Bewertungen"); a tap
+  opens the tea (none for a deleted tea).
+- **Rating over time:** a line of the average rating per period (the
+  periods of INS-07); a period without a rating has no point (the line
+  breaks there).
+- **Best recipe:** for each tea with **≥ 2 recipes that each have ≥ 2 rated
+  sessions** in the range, its recipes by average rating, best first
+  („Gyokuro Hisui · Kalt 4,6 ★ · Klassisch 4,0 ★"); up to 5 teas, ordered
+  by the gap between best and worst. A session counts for the recipe it was
+  brewed with (`profile_id`, named by its `profile_name` snapshot); sessions
+  without a recipe don't count here. The section is hidden when no tea
+  qualifies.
 
-**INS-05 — Consumption & cost** `Must`
-Grams used per month (bar chart, 12 months), cups per month (one cup per
-infusion, INV-08), money spent on tea per month (purchases), average cost per
-cup, teas running out (Knapp/Leer).
+**INS-04 — Taste (Bewertungen)** `Should`
+- **Radar** averaged per axis over every infusion with taste in the range
+  („aus 34 Aufgüssen"); shown once three axes have an average, else the
+  summary line as on the session page (D-114).
+- **Descriptors:** the five most frequent in the range, as chips with their
+  count („Nori · 12×"); keys the app does not know are not shown.
 
-**INS-07 — Time range** `Must`: 30 Tage, 90 Tage, 12 Monate, Gesamt (default 90 Tage).
+**INS-05 — Consumption & cost (Verbrauch)** `Must`
+- **Grams:** the big numeral of leaf used in the range („38 g") and bars of
+  grams per period (Σ `leaf_grams` of the finished sessions; a session
+  without a leaf amount adds nothing).
+- **Cups:** per period as a second bar chart below the grams.
+- **Money spent:** what was paid for tea: Σ `price_cents` of the INITIAL
+  and PURCHASE events with a price whose `occurred_at` is in the range
+  („64,80 € im Zeitraum"), and bars per period. Events of deleted teas are
+  gone with their tea (cascade) and don't count. Without a priced purchase
+  in the range: „Keine Käufe mit Preis".
+- **Average cost per cup:** Σ `cost_cents` ÷ Σ cups over the sessions in
+  the range that have a `cost_cents` („Ø 0,27 € pro Tasse · aus 20
+  Sitzungen"); hidden without such a session (never „0 €").
+- **Running out:** the non-archived teas whose stock is *Leer* or *Knapp*
+  (INV-05) and whose stock warning is on (`low_stock_warning`), *Leer*
+  first, then by remaining grams; „12 g · knapp" / „leer"; a tap opens the
+  tea. Not limited by the range. Hidden when none.
 
-Every chart has an accessible table alternative.
+**INS-07 — Time range** `Must`
+- One selector above the tabs for every tab: **30 T · 90 T · 12 M ·
+  Gesamt**, rolling up to today („30 T" = today and the 29 days before).
+  The first start shows 90 T on *Überblick*; afterwards the **last range
+  and tab are remembered** across app starts (DataStore `statsRange`,
+  `statsTab`, 05 §6).
+- **Periods of the bar and line charts:** 30 T and 90 T **per week** (ISO
+  weeks, Monday first, „KW 44"; the weeks touching the range, ≈ 5 and 13
+  bars; the first and last week only count the range's days); 12 M **per
+  month** (12 bars, the current month last); Gesamt **per month** from the
+  first finished session's month, horizontally scrollable, opening on the
+  current month.
+- Streaks (INS-01) and running out (INS-05) ignore the range.
+
+**INS-08 — Interaction, motion and accessibility** `Must`
+- A tap on a bar, a line point or a donut slice shows its value in a small
+  label („KW 44 · 6 Sitzungen"; „Sencha · 42 % · 21 Sitzungen"); a second
+  tap or a tap elsewhere hides it. No drill-down into the journal.
+- **Motion:** bars and the donut grow once when a tab first shows
+  (≈ 300 ms, ease-out); a range change morphs the bars to the new values;
+  with reduce motion only a fade (03 §3.6).
+- **Accessibility:** every chart is one TalkBack node that reads its data
+  as a list („Sitzungen pro Woche. KW 44: 6. KW 45: 4. …"); there is no
+  visible table toggle. Numerals and labels follow the font scale up to 2.0.
+- **Empty state:** with no finished session at all, the screen shows A9
+  (three stones and a leaf) with „Noch keine Statistik · Brühe deinen ersten
+  Tee, dann wächst hier deine Tee-Reise." and no tabs. With sessions but
+  nothing in the range, each section says quietly „In diesem Zeitraum
+  nichts".
+
+Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 
 ---
 

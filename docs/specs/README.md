@@ -1,6 +1,6 @@
 # UmamiT — Specifications
 
-> Status: **Draft v0.2 — for review** · Last updated: 2026-11-12 (v0.6.1 bullet, D-114; 2026-11-11: journal bullet, D-112)
+> Status: **Draft v0.2 — for review** · Last updated: 2026-11-13 (v0.7.0 bullet, D-115; 2026-11-12: v0.6.1 bullet, D-114; 2026-11-11: journal bullet, D-112)
 
 Product and technical specification of **UmamiT**, a personal Android app
 for brewing tea, focused on umami-rich Japanese green teas. It provides a
@@ -70,6 +70,12 @@ releases are dispatched and verified).
     also on the timer screen (umamit.db v7); GESCHMACK folds; quick-timer
     chips 1:00–15:00; photo viewer; catalog links in ⋮; the Katalog opens
     with every kind; „N Tees"; *Design* (System · Hell · Dunkel). — D-114
+  - v0.7.0 is Statistik: „Deine Tee-Reise" with a remembered range (30 T ·
+    90 T · 12 M · Gesamt) and three tabs: Überblick (sessions, cups, teas,
+    streak, most brewed, Sorten donut, brewing habits), Bewertungen
+    (average, distribution, top rated, rating over time, best recipe, taste
+    radar over every infusion, descriptors), Verbrauch (grams, cups, money
+    spent on purchases, cost per cup, running out). No migration. — D-115
 - **Backup:** Android device backup plus a simple manual export; no in-app
   restore in 1.x. — D-022, D-036
 - **Navigation:** Start · Journal · Sammlung · Statistik. — D-018
