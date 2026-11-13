@@ -81,6 +81,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11), its fourth
  *   names the timer the route shows and opens the other one's (D-098).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
+ * @param statsScreen the Statistik tab's content; the app passes [StatsTabContent].
  * @param catalogScreen Sammlung's *Katalog* segment; the app passes [CatalogTabContent].
  * @param collectionSegments the Sammlung segment used last (`collectionSegment`); the app passes the settings'.
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
@@ -138,6 +139,7 @@ internal fun UmamitRoot(
         )
     },
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
+    statsScreen: @Composable (StatsTabHost) -> Unit = { PlaceholderStats(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
@@ -313,6 +315,7 @@ internal fun UmamitRoot(
                         startNavigation = startNavigation,
                         alertKey = alert,
                         startScreen = startScreen,
+                        statsScreen = statsScreen,
                         catalogScreen = catalogScreen,
                         catalogScreens = catalogScreens,
                         collectionSegments = collectionSegments,
@@ -339,6 +342,7 @@ internal fun UmamitRoot(
                         startNavigation = startNavigation,
                         alertKey = alert,
                         startScreen = startScreen,
+                        statsScreen = statsScreen,
                         catalogScreen = catalogScreen,
                         catalogScreens = catalogScreens,
                         collectionSegments = collectionSegments,

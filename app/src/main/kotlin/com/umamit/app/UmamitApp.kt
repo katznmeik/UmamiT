@@ -77,7 +77,6 @@ import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.journal.session.SessionEditorHost
 import com.umamit.feature.journal.session.SessionPageHost
-import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
 import com.umamit.feature.journal.JournalRoute as JournalTab
@@ -103,6 +102,7 @@ private const val SLIDE_FRACTION = 12
  * @param startNavigation where Start leads outside the shell (setup, timer, quick timer).
  * @param alertKey the alert playing now, or null (rule 8).
  * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
+ * @param statsScreen the Statistik tab's content; the app uses [StatsTabContent], tests the empty state.
  * @param catalogScreen Sammlung's *Katalog* segment; the app uses [CatalogTabContent], tests the empty state.
  * @param collectionSegments the Sammlung segment used last: the app's shell opens on it ([ShellOpening.Start]),
  *   and every change of the segment is remembered (`collectionSegment`, 03 §2.2).
@@ -142,6 +142,7 @@ internal fun UmamitApp(
     startNavigation: StartNavigation = StartNavigation(),
     alertKey: String? = null,
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
+    statsScreen: @Composable (StatsTabHost) -> Unit = { PlaceholderStats(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     collectionScreens: CollectionStackScreens = CollectionStackScreens(),
@@ -350,6 +351,7 @@ internal fun UmamitApp(
                                     },
                                 )
                             },
+                            statsScreen = statsScreen,
                             start = { openSettings, scrollToTop ->
                                 startScreen(
                                     StartTab(
@@ -615,6 +617,7 @@ private fun TabHost(
     onPasteLink: () -> Unit,
     onFoldCatalog: ((fold: Boolean) -> Unit)?,
     catalogTea: @Composable (onBack: () -> Unit) -> Unit,
+    statsScreen: @Composable (StatsTabHost) -> Unit,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
     val motion = UmamiTheme.motion
@@ -794,7 +797,17 @@ private fun TabHost(
                 resumedOnly { if (it != slug) navController.navigate(GuideRoute(it)) },
             )
         }
-        composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
+        // Statistik (SCR-18): a tab's tea rows open the tea's detail (SCR-09) in this stack, from the resumed screen
+        // only (D-090); an alert is handled by the root, which shows the timer over the shell (rule 8).
+        composable<StatsRoute> {
+            statsScreen(
+                StatsTabHost(
+                    openSettings = openSettings,
+                    scrollToTopRequest = scrollToTopRequest,
+                    openTea = resumedOnly<String> { navController.navigate(CollectionTeaRoute(it)) },
+                ),
+            )
+        }
         composable<SettingsRoute> {
             settings.screen(
                 SettingsHost(
