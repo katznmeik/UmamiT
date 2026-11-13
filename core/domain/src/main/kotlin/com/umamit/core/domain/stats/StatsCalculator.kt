@@ -121,7 +121,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
                 .thenBy { it.remainingGrams }
                 .thenBy { it.name },
         )
-        .map { RunningOutTea(it.id, it.name, it.remainingGrams, it.stockLevel) }
+        .map { RunningOutTea(it.id, it.name, it.remainingGrams, it.stockLevel, it.coverPhoto, it.styleKey) }
 
     private class DatedPrice(val day: LocalDate, val cents: Long)
 

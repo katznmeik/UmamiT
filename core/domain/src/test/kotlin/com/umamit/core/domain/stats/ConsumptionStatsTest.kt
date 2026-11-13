@@ -105,4 +105,15 @@ class ConsumptionStatsTest {
         assertThat(out.map { it.teaName }).containsExactly("Leer", "Knapp 4", "Knapp 12").inOrder()
         assertThat(out.first().level).isEqualTo(StockLevel.EMPTY)
     }
+
+    @Test
+    fun `a running out tea carries its cover photo and style`() {
+        val photo = java.io.File("cover.jpg")
+        val teas = listOf(tea("a", grams = 4.0, level = StockLevel.LOW, coverPhoto = photo, styleKey = "sencha"))
+
+        val out = calculator(teas = teas).consumption(StatsRange.DAYS_30).runningOut.single()
+
+        assertThat(out.coverPhoto).isEqualTo(photo)
+        assertThat(out.styleKey).isEqualTo("sencha")
+    }
 }

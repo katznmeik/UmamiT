@@ -149,4 +149,11 @@ data class ConsumptionStats(
 )
 
 /** „12 g · knapp" / „leer"; [level] is [StockLevel.EMPTY] or [StockLevel.LOW]. */
-data class RunningOutTea(val teaId: String, val teaName: String, val remainingGrams: Double, val level: StockLevel)
+data class RunningOutTea(
+    val teaId: String,
+    val teaName: String,
+    val remainingGrams: Double,
+    val level: StockLevel,
+    val coverPhoto: File? = null,
+    val styleKey: String? = null,
+)
