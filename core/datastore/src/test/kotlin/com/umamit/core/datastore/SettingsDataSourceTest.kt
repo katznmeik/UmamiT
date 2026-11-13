@@ -111,6 +111,7 @@ class SettingsDataSourceTest {
             collectionSegment = CollectionSegment.CATALOG,
             statsRange = StatsRange.MONTHS_12,
             statsTab = StatsTab.CONSUMPTION,
+            statsFolded = setOf("overview.sessions", "ratings.ranking"),
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())

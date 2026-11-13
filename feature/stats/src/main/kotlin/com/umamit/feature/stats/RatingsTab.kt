@@ -53,17 +53,18 @@ fun RatingsTab(
         val unrated = stats.ratedCount == 0
         AverageSection(stats, noSessions)
         val history = stringResource(R.string.stats_ratings_history)
-        StatsSection(title = history, isEmpty = noSessions) {
+        StatsSection(key = "ratings.history", title = history, isEmpty = noSessions) {
             if (unrated) NoRating() else HistoryChart(stats, range, history)
         }
         StatsSection(
+            key = "ratings.top",
             title = stringResource(R.string.stats_ratings_top),
             isEmpty = noSessions || (stats.teaRanking.isEmpty() && !unrated),
         ) {
             if (unrated) NoRating() else TopRatedRows(stats.teaRanking.take(LIST_LIMIT), onOpenTea, thumbnail)
         }
         if (stats.bestRecipes.isNotEmpty()) {
-            StatsSection(title = stringResource(R.string.stats_ratings_best_recipe)) {
+            StatsSection(key = "ratings.best_recipe", title = stringResource(R.string.stats_ratings_best_recipe)) {
                 BestRecipeRows(stats.bestRecipes.take(LIST_LIMIT), onOpenTea, thumbnail)
             }
         }
@@ -84,7 +85,7 @@ private fun NoRating() {
 
 @Composable
 private fun AverageSection(stats: RatingsStats, noSessions: Boolean) {
-    StatsSection(title = stringResource(R.string.stats_tab_ratings), isEmpty = noSessions) {
+    StatsSection(key = "ratings.average", title = stringResource(R.string.stats_tab_ratings), isEmpty = noSessions) {
         if (stats.ratedCount == 0) {
             NoRating()
             return@StatsSection
@@ -121,7 +122,7 @@ private fun HistoryChart(stats: RatingsStats, range: StatsRange, title: String) 
         entries = points,
         title = title,
         modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
-        scrollable = range == StatsRange.ALL,
+        scrollable = range == StatsRange.ALL || range == StatsRange.CUSTOM,
         selectionResetKey = range,
     )
 }

@@ -69,6 +69,7 @@ fun PeriodBarChart(
         // Any tap in a bar's column counts, a zero or short bar included.
         hitTest = { tap, geo -> geo.slotAt(tap.x) },
         anchor = { index, geo -> Offset(geo.centerX(index), geo.yOf(shown[index].value)) },
+        plotHeight = BAR_PLOT_HEIGHT,
     )
     val path = remember { Path() }
     XYChartFrame(spec, modifier.trackReveal(reveal)) { geo, selected ->

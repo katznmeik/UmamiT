@@ -164,11 +164,11 @@ fun SortenDonut(
                 Legend(shown, colors, percents, Modifier.weight(1f))
             }
         }
-        selected?.let { index ->
+        FadingTooltip(selected, shown.size) { index, fade ->
             val text = "${shown[index].label} · ${percents[index]} % · ${sessionsText(shown[index].count)}"
             ChartTooltip(
                 text,
-                Modifier.layout { measurable, constraints ->
+                Modifier.graphicsLayer { alpha = fade }.layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                     val anchor = geometry.outerPoint(index, shown.map { it.count })
                     val x = (anchor.x - placeable.width / 2f).coerceIn(

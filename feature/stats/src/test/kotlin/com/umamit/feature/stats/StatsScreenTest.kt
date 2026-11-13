@@ -143,7 +143,9 @@ class StatsScreenTest {
 
     @Test
     fun `an empty section says In diesem Zeitraum nichts`() {
-        compose.setContent { UmamiTheme(reduceMotion = true) { StatsSection(title = "Test", isEmpty = true) {} } }
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) { StatsSection(key = "test", title = "Test", isEmpty = true) {} }
+        }
 
         compose.onNodeWithText("In diesem Zeitraum nichts").assertExists()
     }

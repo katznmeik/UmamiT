@@ -58,19 +58,42 @@ fun OverviewTab(
         val range = figures.range
         val none = stats.sessionCount == 0
         Numerals(stats)
-        StatsSection(title = stringResource(R.string.stats_overview_section_sessions), isEmpty = none) {
+        StatsSection(
+            key = "overview.sessions",
+            title = stringResource(R.string.stats_overview_section_sessions),
+            summary = ChartNumbers.axis(stats.sessionCount.toDouble()),
+            isEmpty = none,
+        ) {
             SessionsChart(stats, range)
         }
-        StatsSection(title = stringResource(R.string.stats_overview_section_streak)) { StreakLine(stats) }
-        StatsSection(title = stringResource(R.string.stats_overview_section_most_brewed), isEmpty = none) {
+        StatsSection(
+            key = "overview.streak",
+            title = stringResource(R.string.stats_overview_section_streak),
+            summary = days(stats.streak.current),
+        ) { StreakLine(stats) }
+        StatsSection(
+            key = "overview.most_brewed",
+            title = stringResource(R.string.stats_overview_section_most_brewed),
+            summary = stats.mostBrewed.firstOrNull()?.teaName,
+            isEmpty = none,
+        ) {
             stats.mostBrewed.forEachIndexed { index, tea ->
                 MostBrewedRow(tea, showDivider = index < stats.mostBrewed.lastIndex, onOpenTea, thumbnail)
             }
         }
-        StatsSection(title = stringResource(R.string.stats_overview_sorten), isEmpty = none) {
+        StatsSection(
+            key = "overview.sorten",
+            title = stringResource(R.string.stats_overview_sorten),
+            summary = stats.sorten.firstOrNull()?.sorte,
+            isEmpty = none,
+        ) {
             Sorten(stats, range)
         }
-        StatsSection(title = stringResource(R.string.stats_overview_section_habits), isEmpty = none) {
+        StatsSection(
+            key = "overview.habits",
+            title = stringResource(R.string.stats_overview_section_habits),
+            isEmpty = none,
+        ) {
             Habits(stats)
         }
     }
@@ -142,7 +165,7 @@ private fun SessionsChart(stats: OverviewStats, range: StatsRange) {
             if (monthly) R.string.stats_overview_sessions_per_month else R.string.stats_overview_sessions_per_week,
         ),
         modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin),
-        scrollable = range == StatsRange.ALL,
+        scrollable = range == StatsRange.ALL || range == StatsRange.CUSTOM,
         selectionResetKey = range,
     )
 }

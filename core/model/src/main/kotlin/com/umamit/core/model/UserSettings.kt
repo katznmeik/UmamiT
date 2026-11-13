@@ -78,6 +78,8 @@ data class UserSettings(
     val statsRangeTo: YearMonth? = null,
     /** INS-07, SCR-18 (v0.7.0, D-115): the Statistik tab used last; *Überblick* by default. */
     val statsTab: StatsTab = StatsTab.OVERVIEW,
+    /** INS-08 (v0.7.0-rc.2, D-115 Amendment 1, R8): the keys of the folded Statistik sections (05 §6); no open ones. */
+    val statsFolded: Set<String> = emptySet(),
     /**
      * *Tassengröße* (INV-08, D-115 Amendment 1): the water of one cup in ml, 50–500 in steps of 10; a session's
      * cups are its poured water ÷ this.

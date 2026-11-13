@@ -89,6 +89,24 @@ class ChartsTest {
     }
 
     @Test
+    fun `the value label fades out over 0,1 s and is gone at once with reduce motion`() {
+        show(reduceMotion = false) {
+            PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sitzungen pro Woche", animateIn = false)
+        }
+        tapBar(index = 4, count = 5)
+        compose.waitForIdle()
+        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+
+        compose.mainClock.autoAdvance = false
+        tapBar(index = 4, count = 5)
+        compose.mainClock.advanceTimeBy(FRAME_MS * 2)
+        // Still fading out.
+        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+        compose.mainClock.advanceTimeBy(FADE_SETTLE_MS)
+        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertDoesNotExist()
+    }
+
+    @Test
     fun `a zero bar can be tapped`() {
         val entries = listOf(PeriodValue("KW 40", 3.0), PeriodValue("KW 41", 0.0), PeriodValue("KW 42", 5.0))
         show { PeriodBarChart(entries, ChartUnit.SESSIONS, "Sitzungen pro Woche") }
@@ -249,3 +267,6 @@ class ChartsTest {
         assertThat(reveal!!.alpha).isEqualTo(1f)
     }
 }
+
+private const val FRAME_MS = 16L
+private const val FADE_SETTLE_MS = 300L

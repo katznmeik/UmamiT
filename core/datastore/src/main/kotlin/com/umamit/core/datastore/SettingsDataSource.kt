@@ -80,6 +80,8 @@ data class StoredSettings(
     val statsRangeFrom: String? = null,
     val statsRangeTo: String? = null,
     val statsTab: String = StatsTab.OVERVIEW.name,
+    /** The folded Statistik sections (INS-08, D-115 Amendment 1, R8); a file of v0.7.0-rc.1 has no key and reads ∅. */
+    val statsFolded: Set<String> = emptySet(),
     /** *Tassengröße* (D-115 Amendment 1); a file of v0.7.0-rc.1 or older has no key and reads 150 ml, no migration. */
     val cupSizeMl: Int = UserSettings.DEFAULT_CUP_SIZE_ML,
     /** Set once the first-start seed data exists (M1-07); never reset. */
@@ -243,6 +245,7 @@ private fun StoredSettings.toModel() = UserSettings(
     statsRangeFrom = MonthSpan.parse(statsRangeFrom),
     statsRangeTo = MonthSpan.parse(statsRangeTo),
     statsTab = enumOrDefault(statsTab, StatsTab.OVERVIEW),
+    statsFolded = statsFolded,
     cupSizeMl = cupSizeMl,
 )
 
@@ -277,6 +280,7 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     statsRangeFrom = statsRangeFrom?.toString(),
     statsRangeTo = statsRangeTo?.toString(),
     statsTab = statsTab.name,
+    statsFolded = statsFolded,
     cupSizeMl = cupSizeMl,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,

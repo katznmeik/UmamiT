@@ -33,7 +33,7 @@ import com.umamit.core.designsystem.motion.LocalReduceMotion
 import com.umamit.feature.stats.R
 import kotlin.math.roundToInt
 
-private val HABIT_BAR_MAX = 56.dp
+private val HABIT_BAR_MAX = 28.dp
 private val HABIT_BAR_WIDTH = 20.dp
 private val HABIT_BAR_RADIUS = 3.dp
 private val HABIT_BAR_STUB = 2.dp
