@@ -197,7 +197,7 @@ private fun Sorten(stats: OverviewStats, range: StatsRange) {
         val sorte = share.sorte
         val color = sorte?.let { types.forStyle(it.lowercase(Locale.ROOT).replace(' ', '_')) }
             ?.takeIf { it != types.other }
-        DonutSlice(sorte ?: other, share.sessions, color, isOther = sorte == null)
+        DonutSlice(sorte ?: other, share.sessions, share.percent, color, isOther = sorte == null)
     }
     SortenDonut(
         slices = slices,

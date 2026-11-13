@@ -19,10 +19,17 @@ data class RatingPoint(
 )
 
 /**
- * One Sorte of the [SortenDonut]: [count] sessions. [color] is its type colour (03 §3.1) or null when it
+ * One Sorte of the [SortenDonut]: [count] sessions, [percent] of the range's sessions as the domain counted it
+ * (the legend and the value label print it as it is). [color] is its type colour (03 §3.1) or null when it
  * has none; [isOther] marks „Andere", which takes `outlineVariant`.
  */
-data class DonutSlice(val label: String, val count: Int, val color: Color? = null, val isOther: Boolean = false)
+data class DonutSlice(
+    val label: String,
+    val count: Int,
+    val percent: Int,
+    val color: Color? = null,
+    val isOther: Boolean = false,
+)
 
 /** One bar of [HabitBars]: [label] („Morgen", „Mo") and its [share] (0–1) of the range's sessions. */
 data class HabitShare(val label: String, val share: Double)

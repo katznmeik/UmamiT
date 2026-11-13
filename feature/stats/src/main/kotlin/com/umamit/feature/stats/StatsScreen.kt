@@ -2,6 +2,7 @@ package com.umamit.feature.stats
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,15 +32,15 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -54,10 +55,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.OverflowSettingsAction
 import com.umamit.core.designsystem.icon.UmamiIcons
+import com.umamit.core.designsystem.motion.LocalReduceMotion
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StatsTab
+import com.umamit.feature.stats.charts.ChartPageState
+import com.umamit.feature.stats.charts.ChartSelectionHolder
+import com.umamit.feature.stats.charts.ChartSelectionHost
+import com.umamit.feature.stats.charts.LocalChartPage
+import com.umamit.feature.stats.charts.chartViewport
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 private val BottomClearance = 72.dp
 
@@ -215,7 +227,7 @@ private fun EmptyStats(onOpenSettings: () -> Unit) {
 }
 
 @Composable
-@Suppress("LongParameterList") // the state, its three callbacks, the re-selection counter and the page slot
+@Suppress("LongParameterList", "LongMethod") // the state, its callbacks, the re-selection counter and the page slot
 private fun StatsPages(
     state: StatsUiState.Data,
     onRangeChange: (StatsRange) -> Unit,
@@ -225,50 +237,88 @@ private fun StatsPages(
     tabContent: @Composable (StatsTab, StatsRange, ScrollState) -> Unit,
 ) {
     val header = remember { CollapsingHeader() }
+    header.reduceMotion = LocalReduceMotion.current
     val scrollStates = StatsTab.entries.map { rememberScrollState() }
+    // The pager is the one source of the selected tab (it survives a quick double swipe); the stored tab only
+    // seeds it and is written to once a page has settled.
     val pagerState = rememberPagerState(initialPage = state.tab.ordinal) { StatsTab.entries.size }
-    PagerFollowsTab(pagerState, state.tab, onTabChange)
+    val scope = rememberCoroutineScope()
+    // Which charts were revealed already, per tab: the pager disposes a page that is swiped away (INS-08).
+    val revealed = rememberSaveable { mutableStateListOf<String>() }
+    val pages = remember {
+        StatsTab.entries.map { ChartPageState(it.name, revealed, active = it == state.tab) }
+    }
+    val selection = remember { ChartSelectionHolder() }
+    val currentOnTabChange by rememberUpdatedState(onTabChange)
+    val seededTab = remember { state.tab }
+    LaunchedEffect(pagerState) {
+        var reported = seededTab
+        snapshotFlow { pagerState.settledPage }.collectLatest { page ->
+            pages.forEachIndexed { index, chartPage -> chartPage.active = index == page }
+            selection.clear()
+            val tab = StatsTab.entries[page]
+            if (tab != reported) {
+                reported = tab
+                currentOnTabChange(tab)
+            }
+            // A page that starts at its top shows the title; one that was scrolled keeps it as it is.
+            if (scrollStates[page].value == 0) header.reveal()
+        }
+    }
+    LaunchedEffect(Unit) {
+        snapshotFlow { pagerState.isScrollInProgress || scrollStates.any { it.isScrollInProgress } }
+            .filter { it }
+            .collect { selection.clear() }
+    }
     // A counter, as in ScreenScaffold: only an increase while composed scrolls; never replayed (D-049).
     var handled by remember { mutableIntStateOf(scrollToTopRequest) }
     LaunchedEffect(scrollToTopRequest) {
         if (scrollToTopRequest > handled) {
             handled = scrollToTopRequest
-            header.reveal()
-            scrollStates[pagerState.currentPage].animateScrollTo(0)
-        }
-    }
-    Column(modifier = Modifier.fillMaxSize().nestedScroll(header.connection)) {
-        StatsHeader(onOpenSettings, modifier = Modifier.collapsing(header))
-        // The pinned chrome keeps its labels on one line: it scales up to 1.15, the content below up to 2.0.
-        CappedFontScale {
-            Column {
-                RangeSelector(state.range, onRangeChange)
-                TabBar(state.tab, onTabChange)
+            coroutineScope {
+                launch { header.reveal() }
+                launch { scrollStates[pagerState.currentPage].animateScrollTo(0) }
             }
         }
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            beyondViewportPageCount = 0,
-            key = { it },
-        ) { page ->
-            tabContent(StatsTab.entries[page], state.range, scrollStates[page])
-        }
     }
-}
-
-/** The pager and the remembered tab follow each other: a swipe writes the tab, a tab tap or restore turns the page. */
-@Composable
-private fun PagerFollowsTab(pagerState: PagerState, tab: StatsTab, onTabChange: (StatsTab) -> Unit) {
-    val current by rememberUpdatedState(tab)
-    val change by rememberUpdatedState(onTabChange)
-    LaunchedEffect(tab) {
-        if (pagerState.currentPage != tab.ordinal) pagerState.animateScrollToPage(tab.ordinal)
-    }
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }.collect { page ->
-            if (page != current.ordinal) change(StatsTab.entries[page])
-        }
+    ChartSelectionHost(selection, Modifier.fillMaxSize()) {
+        CollapsingColumn(
+            header = header,
+            title = { StatsHeader(onOpenSettings) },
+            // The pinned chrome keeps its labels on one line: it scales up to 1.15, the content below up to 2.0.
+            pinned = {
+                CappedFontScale {
+                    Column {
+                        RangeSelector(state.range, onRangeChange)
+                        TabBar(pagerState) { tab ->
+                            scope.launch {
+                                // A jump of more than one page does not scroll through (and compose) the middle one.
+                                if (abs(tab.ordinal - pagerState.currentPage) > 1) {
+                                    pagerState.scrollToPage(tab.ordinal)
+                                } else {
+                                    pagerState.animateScrollToPage(tab.ordinal)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            body = {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 0,
+                    key = { it },
+                ) { page ->
+                    CompositionLocalProvider(LocalChartPage provides pages[page]) {
+                        Box(Modifier.fillMaxSize().chartViewport(pages[page])) {
+                            tabContent(StatsTab.entries[page], state.range, scrollStates[page])
+                        }
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 
@@ -299,12 +349,12 @@ private fun RangeSelector(range: StatsRange, onRangeChange: (StatsRange) -> Unit
 }
 
 @Composable
-private fun TabBar(tab: StatsTab, onTabChange: (StatsTab) -> Unit) {
-    PrimaryTabRow(selectedTabIndex = tab.ordinal, containerColor = MaterialTheme.colorScheme.background) {
+private fun TabBar(pagerState: PagerState, onSelect: (StatsTab) -> Unit) {
+    PrimaryTabRow(selectedTabIndex = pagerState.targetPage, containerColor = MaterialTheme.colorScheme.background) {
         StatsTab.entries.forEach { entry ->
             Tab(
-                selected = entry == tab,
-                onClick = { onTabChange(entry) },
+                selected = entry.ordinal == pagerState.targetPage,
+                onClick = { onSelect(entry) },
                 text = { Text(text = stringResource(entry.labelRes), maxLines = 1) },
             )
         }

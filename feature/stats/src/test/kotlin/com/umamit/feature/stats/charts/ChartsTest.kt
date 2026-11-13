@@ -1,15 +1,27 @@
 package com.umamit.feature.stats.charts
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
@@ -70,9 +82,78 @@ class ChartsTest {
         tapBar(index = 3, count = 5)
         compose.onNodeWithText("KW 44 · 6 Sitzungen").assertDoesNotExist()
         compose.onNodeWithText("KW 43 · 5 Sitzungen").assertExists()
-        // High above every bar (the plot's top edge, over the shortest one).
+        // High above every bar (the plot's top edge, over the shortest one): the column still counts.
         chart().performTouchInput { click(Offset(width * (2 + 0.5f) / 5, 1f)) }
         compose.onNodeWithText("KW 43 · 5 Sitzungen").assertDoesNotExist()
+        compose.onNodeWithText("KW 42 · 2 Sitzungen").assertExists()
+    }
+
+    @Test
+    fun `a zero bar can be tapped`() {
+        val entries = listOf(PeriodValue("KW 40", 3.0), PeriodValue("KW 41", 0.0), PeriodValue("KW 42", 5.0))
+        show { PeriodBarChart(entries, ChartUnit.SESSIONS, "Sitzungen pro Woche") }
+        tapBar(index = 1, count = 3, yFraction = 0.9f)
+        compose.onNodeWithText("KW 41 · 0 Sitzungen").assertExists()
+    }
+
+    @Test
+    fun `a tap outside the chart hides the value label`() {
+        val holder = ChartSelectionHolder()
+        show {
+            ChartSelectionHost(holder) {
+                Column {
+                    PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sitzungen pro Woche")
+                    Box(Modifier.size(40.dp).testTag("outside"))
+                }
+            }
+        }
+        tapBar(index = 4, count = 5)
+        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+        compose.onNodeWithTag("outside").performTouchInput { click() }
+        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertDoesNotExist()
+        // A second tap on the same bar shows it again (the outside tap did not leave a stale selection).
+        tapBar(index = 4, count = 5)
+        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+    }
+
+    @Test
+    fun `only one chart shows a value label at a time`() {
+        val holder = ChartSelectionHolder()
+        show {
+            ChartSelectionHost(holder) {
+                Column {
+                    PeriodBarChart(weeks, ChartUnit.SESSIONS, "Eins", Modifier.testTag("one"))
+                    PeriodBarChart(weeks, ChartUnit.SESSIONS, "Zwei", Modifier.testTag("two"))
+                }
+            }
+        }
+        compose.onAllNodesWithTag(STATS_CHART_TAG)[0].performTouchInput { click(Offset(width * 0.9f, height * 0.75f)) }
+        compose.onAllNodesWithText("KW 44 · 6 Sitzungen").assertCountEquals(1)
+        compose.onAllNodesWithTag(STATS_CHART_TAG)[1].performTouchInput { click(Offset(width * 0.9f, height * 0.75f)) }
+        compose.onAllNodesWithText("KW 44 · 6 Sitzungen").assertCountEquals(1)
+    }
+
+    @Test
+    fun `a chart grows once per page, not again when the page comes back`() {
+        val page = ChartPageState("OVERVIEW", mutableStateListOf(), active = false)
+        var shown by mutableStateOf(true)
+        show(reduceMotion = false) {
+            CompositionLocalProvider(LocalChartPage provides page) {
+                Box(Modifier.fillMaxSize().chartViewport(page)) {
+                    if (shown) PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sitzungen pro Woche")
+                }
+            }
+        }
+        // A page that is not the settled one does not grow its charts.
+        assertThat(page.growStarts).isEqualTo(0)
+        page.active = true
+        compose.waitForIdle()
+        assertThat(page.growStarts).isEqualTo(1)
+        shown = false
+        compose.waitForIdle()
+        shown = true
+        compose.waitForIdle()
+        assertThat(page.growStarts).isEqualTo(1)
     }
 
     @Test
@@ -114,9 +195,9 @@ class ChartsTest {
     @Test
     fun `a tap on a donut slice shows Sorte, share and sessions`() {
         val slices = listOf(
-            DonutSlice("Sencha", 21, Color(0xFF7C9A5B)),
-            DonutSlice("Gyokuro", 21, Color(0xFF5F7F45)),
-            DonutSlice("Andere", 8, isOther = true),
+            DonutSlice("Sencha", 21, 42, Color(0xFF7C9A5B)),
+            DonutSlice("Gyokuro", 21, 42, Color(0xFF5F7F45)),
+            DonutSlice("Andere", 8, 16, isOther = true),
         )
         show { SortenDonut(slices, "Tee-Sorten") }
         val description = chart().fetchSemanticsNode().config[SemanticsProperties.ContentDescription].joinToString()
@@ -138,8 +219,8 @@ class ChartsTest {
         var normal: ChartReveal? = null
         compose.mainClock.autoAdvance = false
         compose.setContent {
-            reduced = rememberChartReveal(count = 5, reduceMotion = true)
-            normal = rememberChartReveal(count = 5, reduceMotion = false)
+            reduced = rememberChartReveal(count = 5, key = "t", reduceMotion = true)
+            normal = rememberChartReveal(count = 5, key = "t", reduceMotion = false)
             Box(Modifier.height(1.dp))
         }
         compose.mainClock.advanceTimeByFrame()
@@ -160,7 +241,7 @@ class ChartsTest {
         var reveal: ChartReveal? = null
         compose.mainClock.autoAdvance = false
         compose.setContent {
-            reveal = rememberChartReveal(count = 5, animateIn = false, reduceMotion = false)
+            reveal = rememberChartReveal(count = 5, key = "t", animateIn = false, reduceMotion = false)
             Box(Modifier.height(1.dp))
         }
         compose.mainClock.advanceTimeByFrame()
