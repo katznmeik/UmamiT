@@ -38,8 +38,11 @@ interface StatsRepository {
 }
 
 /** [StatsRepository] on Room and the settings. */
-class RoomStatsRepository @Inject constructor(private val dao: StatsDao, private val settings: SettingsRepository) :
-    StatsRepository {
+class RoomStatsRepository @Inject constructor(
+    private val dao: StatsDao,
+    private val settings: SettingsRepository,
+    private val photos: PhotoFiles,
+) : StatsRepository {
     override fun observeInput(): Flow<StatsInput> = combine(
         dao.observeFinishedSessions(),
         dao.observeTeas(),
@@ -48,7 +51,7 @@ class RoomStatsRepository @Inject constructor(private val dao: StatsDao, private
     ) { sessions, teas, events, lowStockGrams ->
         StatsInput(
             sessions = sessions.map { it.toStatsSession() },
-            teas = teas.map { it.toStatsTea(lowStockGrams) },
+            teas = teas.map { it.toStatsTea(lowStockGrams, photos) },
             inventoryEvents = events.map { it.toModel() },
             knownDescriptorKeys = KNOWN_DESCRIPTOR_KEYS,
         )
@@ -63,6 +66,7 @@ private fun StatsSessionRow.toStatsSession() = StatsSession(
     teaId = session.teaId,
     teaName = session.teaName,
     teaType = session.teaType,
+    styleKey = session.styleKey,
     profileId = session.profileId,
     profileName = session.profileName,
     startedAtMs = session.startedAt,
@@ -94,7 +98,7 @@ private fun StatsSessionRow.toStatsSession() = StatsSession(
 )
 
 /** A tea without any stock event is not tracked (as in the collection list): never *Knapp* or *Leer*. */
-private fun StatsTeaRow.toStatsTea(lowStockGrams: Double) = StatsTea(
+private fun StatsTeaRow.toStatsTea(lowStockGrams: Double, photos: PhotoFiles) = StatsTea(
     id = id,
     name = name,
     archived = isArchived,
@@ -103,6 +107,8 @@ private fun StatsTeaRow.toStatsTea(lowStockGrams: Double) = StatsTea(
     stockLevel = remainingGrams?.let { StockLevel.of(it, this.lowStockGrams ?: lowStockGrams) }
         ?: StockLevel.AVAILABLE,
     lowStockWarning = lowStockWarning,
+    coverPhoto = coverPhotoId?.let(photos::file),
+    styleKey = styleKey,
 )
 
 /**
