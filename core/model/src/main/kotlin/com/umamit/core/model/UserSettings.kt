@@ -66,6 +66,10 @@ data class UserSettings(
     val collectionSort: CollectionSort = CollectionSort.LAST_BREWED,
     /** SCR-08 (v0.4.0, D-100): the *Sammlung* segment used last; *Meine Tees* by default. */
     val collectionSegment: CollectionSegment = CollectionSegment.MY_TEAS,
+    /** INS-07, SCR-18 (v0.7.0, D-115): the Statistik range used last, for every tab; *90 T* by default. */
+    val statsRange: StatsRange = StatsRange.DAYS_90,
+    /** INS-07, SCR-18 (v0.7.0, D-115): the Statistik tab used last; *Überblick* by default. */
+    val statsTab: StatsTab = StatsTab.OVERVIEW,
 ) {
     companion object {
         const val DEFAULT_ALERT_SOUND = "klangschale"

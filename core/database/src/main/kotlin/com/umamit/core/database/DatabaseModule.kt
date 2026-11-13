@@ -10,6 +10,7 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
+@Suppress("TooManyFunctions") // one provider per DAO
 object DatabaseModule {
     @Provides
     @Singleton
@@ -33,6 +34,10 @@ object DatabaseModule {
     /** The tasting reads (05 §3.8): per-tea ratings for the lists, TEA-08. */
     @Provides
     fun tastingDao(db: UmamiDatabase) = db.tastingDao()
+
+    /** The statistics' reads (INS-01–INS-07, D-115). */
+    @Provides
+    fun statsDao(db: UmamiDatabase) = db.statsDao()
 
     @Provides
     fun activeBrewDao(db: UmamiDatabase) = db.activeBrewDao()

@@ -5,6 +5,7 @@ import com.umamit.core.domain.stats.StatsFixtures.TODAY
 import com.umamit.core.domain.stats.StatsFixtures.calculator
 import com.umamit.core.domain.stats.StatsFixtures.clock
 import com.umamit.core.domain.stats.StatsFixtures.session
+import com.umamit.core.model.StatsRange
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime

@@ -6,6 +6,7 @@ import com.umamit.core.domain.stats.StatsFixtures.calculator
 import com.umamit.core.domain.stats.StatsFixtures.infusion
 import com.umamit.core.domain.stats.StatsFixtures.session
 import com.umamit.core.model.DescriptorCount
+import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile

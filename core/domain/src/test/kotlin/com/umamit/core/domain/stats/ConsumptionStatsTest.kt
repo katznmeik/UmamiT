@@ -9,6 +9,7 @@ import com.umamit.core.domain.stats.StatsFixtures.purchase
 import com.umamit.core.domain.stats.StatsFixtures.session
 import com.umamit.core.domain.stats.StatsFixtures.tea
 import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
 import org.junit.Test
