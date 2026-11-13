@@ -5,13 +5,15 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-13. **Statistik (v0.7.0, M4 part 2): build in progress.** The PO approved tickets #256–#264 and the plan `docs/plans/v0.7.0.md` (including its per-ticket verification) on 2026-11-13 and started the build session with `/implement-spec #255`. `v0.6.1` is released (versionCode 60199).
+**Last updated:** 2026-11-13. **Statistik (v0.7.0, M4 part 2): built; `v0.7.0-rc.1` is out and waits for the PO's checklist and design review.** Tickets #256–#262 are built on PR #266 (draft); #263's reviews, fix round, full local gate (GATE PASS) and CI are green on `e37d4631`. `v0.6.1` is released (versionCode 60199). **Next:** the PO's answer on 09 §4 „v0.7.0", the design review and its questions A–E; then (if needed) an rc.2 fix session, else #264: merge and `v0.7.0` with the accuracy run.
 
-## Next: Statistik build (v0.7.0, M4 part 2; approved, building)
+## Next: the PO's test of `v0.7.0-rc.1`, then #264 (v0.7.0, M4 part 2)
 
-- **Spec:** #255, D-115 (Q1–Q20), 02 §12 INS-01–INS-08, 03 SCR-18, 05 §6 `statsRange`/`statsTab`, 09 §4 „v0.7.0". **Tickets:** #256–#264 (tiers T2–T3, blockers in each). **Plan:** `docs/plans/v0.7.0.md` (task graph, order, verification).
-- **Gate:** passed. The PO approved the tickets and the plan, including its per-ticket verification, on 2026-11-13.
-- **No timer code, no migration:** no T4 timer review; only the final release needs the accuracy run (09 §4a). `git diff main -- feature/brew core/timer core/timer-engine core/database/schemas` must stay empty.
+- **Spec:** #255, D-115 (Q1–Q20 and its „Build notes"), 02 §12 INS-01–INS-08, 03 SCR-18, 05 §6 `statsRange`/`statsTab`, 09 §4 „v0.7.0". **Plan:** `docs/plans/v0.7.0.md`. **PR:** #266 (draft, closes #255–#262; #263 once the PO answered).
+- **rc:** `v0.7.0-rc.1` (versionCode 70001) from `e37d4631`. **Design review:** `docs/design/review/v0.7.0/README.md` with Claude's defaults 1–8 and the **questions A–E** for the PO (top rated below 3 ratings, „+n" under Gesamt, the first Bewertungen heading, Serie at 0, value-label fade). The rc shows the first option of each.
+- **Reviews done (#263):** T3 milestone review (no blocker; should-fix items fixed in rounds A and B), the motion review by the `review-animations` rules (applied by reading the skill files; the skill itself is user-invocable only), all within-spec findings fixed; a font-2.0 clipping of the habit labels found in the renders and fixed (rows from 1,5 ×). Items needing the PO are the questions A–E.
+- **After the PO's answer:** answers that change behaviour go through the process (D-115 „Approval" plus amendments, tickets, rc.2). If the PO approves rc.1 as is: record it in D-115 „Approval", mark the PR ready, merge (merge commit), wait for CI on `main`, run `accuracy.yml` (all variants, 09 §4a) on the merge commit, bump to `0.7.0` and dispatch `v0.7.0` from `main` (#264).
+- **No timer code, no migration:** `git diff main -- feature/brew core/timer core/timer-engine core/database/schemas` is empty; no T4 timer review.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
 - **Open from D-114 (Claude's note, accepted):** the activity re-creation after the *Design* hand-over can still meet an alert starting in the same ≈ 0.5 s.
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
@@ -21,19 +23,23 @@
   „UmamiT" environment reaches. Robolectric's runtime jars (SDK 35 `15-robolectric-13954326-i7`, SDK 36
   `16-robolectric-13921718-i7`) are pre-fetched from the mirror and checked against the sha512 as
   `docs/plans/v0.4.0-resume.md` §3 shows. One Gradle build at a time (gw.sh/gate.sh, same §3). A new container
-  needs all of this again (the specify session of 2026-11-13 set it up in its own container).
+  needs all of this again. **Since 2026-11-13 (build session):** the Gradle plugin portal redirects to Maven Central
+  too, so the init script must also add the mirror as the *first* repository of `pluginManagement`,
+  `dependencyResolutionManagement` and every `buildscript` (`repos.maven { name = 'gcsMirror'; url = MIRROR }`,
+  then `remove` + `addFirst`; in `beforeSettings` and `settingsEvaluated`), and only rewrite URLs (never add) on project
+  repositories (`FAIL_ON_PROJECT_REPOS`).
 - **Release dispatch:** `release.yml` refuses a commit without a successful CI run, so dispatch it only after CI on the merge commit in `main` has finished. `accuracy.yml` needs the full 40-character SHA as `ref`.
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **Statistik (v0.7.0, M4 part 2)**: building (D-115, #255, tickets #256–#264 approved 2026-11-13). v0.6.1 is released (2026-11-13) |
+| Current milestone | **Statistik (v0.7.0, M4 part 2)**: built on PR #266; `v0.7.0-rc.1` with the PO (checklist, design review, questions A–E). v0.6.1 is released (2026-11-13) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `ba3bb2a1` after #254) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `bc410bbc` after #265) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none (the specify PR #265 merged as `bc410bbc`) |
-| Latest APK | [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
+| Open PR | #266 (v0.7.0 milestone PR, draft) |
+| Latest APK | rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
 | Decision numbers | Up to **D-115** used; the next free is **D-116** |
 
 ## Working agreements in effect
@@ -50,9 +56,10 @@
 
 ## Waiting on the PO
 
-1. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
-2. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
-3. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
+1. **Test `v0.7.0-rc.1`:** the checklist 09 §4 „v0.7.0" and the design review `docs/design/review/v0.7.0/` with its questions A–E (answer in the session or on PR #266).
+2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
+3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
+4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
 
 ## Open for later
 
