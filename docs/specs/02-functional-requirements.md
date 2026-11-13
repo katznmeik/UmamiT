@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-13 (v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-13 (v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -1324,6 +1324,11 @@ and on the session page.
   shown or asked later.
 - AC2: TalkBack reads „Bewertung, 3,5 von 5 Sternen", adjusts in half steps
   and can remove the rating.
+- **v0.7.1 (planned, [D-116](10-open-questions-and-decisions.md#d-116)):**
+  a session gets two optional ratings, „Tee" and „Zubereitung"; a tea's
+  rating everywhere is the Ø of its *Tee* ratings; existing ratings are
+  copied to both. Details are grilled in the v0.7.1 specify session; until
+  then this requirement stands as written.
 
 **JRN-03 — Taste profile** `Should` (v0.6.0)
 Optional 0–5 sliders: Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma;
@@ -1560,10 +1565,13 @@ Weekly digest notification (off by default).
 
 **INV-08 — Cost** `Must`
 Cost per gram from purchase events (weighted by grams of each purchase); cost
-per session = leaf × cost per gram. **One poured infusion = one cup**: cost
-per cup = session cost ÷ completed infusions (rinse and whisk-only matcha:
-the whole session is one cup). Shown on tea detail („0,24 € pro Tasse") and in
-statistics.
+per session = leaf × cost per gram. **A cup is poured water ÷ the cup size**
+(SET-34, default 150 ml; from v0.7.0-rc.2, D-115 A1; before: one poured
+infusion = one cup): cost per cup = session cost ÷ the session's cups. A
+session's cups = Σ over its poured non-rinse infusions of `water_ml` ÷ cup
+size, unrounded; a whisk-only session, or one whose every step was skipped,
+counts one infusion; a session without `water_ml` keeps 1 per infusion.
+Shown on tea detail („0,24 € pro Tasse") and in statistics.
 - **Since v0.1.0:** the session's cost (`cost_cents`) is stored at
   completion.
 - **v0.4.1 (D-100):** price per gram and cost per cup on the tea detail.
@@ -1573,14 +1581,18 @@ statistics.
   - **Price:** „12,40 € / 100 g", from the priced INITIAL and PURCHASE
     events weighted by grams (`costPerGramCents`).
   - **Estimate:** „ca. 0,24 € pro Tasse (Rezept)": the default recipe's
-    leaf × price per gram ÷ its cups. Cups are its non-rinse steps; a
-    whisk-only recipe is one cup. Without a default recipe, no estimate.
+    leaf × price per gram ÷ its cups. **v0.7.0-rc.2 (D-115 A1):** its cups
+    are the recipe's water × its non-rinse steps ÷ the cup size (SET-34);
+    before, its non-rinse steps. A whisk-only recipe is one cup. Without a
+    default recipe, no estimate.
   - **Average:** „Ø 0,27 € pro Tasse aus 5 Sitzungen" („aus 1 Sitzung"),
     from the first finished session with a `cost_cents`: Σ `cost_cents` ÷
     Σ cups of those sessions. A session's cups are its poured non-rinse
-    steps (ended and not skipped; never-started rows don't count); a
-    whisk-only session is one cup, and so is a priced session whose every
-    step was skipped (its leaf was used). Sessions without a cost and the
+    steps (ended and not skipped; never-started rows don't count), each
+    counting its `water_ml` ÷ the cup size (v0.7.0-rc.2, D-115 A1; before:
+    one per step); a whisk-only session is one cup, and so is a priced
+    session whose every step was skipped (its leaf was used). Changing the
+    cup size changes the average at once (nothing is stored per session). Sessions without a cost and the
     running one are left out. The stored `cost_cents` stays as it was at
     completion; a later purchase changes only the price and the estimate.
   - **No price, no cost:** without a priced INITIAL or PURCHASE event none
@@ -1658,6 +1670,13 @@ Tee-Reise", a range selector (INS-07) and three tabs **Überblick ·
 Bewertungen · Verbrauch** (as in the mockup). No database migration: every
 figure is computed from the existing tables when read.
 
+**v0.7.0-rc.2 ([D-115](10-open-questions-and-decisions.md#d-115) Amendment
+1, the PO's review of rc.1; R1–R16).** Changes are marked „rc.2 (D-115 A1)":
+cups by volume, a custom month range, foldable sections, a second donut,
+*Bewertungen* rebuilt, *Geschmack* and *Beschreibungen* removed, a new
+GETRUNKEN section, a compact layout. The split rating (JRN-02) and the
+transition audit are v0.7.1 (D-116), not here.
+
 **Counting rules (all INS).**
 - A session counts when it is **finished** (`COMPLETED` or `MANUAL`; a
   session still `IN_PROGRESS` never counts), also when its tea was archived
@@ -1665,11 +1684,20 @@ figure is computed from the existing tables when read.
   Sessions the app finished on its own (`auto_finished`) count too.
 - A session belongs to the **day of its `started_at`** in its own `zone_id`
   (the journal's day).
-- **Cups** as INV-08: one per poured non-rinse step (ended, not skipped); a
-  whisk-only session, or a session whose every step was skipped, is one cup.
+- **Cups** as INV-08. **rc.2 (D-115 A1):** by volume: a session's cups = Σ
+  over its poured non-rinse steps (ended, not skipped) of `water_ml` ÷ the
+  cup size (SET-34, default 150 ml); a whisk-only session, or one whose
+  every step was skipped, counts one infusion; a session without `water_ml`
+  keeps 1 per infusion. Totals and bars sum the unrounded cups and round
+  half up for display (whole cups; a session never shows below 1). A 1 l
+  Kanne infusion counts ≈ 7 Tassen, a 120 ml Kyusu infusion ≈ 1. Changing
+  the cup size recomputes every figure. (Before rc.2: one cup per poured
+  non-rinse step.)
 - **Taste** is per infusion (D-114): averages run per axis over the
   infusions that set that axis (and the v0.6.0 sessions without step rows,
   05 §3.6).
+- **Folding (rc.2, D-115 A1, R8):** every section of the three tabs can be
+  folded; see INS-08.
 - The figures update while the screen shows, when a session finishes or is
   edited or deleted, and when a purchase or a tea changes.
 
@@ -1677,13 +1705,17 @@ figure is computed from the existing tables when read.
 - Big numerals: **sessions** in the range, **cups** in the range, and
   **teas** in the collection („24 Tees · +3 im Zeitraum": non-archived teas
   now; the plus counts teas created in the range and is hidden at 0).
+  **rc.2 (D-115 A1, R10, R12):** the three numerals sit in **one row**; under
+  *Gesamt* there is no „+n im Zeitraum" (every tea would be new).
 - **Sessions per period** as bars (the periods of INS-07).
 - **Streak** („Serie"), always over all time, never the range, shown
   neutrally: „7 Tage in Folge · längste 21 Tage · seit Beginn". A day counts
   with at least one finished session; the current streak includes today
   when today has a session, else it ends yesterday (a day without a session
   yet does not break it before the day is over); 0 shows „Keine Serie
-  gerade". No flame, no reminder, no message when it breaks.
+  gerade". No flame, no reminder, no message when it breaks. **rc.2 (R13):**
+  at 0 it reads „Keine Serie gerade · längste 21 Tage" (the longest only
+  when there is one).
 - **Most brewed:** the top 5 teas by sessions in the range („12×"); a tap
   opens the tea's detail (SCR-09); a deleted tea's row has no tap.
 
@@ -1698,45 +1730,63 @@ Gyokuro, Sencha, Matcha, Darjeeling …) as a donut with legend and
 percentages: the five largest, the rest as „Andere"; a session without a
 Sorte counts as „Andere". Percentages are rounded to whole numbers and sum
 to 100 (largest remainder).
+- **Second donut „Tees" (rc.2, D-115 A1, R6):** the share of sessions per
+  **tea**, after TEE-SORTEN on *Überblick*; the five largest named, the rest
+  „Andere", as *Tee-Sorten* (legend, percentages as above); a deleted tea
+  under its snapshot name; slice colours distinct within the donut.
 
 **INS-02 — Ratings (Bewertungen)** `Must`
-- **Average and distribution:** „Ø 4,2 ★ · 18 von 25 Sitzungen bewertet"
-  and five bars 1–5 ★ (half stars rounded down; 0,5 counts as 1 ★); rated
-  sessions only.
-- **Top-rated teas:** the top 5 teas by average rating among teas with
-  **≥ 3 rated sessions** in the range („Ø 4,6 ★ · 5 Bewertungen"); a tap
-  opens the tea (none for a deleted tea).
-- **Rating over time:** a line of the average rating per period (the
-  periods of INS-07); a period without a rating has no point (the line
+**rc.2 (D-115 A1, R4, R11):** *Bewertungen* has four parts, in this order. The
+Ø headline („Ø 4,2 ★ · 18 von 25 Sitzungen bewertet"), the 5 ★–1 ★
+distribution and „Am besten bewertet" are gone (replaced by the first part).
+- **Tee-Rangliste:** every tea with **at least one rated session** in the
+  range, best Ø first, each as „4,6 ★ · 5×" (the Ø over the range's rated
+  sessions, one decimal; n× = their count); ties: more ratings first, then
+  name. The **top 10**, then „Alle anzeigen (N)" expands the list in place. A
+  tap opens the tea (none for a deleted tea).
+- **Neu entdeckt:** teas whose first finished session ever falls in the
+  range, newest first, five rows then „Alle anzeigen (N)"; each shows its Ø
+  in the range or „ohne Bewertung"; hidden under *Gesamt* (every tea would be
+  new). A tap opens the tea.
+- **Bewertung im Verlauf** (kept): a line of the average rating per period
+  (the periods of INS-07); a period without a rating has no point (the line
   breaks there).
-- **Best recipe:** for each tea with **≥ 2 recipes that each have ≥ 2 rated
-  sessions** in the range, its recipes by average rating, best first
-  („Gyokuro Hisui · Kalt 4,6 ★ · Klassisch 4,0 ★"); up to 5 teas, ordered
-  by the gap between best and worst. A session counts for the recipe it was
-  brewed with (`profile_id`, named by its `profile_name` snapshot); sessions
-  without a recipe don't count here. The section is hidden when no tea
-  qualifies.
+- **Bestes Rezept** (kept): for each tea with **≥ 2 recipes that each have
+  ≥ 2 rated sessions** in the range, its recipes by average rating, best
+  first („Gyokuro Hisui · Kalt 4,6 ★ · Klassisch 4,0 ★"); up to 5 teas,
+  ordered by the gap between best and worst. A session counts for the recipe
+  it was brewed with (`profile_id`, named by its `profile_name` snapshot);
+  sessions without a recipe don't count here. The section is hidden when no
+  tea qualifies.
+- Without any rating in the range the tab says „In diesem Zeitraum nichts
+  bewertet" above *Neu entdeckt*.
+- **v0.7.1 (planned, D-116):** where *Tee* and *Zubereitung* ratings show on
+  Statistik is grilled in the v0.7.1 specify session.
 
-**INS-04 — Taste (Bewertungen)** `Should`
-- **Radar** averaged per axis over every infusion with taste in the range
-  („aus 34 Aufgüssen"); shown once three axes have an average, else the
-  summary line as on the session page (D-114).
-- **Descriptors:** the five most frequent in the range, as chips with their
-  count („Nori · 12×"); keys the app does not know are not shown.
+**INS-04 — Taste (Bewertungen)** — **removed in rc.2 (D-115 A1, R5):**
+*Geschmack* (the radar) and *Beschreibungen* (the top descriptors) are no
+longer on Statistik. Taste stays on each tea's detail (SCR-09, JRN-03,
+JRN-04).
 
 **INS-05 — Consumption & cost (Verbrauch)** `Must`
 - **Grams:** the big numeral of leaf used in the range („38 g") and bars of
   grams per period (Σ `leaf_grams` of the finished sessions; a session
   without a leaf amount adds nothing).
-- **Cups:** per period as a second bar chart below the grams.
+- **Cups:** per period as a second bar chart below the grams (by volume,
+  rc.2). *Verbrauch* keeps separate charts (R10).
 - **Money spent:** what was paid for tea: Σ `price_cents` of the INITIAL
   and PURCHASE events with a price whose `occurred_at` is in the range
   („64,80 € im Zeitraum"), and bars per period. Events of deleted teas are
   gone with their tea (cascade) and don't count. Without a priced purchase
-  in the range: „Keine Käufe mit Preis".
-- **Average cost per cup:** Σ `cost_cents` ÷ Σ cups over the sessions in
-  the range that have a `cost_cents` („Ø 0,27 € pro Tasse · aus 20
-  Sitzungen"); hidden without such a session (never „0 €").
+  in the range: „Keine Käufe mit Preis". AUSGABEN stays priced purchases
+  (D-115 Q10); „Ø € pro Tasse" moved from here to GETRUNKEN (rc.2).
+- **Money drunk (GETRUNKEN, rc.2, D-115 A1, R9):** a section below AUSGABEN:
+  the € value of the leaf brewed per period (each session's `cost_cents`) as
+  bars, the range's total, and **„Ø 0,27 € pro Tasse"**: Σ `cost_cents` ÷ Σ
+  cups (by volume) over the sessions in the range that have a `cost_cents`;
+  hidden without such a session (never „0 €"). Sessions without a
+  `cost_cents` don't count: „aus 20 Sitzungen mit Preis"; without any:
+  „Keine Sitzungen mit Preis".
 - **Running out:** the non-archived teas whose stock is *Leer* or *Knapp*
   (INV-05) and whose stock warning is on (`low_stock_warning`), *Leer*
   first, then by remaining grams; „12 g · knapp" / „leer"; a tap opens the
@@ -1748,18 +1798,36 @@ to 100 (largest remainder).
   The first start shows 90 T on *Überblick*; afterwards the **last range
   and tab are remembered** across app starts (DataStore `statsRange`,
   `statsTab`, 05 §6).
+- **Custom range „Monate" (rc.2, D-115 A1, R7):** a fifth segment opens a
+  sheet with two month pickers (*Von*, *Bis*); the segment then reads
+  „Dez.–Aug." (with years when they differ: „Dez. 25–Aug. 26"). Months run
+  from the first session's month to the current month; *Bis* is not before
+  *Von*; a range ending with the current month counts up to today. It is
+  remembered like the others (`statsRange` plus its from/to months, 05 §6).
+  The empty state and the „+n im Zeitraum" rule follow the other ranges (the
+  „+n" shows).
 - **Periods of the bar and line charts:** 30 T and 90 T **per week** (ISO
   weeks, Monday first, „KW 44"; the weeks touching the range, ≈ 5 and 13
   bars; the first and last week only count the range's days); 12 M **per
   month** (12 bars, the current month last); Gesamt **per month** from the
   first finished session's month, horizontally scrollable, opening on the
-  current month.
+  current month; **Monate** (rc.2) **per month, per week when the span is at
+  most 3 months**.
 - Streaks (INS-01) and running out (INS-05) ignore the range.
 
 **INS-08 — Interaction, motion and accessibility** `Must`
 - A tap on a bar, a line point or a donut slice shows its value in a small
   label („KW 44 · 6 Sitzungen"; „Sencha · 42 % · 21 Sitzungen"); a second
-  tap or a tap elsewhere hides it. No drill-down into the journal.
+  tap or a tap elsewhere hides it. No drill-down into the journal. **rc.2
+  (R15):** the label fades (0,12 s in, 0,1 s out; reduce motion: at once).
+- **Foldable sections (rc.2, D-115 A1, R8):** on all three tabs sections are
+  open at first; a tap on the heading folds the section to one line with its
+  key number („SITZUNGEN · 42"); folded sections stay folded across app
+  starts (`statsFolded`, 05 §6). The chevron turns; the body expands or
+  collapses in ≈ 200 ms (reduce motion: at once); TalkBack announces
+  „eingeklappt"/„ausgeklappt".
+- **Compact (rc.2, R10):** every bar chart is about half as tall as in rc.1;
+  section spacing is tighter.
 - **Motion:** bars and the donut grow once when a tab first shows
   (≈ 300 ms, ease-out); a range change morphs the bars to the new values;
   with reduce motion only a fade (03 §3.6).
@@ -1791,6 +1859,7 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 | SET-32 | Bei „Nicht stören" klingeln (below *Alarmdauer*; v0.3.0, D-099) | **an**. On: while Do Not Disturb lets alarms through („Nur Alarme", or priority mode whose policy allows alarms), Vorwarnung and alarm ring even when the phone reports silent, as with the ringer on normal (sound, plus vibration per SET-11). Off: the reported ringer mode decides (as in `v0.3.0-rc.1`). *Alarm testen* and *Anhören* follow it (04 §9.1) | Must |
 | SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Brühen & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
+| SET-34 | Tassengröße (*Einstellungen*, v0.7.0-rc.2, D-115 A1, R2–R3; in *Brühen & Vorrat*, Claude's placement, not asked): the size of one cup. Poured water is counted in cups by it: Statistik (Tassen, Ø € pro Tasse) and the tea detail's „pro Tasse" lines (INV-08). Changing it recomputes every figure; nothing is stored per session | 50–500 ml in 10 ml steps — **150 ml** (`cupSizeMl`, 05 §6) | Should |
 | SET-28 | Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; a switch „Tägliche Vorrats-Erinnerung" in v0.3.0, D-098; from v0.5.0 *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich · Aus*, D-108) | Täglich | Should |
 | SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is not *Aus*; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |

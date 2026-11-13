@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-11-13 (v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SITZUNGEN, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-11-13 (v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SITZUNGEN, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -976,7 +976,8 @@ Empty: „Noch keine Tees · Im Katalog stöbern".
 v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)) replaces the M1
 placeholder („Deine Sammlung folgt bald …", D-069):
 - **Rows** (`TeaListItem`): cover, serif name, secondary name, Sorte, the
-  stock chip („38 g", *Knapp*, *Leer*), a favourite star and
+  stock chip („38 g", *Knapp*, *Leer*; from v0.7.0-rc.2 a *Knapp* tea reads
+  „14 g · knapp", see below), a favourite star and
   `CheckRecipeBadge`. No rating (M4); the freshness chip from v0.4.1 (see
   below). A tap opens SCR-09.
 - **Search** (TEA-09) over name, secondary name, vendor, region, cultivar and
@@ -1009,6 +1010,10 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   below the search and chips, so *Archiviert* stays reachable. A10 offers
   *Filter zurücksetzen* (search and chips off; the sort stays). The segment is
   remembered on every change, also when the app turns to *Katalog* itself.
+- **Knapp chip (v0.7.0-rc.2, D-115 A1, R14):** a tea whose stock is *Knapp*
+  shows **one** chip with the grams and the word: „14 g · knapp" in the
+  *Knapp* colours; *Leer* stays „Leer", and an ordinary stock stays „38 g".
+  TalkBack keeps „Knapp, 14 g übrig".
 - **Freshness (v0.4.1, INV-06, D-104):** the row's `FreshnessChip` follows the
   stock chip („Frisch", „Bald genießen", „Über dem Höhepunkt"); none for an
   unopened or an empty tea. TalkBack reads it with the row as „Frische: Bald
@@ -1061,7 +1066,9 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   „12,40 € / 100 g", „ca. 0,24 € pro Tasse (Rezept)" (with a default
   recipe) and, from the first priced session, „Ø 0,27 € pro Tasse aus 5
   Sitzungen" (TalkBack: „Durchschnittlich 0,27 € pro Tasse aus 5
-  Sitzungen"). A tea without a recorded price shows none of them. They
+  Sitzungen"). From v0.7.0-rc.2 (D-115 A1, R3) both „pro Tasse" lines count
+  cups by volume with the *Tassengröße* of SCR-25 (INV-08): a 1 l Kanne
+  infusion is ≈ 7 Tassen. A tea without a recorded price shows none of them. They
   update at once after a purchase, a correction or a history delete. The
   section keeps its title „Vorrat".
 - **Stock warning (v0.5.0, INV-05, INV-09, INV-10, INV-11, D-108, #197):** in
@@ -1481,30 +1488,61 @@ session's **recorded data** (JRN-11), opened by SCR-16's ⋮ *Bearbeiten*.
 ### SCR-18 Statistik
 
 **v0.7.0 (D-115; INS-01–INS-08).** The placeholder of M1–v0.6.1 is replaced.
+**rc.2 (D-115 Amendment 1, R1–R16):** the layout below is rc.2's; each change
+is marked „rc.2 (D-115 A1)".
 
 ```
 Deine Tee-Reise                         (displayLarge, Alegreya Sans)
-[ 30 T | 90 T | 12 M | Gesamt ]         (segmented button, one line)
+[ 30 T | 90 T | 12 M | Gesamt | Monate ]  (5-segment button; Monate: „Dez.–Aug.")
  Überblick   Bewertungen   Verbrauch    (primary tabs, swipeable pager)
 ───────────────────────────────────────
 Überblick                      Bewertungen                 Verbrauch
- 42 Sitzungen · 96 Tassen       Ø 4,2 ★                     38 g
- 24 Tees · +3 im Zeitraum       18 von 25 bewertet          Gramm ▮▮▮▮▮
- SITZUNGEN  ▮▮▮▯▮▮▮ (KW)        5★ ████████ 6               TASSEN ▮▮▮▮▮
- SERIE 7 Tage · längste 21      4★ ██████ 8 …               AUSGABEN 64,80 € ▮▮▮
- AM HÄUFIGSTEN (Top 5)          BEWERTUNG IM VERLAUF ╱╲╱    Ø 0,27 € pro Tasse
- TEE-SORTEN  ◯ donut + legend   AM BESTEN BEWERTET (Top 5)  GEHT ZUR NEIGE
- GEWOHNHEITEN  Tageszeit ▮▮▮▮   BESTES REZEPT               (Leer, Knapp …)
-               Wochentag ▮▮▮▮▮  GESCHMACK  radar · aus 34
-                                BESCHREIBUNGEN Top 5 chips
+ 42 Sitzungen · 96 Tassen · 24 Tees     TEE-RANGLISTE (Top 10)      38 g
+   (one row; „+3" not under Gesamt)      1. Sencha  4,6 ★ · 5×      GRAMM ▮▮▮▮▮ (half height)
+ ▾ SITZUNGEN  ▮▮▮▯▮▮▮ (KW)               Alle anzeigen (N)          TASSEN ▮▮▮▮▮
+ ▾ SERIE 7 Tage · längste 21            NEU ENTDECKT (5, newest)    AUSGABEN 64,80 € ▮▮▮
+ ▾ AM HÄUFIGSTEN (Top 5)                 Tee · Ø 4,0 ★ / ohne Bew.  GETRUNKEN ▮▮▮ · Ø 0,27 € pro Tasse
+ ▾ TEE-SORTEN  ◯ donut + legend         BEWERTUNG IM VERLAUF ╱╲╱    GEHT ZUR NEIGE (Leer, Knapp …)
+ ▾ TEES        ◯ donut + legend         BESTES REZEPT
+ ▾ GEWOHNHEITEN  Tageszeit · Wochentag
 ```
 
 - **Header:** „Deine Tee-Reise" scrolls away with the content; the range
   selector and the tabs stay pinned below the status bar. Each tab is a
   vertical scroll of sections; each section has a `labelOverline` heading
-  (SITZUNGEN, SERIE, AM HÄUFIGSTEN, TEE-SORTEN, GEWOHNHEITEN; BEWERTUNGEN,
-  BEWERTUNG IM VERLAUF, AM BESTEN BEWERTET, BESTES REZEPT, GESCHMACK,
-  BESCHREIBUNGEN; GRAMM, TASSEN, AUSGABEN, KOSTEN PRO TASSE, GEHT ZUR NEIGE).
+  (SITZUNGEN, SERIE, AM HÄUFIGSTEN, TEE-SORTEN, TEES, GEWOHNHEITEN;
+  TEE-RANGLISTE, NEU ENTDECKT, BEWERTUNG IM VERLAUF, BESTES REZEPT; GRAMM,
+  TASSEN, AUSGABEN, GETRUNKEN, GEHT ZUR NEIGE). rc.2 (D-115 A1) removes
+  BEWERTUNGEN (the Ø headline and the distribution), AM BESTEN BEWERTET,
+  GESCHMACK, BESCHREIBUNGEN and KOSTEN PRO TASSE (the „Ø € pro Tasse" moves
+  to GETRUNKEN).
+- **Range selector (rc.2, R7, INS-07):** five segments, **30 T · 90 T · 12 M ·
+  Gesamt · Monate**. *Monate* opens a sheet (Material 3 modal) with two month
+  pickers, *Von* and *Bis*, and *Fertig*; *Bis* is not before *Von*. The
+  segment then reads „Dez.–Aug." („Dez. 25–Aug. 26" across years). Bars per
+  month, per week when the span is at most 3 months. The five segments stay
+  on one line; the font-scale rule of D-115 (stop growing at 1,15) holds.
+- **Überblick (rc.2, R10, R12, R13):** Sitzungen · Tassen · Tees in **one
+  row**; no „+n im Zeitraum" under *Gesamt*; SERIE at 0 reads „Keine Serie
+  gerade · längste 21 Tage" (the longest only when there is one). The second
+  donut TEES follows TEE-SORTEN.
+- **Bewertungen (rc.2, R4, R11):** order TEE-RANGLISTE (rows „4,6 ★ · 5×",
+  top 10, then „Alle anzeigen (N)" expanding in place), NEU ENTDECKT (five
+  rows, then „Alle anzeigen (N)"; each row its Ø or „ohne Bewertung"; hidden
+  under *Gesamt*), BEWERTUNG IM VERLAUF, BESTES REZEPT. Without a rating in
+  the range, „In diesem Zeitraum nichts bewertet" above NEU ENTDECKT.
+- **Verbrauch (rc.2, R9, R10):** separate charts GRAMM, TASSEN, AUSGABEN,
+  then GETRUNKEN (bars of the € value of the leaf brewed, the total, „Ø 0,27 €
+  pro Tasse", „aus 20 Sitzungen mit Preis"; „Keine Sitzungen mit Preis"),
+  then GEHT ZUR NEIGE.
+- **Fold headers (rc.2, R8, INS-08):** every section heading is a row with
+  a chevron; a tap folds the section to that one line with its key number
+  („SITZUNGEN · 42"), a second tap opens it. The chevron turns; the body
+  expands or collapses in ≈ 200 ms (`standard`; reduce motion: at once).
+  Folded sections stay folded across app starts (`statsFolded`). TalkBack:
+  the heading is a button announcing „eingeklappt"/„ausgeklappt".
+- **Compact (rc.2, R10):** every bar chart is about **half as tall** as in
+  rc.1; section spacing is tighter.
 - **Big numerals** use the display font (`displayMedium`) with a small label
   below; numbers in German format („4,2", „64,80 €", „1.234").
 - **Bars** in `primary` on the washi surface, the period last in the range
@@ -1513,20 +1551,25 @@ Deine Tee-Reise                         (displayLarge, Alegreya Sans)
   they never overlap. Gesamt scrolls sideways, opening at the current month.
 - **Rating line:** a 2 dp `primary` line with 4 dp points on periods with a
   rating, breaking over periods without; y from 1 to 5 ★.
-- **Rating distribution:** five horizontal bars 5 ★ → 1 ★ with their counts.
+- **Rating distribution:** removed in rc.2 (D-115 A1, R4).
 - **Donut:** the five largest Sorten, each in its type colour (§3.1) where
   one exists; a Sorte without one, or one whose colour is taken, gets the
   next unused type colour, so no two slices share a colour; „Andere" in
   `outlineVariant`; 2 dp gaps between slices; legend right of it (below it at
-  font ≥ 1.5) with „42 %".
+  font ≥ 1.5) with „42 %". The *Tees* donut (rc.2, R6) is built the same
+  way: the five largest teas named, the rest „Andere", a deleted tea under
+  its snapshot name, no repeated colour within it.
 - **Habits:** two rows of small vertical bars with the percentages above.
-- **Tea rows** (most brewed, top rated, running out, best recipe): the
+- **Tea rows** (most brewed, Tee-Rangliste, Neu entdeckt, running out, best
+  recipe): the
   journal's round thumbnail (cover or leaf), name, a meta line; a chevron
   when tappable (not for a deleted tea).
-- **Taste:** the shared `TasteRadar` (core:ui) with „aus 34 Aufgüssen";
-  descriptors as read-only chips „Nori · 12×".
+- **Taste (removed in rc.2, D-115 A1, R5):** no radar and no descriptor
+  chips on Statistik; taste stays on SCR-09.
 - **Value label** on tap (INS-08): a small `inverseSurface` tooltip above
-  the bar, point or slice.
+  the bar, point or slice. **rc.2 (R15):** it fades in over 0,12 s and out
+  over 0,1 s (reduce motion: at once); before, it appeared without
+  animation.
 - **Empty state:** A9 (`illustration_stats_empty_light/dark`), „Noch keine
   Statistik", „Brühe deinen ersten Tee, dann wächst hier deine Tee-Reise.";
   no selector, no tabs. An empty range: each section's body reads „In
@@ -1845,6 +1888,13 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   ab".
 - The section *Teegeschirr* (SET-30) between *Katalog* and *Über*: one row
   „Teegeschirr" that opens SCR-13.
+
+v0.7.0-rc.2 ([D-115](10-open-questions-and-decisions.md#d-115) A1, R2–R3):
+*Brühen & Vorrat* gets the row *Tassengröße* (SET-34) with its value
+(„150 ml"), 50–500 ml in 10 ml steps (placement in the section is Claude's,
+not asked; the control is left to the build). A hint line says what it
+counts: „Damit werden Tassen in Statistik und Kosten pro Tasse berechnet."
+(Claude's wording). A change recomputes the figures at once.
 
 v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)): a section *Darstellung* first, below the
 *Timer-Zuverlässigkeit* card, with the row *Design* and its value
