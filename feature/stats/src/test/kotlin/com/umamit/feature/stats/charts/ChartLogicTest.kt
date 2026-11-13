@@ -46,4 +46,17 @@ class ChartLogicTest {
         assertThat(colors[4]).isEqualTo(other)
         assertThat(colors.take(4).toSet()).hasSize(4)
     }
+
+    @Test
+    fun `two slices with the same label keep two keys and two colours`() {
+        val slices = listOf(
+            DonutSlice("Sencha", 5, 0, key = "tea:1"),
+            DonutSlice("Sencha", 4, 0, key = "tea:2"),
+        )
+        val palette = listOf(Color(0xFF00AA00), Color(0xFF0000AA))
+
+        assertThat(slices.map { it.key }.toSet()).hasSize(2)
+        assertThat(DonutSlice("Gyokuro", 1, 0).key).isEqualTo("Gyokuro")
+        assertThat(assignSliceColors(slices, palette, Color.Gray).toSet()).hasSize(2)
+    }
 }

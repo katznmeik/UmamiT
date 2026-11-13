@@ -396,7 +396,7 @@ private fun RangeSelector(
 ) {
     val ranges = StatsRange.entries
     val resources = LocalResources.current
-    val span = custom?.label(resources)
+    val span = custom?.takeIf { range == StatsRange.CUSTOM }?.label(resources)
     SingleChoiceSegmentedButtonRow(
         modifier = Modifier
             .fillMaxWidth()

@@ -74,7 +74,7 @@ fun RatingsTab(
                 },
                 isEmpty = noSessions,
             ) {
-                RankingRows(stats.teaRanking, range, onOpenTea, thumbnail)
+                RankingRows(stats.teaRanking, figures.rangeKey, onOpenTea, thumbnail)
             }
         }
         if (range != StatsRange.ALL) {
@@ -84,7 +84,7 @@ fun RatingsTab(
                 summary = stats.newlyDiscovered.size.toString(),
                 isEmpty = stats.newlyDiscovered.isEmpty(),
             ) {
-                NewRows(stats.newlyDiscovered, range, onOpenTea, thumbnail)
+                NewRows(stats.newlyDiscovered, figures.rangeKey, onOpenTea, thumbnail)
             }
         }
         if (!unrated || noSessions) {
@@ -96,7 +96,7 @@ fun RatingsTab(
                 summary = latest?.let { stringResource(R.string.stats_chart_stars_value, ChartNumbers.rating(it)) },
                 isEmpty = noSessions,
             ) {
-                HistoryChart(stats, range, history)
+                HistoryChart(stats, range, figures.rangeKey, history)
             }
         }
         if (stats.bestRecipes.isNotEmpty()) {
@@ -137,11 +137,11 @@ private fun ShowAll(count: Int, tag: String, onClick: () -> Unit) {
 @Composable
 private fun RankingRows(
     rows: List<TeaRatingRow>,
-    range: StatsRange,
+    rangeKey: Any,
     onOpenTea: (String) -> Unit,
     thumbnail: @Composable (File) -> Painter?,
 ) {
-    var expanded by rememberSaveable(range) { mutableStateOf(false) }
+    var expanded by rememberSaveable(rangeKey) { mutableStateOf(false) }
     val shown = if (expanded) rows else rows.take(RANKING_LIMIT)
     shown.forEach { row ->
         val meta = stringResource(R.string.stats_ratings_rank_meta, ChartNumbers.rating(row.average), row.ratingCount)
@@ -164,11 +164,11 @@ private fun RankingRows(
 @Composable
 private fun NewRows(
     rows: List<NewTea>,
-    range: StatsRange,
+    rangeKey: Any,
     onOpenTea: (String) -> Unit,
     thumbnail: @Composable (File) -> Painter?,
 ) {
-    var expanded by rememberSaveable(range) { mutableStateOf(false) }
+    var expanded by rememberSaveable(rangeKey) { mutableStateOf(false) }
     val shown = if (expanded) rows else rows.take(NEW_LIMIT)
     shown.forEach { row ->
         TeaRow(
@@ -189,7 +189,7 @@ private fun NewRows(
 }
 
 @Composable
-private fun HistoryChart(stats: RatingsStats, range: StatsRange, title: String) {
+private fun HistoryChart(stats: RatingsStats, range: StatsRange, rangeKey: Any, title: String) {
     val resources = LocalResources.current
     val points = remember(stats.ratingPerPeriod) {
         stats.ratingPerPeriod.map {
@@ -206,7 +206,7 @@ private fun HistoryChart(stats: RatingsStats, range: StatsRange, title: String) 
         title = title,
         modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
         scrollable = range == StatsRange.ALL || range == StatsRange.CUSTOM,
-        selectionResetKey = range,
+        selectionResetKey = rangeKey,
     )
 }
 

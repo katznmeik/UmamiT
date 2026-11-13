@@ -63,7 +63,10 @@ sealed interface StatsUiState {
 }
 
 /** A tab's [stats] with the [range] they were computed for: the page takes its range-bound state from here (INS-07). */
-data class TabFigures<T>(val range: StatsRange, val stats: T)
+data class TabFigures<T>(val range: StatsRange, val stats: T, val custom: MonthSpan? = null) {
+    /** What a chart's selection and a list's „Alle anzeigen" reset on: the range and, for *Monate*, its months. */
+    val rangeKey: Pair<StatsRange, MonthSpan?> get() = range to custom
+}
 
 /**
  * Statistik (SCR-18; INS-07, INS-08): the remembered range and tab (`statsRange`, `statsTab`; 90 T and *Überblick*
@@ -152,7 +155,9 @@ class StatsViewModel @Inject constructor(
         figures { calculator, range, custom -> calculator.consumption(range, custom) }
 
     private fun <T : Any> figures(of: (StatsCalculator, StatsRange, MonthSpan?) -> T): StateFlow<TabFigures<T>?> =
-        combine(calculator, range) { calculator, (range, custom) -> TabFigures(range, of(calculator, range, custom)) }
+        combine(calculator, range) { calculator, (range, custom) ->
+            TabFigures(range, of(calculator, range, custom), custom)
+        }
             .flowOn(computeDispatcher)
             .map<TabFigures<T>, TabFigures<T>?> { it }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)

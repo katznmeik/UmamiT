@@ -230,4 +230,12 @@ class CostRuleTest {
         assertThat(CostRule.of(priced, recipe, emptyList(), cupSizeMl = 150)?.recipeCupCents).isEqualTo(21)
         assertThat(CostRule.of(priced, recipe, emptyList(), cupSizeMl = 300)?.recipeCupCents).isEqualTo(41)
     }
+
+    @Test
+    fun `the estimate holds at one cup when the recipe pours less than a cup`() {
+        // 2 g matcha × 24,8 ct = 49,6 ct, 70 ml of 150 ml would be 0,47 cups: one cup → 50 ct, not 106.
+        val matcha = recipe(2.0, StepKind.WHISK, waterMl = 70)
+
+        assertThat(CostRule.of(priced, matcha, emptyList())?.recipeCupCents).isEqualTo(50)
+    }
 }

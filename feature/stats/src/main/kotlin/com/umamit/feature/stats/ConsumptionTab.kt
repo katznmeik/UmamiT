@@ -77,7 +77,7 @@ fun ConsumptionTab(
         val stats = figures.stats
         val none = stats.grams <= 0.0 && stats.cups == 0
         val monthly = stats.gramsPerPeriod.firstOrNull()?.period?.unit == PeriodUnit.MONTH
-        val bars = BarSetup(monthly, figures.range)
+        val bars = BarSetup(monthly, figures.range, figures.rangeKey)
         StatsSection(
             key = "consumption.grams",
             title = stringResource(R.string.stats_consumption_section_grams),
@@ -134,7 +134,7 @@ fun ConsumptionTab(
     }
 }
 
-private class BarSetup(val monthly: Boolean, val range: StatsRange)
+private class BarSetup(val monthly: Boolean, val range: StatsRange, val resetKey: Any)
 
 @Composable
 private fun Numeral(value: String, label: String) {
@@ -173,7 +173,7 @@ private fun <T> Bars(
         title = stringResource(if (setup.monthly) titles.month else titles.week),
         modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin),
         scrollable = setup.range == StatsRange.ALL || setup.range == StatsRange.CUSTOM,
-        selectionResetKey = setup.range,
+        selectionResetKey = setup.resetKey,
     )
 }
 
@@ -225,7 +225,7 @@ private fun DrunkPriced(stats: ConsumptionStats, setup: BarSetup) {
             label = pluralStringResource(
                 R.plurals.stats_consumption_priced_sessions,
                 stats.drunkSessionCount,
-                stats.drunkSessionCount,
+                ChartNumbers.axis(stats.drunkSessionCount.toDouble()),
             ),
         )
         Bars(stats.drunkPerPeriod, ChartUnit.EUROS, DRUNK_TITLES, setup) { it / CENTS }

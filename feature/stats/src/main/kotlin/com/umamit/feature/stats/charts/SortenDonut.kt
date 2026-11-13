@@ -164,13 +164,20 @@ fun SortenDonut(
                 Legend(shown, colors, percents, Modifier.weight(1f))
             }
         }
-        FadingTooltip(selected, shown.size) { index, fade ->
-            val text = "${shown[index].label} · ${percents[index]} % · ${sessionsText(shown[index].count)}"
+        FadingTooltip(
+            selected,
+            shown.size,
+            capture = { index ->
+                val counts = shown.map { it.count }
+                val text = "${shown[index].label} · ${percents[index]} % · ${sessionsText(shown[index].count)}"
+                TooltipSnapshot(text) { _ -> geometry.outerPoint(index, counts) }
+            },
+        ) { snapshot, fade ->
             ChartTooltip(
-                text,
+                snapshot.text,
                 Modifier.graphicsLayer { alpha = fade }.layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
-                    val anchor = geometry.outerPoint(index, shown.map { it.count })
+                    val anchor = snapshot.anchor(0f)
                     val x = (anchor.x - placeable.width / 2f).coerceIn(
                         0f,
                         max(
@@ -190,8 +197,8 @@ fun SortenDonut(
 }
 
 private fun DrawScope.drawRing(morph: DonutMorph, selected: Int?, progress: Float) {
-    val labels = morph.labels
-    val counts = labels.map { morph.count(it) }
+    val keys = morph.keys
+    val counts = keys.map { morph.count(it) }
     val total = counts.sum()
     if (total <= 0f) return
     val extra = RING_SELECTED_EXTRA.toPx() / 2f
@@ -215,7 +222,7 @@ private fun DrawScope.drawRing(morph: DonutMorph, selected: Int?, progress: Floa
         if (to <= from) return@forEachIndexed
         val width = if (index == selected) ring + RING_SELECTED_EXTRA.toPx() else ring
         drawArc(
-            color = morph.color(labels[index]),
+            color = morph.color(keys[index]),
             startAngle = from - QUARTER_TURN,
             sweepAngle = to - from,
             useCenter = false,
@@ -227,44 +234,44 @@ private fun DrawScope.drawRing(morph: DonutMorph, selected: Int?, progress: Floa
 }
 
 /**
- * The ring's slices by label, not by position (a range change, SCR-18): a new Sorte grows from 0, one that
- * vanished shrinks to 0 (after the others), the rest move to their new share; colours follow the labels.
+ * The ring's slices by key, not by position (a range change, SCR-18): a new slice grows from 0, one that
+ * vanished shrinks to 0 (after the others), the rest move to their new share; colours follow the keys.
  * The drawing order is the new target's. Read in draw only; under reduce motion the new values apply at once.
  */
 @Stable
-private class DonutMorph(initial: List<DonutSlice>, colors: List<Color>) {
-    var labels by mutableStateOf(initial.map { it.label })
+internal class DonutMorph(initial: List<DonutSlice>, colors: List<Color>) {
+    var keys by mutableStateOf(initial.map { it.key })
         private set
-    private var from: Map<String, Float> by mutableStateOf(initial.associate { it.label to it.count.toFloat() })
+    private var from: Map<String, Float> by mutableStateOf(initial.associate { it.key to it.count.toFloat() })
     private var to: Map<String, Float> by mutableStateOf(from)
-    private var colorOf by mutableStateOf(initial.map { it.label }.zip(colors).toMap())
+    private var colorOf by mutableStateOf(initial.map { it.key }.zip(colors).toMap())
     private val progress = Animatable(1f)
 
-    fun count(label: String): Float {
-        val start = from[label] ?: 0f
-        return start + ((to[label] ?: 0f) - start) * progress.value
+    fun count(key: String): Float {
+        val start = from[key] ?: 0f
+        return start + ((to[key] ?: 0f) - start) * progress.value
     }
 
-    fun color(label: String): Color = colorOf[label] ?: Color.Transparent
+    fun color(key: String): Color = colorOf[key] ?: Color.Transparent
 
     suspend fun morphTo(target: List<DonutSlice>, colors: List<Color>, reduceMotion: Boolean) {
-        val targetLabels = target.map { it.label }
-        val targetCounts = target.associate { it.label to it.count.toFloat() }
-        colorOf = colorOf + targetLabels.zip(colors)
-        if (to == targetCounts && labels == targetLabels && progress.value >= 1f) return
+        val targetKeys = target.map { it.key }
+        val targetCounts = target.associate { it.key to it.count.toFloat() }
+        colorOf = colorOf + targetKeys.zip(colors)
+        if (to == targetCounts && keys == targetKeys && progress.value >= 1f) return
         if (reduceMotion) {
-            labels = targetLabels
+            keys = targetKeys
             from = targetCounts
             to = targetCounts
             progress.snapTo(1f)
             return
         }
-        from = labels.associateWith { count(it) }
+        from = keys.associateWith { count(it) }
         to = targetCounts
-        labels = targetLabels + labels.filter { it !in targetLabels }
+        keys = targetKeys + keys.filter { it !in targetKeys }
         progress.snapTo(0f)
         progress.animateTo(1f, tween(MORPH_MILLIS, easing = MotionTokens.CalmEaseOut))
-        labels = targetLabels
+        keys = targetKeys
         from = targetCounts
     }
 }

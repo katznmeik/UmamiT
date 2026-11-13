@@ -39,6 +39,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.germanUppercase
@@ -100,18 +103,22 @@ fun StatsSection(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val folds = LocalStatsFolds.current
-    var local by rememberSaveable(key) { mutableStateOf(false) }
-    val folded = if (folds != null) key in folds.folded else local
+    // The fold is local state seeded from the persisted set, so quick taps never wait for the DataStore round-trip;
+    // the write goes out in the background (the view model applies it to the latest settings).
+    var folded by rememberSaveable(key) { mutableStateOf(folds != null && key in folds.folded) }
     val toggle = {
-        if (folds != null) folds.onChange(key, !folded) else local = !folded
+        val next = !folded
+        folded = next
+        folds?.onChange(key, next)
+        Unit
     }
     val motion = UmamiTheme.motion
     Column(modifier = modifier.fillMaxWidth().padding(top = UmamiSpacing.Small)) {
-        FoldHeader(key, title, if (folded) summary else null, folded, toggle)
+        FoldHeader(key, title, summary, folded, toggle)
         AnimatedVisibility(
             visible = !folded,
-            enter = expandVertically(motion.exit()) + fadeIn(motion.exit()),
-            exit = shrinkVertically(motion.exit()) + fadeOut(motion.exit()),
+            enter = expandVertically(motion.exit(), expandFrom = Alignment.Top) + fadeIn(motion.exit()),
+            exit = shrinkVertically(motion.exit(), shrinkTowards = Alignment.Top) + fadeOut(motion.exit()),
         ) {
             Column {
                 if (isEmpty) {
@@ -134,9 +141,22 @@ fun StatsSection(
 
 @Composable
 private fun FoldHeader(key: String, title: String, summary: String?, folded: Boolean, onToggle: () -> Unit) {
-    val line = if (summary != null) stringResource(R.string.stats_section_folded_title, title, summary) else title
+    val shown = if (folded) summary else null
+    val line = if (shown != null) stringResource(R.string.stats_section_folded_title, title, shown) else title
     val state = stringResource(if (folded) R.string.stats_section_folded else R.string.stats_section_unfolded)
     val action = stringResource(if (folded) R.string.stats_section_unfold else R.string.stats_section_fold)
+    // The „ · 42" part alone fades, with the body's 200 ms spec; it keeps its text while it fades out.
+    val tailAlpha by animateFloatAsState(
+        targetValue = if (shown != null) 1f else 0f,
+        animationSpec = UmamiTheme.motion.exit(),
+        label = "statsSummaryFade",
+    )
+    val tail = if (summary != null && (shown != null || tailAlpha > 0f)) {
+        stringResource(R.string.stats_section_folded_title, "", summary).germanUppercase()
+    } else {
+        ""
+    }
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val turn by animateFloatAsState(
         targetValue = if (folded) 0f else OPEN_DEGREES,
         animationSpec = UmamiTheme.motion.exit(),
@@ -157,9 +177,12 @@ private fun FoldHeader(key: String, title: String, summary: String?, folded: Boo
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = line.germanUppercase(),
+            text = buildAnnotatedString {
+                append(title.germanUppercase())
+                withStyle(SpanStyle(color = muted.copy(alpha = muted.alpha * tailAlpha))) { append(tail) }
+            },
             style = UmamiTheme.textStyles.overline,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = muted,
         )
         Spacer(Modifier.width(UmamiSpacing.Small))
         HorizontalDivider(
