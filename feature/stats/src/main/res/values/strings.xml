@@ -96,6 +96,29 @@
     </string-array>
     <!-- ===== end of #260 ===== -->
 
+    <!-- ===== #262: Verbrauch (INS-05) ===== -->
+    <string name="stats_consumption_section_grams">GRAMM</string>
+    <string name="stats_consumption_section_cups">TASSEN</string>
+    <string name="stats_consumption_section_money">AUSGABEN</string>
+    <string name="stats_consumption_section_cost">KOSTEN PRO TASSE</string>
+    <string name="stats_consumption_section_running_out">GEHT ZUR NEIGE</string>
+    <string name="stats_consumption_in_range">im Zeitraum</string>
+    <string name="stats_consumption_grams_per_week">Gramm pro Woche</string>
+    <string name="stats_consumption_grams_per_month">Gramm pro Monat</string>
+    <string name="stats_consumption_cups_per_week">Tassen pro Woche</string>
+    <string name="stats_consumption_cups_per_month">Tassen pro Monat</string>
+    <string name="stats_consumption_money_per_week">Ausgaben pro Woche</string>
+    <string name="stats_consumption_money_per_month">Ausgaben pro Monat</string>
+    <string name="stats_consumption_no_purchases">Keine Käufe mit Preis</string>
+    <string name="stats_consumption_cost_per_cup">Ø %1$s € pro Tasse · aus %2$s</string>
+    <plurals name="stats_consumption_sessions">
+        <item quantity="one">%d Sitzung</item>
+        <item quantity="other">%d Sitzungen</item>
+    </plurals>
+    <string name="stats_consumption_empty">leer</string>
+    <string name="stats_consumption_low">%1$s g · knapp</string>
+    <!-- ===== end of #262 ===== -->
+
     <!-- Charts (SCR-18, INS-08): value labels and TalkBack lists; numbers arrive in German format. -->
     <plurals name="stats_chart_sessions">
         <item quantity="one">%1$s Sitzung</item>
