@@ -1,26 +1,12 @@
 package com.umamit.core.domain.stats
 
+import com.umamit.core.model.StatsRange
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import java.time.temporal.IsoFields
 import java.time.temporal.TemporalAdjusters
-
-/** The time range selector of INS-07: rolling up to today, one for every tab. */
-enum class StatsRange {
-    /** „30 T": today and the 29 days before, per ISO week. */
-    DAYS_30,
-
-    /** „90 T": today and the 89 days before, per ISO week. */
-    DAYS_90,
-
-    /** „12 M": the current month and the 11 before, per month (12 bars, the current month last). */
-    MONTHS_12,
-
-    /** „Gesamt": everything up to today, per month from the first finished session's month. */
-    ALL,
-}
 
 /** The unit of a chart's periods (INS-07). */
 enum class PeriodUnit {

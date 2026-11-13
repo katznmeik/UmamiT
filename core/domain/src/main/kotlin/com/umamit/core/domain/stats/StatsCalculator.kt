@@ -2,6 +2,7 @@ package com.umamit.core.domain.stats
 
 import com.umamit.core.domain.collection.CupAverage
 import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StockLevel
 import java.time.Clock
 import java.time.Instant

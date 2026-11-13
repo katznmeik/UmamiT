@@ -5,6 +5,8 @@ import com.umamit.core.model.AlertLength
 import com.umamit.core.model.CollectionSegment
 import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.LowStockReminderInterval
+import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsTab
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import kotlinx.coroutines.CoroutineScope
@@ -57,6 +59,8 @@ class SettingsDataSourceTest {
         assertThat(settings.catalogFolded).isEmpty()
         assertThat(settings.collectionSort).isEqualTo(CollectionSort.LAST_BREWED)
         assertThat(settings.collectionSegment).isEqualTo(CollectionSegment.MY_TEAS)
+        assertThat(settings.statsRange).isEqualTo(StatsRange.DAYS_90)
+        assertThat(settings.statsTab).isEqualTo(StatsTab.OVERVIEW)
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
         assertThat(source.seedVesselsV2Added.first()).isFalse()
@@ -105,6 +109,8 @@ class SettingsDataSourceTest {
             catalogFolded = setOf("green/Bancha", "herbal/-"),
             collectionSort = CollectionSort.STOCK,
             collectionSegment = CollectionSegment.CATALOG,
+            statsRange = StatsRange.MONTHS_12,
+            statsTab = StatsTab.CONSUMPTION,
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())
@@ -299,6 +305,37 @@ class SettingsDataSourceTest {
         assertThat(settings.collectionSort).isEqualTo(CollectionSort.LAST_BREWED)
         assertThat(settings.collectionSegment).isEqualTo(CollectionSegment.MY_TEAS)
         assertThat(settings.alertSound).isEqualTo("glocke")
+    }
+
+    @Test
+    fun eachStatsRangeAndTabIsStoredAndReadBack() = runTest {
+        // INS-07 (v0.7.0, D-115): `statsRange` and `statsTab` round-trip (05 §6).
+        val source = dataSource()
+        for (range in StatsRange.entries) {
+            for (tab in StatsTab.entries) {
+                source.update { it.copy(statsRange = range, statsTab = tab) }
+
+                val settings = source.settings.first()
+                assertThat(settings.statsRange).isEqualTo(range)
+                assertThat(settings.statsTab).isEqualTo(tab)
+            }
+        }
+    }
+
+    @Test
+    fun aFileOfVersion060WithoutTheStatsKeysReadsTheDefaultsAndACorruptValueDoes() = runTest {
+        val old = File(folder.root, "v060-stats.json")
+        old.writeText("""{"collectionSort":"NAME","alertSound":"glocke"}""")
+        val odd = File(folder.root, "odd-stats.json")
+        odd.writeText("""{"statsRange":"WEEKS_2","statsTab":"","alertSound":"glocke"}""")
+
+        for (file in listOf(old, odd)) {
+            val settings = dataSource(file).settings.first()
+
+            assertThat(settings.statsRange).isEqualTo(StatsRange.DAYS_90)
+            assertThat(settings.statsTab).isEqualTo(StatsTab.OVERVIEW)
+            assertThat(settings.alertSound).isEqualTo("glocke")
+        }
     }
 
     @Test
