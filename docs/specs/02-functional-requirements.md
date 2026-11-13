@@ -1583,6 +1583,15 @@ statistics.
     step was skipped (its leaf was used). Sessions without a cost and the
     running one are left out. The stored `cost_cents` stays as it was at
     completion; a later purchase changes only the price and the estimate.
+  - **Cups by volume (D-115 Amendment 1, #268):** a cup is poured water ÷
+    the **cup size** (*Tassengröße* in *Einstellungen*, `cupSizeMl`, default
+    150 ml, 50–500 in 10 ml steps). A session's cups = Σ over its poured
+    non-rinse infusions of `water_ml` ÷ cup size; whisk-only or all-skipped
+    counts one infusion; without `water_ml` each infusion is one cup; never
+    below 1 per session. Sums stay unrounded and display rounds half up. The
+    estimate uses recipe water × its non-rinse steps ÷ cup size. Changing the
+    setting recomputes every figure (nothing is stored per session); this
+    replaces „one infusion = one cup" above.
   - **No price, no cost:** without a priced INITIAL or PURCHASE event none
     of the three lines shows (never „0 €"). The lines update at once after
     a purchase, a correction or a history delete.
@@ -1665,8 +1674,9 @@ figure is computed from the existing tables when read.
   Sessions the app finished on its own (`auto_finished`) count too.
 - A session belongs to the **day of its `started_at`** in its own `zone_id`
   (the journal's day).
-- **Cups** as INV-08: one per poured non-rinse step (ended, not skipped); a
-  whisk-only session, or a session whose every step was skipped, is one cup.
+- **Cups** as INV-08 (by volume since D-115 Amendment 1): poured water ÷ the
+  cup size per poured non-rinse infusion (ended, not skipped); a whisk-only
+  session, or one whose every step was skipped, is one infusion.
 - **Taste** is per infusion (D-114): averages run per axis over the
   infusions that set that axis (and the v0.6.0 sessions without step rows,
   05 §3.6).

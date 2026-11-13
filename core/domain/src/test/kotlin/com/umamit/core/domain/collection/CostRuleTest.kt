@@ -41,13 +41,13 @@ class CostRuleTest {
     /** 50 g for 12,40 €: 24,8 ct per gram. */
     private val priced = StockSummary.of(listOf(bought("i", 50.0, 1240, InventoryEventType.INITIAL)))
 
-    private fun recipe(leaf: Double, vararg kinds: StepKind) = Recipe(
+    private fun recipe(leaf: Double, vararg kinds: StepKind, waterMl: Int = 150) = Recipe(
         id = "r",
         teaId = TEA,
         name = "Rezept",
         method = BrewMethod.KYUSU,
         leafGrams = leaf,
-        waterMl = 250,
+        waterMl = waterMl,
         baseTempC = 70,
         steps = kinds.map { RecipeStep(it, 60) },
         isDefault = true,
@@ -95,11 +95,12 @@ class CostRuleTest {
         costCents: Long?,
         steps: List<SessionStepRow>,
         status: SessionStatus = SessionStatus.COMPLETED,
+        waterMl: Int? = null,
     ) = BrewSession(
         id = id,
         status = status,
         snapshot = SessionSnapshot(
-            TEA, "Tee", null, null, null, null, null, null, BrewMethod.KYUSU, null, null, 5.0, 250, 70,
+            TEA, "Tee", null, null, null, null, null, null, BrewMethod.KYUSU, null, null, 5.0, waterMl, 70,
         ),
         preAlertSeconds = null,
         plannedStepCount = steps.size,
@@ -185,5 +186,48 @@ class CostRuleTest {
 
     private companion object {
         const val TEA = "tea"
+    }
+
+    @Test
+    fun `a Kanne of 1000 ml with two infusions is 13 cups at 150 ml, the average divides by the unrounded cups`() {
+        // 2 × 1 000 ml ÷ 150 ml = 13,33 cups for 400 ct → 30 ct.
+        val sessions = listOf(session("k", 400, List(2) { row(it, StepKind.INFUSION) }, waterMl = 1_000))
+
+        assertThat(CostRule.sessionCups(List(2) { StepKind.INFUSION }, 1_000, 150)).isWithin(1e-9).of(40.0 / 3)
+        assertThat(CostRule.displayCups(40.0 / 3)).isEqualTo(13)
+        assertThat(CostRule.of(priced, null, sessions, cupSizeMl = 150)?.average?.cupCents).isEqualTo(30)
+        // A bigger cup recomputes: 2 000 ml ÷ 250 ml = 8 cups → 50 ct.
+        assertThat(CostRule.of(priced, null, sessions, cupSizeMl = 250)?.average?.cupCents).isEqualTo(50)
+    }
+
+    @Test
+    fun `a Kyusu of 120 ml is under one cup per infusion but a session never counts below one`() {
+        assertThat(CostRule.sessionCups(listOf(StepKind.INFUSION), 120, 150)).isEqualTo(1.0)
+        assertThat(CostRule.sessionCups(List(3) { StepKind.INFUSION }, 120, 150)).isWithin(1e-9).of(2.4)
+    }
+
+    @Test
+    fun `whisk-only and all-skipped are one infusion, without water_ml each infusion is one cup`() {
+        assertThat(CostRule.sessionCups(listOf(StepKind.WHISK), 300, 150)).isEqualTo(2.0)
+        assertThat(CostRule.sessionCups(emptyList(), 300, 150)).isEqualTo(2.0)
+        assertThat(CostRule.sessionCups(listOf(StepKind.RINSE), 300, 150)).isEqualTo(2.0)
+        assertThat(CostRule.sessionCups(List(3) { StepKind.INFUSION }, null, 150)).isEqualTo(3.0)
+        assertThat(CostRule.sessionCups(emptyList(), null, 150)).isEqualTo(1.0)
+    }
+
+    @Test
+    fun `cups round half up for display`() {
+        assertThat(CostRule.displayCups(2.5)).isEqualTo(3)
+        assertThat(CostRule.displayCups(2.49)).isEqualTo(2)
+        assertThat(CostRule.displayCups(0.4)).isEqualTo(0)
+    }
+
+    @Test
+    fun `the estimate uses the recipe's water times its non-rinse steps over the cup size`() {
+        // 5 g × 24,8 ct = 124 ct over 3 × 300 ml ÷ 150 ml = 6 cups → 20,67 → 21 ct.
+        val recipe = recipe(5.0, StepKind.RINSE, StepKind.INFUSION, StepKind.INFUSION, StepKind.INFUSION, waterMl = 300)
+
+        assertThat(CostRule.of(priced, recipe, emptyList(), cupSizeMl = 150)?.recipeCupCents).isEqualTo(21)
+        assertThat(CostRule.of(priced, recipe, emptyList(), cupSizeMl = 300)?.recipeCupCents).isEqualTo(41)
     }
 }

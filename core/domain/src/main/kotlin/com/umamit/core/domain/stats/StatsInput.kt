@@ -17,12 +17,14 @@ import java.io.File
  * @property inventoryEvents the stock events of the existing teas; only the INITIAL and PURCHASE events with a
  * price count (INS-05), the others are ignored. A deleted tea's events are gone with it (cascade).
  * @property knownDescriptorKeys the descriptor vocabulary the app knows; other keys are not counted (INS-04).
+ * @property cupSizeMl the cup size setting (`cupSizeMl`, D-115 Amendment 1): the water of one cup.
  */
 data class StatsInput(
     val sessions: List<StatsSession>,
     val teas: List<StatsTea>,
     val inventoryEvents: List<InventoryEvent>,
     val knownDescriptorKeys: Set<String>,
+    val cupSizeMl: Int = CostRule.DEFAULT_CUP_SIZE_ML,
 )
 
 /**
@@ -38,6 +40,7 @@ data class StatsInput(
  * @property zoneId the session's own time zone (IANA id).
  * @property rating 0,5–5,0 in half steps; null when unrated.
  * @property leafGrams the leaf used; null adds nothing to the grams.
+ * @property waterMl `water_ml` of the session (the water of each infusion); null counts one cup per infusion.
  * @property costCents `cost_cents` (INV-08); null without a cost.
  * @property steps every step row, never-started ones included.
  * @property sessionTaste the session row's own taste columns: only a v0.6.0 session without any step row still has
@@ -60,9 +63,11 @@ data class StatsSession(
     val sessionTaste: TasteProfile = TasteProfile.EMPTY,
     val descriptorKeys: List<String> = emptyList(),
     val styleKey: String? = null,
+    val waterMl: Int? = null,
 ) {
-    /** The session's cups (INV-08): one per poured non-rinse step; whisk-only or nothing poured is one. */
-    val cups: Int get() = CostRule.sessionCups(steps.filter { it.ended && !it.skipped }.map { it.kind })
+    /** The session's cups, unrounded (INV-08): poured non-rinse infusions × water ÷ [cupSizeMl], at least 1. */
+    fun cups(cupSizeMl: Int): Double =
+        CostRule.sessionCups(steps.filter { it.ended && !it.skipped }.map { it.kind }, waterMl, cupSizeMl)
 }
 
 /**

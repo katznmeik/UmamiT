@@ -70,6 +70,9 @@ object SettingsTags {
     const val TEAWARE = "SettingsTeaware"
     const val LOW_STOCK = "SettingsLowStock"
 
+    /** The *Tassengröße* row (INV-08, D-115 Amendment 1). */
+    const val CUP_SIZE = "SettingsCupSize"
+
     /** SET-29 *Uhrzeit* of the daily low-stock reminder. */
     const val REMINDER_TIME = "SettingsReminderTime"
     const val REMINDER_INTERVAL = "SettingsReminderInterval"
@@ -88,6 +91,7 @@ internal enum class SettingsDialog {
     PreAlertSound,
     AlertLength,
     LowStock,
+    CupSize,
     ReminderInterval,
     ReminderTime,
     Theme,
@@ -118,6 +122,8 @@ class SettingsActions(
     val setDeductStock: (Boolean) -> Unit = {},
     /** SET-16 „Knapp ab" in g (0–500 in steps of 5). */
     val setLowStock: (Double) -> Unit = {},
+    /** *Tassengröße* in ml (50–500 in steps of 10, D-115 Amendment 1). */
+    val setCupSize: (Int) -> Unit = {},
     /** SET-28 *Vorrats-Erinnerung*: its interval or *Aus* (INV-11, D-098, D-108). */
     val setLowStockReminderInterval: (LowStockReminderInterval) -> Unit = {},
     /** SET-29 *Uhrzeit*: the minute of the day, 0…1439. */
@@ -206,6 +212,7 @@ fun SettingsRoute(
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
             setDeductStock = { on -> viewModel.change { it.copy(deductStock = on) } },
             setLowStock = { grams -> viewModel.change { it.copy(lowStockGrams = grams) } },
+            setCupSize = { ml -> viewModel.change { it.copy(cupSizeMl = ml) } },
             setLowStockReminderInterval = { interval ->
                 viewModel.change { it.copy(lowStockReminderInterval = interval) }
             },
@@ -295,6 +302,12 @@ fun SettingsScreen(
             value = stringResource(R.string.settings_low_stock_grams, settings.lowStockGrams.roundToInt()),
             onClick = { if (!alerting) dialog = SettingsDialog.LowStock },
             modifier = Modifier.testTag(SettingsTags.LOW_STOCK),
+        )
+        SettingsRow(
+            title = stringResource(R.string.settings_cup_size),
+            value = stringResource(R.string.settings_cup_size_ml, settings.cupSizeMl),
+            onClick = { if (!alerting) dialog = SettingsDialog.CupSize },
+            modifier = Modifier.testTag(SettingsTags.CUP_SIZE),
         )
         ReminderRows(settings, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_catalog), modifier = Modifier.fillMaxWidth())

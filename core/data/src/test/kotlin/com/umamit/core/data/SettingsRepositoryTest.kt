@@ -132,4 +132,19 @@ class SettingsRepositoryTest {
         repository.update { it.copy(lowStockGrams = -10.0) }
         assertThat(repository.settings.first().lowStockGrams).isEqualTo(0.0)
     }
+
+    @Test
+    fun cupSizeIsKeptInFiftyToFiveHundredInStepsOfTen() = runTest {
+        val repository = repository()
+
+        assertThat(repository.settings.first().cupSizeMl).isEqualTo(150)
+        repository.update { it.copy(cupSizeMl = 154) }
+        assertThat(repository.settings.first().cupSizeMl).isEqualTo(150)
+        repository.update { it.copy(cupSizeMl = 155) }
+        assertThat(repository.settings.first().cupSizeMl).isEqualTo(160)
+        repository.update { it.copy(cupSizeMl = 900) }
+        assertThat(repository.settings.first().cupSizeMl).isEqualTo(500)
+        repository.update { it.copy(cupSizeMl = 10) }
+        assertThat(repository.settings.first().cupSizeMl).isEqualTo(50)
+    }
 }

@@ -1,5 +1,6 @@
 package com.umamit.core.domain.stats
 
+import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.domain.collection.CupAverage
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.StatsRange
@@ -26,7 +27,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
     private val sessions: List<DatedSession> = input.sessions.mapNotNull { session ->
         val local = Instant.ofEpochMilli(session.startedAtMs).atZone(ZoneId.of(session.zoneId))
         val day = local.toLocalDate()
-        if (day > today) null else DatedSession(session, day, local.toLocalTime(), session.cups)
+        if (day > today) null else DatedSession(session, day, local.toLocalTime(), session.cups(input.cupSizeMl))
     }
 
     private val firstSessionDay: LocalDate? = sessions.minOfOrNull { it.day }
@@ -47,7 +48,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
         val activeTeas = input.teas.filter { !it.archived }
         return OverviewStats(
             sessionCount = inRange.size,
-            cupCount = inRange.sumOf { it.cups },
+            cupCount = CostRule.displayCups(inRange.sumOf { it.cups }),
             teaCount = activeTeas.size,
             teasAddedInRange = activeTeas.count { dayOf(it.createdAtMs) in window },
             sessionsPerPeriod = perPeriod(window, inRange, 0) { sum, _ -> sum + 1 },
@@ -90,8 +91,9 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
         return ConsumptionStats(
             grams = inRange.sumOf { it.session.leafGrams ?: 0.0 },
             gramsPerPeriod = perPeriod(window, inRange, 0.0) { sum, s -> sum + (s.session.leafGrams ?: 0.0) },
-            cups = inRange.sumOf { it.cups },
-            cupsPerPeriod = perPeriod(window, inRange, 0) { sum, s -> sum + s.cups },
+            cups = CostRule.displayCups(inRange.sumOf { it.cups }),
+            cupsPerPeriod = perPeriod(window, inRange, 0.0) { sum, s -> sum + s.cups }
+                .map { PeriodValue(it.period, CostRule.displayCups(it.value)) },
             moneyCents = purchases.sumOf { it.cents },
             hasPurchases = purchases.isNotEmpty(),
             moneyPerPeriod = window.periods.mapIndexed { index, period ->
@@ -132,7 +134,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
 }
 
 /** A session with its day and local start time in its own zone, and its cups. */
-internal class DatedSession(val session: StatsSession, val day: LocalDate, val time: LocalTime, val cups: Int) {
+internal class DatedSession(val session: StatsSession, val day: LocalDate, val time: LocalTime, val cups: Double) {
     /** The rating; only read on rated sessions. */
     val rating: Double get() = session.rating ?: 0.0
 }

@@ -74,19 +74,19 @@ class TeaDetailCostViewModelTest {
 
     @Test
     fun `a priced tea has its price, the default recipe's estimate and no average before a priced session`() = runTest {
-        // 50 g for 9,90 €: 19,8 ct per gram; the default Kyusu: 5 g over three infusions = 33 ct.
+        // 50 g for 9,90 €: 19,8 ct per gram; the default Kyusu: 5 g over 3 × 250 ml ÷ 150 ml = 5 cups = 20 ct.
         TeaDetailFixture.seed(collection)
 
-        assertThat(viewModel().tea.cost).isEqualTo(TeaCost(pricePer100gCents = 1980, recipeCupCents = 33))
+        assertThat(viewModel().tea.cost).isEqualTo(TeaCost(pricePer100gCents = 1980, recipeCupCents = 20))
     }
 
     @Test
     fun `a finished priced session gives the average`() = runTest {
         TeaDetailFixture.seed(collection)
-        // 5 g × 19,8 ct = 99 ct for one poured infusion.
+        // 5 g × 19,8 ct = 99 ct for one poured infusion of 250 ml = 1,67 cups → 59 ct.
         TeaDetailFixture.brewed(sessions, "s1", at = LAST_BREW_MS)
 
-        assertThat(viewModel().tea.cost?.average).isEqualTo(CupAverage(cupCents = 99, sessionCount = 1))
+        assertThat(viewModel().tea.cost?.average).isEqualTo(CupAverage(cupCents = 59, sessionCount = 1))
     }
 
     @Test
@@ -96,11 +96,25 @@ class TeaDetailCostViewModelTest {
             TeaDetailFixture.brewed(sessions, "s1", at = LAST_BREW_MS)
             val vm = viewModel()
 
-            // + 100 g for 18,90 €: 28,80 € for 150 g = 19,2 ct per gram; 5 g over three infusions = 32 ct.
+            // + 100 g for 18,90 €: 28,80 € for 150 g = 19,2 ct per gram; 5 g over 5 cups = 19 ct.
             vm.recordPurchase(TeaPurchase(100.0, 1890, today))
 
-            assertThat(vm.tea.cost).isEqualTo(TeaCost(1920, 32, CupAverage(99, 1)))
+            assertThat(vm.tea.cost).isEqualTo(TeaCost(1920, 19, CupAverage(59, 1)))
         }
+
+    @Test
+    fun `changing the cup size recomputes the estimate and the average`() = runTest {
+        TeaDetailFixture.seed(collection)
+        TeaDetailFixture.brewed(sessions, "s1", at = LAST_BREW_MS)
+        val vm = viewModel()
+        assertThat(vm.tea.cost?.recipeCupCents).isEqualTo(20)
+
+        // 250 ml cups: the recipe is 3 cups (33 ct), the session one cup (99 ct).
+        settings.update { it.copy(cupSizeMl = 250) }
+
+        assertThat(vm.tea.cost?.recipeCupCents).isEqualTo(33)
+        assertThat(vm.tea.cost?.average).isEqualTo(CupAverage(cupCents = 99, sessionCount = 1))
+    }
 
     @Test
     fun `deleting the purchase in the history restores the price`() = runTest {

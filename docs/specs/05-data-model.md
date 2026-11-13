@@ -660,6 +660,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK/RATING | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100; `RATING` v0.6.0, D-112): *Zuletzt gebrüht*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*, *Bewertung* (highest average first, unrated after rated); empty teas last in each |
 | `statsRange` | DAYS_30/DAYS_90/MONTHS_12/ALL | DAYS_90 | INS-07 (v0.7.0, D-115): the range used last |
 | `statsTab` | OVERVIEW/RATINGS/CONSUMPTION | OVERVIEW | INS-07 (v0.7.0, D-115): the Statistik tab used last |
+| `cupSizeMl` | Int | 150 | INV-08 (D-115 Amendment 1): *Tassengröße*, the water of one cup; snapped to 10 ml, clamped to 50…500 |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
 | `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again. While false after the setup, every app start retries the seed (D-075) |
