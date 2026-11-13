@@ -336,7 +336,10 @@ internal fun MyTeaItem(
     )
 }
 
-/** „38 g", „14 g · knapp" in the Knapp colours or *Leer* (TEA-08, INV-05, D-115 R14); nothing for a tea without stock events. */
+/**
+ * „38 g", „14 g · knapp" in the Knapp colours or *Leer* (TEA-08, INV-05, D-115 R14);
+ * nothing for a tea without stock events.
+ */
 @Composable
 private fun StockChip(row: MyTeaRow) {
     val level = row.stockLevel ?: return
