@@ -441,6 +441,39 @@ what it has); custom descriptors (D-112).
 - **Specs written:** 02 §12 (INS-01–INS-08), 03 SCR-18, 05 §6, 09 (§2,
   §4), 11, 12, `docs/design/assets.md` (A9), the specs README.
 
+**Build notes (Claude, v0.7.0 build, 2026-11-13; not put to the PO, listed
+in the design review for the PO to see).**
+
+- **12 M** counts the current calendar month and the 11 before, from the 1st
+  (the 12 bars of INS-07), rather than a strict 365 days, which would touch
+  13 months.
+- **Gesamt** counts every day up to today in its totals; only its bars start
+  at the first session's month (a priced purchase dated earlier counts in
+  the money total without a bar).
+- **Teas** are grouped by id; a deleted tea by its snapshot name. The name
+  shown is the tea's current name, else the latest snapshot; a recipe's name
+  is its latest `profile_name` snapshot.
+- **Taste** counts every step row with a taste plus a v0.6.0 session's own
+  taste, as the tea detail does; „aus N Aufgüssen" counts the rows with any
+  axis set.
+- **Whole percentages** of the day parts and weekdays also use the largest
+  remainder (ties: the larger count, then the earlier entry).
+- **Dates:** sessions dated after today are not counted; a tea's
+  `created_at` and a purchase's `occurred_at` are dated in the phone's
+  current zone (those rows store no zone). A descriptor ticked twice on one
+  session counts once.
+- **Untracked teas** (no stock event) are never *Knapp* or *Leer*, as in the
+  collection list.
+- **Charts:** the bars and the rating line are drawn on Canvas like the
+  donut, not with Vico: Vico 3 draws a series in one colour (no 70 % earlier
+  bars), has no line broken across gaps and no own value label or
+  reduce-motion fade. Nothing visible changes; 06 §4 updated.
+- **Value label:** it also hides when the range, the tab or the data
+  changes; bars take a tap on their column, the line its nearest point
+  within 28 dp, the donut its ring. The distribution and habit bars print
+  their numbers and take no tap.
+- **TalkBack** reads each value with its unit („KW 44: 6 Sitzungen.").
+
 <a id="d-114"></a>
 ### D-114 — v0.6.1: the PO's feedback on v0.6.0: taste per infusion (also on the timer), folding taste, quick-timer chips, photo viewer, catalog links in ⋮, all kinds without a chip, „N Tees", the *Design* setting; Statistik becomes v0.7.0 (TMR-22, JRN-03, JRN-05, JRN-09, JRN-10, TEA-05, TEA-13, CAT-07, CAT-10, SET-05; SCR-05, SCR-07, SCR-09, SCR-16, SCR-19, SCR-25, SCR-28; amends D-112's taste per session and Q1's numbering, D-103's default kind, D-097's 8:00 chip row) · *Accepted* (PO, 2026-11-12, grilled in the session Q1–Q19 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
 
