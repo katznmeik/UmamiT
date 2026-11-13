@@ -16,7 +16,6 @@ class FakeStatsRepository(initial: StatsInput = EMPTY) : StatsRepository {
             sessions = emptyList(),
             teas = emptyList(),
             inventoryEvents = emptyList(),
-            knownDescriptorKeys = emptySet(),
         )
     }
 }

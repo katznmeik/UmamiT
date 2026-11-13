@@ -34,6 +34,9 @@ internal object ConsumptionFixtures {
         hasPurchases = hasPurchases,
         moneyPerPeriod = if (hasPurchases) cents(periods) else periods.map { PeriodValue(it.period, 0L) },
         costPerCup = costPerCup,
+        drunkCents = 0L,
+        drunkSessionCount = 0,
+        drunkPerPeriod = emptyList(),
         runningOut = runningOut,
     )
 

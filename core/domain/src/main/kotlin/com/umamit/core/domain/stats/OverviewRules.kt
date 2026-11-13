@@ -76,6 +76,24 @@ internal fun sorten(sessions: List<DatedSession>): List<SorteShare> {
     return slices.mapIndexed { index, (sorte, count) -> SorteShare(sorte, count, percents[index]) }
 }
 
+/**
+ * The tea donut (INS-03, R6): the five teas with most sessions (ties by name), the rest as „Andere" when there is any.
+ * A deleted tea is named by its snapshot.
+ */
+internal fun teaDonut(sessions: List<DatedSession>, names: Map<String, String>): List<TeaShare> {
+    val groups = sessions
+        .groupBy { it.session.teaKey() }
+        .values
+        .map { group -> Triple(group.first().session.teaId, group.teaName(names), group.size) }
+        .sortedWith(compareByDescending<Triple<String?, String, Int>> { it.third }.thenBy { it.second })
+    val shown = groups.take(TOP)
+    val other = groups.drop(TOP).sumOf { it.third }
+    val counts = shown.map { it.third } + if (other > 0) listOf(other) else emptyList()
+    val percents = wholePercentages(counts)
+    val slices = shown.mapIndexed { index, (teaId, name, count) -> TeaShare(teaId, name, count, percents[index]) }
+    return if (other > 0) slices + TeaShare(null, "", other, percents.last(), isOther = true) else slices
+}
+
 internal fun dayPartOf(time: LocalTime): DayPart = when {
     time < MORGEN_FROM -> DayPart.ABEND
     time < MITTAG_FROM -> DayPart.MORGEN

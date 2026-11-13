@@ -3,6 +3,7 @@ package com.umamit.core.domain.stats
 import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.domain.collection.CupAverage
 import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StockLevel
 import java.time.Clock
@@ -13,10 +14,10 @@ import java.time.ZoneId
 import kotlin.math.roundToLong
 
 /**
- * The figures of the Statistik screen (02 §12, INS-01–INS-07, D-115), one function per tab. Pure: today and the
- * zone come from [clock], never read elsewhere. Each session belongs to the day of its `started_at` in its own
- * `zone_id`; teas' `created_at` and purchases' `occurred_at` are dated in the clock's zone. Sessions dated after
- * today are not counted.
+ * The figures of the Statistik screen (02 §12, INS-01–INS-07, D-115 and its Amendment 1), one function per tab.
+ * Pure: today and the zone come from [clock], never read elsewhere. Each session belongs to the day of its
+ * `started_at` in its own `zone_id`; teas' `created_at` and purchases' `occurred_at` are dated in the clock's zone.
+ * Sessions dated after today are not counted.
  *
  * Build one per [StatsInput] (the sessions are dated once), then ask it for any range and tab.
  */
@@ -36,24 +37,26 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
     val hasSessions: Boolean get() = sessions.isNotEmpty()
 
     /** [range] resolved against today: its days and chart periods (INS-07). */
-    fun window(range: StatsRange): StatsWindow = StatsWindow.of(range, today, firstSessionDay)
+    fun window(range: StatsRange, custom: MonthSpan? = null): StatsWindow =
+        StatsWindow.of(range, today, firstSessionDay, custom)
 
     /** The streak over all time (INS-01); independent of any range. */
     fun streak(): Streak = streakOf(sessions.mapTo(HashSet()) { it.day }, today)
 
     /** *Überblick* (INS-01, INS-03, INS-06). */
-    fun overview(range: StatsRange): OverviewStats {
-        val window = window(range)
+    fun overview(range: StatsRange, custom: MonthSpan? = null): OverviewStats {
+        val window = window(range, custom)
         val inRange = sessions.filter { it.day in window }
         val activeTeas = input.teas.filter { !it.archived }
         return OverviewStats(
             sessionCount = inRange.size,
             cupCount = CostRule.displayCups(inRange.sumOf { it.cups }),
             teaCount = activeTeas.size,
-            teasAddedInRange = activeTeas.count { dayOf(it.createdAtMs) in window },
+            teasAddedInRange = if (window.from == null) null else activeTeas.count { dayOf(it.createdAtMs) in window },
             sessionsPerPeriod = perPeriod(window, inRange, 0) { sum, _ -> sum + 1 },
             streak = streak(),
             mostBrewed = mostBrewed(inRange, teaNames(), input.teas.associateBy { it.id }),
+            teaDonut = teaDonut(inRange, teaNames()),
             sorten = sorten(inRange),
             dayParts = dayParts(inRange),
             weekdays = weekdays(inRange),
@@ -61,28 +64,25 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
     }
 
     /** *Bewertungen* (INS-02, INS-04). */
-    fun ratings(range: StatsRange): RatingsStats {
-        val window = window(range)
+    fun ratings(range: StatsRange, custom: MonthSpan? = null): RatingsStats {
+        val window = window(range, custom)
         val inRange = sessions.filter { it.day in window }
         val rated = inRange.filter { it.session.rating != null }
         val names = teaNames()
         val teas = input.teas.associateBy { it.id }
         return RatingsStats(
-            average = rated.map { it.rating }.takeIf { it.isNotEmpty() }?.average(),
             ratedCount = rated.size,
             sessionCount = inRange.size,
-            distribution = starBuckets(rated),
-            topRated = topRated(rated, names, teas),
+            teaRanking = teaRanking(rated, names, teas),
+            newlyDiscovered = newlyDiscovered(sessions, rated, window, names, teas),
             ratingPerPeriod = ratingPerPeriod(window, rated),
             bestRecipes = bestRecipes(rated, names, teas),
-            taste = taste(inRange),
-            topDescriptors = topDescriptors(inRange, input.knownDescriptorKeys),
         )
     }
 
     /** *Verbrauch* (INS-05). */
-    fun consumption(range: StatsRange): ConsumptionStats {
-        val window = window(range)
+    fun consumption(range: StatsRange, custom: MonthSpan? = null): ConsumptionStats {
+        val window = window(range, custom)
         val inRange = sessions.filter { it.day in window }
         val purchases = input.inventoryEvents
             .filter { it.type in PRICED_TYPES && it.priceCents != null }
@@ -100,6 +100,9 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
                 PeriodValue(period, purchases.filter { window.periodIndex(it.day) == index }.sumOf { it.cents })
             },
             costPerCup = costPerCup(inRange),
+            drunkCents = inRange.sumOf { it.session.costCents ?: 0L },
+            drunkSessionCount = inRange.count { it.session.costCents != null },
+            drunkPerPeriod = perPeriod(window, inRange, 0L) { sum, s -> sum + (s.session.costCents ?: 0L) },
             runningOut = runningOut(),
         )
     }

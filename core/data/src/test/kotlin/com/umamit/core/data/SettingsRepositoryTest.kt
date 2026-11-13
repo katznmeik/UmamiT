@@ -147,4 +147,17 @@ class SettingsRepositoryTest {
         repository.update { it.copy(cupSizeMl = 10) }
         assertThat(repository.settings.first().cupSizeMl).isEqualTo(50)
     }
+
+    @Test
+    fun customStatsMonthsAreKeptInOrder() = runTest {
+        val repository = repository()
+
+        repository.update {
+            it.copy(statsRangeFrom = java.time.YearMonth.of(2026, 9), statsRangeTo = java.time.YearMonth.of(2026, 3))
+        }
+
+        val settings = repository.settings.first()
+        assertThat(settings.statsRangeFrom).isEqualTo(java.time.YearMonth.of(2026, 3))
+        assertThat(settings.statsRangeTo).isEqualTo(java.time.YearMonth.of(2026, 9))
+    }
 }

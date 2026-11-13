@@ -1,5 +1,7 @@
 package com.umamit.core.model
 
+import java.time.YearMonth
+
 /** The settings of 05 §6 the app has so far (M1 subset, M2 catalog, v0.4.0 collection), with the spec defaults. */
 data class UserSettings(
     /**
@@ -68,6 +70,12 @@ data class UserSettings(
     val collectionSegment: CollectionSegment = CollectionSegment.MY_TEAS,
     /** INS-07, SCR-18 (v0.7.0, D-115): the Statistik range used last, for every tab; *90 T* by default. */
     val statsRange: StatsRange = StatsRange.DAYS_90,
+    /**
+     * INS-07 (v0.7.0-rc.2, D-115 Amendment 1, R7): the *Von* and *Bis* months of the custom range, kept while
+     * [statsRange] is [StatsRange.CUSTOM]; stored as `yyyy-MM` (05 §6), null until chosen.
+     */
+    val statsRangeFrom: YearMonth? = null,
+    val statsRangeTo: YearMonth? = null,
     /** INS-07, SCR-18 (v0.7.0, D-115): the Statistik tab used last; *Überblick* by default. */
     val statsTab: StatsTab = StatsTab.OVERVIEW,
     /**

@@ -325,7 +325,7 @@ private fun StatsPages(
 /** The selector: one segmented row, pinned (INS-07). TalkBack reads „Zeitraum: 90 Tage" and the selected state. */
 @Composable
 private fun RangeSelector(range: StatsRange, onRangeChange: (StatsRange) -> Unit) {
-    val ranges = StatsRange.entries
+    val ranges = StatsRange.entries.filter { it != StatsRange.CUSTOM }
     SingleChoiceSegmentedButtonRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -378,7 +378,7 @@ private val StatsRange.labelRes: Int
         StatsRange.DAYS_30 -> R.string.stats_range_30
         StatsRange.DAYS_90 -> R.string.stats_range_90
         StatsRange.MONTHS_12 -> R.string.stats_range_12m
-        StatsRange.ALL -> R.string.stats_range_all
+        StatsRange.ALL, StatsRange.CUSTOM -> R.string.stats_range_all
     }
 
 private val StatsRange.descriptionRes: Int
@@ -386,7 +386,7 @@ private val StatsRange.descriptionRes: Int
         StatsRange.DAYS_30 -> R.string.stats_range_30_description
         StatsRange.DAYS_90 -> R.string.stats_range_90_description
         StatsRange.MONTHS_12 -> R.string.stats_range_12m_description
-        StatsRange.ALL -> R.string.stats_range_all_description
+        StatsRange.ALL, StatsRange.CUSTOM -> R.string.stats_range_all_description
     }
 
 private val StatsTab.labelRes: Int

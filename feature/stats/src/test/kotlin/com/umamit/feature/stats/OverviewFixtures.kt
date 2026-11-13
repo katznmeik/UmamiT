@@ -68,6 +68,7 @@ internal object OverviewFixtures {
             TeaSessions("t4", "Röstduft Hojicha", 5, styleKey = "hojicha"),
             TeaSessions("t5", "Reisaroma Genmaicha", 4, styleKey = "genmaicha"),
         ),
+        teaDonut = emptyList(),
         sorten = listOf(
             SorteShare("Sencha", 17, 40),
             SorteShare("Gyokuro", 12, 29),
@@ -87,6 +88,7 @@ internal object OverviewFixtures {
         sessionsPerPeriod = weekly().map { PeriodValue(it.period, 0) },
         streak = Streak(0, 21),
         mostBrewed = emptyList(),
+        teaDonut = emptyList(),
         sorten = emptyList(),
         dayParts = DayPart.entries.map { Share(it, 0, 0) },
         weekdays = DayOfWeek.entries.map { Share(it, 0, 0) },

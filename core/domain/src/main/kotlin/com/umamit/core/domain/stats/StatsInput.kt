@@ -4,7 +4,6 @@ import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
-import com.umamit.core.model.TasteProfile
 import java.io.File
 
 /**
@@ -16,14 +15,12 @@ import java.io.File
  * @property teas every tea in the collection, archived ones included (they are filtered here).
  * @property inventoryEvents the stock events of the existing teas; only the INITIAL and PURCHASE events with a
  * price count (INS-05), the others are ignored. A deleted tea's events are gone with it (cascade).
- * @property knownDescriptorKeys the descriptor vocabulary the app knows; other keys are not counted (INS-04).
  * @property cupSizeMl the cup size setting (`cupSizeMl`, D-115 Amendment 1): the water of one cup.
  */
 data class StatsInput(
     val sessions: List<StatsSession>,
     val teas: List<StatsTea>,
     val inventoryEvents: List<InventoryEvent>,
-    val knownDescriptorKeys: Set<String>,
     val cupSizeMl: Int = CostRule.DEFAULT_CUP_SIZE_ML,
 )
 
@@ -43,9 +40,6 @@ data class StatsInput(
  * @property waterMl `water_ml` of the session (the water of each infusion); null counts one cup per infusion.
  * @property costCents `cost_cents` (INV-08); null without a cost.
  * @property steps every step row, never-started ones included.
- * @property sessionTaste the session row's own taste columns: only a v0.6.0 session without any step row still has
- * them (05 §9 v7); they count as one infusion's taste, as on the tea detail.
- * @property descriptorKeys the ticked descriptor keys, unknown ones included.
  */
 data class StatsSession(
     val id: String,
@@ -60,8 +54,6 @@ data class StatsSession(
     val leafGrams: Double? = null,
     val costCents: Long? = null,
     val steps: List<StatsStep> = emptyList(),
-    val sessionTaste: TasteProfile = TasteProfile.EMPTY,
-    val descriptorKeys: List<String> = emptyList(),
     val styleKey: String? = null,
     val waterMl: Int? = null,
 ) {
@@ -74,14 +66,8 @@ data class StatsSession(
  * A `session_step` row as the statistics see it (05 §3.7).
  *
  * @property ended whether the step has an actual time (it ran to its end); a never-started row has none.
- * @property taste the taste stored on the row (D-114).
  */
-data class StatsStep(
-    val kind: StepKind,
-    val ended: Boolean,
-    val skipped: Boolean = false,
-    val taste: TasteProfile = TasteProfile.EMPTY,
-)
+data class StatsStep(val kind: StepKind, val ended: Boolean, val skipped: Boolean = false)
 
 /**
  * A tea of the collection (INS-01 teas, INS-05 running out).
