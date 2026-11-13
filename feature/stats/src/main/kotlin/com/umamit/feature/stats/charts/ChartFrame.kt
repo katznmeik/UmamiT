@@ -157,7 +157,7 @@ internal fun XYChartFrame(
             }
             val scroll = rememberScrollState()
             if (spec.scrollable) {
-                // Opens at the end; when the range changes later the view glides to the new end (snaps under reduce motion).
+                // Opens at the end; a later range change glides to the new end (snaps under reduce motion).
                 var shown by remember { mutableStateOf(false) }
                 LaunchedEffect(scroll.maxValue) {
                     if (shown && !reduceMotion) {

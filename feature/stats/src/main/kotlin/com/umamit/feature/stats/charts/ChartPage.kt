@@ -43,6 +43,7 @@ internal class ChartPageState(private val prefix: String, private val revealed: 
     }
 }
 
+@Suppress("CompositionLocalAllowlist") // the page tells every chart below it (INS-08), without a parameter per chart
 internal val LocalChartPage = compositionLocalOf<ChartPageState?> { null }
 
 /** Tells the charts under it where the page's viewport is. */
@@ -72,6 +73,7 @@ internal class ChartSelectionHolder {
     }
 }
 
+@Suppress("CompositionLocalAllowlist") // one value label per screen, shared by every chart below
 internal val LocalChartSelection = staticCompositionLocalOf<ChartSelectionHolder?> { null }
 
 /** One chart's view of the selection: the screen's holder when there is one, else its own state. */
@@ -116,11 +118,8 @@ internal fun ChartSelectionHost(
                     val change = event.changes.firstOrNull() ?: continue
                     if (change.pressed && !change.previousPressed) down = change.position
                     val start = down
-                    if (change.changedToUp() && start != null && !change.isConsumed &&
-                        (change.position - start).getDistance() <= slop
-                    ) {
-                        holder.clear()
-                    }
+                    val isTap = start != null && (change.position - start).getDistance() <= slop
+                    if (change.changedToUp() && isTap) holder.clear()
                     if (!change.pressed) down = null
                 }
             }

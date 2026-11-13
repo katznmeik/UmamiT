@@ -23,7 +23,8 @@ private const val EARLIER_ALPHA = 0.7f
 /**
  * Bars per period (SCR-18, INS-08): `primary`, the last period in full and earlier ones at 70 %, a
  * baseline, three y labels, thinned x labels. [scrollable] (Gesamt) gives every bar a fixed width and opens at
- * the end. A tap in a bar's column (even a zero bar) shows „KW 44 · 6 Sitzungen"; a second tap, or a tap elsewhere, hides it. [title] opens the
+ * the end. A tap in a bar's column (even a zero bar) shows „KW 44 · 6 Sitzungen"; a second tap, or a tap
+ * elsewhere, hides it. [title] opens the
  * TalkBack text („Sitzungen pro Woche"); [unit] formats the values. [animateIn] false skips the first-show
  * grow (a tab already shown in this visit); [selectionResetKey] hides the value label when it changes.
  */
