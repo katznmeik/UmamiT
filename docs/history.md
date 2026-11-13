@@ -11,6 +11,42 @@
 
 ## Releases and plans
 
+### v0.6.1: released (2026-11-13)
+
+- **PO approval (2026-11-13, in the session; D-114 „Approval"):** asked for the result on `v0.6.1-rc.1`, the PO answered „Approve everything": every item of checklist 09 §4 „v0.6.1" passed, and the seven design-review points of `docs/design/review/v0.6.1/README.md` stand as built. No rc.2.
+- **Version:** `umamit.version=0.6.1` (versionCode 60199) in `87dc394e`; the full local gate passed on it; CI green (run 43391376208; its API 35 emulator job first failed to download `junit:junit:4.13.2` and more from Maven Central and passed on the rerun).
+- **Accuracy on `87dc394e` (09 §4a, API 36, 50 steps), all PASS:** standard (run 43400138510), alongside (run 43400142129), two-brews (run 43400146292). A first dispatch with the short SHA as `ref` failed at checkout (runs 43391392397, 43391396276, 43391400707); the workflow needs the full SHA. The merge commit has the same tree as `87dc394e` (`main` had only the docs-only #253, already in the branch).
+- PR #252 merged into `main` with a merge commit (`22b84788`); CI green on it (run 43409588294).
+- **Release:** run 43412555270, [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) from `main` `22b84788` (versionCode 60199, APK SHA-256 `221d2e8a…b984`), certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`. A first dispatch (run 43409593705) stopped at the release's CI check because CI on the merge commit had not finished yet.
+- #240–#251 closed by the merge. Working branch restarted from `main`.
+- **Environment that day:** the local init script (Google's Maven Central mirror) and Robolectric's two runtime jars from the mirror, checked against the sha512, made the local gate run.
+
+### v0.6.1: build, rc.1 and the state before the final (2026-11-12)
+
+Moved from `PROJECT_STATE.md` as it stood before the final release.
+
+- **Scope (D-114):** taste and a note per infusion, entered on the timer screen for the infusion ended last and on the session page (chips *Alle · 1. · 2. …*; umamit.db v7 with a tested migration; the tea's radar averages every infusion); GESCHMACK folds; quick-timer chips 1:00 · 2:00 · 3:00 · 5:00 · 8:00 · 10:00 · 15:00; a full-screen photo viewer; ⋮ *Tee ansehen* / *Im Katalog ansehen*; the Katalog opens with every kind, grouped by kind; „N Tees"; *Darstellung* › *Design*.
+- **Timer code:** #241 and #244 change `feature:brew`: T3+ implementers, a T4 timer review, the 04 §12 unit tests, and all three accuracy variants on the rc and the final (09 §4a). `core:timer` / `core:timer-engine` stay untouched; if a ticket needs them, stop and ask the PO.
+- **Order and tiers:** the plan's task graph (PO-approved): #242 + #241, #243 + #247, #244 + #245, #246 + #249, #248; then #250 (reviews, accuracy, rc.1, checklist 09 §4 „v0.6.1", design review in `docs/design/review/v0.6.1/`) and #251 (merge, final).
+- **Milestone PR:** #252 (draft).
+- **Then Statistik (v0.7.0, M4 part 2; not yet specified):** its own specify session. Starting point, not yet confirmed by the PO: INS-01–INS-07 (02 §12), SCR-18, the A9 empty state. With D-114 the taste data is per infusion.
+- **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
+- **Config housekeeping (2026-11-12, #253 on `main`):** a prompt audit of the Claude Code config pointed `CLAUDE.md` at the
+  per-release plans and plainly restated `emil-design-eng`'s review format (a local edit; its hash no longer
+  matches `skills-lock.json`, see `CLAUDE.md`). No app change.
+- **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
+  init script (`~/.gradle/init.d`, not in the repository) pointed
+  `repo.maven.apache.org` at Google's Maven Central mirror
+  (`maven-central.storage-download.googleapis.com`), which the „UmamiT"
+  environment reaches. A new container needs it again if 429 persists:
+  set the URL of every `repo.maven.apache.org` repository in
+  `settingsEvaluated` (plugin and dependency repositories) and
+  `allprojects`. One Gradle build at a time (`flock` as in
+  `docs/plans/v0.4.0-resume.md` §3).
+  Robolectric's runtime jars (SDK 35 `15-robolectric-13954326-i7`, SDK 36
+  `16-robolectric-13921718-i7`) are fetched from Maven Central at test time: pre-fetch both from the mirror
+  as `docs/plans/v0.4.0-resume.md` §3 shows for SDK 35.
+
 ### v0.6.0: released (2026-11-12)
 
 - **PO approval (2026-11-12, in the session; D-113, PR #235 comment):** the on-device checklist on `v0.6.0-rc.1`: „Yes, all twelve passed"; the design review with the slim pin slider (#237), judged from its renders: „Approved". No rc.2 (D-113, answer 7).
@@ -533,6 +569,8 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-13 | **v0.6.1 done:** PO approved rc.1 („Approve everything": checklist and the seven design-review points; D-114 „Approval"; no rc.2); full local gate, CI and all three accuracy variants PASS on `87dc394e`; #252 merged (`22b84788`), `v0.6.1` released (versionCode 60199, certificate verified); #240–#251 closed. Next: Statistik (v0.7.0), its specify session. |
+| 2026-11-12 | **v0.6.1 built, rc.1 out:** #241–#249 built per the plan's task graph, #250's T3 milestone review, T4 timer review, `/review-animations` and fix rounds; full local gate, CI and all three accuracy variants PASS on `62657833`; `v0.6.1-rc.1` (60101) for the PO's checklist and design review. |
 | 2026-11-12 | **v0.6.1 specified (feedback round on v0.6.0):** the PO's nine points grilled in five rounds (Q1–Q19) into **D-114**: taste and a note per infusion, also on the timer screen (umamit.db v7), GESCHMACK folds, quick-timer chips 1:00–15:00, photo viewer, catalog links in ⋮, the Katalog opens with every kind, „N Tees", *Design*. Timer code (`feature:brew`): T3+, T4 timer review, accuracy runs per rc. Statistik becomes v0.7.0. Spec #240, tickets #241–#251 (approved as proposed), plan `docs/plans/v0.6.1.md`. Next: the build. |
 | 2026-11-12 | **v0.6.0 done:** PO approved rc.1 (all twelve checklist points) and the slim slider's renders (D-113, #237; no rc.2); full local gate, CI and all three accuracy variants PASS on `d10e7ef0`; #235 merged (`232c4b82`), `v0.6.0` released (versionCode 60099, certificate verified); #221–#234, #236, #237 closed. Next: v0.6.1 (Statistik), its specify session. |
 | 2026-11-10 | **v0.5.1 done:** PO approved rc.2 (checklist with the Start hand-off of D-111, design review); all three accuracy variants PASS on `5d461669`; #219 merged (`73a97fc5`), `v0.5.1` released (versionCode 50199, certificate verified); #212–#218, #220 closed. Next: M4 → v0.6.0. |
