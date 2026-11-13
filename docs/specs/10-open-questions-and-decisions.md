@@ -608,6 +608,16 @@ in the rc.2 review).**
   Sitzungen mit Preis"; without one: „Keine Sitzungen mit Preis".
 - **Tee donut** heading „TEES", after TEE-SORTEN; a deleted tea under its
   snapshot name; slice colours distinct within the donut.
+- **Build notes rc.2 (Claude, #268–#273):** a session's water is stored once,
+  so each poured infusion counts the session's `water_ml`; a recipe's
+  estimate is at least 1 cup; the first tap on „Monate" applies the last 3
+  months, the pickers are ‹ › steppers; at font 1,15 the five segments drop
+  the check icon and the tab labels never wrap; fold summaries: Serie the
+  current streak (none at 0), Am häufigsten the top tea, Gewohnheiten the
+  busiest day part, Bewertung im Verlauf the latest Ø; without any rating
+  the Verlauf hides and „x von y bewertet" is gone with the Ø headline;
+  „Alle anzeigen" has no „weniger"; *Monate* bars scroll like *Gesamt*.
+  Listed in `docs/design/review/v0.7.0/README.md` for the PO.
 
 <a id="d-114"></a>
 ### D-114 — v0.6.1: the PO's feedback on v0.6.0: taste per infusion (also on the timer), folding taste, quick-timer chips, photo viewer, catalog links in ⋮, all kinds without a chip, „N Tees", the *Design* setting; Statistik becomes v0.7.0 (TMR-22, JRN-03, JRN-05, JRN-09, JRN-10, TEA-05, TEA-13, CAT-07, CAT-10, SET-05; SCR-05, SCR-07, SCR-09, SCR-16, SCR-19, SCR-25, SCR-28; amends D-112's taste per session and Q1's numbering, D-103's default kind, D-097's 8:00 chip row) · *Accepted* (PO, 2026-11-12, grilled in the session Q1–Q19 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
