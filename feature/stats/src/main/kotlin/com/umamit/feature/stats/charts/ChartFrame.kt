@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -242,6 +243,7 @@ private fun PlotContent(
     modifier: Modifier = Modifier,
 ) {
     val baselineColor = MaterialTheme.colorScheme.outlineVariant
+    val density = LocalDensity.current
     Box(
         modifier.fillMaxHeight().pointerInput(spec.selectionKey, spec.count, selected) {
             detectTapGestures { tap ->
@@ -261,12 +263,18 @@ private fun PlotContent(
             drawXLabels(spec.xLabels, geo, measurer, style)
             draw(geo, selected)
         }
-        FadingTooltip(selected, spec.count) { index, fade ->
+        FadingTooltip(
+            selected,
+            spec.count,
+            capture = { index ->
+                TooltipSnapshot(spec.tooltip(index)) { width -> with(spec) { density.anchor(index, geometry(width)) } }
+            },
+        ) { snapshot, fade ->
             ChartTooltip(
-                text = spec.tooltip(index),
+                text = snapshot.text,
                 modifier = Modifier.graphicsLayer { alpha = fade }.layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
-                    val anchor = with(spec) { anchor(index, geometry(constraints.maxWidth.toFloat())) }
+                    val anchor = snapshot.anchor(constraints.maxWidth.toFloat())
                     val x = (anchor.x - placeable.width / 2f).coerceIn(
                         0f,
                         max(
@@ -306,14 +314,23 @@ private fun DrawScope.drawXLabels(labels: List<String>, geo: PlotGeometry, measu
 
 /**
  * Shows the value label of [selected] with the fade of INS-08 (R15): in 0,12 s, out 0,1 s (at once under reduce
- * motion). The last index is kept while it fades out; it is dropped once gone or when it no longer exists
- * (a chart of [count] entries).
+ * motion). The selection's copy ([capture]) is kept while it fades out; a selection beyond the [count] entries
+ * shows none.
  */
 @Composable
-internal fun FadingTooltip(selected: Int?, count: Int, content: @Composable (index: Int, fade: Float) -> Unit) {
+internal fun <T : Any> FadingTooltip(
+    selected: Int?,
+    count: Int,
+    capture: (index: Int) -> T,
+    content: @Composable (snapshot: T, fade: Float) -> Unit,
+) {
     val reduceMotion = LocalReduceMotion.current
-    var held by remember { mutableStateOf<Int?>(null) }
-    if (selected != null && held != selected) held = selected
+    // The text and the anchor are captured when the selection is made and that copy fades out, so the label never
+    // jumps to other data while it goes. The copy is kept for the fade-out outside composition's writes.
+    val current = remember(selected, count) { selected?.takeIf { it in 0 until count }?.let(capture) }
+    val held = remember { SnapshotHolder<T>() }
+    SideEffect { if (current != null) held.value = current }
+    val snapshot = current ?: held.value
     val fade by animateFloatAsState(
         targetValue = if (selected != null) 1f else 0f,
         animationSpec = when {
@@ -323,8 +340,14 @@ internal fun FadingTooltip(selected: Int?, count: Int, content: @Composable (ind
         },
         label = "chartTooltipFade",
     )
-    val index = held?.takeIf { it in 0 until count }
-    if (index != null && (selected != null || fade > 0f)) content(index, fade)
+    if (snapshot != null && (selected != null || fade > 0f)) content(snapshot, fade)
+}
+
+/** What a tooltip shows and where it sits (the plot's [anchor] for a width in px), captured at the selection. */
+internal class TooltipSnapshot(val text: String, val anchor: (width: Float) -> Offset)
+
+private class SnapshotHolder<T : Any> {
+    var value: T? = null
 }
 
 /** The value label (INS-08, SCR-18): a small `inverseSurface` tooltip, announced politely to TalkBack. */

@@ -138,6 +138,61 @@ class StatsMonthsAndFoldingTest {
     }
 
     @Test
+    fun `two quick taps on a stepper both count before the store answers`() {
+        // A store that is slow: it reports the months but never shows them back.
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                MonthsSheet(
+                    bounds = bounds,
+                    selected = MonthSpan(YearMonth.of(2026, 9), YearMonth.of(2026, 11)),
+                    onChange = { customCalls += it.from to it.to },
+                    onDismissRequest = {},
+                )
+            }
+        }
+
+        val earlier = compose.onNodeWithContentDescription(str(R.string.stats_months_earlier, "Von"))
+        earlier.performClick()
+        earlier.performClick()
+
+        assertThat(customCalls).containsExactly(
+            YearMonth.of(2026, 8) to YearMonth.of(2026, 11),
+            YearMonth.of(2026, 7) to YearMonth.of(2026, 11),
+        ).inOrder()
+    }
+
+    @Test
+    fun `two quick taps on a heading fold and open it again without waiting for the store`() {
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                // A store that never answers: the persisted set stays empty.
+                CompositionLocalProvider(
+                    LocalStatsFolds provides StatsFolds(emptySet()) { k, f ->
+                        foldCalls += k to f
+                    },
+                ) {
+                    StatsSection(key = "test.one", title = "Eins") { Text("Inhalt eins") }
+                }
+            }
+        }
+
+        compose.onNodeWithTag(statsSectionTag("test.one")).performClick()
+        compose.onNodeWithTag(statsSectionTag("test.one")).performClick()
+
+        assertThat(foldCalls).containsExactly("test.one" to true, "test.one" to false).inOrder()
+        compose.onNodeWithText("Inhalt eins").assertExists()
+    }
+
+    @Test
+    fun `the segment reads Monate while another range is selected`() {
+        state =
+            state.copy(range = StatsRange.DAYS_30, custom = MonthSpan(YearMonth.of(2025, 12), YearMonth.of(2026, 8)))
+        showShell()
+
+        compose.onNodeWithText(str(R.string.stats_range_months)).assertExists()
+    }
+
+    @Test
     fun `Bis is never before Von and neither leaves the first session's month and the current month`() {
         state =
             state.copy(range = StatsRange.CUSTOM, custom = MonthSpan(YearMonth.of(2025, 11), YearMonth.of(2025, 11)))

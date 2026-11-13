@@ -67,6 +67,12 @@ internal fun MonthsSheet(
     val reduceMotion = UmamiTheme.reduceMotion
     val sheetState = rememberMonthsSheetState(reduceMotion)
     val scope = rememberCoroutineScope()
+    // The months being stepped: two quick taps both count, without waiting for the saved choice to come back.
+    var draft by remember { mutableStateOf(selected) }
+    val step = { span: MonthSpan ->
+        draft = span
+        onChange(span)
+    }
     // Set by *Fertig*: the sheet is on its way out, so a second tap does nothing.
     var leaving by remember { mutableStateOf(false) }
     val leave = {
@@ -109,17 +115,17 @@ internal fun MonthsSheet(
         ) {
             MonthPicker(
                 label = stringResource(R.string.stats_months_from),
-                month = selected.from,
-                range = bounds.from..selected.to,
+                month = draft.from,
+                range = bounds.from..draft.to,
                 tag = STATS_MONTH_FROM_TAG,
-                onChange = { onChange(MonthSpan(it, selected.to)) },
+                onChange = { step(MonthSpan(it, draft.to)) },
             )
             MonthPicker(
                 label = stringResource(R.string.stats_months_to),
-                month = selected.to,
-                range = selected.from..bounds.to,
+                month = draft.to,
+                range = draft.from..bounds.to,
                 tag = STATS_MONTH_TO_TAG,
-                onChange = { onChange(MonthSpan(selected.from, it)) },
+                onChange = { step(MonthSpan(draft.from, it)) },
             )
         }
     }

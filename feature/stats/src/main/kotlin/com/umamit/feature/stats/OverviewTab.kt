@@ -59,12 +59,12 @@ fun OverviewTab(
             summary = ChartNumbers.axis(stats.sessionCount.toDouble()),
             isEmpty = none,
         ) {
-            SessionsChart(stats, range)
+            SessionsChart(stats, range, figures.rangeKey)
         }
         StatsSection(
             key = "overview.streak",
             title = stringResource(R.string.stats_overview_section_streak),
-            summary = days(stats.streak.current),
+            summary = days(stats.streak.current).takeIf { stats.streak.current > 0 },
         ) { StreakLine(stats) }
         StatsSection(
             key = "overview.most_brewed",
@@ -82,7 +82,7 @@ fun OverviewTab(
             summary = stats.sorten.firstOrNull()?.sorte,
             isEmpty = none,
         ) {
-            Sorten(stats, range)
+            Sorten(stats, figures.rangeKey)
         }
         StatsSection(
             key = "overview.tees",
@@ -90,7 +90,7 @@ fun OverviewTab(
             summary = stats.teaDonut.firstOrNull { !it.isOther }?.teaName,
             isEmpty = none,
         ) {
-            Tees(stats, range)
+            Tees(stats, figures.rangeKey)
         }
         val dayPartNames = dayPartNames()
         StatsSection(
@@ -149,7 +149,7 @@ private fun Numeral(value: Int, label: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SessionsChart(stats: OverviewStats, range: StatsRange) {
+private fun SessionsChart(stats: OverviewStats, range: StatsRange, resetKey: Any) {
     val resources = LocalResources.current
     val entries = remember(stats.sessionsPerPeriod, resources) {
         stats.sessionsPerPeriod.map {
@@ -166,7 +166,7 @@ private fun SessionsChart(stats: OverviewStats, range: StatsRange) {
         ),
         modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin),
         scrollable = range == StatsRange.ALL || range == StatsRange.CUSTOM,
-        selectionResetKey = range,
+        selectionResetKey = resetKey,
     )
 }
 
@@ -218,7 +218,7 @@ private fun MostBrewedRow(
 }
 
 @Composable
-private fun Sorten(stats: OverviewStats, range: StatsRange) {
+private fun Sorten(stats: OverviewStats, resetKey: Any) {
     val types = UmamiTheme.extendedColors.teaTypes
     val other = stringResource(R.string.stats_overview_other)
     val slices = stats.sorten.map { share ->
@@ -231,21 +231,27 @@ private fun Sorten(stats: OverviewStats, range: StatsRange) {
         slices = slices,
         title = stringResource(R.string.stats_overview_sorten),
         modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin),
-        selectionResetKey = range,
+        selectionResetKey = resetKey,
     )
 }
 
 /** The donut „Tees" (R6): the share of sessions per tea, the five largest named, the rest „Andere". */
 @Composable
-private fun Tees(stats: OverviewStats, range: StatsRange) {
+private fun Tees(stats: OverviewStats, resetKey: Any) {
     val other = stringResource(R.string.stats_overview_other)
     val slices = stats.teaDonut.map { share ->
-        DonutSlice(if (share.isOther) other else share.teaName, share.sessions, share.percent, isOther = share.isOther)
+        DonutSlice(
+            label = if (share.isOther) other else share.teaName,
+            count = share.sessions,
+            percent = share.percent,
+            isOther = share.isOther,
+            key = if (share.isOther) "other" else share.teaId?.let { "tea:$it" } ?: "name:${share.teaName}",
+        )
     }
     SortenDonut(
         slices = slices,
         title = stringResource(R.string.stats_overview_tees),
         modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin),
-        selectionResetKey = range,
+        selectionResetKey = resetKey,
     )
 }

@@ -108,8 +108,8 @@
     <string name="stats_consumption_drunk_per_month">Getrunken pro Monat</string>
     <string name="stats_consumption_no_priced_sessions">Keine Sitzungen mit Preis</string>
     <plurals name="stats_consumption_priced_sessions">
-        <item quantity="one">aus %d Sitzung mit Preis</item>
-        <item quantity="other">aus %d Sitzungen mit Preis</item>
+        <item quantity="one">aus %s Sitzung mit Preis</item>
+        <item quantity="other">aus %s Sitzungen mit Preis</item>
     </plurals>
     <string name="stats_consumption_cost_per_cup">Ø %1$s € pro Tasse</string>
     <string name="stats_consumption_section_running_out">Geht zur Neige</string>

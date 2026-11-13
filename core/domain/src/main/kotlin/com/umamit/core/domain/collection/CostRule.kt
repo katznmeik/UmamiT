@@ -50,9 +50,8 @@ object CostRule {
         return TeaCost(
             pricePer100gCents = (perGram * GRAMS_PER_PRICE).roundToLong(),
             recipeCupCents = defaultRecipe?.let { recipe ->
-                val cups =
-                    infusions(recipe.steps.map { it.kind }) * recipe.waterMl.toDouble() / cupSizeMl.coerceAtLeast(1)
-                if (cups > 0) (recipe.leafGrams * perGram / cups).roundToLong() else null
+                val cups = sessionCups(recipe.steps.map { it.kind }, recipe.waterMl, cupSizeMl)
+                (recipe.leafGrams * perGram / cups).roundToLong()
             },
             average = average(sessions, cupSizeMl),
         )
