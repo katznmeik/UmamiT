@@ -17,4 +17,21 @@
     <string name="stats_tab_consumption">Verbrauch</string>
     <string name="stats_section_empty">In diesem Zeitraum nichts</string>
     <!-- ===== end of #259 ===== -->
+
+    <!-- Charts (SCR-18, INS-08): value labels and TalkBack lists; numbers arrive in German format. -->
+    <plurals name="stats_chart_sessions">
+        <item quantity="one">%1$s Sitzung</item>
+        <item quantity="other">%1$s Sitzungen</item>
+    </plurals>
+    <plurals name="stats_chart_cups">
+        <item quantity="one">%1$s Tasse</item>
+        <item quantity="other">%1$s Tassen</item>
+    </plurals>
+    <string name="stats_chart_grams">%1$s g</string>
+    <string name="stats_chart_euros">%1$s €</string>
+    <string name="stats_chart_percent">%1$d %%</string>
+    <string name="stats_chart_stars_axis">%1$d ★</string>
+    <string name="stats_chart_stars_value">%1$s ★</string>
+    <string name="stats_chart_no_rating">keine Bewertung</string>
+    <string name="stats_chart_no_data">Keine Daten.</string>
 </resources>

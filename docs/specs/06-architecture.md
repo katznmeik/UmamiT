@@ -132,7 +132,7 @@ concurrently.
 | HTML parsing | Jsoup |
 | Background work | WorkManager for the daily orphan sweep and reminders only; the catalog refresh runs in the app's own `dataSync` foreground service (§5.3) |
 | Images | Coil 3 (local files only) |
-| Charts | Vico for bar charts; custom Canvas for radar and donut |
+| Charts | Custom Canvas for the bars, the rating line, the donut and the radar (v0.7.0 build note in D-115: Vico could not draw the 70 % earlier bars, a line broken across gaps or the own value label) |
 | Markdown (guides) | Compose Markdown renderer or minimal in-house renderer (D-008) |
 | Licences | AboutLibraries |
 | Testing | JUnit4, Turbine, Truth, coroutines-test, Robolectric, Compose UI test, Roborazzi, MockWebServer |
