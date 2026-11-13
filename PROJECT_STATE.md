@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-13. **Statistik (v0.7.0, M4 part 2) is specified:** the PO answered the grilling (Q1–Q20, D-115); spec issue #255 with tickets #256–#264 and the plan `docs/plans/v0.7.0.md` **wait for the PO's approval**. `v0.6.1` is released (versionCode 60199). **Next:** the v0.7.0 build session, once the PO approves the tickets.
+**Last updated:** 2026-11-13. **Statistik (v0.7.0, M4 part 2) is specified:** the PO answered the grilling (Q1–Q20, D-115); spec issue #255 with tickets #256–#264 and the plan `docs/plans/v0.7.0.md` **wait for the PO's approval**. `v0.6.1` is released (versionCode 60199). **Next:** the v0.7.0 build session, once the PO approves the tickets. **After v0.7.0:** a code cleanup review before M5 (recorded on the PO's request, see below).
 
 ## Next: Statistik build (v0.7.0, M4 part 2; specified, waiting for approval)
 
@@ -24,15 +24,28 @@
   needs all of this again (the specify session of 2026-11-13 set it up in its own container).
 - **Release dispatch:** `release.yml` refuses a commit without a successful CI run, so dispatch it only after CI on the merge commit in `main` has finished. `accuracy.yml` needs the full 40-character SHA as `ref`.
 
+## After v0.7.0: code cleanup review (planned, not yet specified)
+
+Claude's proposal of 2026-11-13, recorded on the PO's request. It is **not a go and not a decision**: scope, release number and the model tier are open and go through a grilling round once v0.7.0 is released (rule 1).
+
+- **Goal:** remove what is no longer needed, simplify, and restructure only where a finding shows concrete pain. **No behaviour change.**
+- **When:** its own release between v0.7.0 and M5 (proposed `v0.7.1`). Not earlier, because the v0.7.0 tickets are written against today's structure and Statistik is the last feature that adds queries and UI patterns. Not later, because M5's Baseline Profile, performance budgets and backup verification should measure the final structure.
+- **Step 1, mechanical evidence (no model reading):** R8's usage report from the release build, Lint for unused resources, an unused-dependency check, a list of the largest files.
+- **Step 2, read-only audit:** one fresh session per group, each writing a findings file (place, category delete / simplify / restructure, risk, size); about the top 15 findings per group, no style points. Groups by main lines (2026-11-13): catalog (`core:catalog-parser`, `core:network`, `feature:catalog`) ≈ 8 500; data (`core:data`, `database`, `datastore`, `domain`, `model`) ≈ 15 100; timer path (`core:timer`, `core:timer-engine`, `feature:brew`) ≈ 17 800; UI (`core:designsystem`, `core:ui`, the other features, `app`) ≈ 27 500. Tests (≈ 94 000 lines) are not read line by line: only where main code goes or step 1 shows duplicated fixtures.
+- **Step 3, triage with the PO:** the PO picks the findings. Each restructuring becomes a decision and an update of `06-architecture.md`; then tickets.
+- **Step 4, execution by risk** (`/implement-spec`, one milestone PR): deletions, then local simplifications, then restructuring, the timer path last and on its own. Proof of no behaviour change: unchanged Roborazzi goldens, unchanged Room schemas and DataStore keys, the timer tests (rule 8), the accuracy run (09 §4a).
+- **Models (proposal, needs the PO's decision because D-101 has no Fable tier):** Fable 5.2 for the timer and data audits and the restructuring design; Opus `medium` for the other audits and for timer and data edits; Sonnet for deletions and other mechanical edits.
+- **Usage:** audit the catalog group first and read what it consumed before committing to the rest; one group per session and per 5-hour window; the audits in one week, the execution in a later week with no other milestone work beside it.
+
 ## Phase
 
 | Item | Status |
 |---|---|
 | Current milestone | **Statistik (v0.7.0, M4 part 2)**: specified (D-115, #255), tickets #256–#264 and the plan wait for the PO's approval. v0.6.1 is released (2026-11-13) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `ba3bb2a1` after #254) |
+| Working branch | `claude/gracious-tesla-1edym3` (from `main` `bc410bbc` after #265) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | the specify PR (docs only), merged when CI is green |
+| Open PR | the docs PR that records the cleanup review (this file only), merged when CI is green; the specify PR #265 is merged |
 | Latest APK | [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
 | Decision numbers | Up to **D-115** used; the next free is **D-116** |
 
