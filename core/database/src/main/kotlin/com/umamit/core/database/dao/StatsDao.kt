@@ -30,6 +30,8 @@ data class StatsTeaRow(
     @ColumnInfo(name = "low_stock_grams") val lowStockGrams: Double?,
     @ColumnInfo(name = "low_stock_warning") val lowStockWarning: Boolean,
     @ColumnInfo(name = "remaining_grams") val remainingGrams: Double?,
+    @ColumnInfo(name = "cover_photo_id") val coverPhotoId: String?,
+    @ColumnInfo(name = "style_key") val styleKey: String?,
 )
 
 /** The statistics' read side (INS-01–INS-07, D-115): read-only, no schema change. */
@@ -49,6 +51,7 @@ interface StatsDao {
         """
         SELECT t.id AS id, t.name AS name, t.is_archived AS is_archived, t.created_at AS created_at,
             t.low_stock_grams AS low_stock_grams, t.low_stock_warning AS low_stock_warning,
+            t.cover_photo_id AS cover_photo_id, t.style_key AS style_key,
             (SELECT SUM(e.delta_grams) FROM inventory_event e WHERE e.tea_id = t.id) AS remaining_grams
         FROM tea t
         """,

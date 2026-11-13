@@ -44,6 +44,55 @@
     </plurals>
     <!-- ===== end of #261 ===== -->
 
+    <!-- ===== #260: Überblick (INS-01, INS-03, INS-06) ===== -->
+    <plurals name="stats_overview_sessions_label">
+        <item quantity="one">Sitzung</item>
+        <item quantity="other">Sitzungen</item>
+    </plurals>
+    <plurals name="stats_overview_cups_label">
+        <item quantity="one">Tasse</item>
+        <item quantity="other">Tassen</item>
+    </plurals>
+    <plurals name="stats_overview_teas_label">
+        <item quantity="one">Tee</item>
+        <item quantity="other">Tees</item>
+    </plurals>
+    <string name="stats_overview_teas_added">%1$s · +%2$d im Zeitraum</string>
+    <string name="stats_overview_section_sessions">Sitzungen</string>
+    <string name="stats_overview_sessions_per_week">Sitzungen pro Woche</string>
+    <string name="stats_overview_sessions_per_month">Sitzungen pro Monat</string>
+    <string name="stats_overview_week">KW %1$d</string>
+    <plurals name="stats_overview_days">
+        <item quantity="one">%1$s Tag</item>
+        <item quantity="other">%1$s Tage</item>
+    </plurals>
+    <string name="stats_overview_section_streak">Serie</string>
+    <string name="stats_overview_streak">%1$s in Folge · längste %2$s · seit Beginn</string>
+    <string name="stats_overview_streak_none">Keine Serie gerade</string>
+    <string name="stats_overview_section_most_brewed">Am häufigsten</string>
+    <string name="stats_overview_times">%1$d×</string>
+    <string name="stats_overview_open_tea">Öffnen</string>
+    <string name="stats_overview_section_sorten">Tee-Sorten</string>
+    <string name="stats_overview_sorten_title">Tee-Sorten</string>
+    <string name="stats_overview_other">Andere</string>
+    <string name="stats_overview_section_habits">Gewohnheiten</string>
+    <string name="stats_overview_day_part">Tageszeit</string>
+    <string name="stats_overview_weekday">Wochentag</string>
+    <string name="stats_overview_morning">Morgen</string>
+    <string name="stats_overview_noon">Mittag</string>
+    <string name="stats_overview_afternoon">Nachmittag</string>
+    <string name="stats_overview_evening">Abend</string>
+    <string-array name="stats_overview_weekdays_short">
+        <item>Mo</item>
+        <item>Di</item>
+        <item>Mi</item>
+        <item>Do</item>
+        <item>Fr</item>
+        <item>Sa</item>
+        <item>So</item>
+    </string-array>
+    <!-- ===== end of #260 ===== -->
+
     <!-- Charts (SCR-18, INS-08): value labels and TalkBack lists; numbers arrive in German format. -->
     <plurals name="stats_chart_sessions">
         <item quantity="one">%1$s Sitzung</item>

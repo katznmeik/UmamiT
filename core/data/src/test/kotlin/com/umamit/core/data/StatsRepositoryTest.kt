@@ -4,12 +4,14 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.common.WallClock
 import com.umamit.core.database.entity.BrewSessionEntity
+import com.umamit.core.database.entity.PhotoEntity
 import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.database.entity.SessionStepEntity
 import com.umamit.core.domain.stats.StatsInput
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StepKind
@@ -47,7 +49,7 @@ class StatsRepositoryTest {
 
     private val settings = FakeSettingsRepository(UserSettings(lowStockGrams = 20.0))
     private val data = TestDatabase(settings = settings)
-    private val stats = RoomStatsRepository(data.db.statsDao(), settings)
+    private val stats = RoomStatsRepository(data.db.statsDao(), settings, PhotoFiles(java.io.File("photos")))
 
     @After
     fun tearDown() = data.close()
@@ -203,6 +205,22 @@ class StatsRepositoryTest {
     }
 
     @Test
+    fun `a tea carries its cover photo file and style key`() = runTest {
+        data.teas.saveTea(tea("a", "Asamushi").copy(styleKey = "sencha"))
+        data.teas.saveTea(tea("b", "Bancha"))
+        data.db.sessionPhotoDao().insert(
+            PhotoEntity("p1", "a", null, null, 0, 10, 10, 10, PhotoOrigin.OWN, 1, 1),
+        )
+        data.db.openHelper.writableDatabase.execSQL("UPDATE tea SET cover_photo_id = 'p1' WHERE id = 'a'")
+
+        val teas = input().teas.associateBy { it.id }
+
+        assertThat(teas.getValue("a").coverPhoto?.name).isEqualTo("p1.jpg")
+        assertThat(teas.getValue("a").styleKey).isEqualTo("sencha")
+        assertThat(teas.getValue("b").coverPhoto).isNull()
+    }
+
+    @Test
     fun `teas carry their stock level by the own or the general threshold`() = runTest {
         data.teas.saveTea(tea("a", "Asamushi"))
         data.teas.saveTea(tea("b", "Bancha").copy(lowStockGrams = 5.0, lowStockWarning = false))
@@ -242,7 +260,7 @@ class StatsRepositoryTest {
         data.db.sessionDao().update(running.copy(status = SessionStatus.COMPLETED))
         awaitLatest("finished") { input -> input.sessions.map { it.id } == listOf("s1") }
 
-        RoomJournalRepository(data.db, PhotoFiles(folder.newFolder("photos"))).deleteSession("s1")
+        RoomJournalRepository(data.db, PhotoFiles(java.io.File("photos"))).deleteSession("s1")
         awaitLatest("deleted") { it.sessions.isEmpty() }
 
         event("e1", InventoryEventType.PURCHASE, 50.0, 1_500L)
