@@ -28,11 +28,11 @@ import com.umamit.core.database.entity.VesselEntity
 import java.time.LocalDate
 
 /**
- * The personal database `umamit.db` (05 §1, §3), schema version 6 (v0.6.0: the descriptors `session_descriptor`,
- * D-112; v5 the per-tea stock warning `tea.low_stock_warning`, D-108; v4 `active_brew` per timer slot, D-098;
- * v3 brought the Merkliste `catalog_bookmark` and the quick timer's own pre-alert, D-097; v2 the pre-alert per
- * step, D-093). Every version change ships a migration and a test; there is no destructive fallback and no
- * downgrade (05 §9, D-093 Q16).
+ * The personal database `umamit.db` (05 §1, §3), schema version 7 (v0.6.1: taste and a note per infusion on
+ * `session_step`, D-114; v6 the descriptors `session_descriptor`, D-112; v5 the per-tea stock warning
+ * `tea.low_stock_warning`, D-108; v4 `active_brew` per timer slot, D-098; v3 brought the Merkliste
+ * `catalog_bookmark` and the quick timer's own pre-alert, D-097; v2 the pre-alert per step, D-093). Every version
+ * change ships a migration and a test; there is no destructive fallback and no downgrade (05 §9, D-093 Q16).
  */
 @Database(
     entities = [
@@ -75,7 +75,7 @@ abstract class UmamiDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "umamit.db"
-        const val VERSION = 6
+        const val VERSION = 7
     }
 }
 

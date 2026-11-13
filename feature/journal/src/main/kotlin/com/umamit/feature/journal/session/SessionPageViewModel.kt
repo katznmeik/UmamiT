@@ -9,7 +9,7 @@ import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TastingWrite
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaRepository
-import com.umamit.core.model.TasteAxis
+import com.umamit.core.data.catalog.CatalogRepository
 import com.umamit.core.model.TastingLimits
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineStart
@@ -68,6 +68,7 @@ class SessionPageViewModel @Inject constructor(
     private val teas: TeaRepository,
     private val archive: TeaArchive,
     private val tasting: SessionTasting,
+    private val catalog: CatalogRepository,
 ) : ViewModel() {
     private val sessionId: String = checkNotNull(savedState[SESSION_ID]) { "the session page needs a sessionId" }
 
@@ -87,9 +88,9 @@ class SessionPageViewModel @Inject constructor(
                 flowOf(SessionPageUiState.NotFound)
             } else {
                 // The offer is read again with each tea state: *Wiederherstellen* can make it apply (PRF-07).
-                teaOf(session.snapshot.teaId).flatMapLatest { tea ->
+                teaOf(session.snapshot.teaId).flatMapLatest { (tea, catalogKey) ->
                     recipeOffer.of(session).map { offer ->
-                        SessionPageUiState.Ready(sessionPage(session, tea).copy(recipeOffer = offer))
+                        SessionPageUiState.Ready(sessionPage(session, tea, catalogKey).copy(recipeOffer = offer))
                     }
                 }
             }
@@ -127,18 +128,8 @@ class SessionPageViewModel @Inject constructor(
         launchWrite { ratingLock.withLock { tasting.setRating(sessionId, rating) } }
     }
 
-    /** Taste writes run one after another in release order, so the last one is the one stored (JRN-03). */
-    private val tasteLock = Mutex()
-
-    /** A slider released on [value] (JRN-03): saved at once, after any earlier taste write. */
-    fun setTaste(axis: TasteAxis, value: Int) {
-        launchWrite { tasteLock.withLock { tasting.setTaste(sessionId, axis, value) } }
-    }
-
-    /** *Zurücksetzen* (JRN-03): all six taste values are unset, in order with the slider writes. */
-    fun clearTaste() {
-        launchWrite { tasteLock.withLock { tasting.clearTaste(sessionId) } }
-    }
+    /** GESCHMACK's writes per infusion (JRN-03, JRN-05, D-114): the sliders, *Zurücksetzen* and the infusion note. */
+    internal val infusionTasting = InfusionTastingWrites(tasting, sessionId, viewModelScope)
 
     /** Descriptor writes run one after another in tap order, so the last tap is the one stored (JRN-04). */
     private val descriptorLock = Mutex()
@@ -183,14 +174,21 @@ class SessionPageViewModel @Inject constructor(
         viewModelScope.launch(start = CoroutineStart.ATOMIC) { withContext(NonCancellable) { write() } }
     }
 
-    private fun teaOf(id: String?): Flow<SessionTea> = if (id == null) {
-        flowOf(SessionTea.DELETED)
+    /** The tea's state and its catalog key while its catalog tea exists (discontinued counts), as in the setup. */
+    private fun teaOf(id: String?): Flow<Pair<SessionTea, String?>> = if (id == null) {
+        flowOf(SessionTea.DELETED to null)
     } else {
-        teas.observeTea(id).map { overview ->
-            when {
+        teas.observeTea(id).flatMapLatest { overview ->
+            val key = overview?.tea?.catalogKey
+            val state = when {
                 overview == null -> SessionTea.DELETED
                 overview.tea.isArchived -> SessionTea.ARCHIVED
                 else -> SessionTea.AVAILABLE
+            }
+            if (key == null) {
+                flowOf(state to null)
+            } else {
+                catalog.observeTea(key).map { detail -> state to key.takeIf { detail != null } }
             }
         }.distinctUntilChanged()
     }

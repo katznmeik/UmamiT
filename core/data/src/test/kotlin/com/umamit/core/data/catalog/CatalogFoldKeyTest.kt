@@ -32,4 +32,13 @@ class CatalogFoldKeyTest {
         assertThat(CatalogFoldKey.prefix(oolong)).isEqualTo("oolong/")
         assertThat(CatalogFoldKey.of(oolong, "Sencha")).isNotEqualTo(CatalogFoldKey.of(CatalogKind.GREEN, "Sencha"))
     }
+
+    @Test
+    fun withoutAKindTheKindGroupsFoldAsAllSlashKind() {
+        // v0.6.1, D-114: one prefix of their own, apart from every kind's *Sorte* keys.
+        assertThat(CatalogFoldKey.ofKind(CatalogKind.GREEN)).isEqualTo("all/green")
+        assertThat(CatalogFoldKey.ofKind(CatalogKind.CHAI)).isEqualTo("all/chai")
+        assertThat(CatalogFoldKey.ofKind(CatalogKind.HERBAL)).startsWith(CatalogFoldKey.ALL_PREFIX)
+        assertThat(CatalogKind.ALL.map { CatalogFoldKey.prefix(it) }).doesNotContain(CatalogFoldKey.ALL_PREFIX)
+    }
 }

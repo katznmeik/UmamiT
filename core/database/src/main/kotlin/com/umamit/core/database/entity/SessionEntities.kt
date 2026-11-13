@@ -80,7 +80,10 @@ data class BrewSessionEntity(
 
 /**
  * Table `session_step` (05 §3.7); recorded values follow 04 §5.1. `pre_alert_seconds` (schema v2, D-093) is the
- * step's pre-alert choice in this session: null *Automatisch*, 0 *Aus*, else 5–30 s.
+ * step's pre-alert choice in this session: null *Automatisch*, 0 *Aus*, else 5–30 s. The `taste_*` columns and
+ * `tasting_note` (schema v7, JRN-03, JRN-05, D-114) are the infusion's taste (0–5 each, null = unset) and its short
+ * note (≤ 200, trimmed, never blank); only the column-level tasting writes set them, on an ended row that is not
+ * *Spülen*. The timer's and the editor's row writes go through [SessionStepTimerColumns], which leaves them out.
  */
 @Entity(
     tableName = "session_step",
@@ -96,6 +99,59 @@ data class BrewSessionEntity(
 )
 data class SessionStepEntity(
     @PrimaryKey val id: String,
+    @ColumnInfo(name = "session_id") val sessionId: String,
+    @ColumnInfo(name = "position") val position: Int,
+    @ColumnInfo(name = "kind") val kind: StepKind,
+    @ColumnInfo(name = "planned_seconds") val plannedSeconds: Int,
+    @ColumnInfo(name = "actual_seconds") val actualSeconds: Int?,
+    @ColumnInfo(name = "paused_seconds") val pausedSeconds: Int?,
+    @ColumnInfo(name = "overtime_seconds") val overtimeSeconds: Int?,
+    @ColumnInfo(name = "temp_c") val tempC: Int?,
+    @ColumnInfo(name = "started_at") val startedAt: Long?,
+    @ColumnInfo(name = "ended_at") val endedAt: Long?,
+    @ColumnInfo(name = "skipped") val skipped: Boolean,
+    @ColumnInfo(name = "overtime_auto_ack") val overtimeAutoAck: Boolean,
+    @ColumnInfo(name = "note") val note: String?,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    @ColumnInfo(name = "pre_alert_seconds") val preAlertSeconds: Int?,
+    @ColumnInfo(name = "taste_umami") val tasteUmami: Int? = null,
+    @ColumnInfo(name = "taste_sweetness") val tasteSweetness: Int? = null,
+    @ColumnInfo(name = "taste_bitterness") val tasteBitterness: Int? = null,
+    @ColumnInfo(name = "taste_astringency") val tasteAstringency: Int? = null,
+    @ColumnInfo(name = "taste_body") val tasteBody: Int? = null,
+    @ColumnInfo(name = "taste_aroma") val tasteAroma: Int? = null,
+    @ColumnInfo(name = "tasting_note") val tastingNote: String? = null,
+) {
+    /** The columns the timer and the session editor write: every column but the infusion's taste and note. */
+    fun timerColumns() = SessionStepTimerColumns(
+        id = id,
+        sessionId = sessionId,
+        position = position,
+        kind = kind,
+        plannedSeconds = plannedSeconds,
+        actualSeconds = actualSeconds,
+        pausedSeconds = pausedSeconds,
+        overtimeSeconds = overtimeSeconds,
+        tempC = tempC,
+        startedAt = startedAt,
+        endedAt = endedAt,
+        skipped = skipped,
+        overtimeAutoAck = overtimeAutoAck,
+        note = note,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        preAlertSeconds = preAlertSeconds,
+    )
+}
+
+/**
+ * A partial [SessionStepEntity] for `@Update(entity = SessionStepEntity::class)`: every column but the infusion's
+ * taste and `tasting_note` (schema v7, D-114), so a timer or editor write of a row can never overwrite what the
+ * tasting writes stored on it (05 §3.7 „Infusion tasting writes").
+ */
+data class SessionStepTimerColumns(
+    @ColumnInfo(name = "id") val id: String,
     @ColumnInfo(name = "session_id") val sessionId: String,
     @ColumnInfo(name = "position") val position: Int,
     @ColumnInfo(name = "kind") val kind: StepKind,

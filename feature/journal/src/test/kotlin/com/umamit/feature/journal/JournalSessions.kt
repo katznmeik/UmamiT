@@ -7,6 +7,7 @@ import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TeaCategory
 import java.io.File
 import java.time.LocalDate
@@ -59,6 +60,7 @@ object JournalSessions {
         rating: Double? = null,
         notes: String? = null,
         descriptorKeys: List<String> = emptyList(),
+        stepTastings: Map<Int, StepTasting> = emptyMap(),
     ) = JournalSession(
         session = BrewSession(
             id = id,
@@ -90,6 +92,7 @@ object JournalSessions {
             rating = rating,
             notes = notes,
             descriptorKeys = descriptorKeys,
+            stepTastings = stepTastings,
         ),
         coverPhoto = photo,
     )

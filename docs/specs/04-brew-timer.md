@@ -1,6 +1,6 @@
 # 04 · Brew Timer Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (engine rules, D-047; step edits, quick timer,
+> Status: **Draft v0.2** · Last updated: 2026-11-12 (v0.6.1: quick-timer chips and the taste sheet on the timer screen, D-114; 2026-10-22: engine rules, D-047; step edits, quick timer,
 > recovery and snapshot, D-048; time rules and service contract, D-053;
 > slice review: controller rules, alarm kinds, notification per state, D-054;
 > controller inputs and ports, D-056; alarms, service and recovery in the
@@ -1197,6 +1197,23 @@ INFUSION step and these differences:
 
 The quick timer has no idle demote and no midnight timeout: its 30-min cancel
 comes first (D-053).
+
+**v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)).** The chips
+become 1:00, 2:00, 3:00, 5:00, 8:00, 10:00 and 15:00 (03 SCR-07). The 10:00
+and 15:00 chips start hot steps of 10 and 15 min, which keep their
+pre-alert like any quick timer under 60 min (TMR-18's rule, D-098). No
+engine rule changes.
+
+**Taste on the timer screen (v0.6.1, D-114).** The timer screen's
+„Geschmack · N. Aufguss" sheet (03 SCR-05) is not an engine input: it
+writes only an ended step's taste and note columns through
+`SessionTasting` (05 §3.7) and never sends an event, changes `active_brew`
+or the snapshot, or waits on the engine. The controller's alert closes it
+in the alert's first frame like every menu and sheet (rule 8). Tests: a
+taste write between `poured` and `start` of the next step, and during a
+running step, leaves the engine state, the due times and the next step's
+recorded values unchanged; an alert while the sheet is open is shown at its
+deadline (accuracy variants of 09 §4a unchanged).
 
 `startQuickTimer(duration, globalPreAlert, preAlertChoice)` starts it in
 Ready (the choice from v0.2.2, D-097: null = *Automatisch*, 0 = *Aus*, or an

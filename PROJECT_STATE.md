@@ -5,32 +5,27 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-12. **v0.6.0 (the journal, M4 part 1; D-112, D-113) is released**: [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) from `main` `232c4b82` (versionCode 60099, certificate verified), after the PO's approval of the on-device checklist on `v0.6.0-rc.1` and of the design review with the slim pin slider (#237). The gate, CI and all three accuracy variants passed on the released tree; details in `docs/history.md`. **Next phase (fresh session): a feedback round on v0.6.0** (the PO, 2026-11-12: „another feedback round before anything else"): its specify session takes the PO's points through a grilling round, then spec, plan and tickets. Statistik (M4 part 2) follows after it. No development before that (CLAUDE.md rule 1).
+**Last updated:** 2026-11-12 (night). **`v0.6.1-rc.1` is out for the PO's testing** (D-114, spec #240; pre-release from `62657833`, versionCode 60101). Milestone PR **#252** (draft) from `claude/wonderful-davinci-fu8tqi`. Build #241–#249 and #250's reviews, PO answers and fix rounds done; full local gate, CI (incl. both emulator jobs) and **all three accuracy variants PASS on `62657833`**. Renders and points to judge: `docs/design/review/v0.6.1/README.md`. **Next:** the PO's on-device checklist (09 §4 „v0.6.1", copied into #252) and design review; on approval #251 (merge, final `v0.6.1` from `main` with the accuracy runs on the final commit); on findings, a feedback round per CLAUDE.md rule 1.
 
-## Next: feedback round on v0.6.0 (not yet specified)
+## After rc.1 (2026-11-12)
 
-- **The PO's decision (2026-11-12, after the final release):** a feedback round on v0.6.0 comes before
-  anything else; Statistik waits for it. The PO brings the points to the specify session; none is recorded yet.
-- **Specify session first:** grill the PO on each point with questions as selectable options, then decisions
-  (from D-114), the specs the points touch, 09 §2 and a §4 checklist, `/to-spec`, a plan in `docs/plans/` and
-  tickets. Nothing is built before the PO has answered and approved the ticket breakdown. The pattern is the
-  feedback round on v0.5.0 (`docs/plans/v0.5.1.md`, D-110).
-- **Open, for the PO to answer in that session:** which release number the round gets, and what that means
-  for Statistik's number. 09 §2, D-112 and 02 §12 still call Statistik „v0.6.1"; nothing is renumbered until
-  the PO has answered.
-- **If a point needs timer code:** the tiers change (never below T3), the T4 timer review applies, and every
-  rc needs the accuracy runs (09 §4a).
-- **Then Statistik (M4 part 2; not yet specified):** its own specify session. Starting point, not yet
-  confirmed by the PO: INS-01–INS-07 (02 §12), SCR-18 and the Statistik tab in 03, the A9 empty state
-  (`docs/design/assets.md`; the image is delivered). Statistik shows „Deine Statistik folgt bald" until then.
-  v0.6.0 gives it ratings, taste values, descriptors and notes per session, per-tea rating and taste
-  aggregates (05; umamit.db v6) and the journal's filters.
-- **Config housekeeping (2026-11-12):** a prompt audit of the Claude Code config pointed `CLAUDE.md` at the
+1. **Approved (PO, 2026-11-13):** checklist 09 §4 „v0.6.1" on `v0.6.1-rc.1` all passed and the seven design-review points stand as built (D-114 „Approval"). No rc.2. #251 in progress: `umamit.version=0.6.1` set.
+2. **On approval (#251):** set `umamit.version=0.6.1` (versionCode 60199), full local gate, CI, all three accuracy variants on that commit; merge #252 (merge commit); dispatch `release.yml` from `main` (`version` 0.6.1); verify the certificate; close #240–#251 as the PR does; restart the working branch from `main`; move v0.6.1 to `docs/history.md`.
+3. **On findings:** each point goes through the process (grilling as options → spec/D-115 → tickets → build), then `v0.6.1-rc.2`.
+4. **Open, accepted as Claude's note (D-114 build notes):** the activity re-creation after the *Design* hand-over can still meet an alert starting in the same ≈ 0.5 s; m6 (GESCHMACK hidden for a finished session without a poured infusion) is a design-review point.
+5. **Environment:** `~/.gradle/init.d/mirror.gradle`, gw.sh/gate.sh (`docs/plans/v0.4.0-resume.md` §3), Robolectric jars pre-fetched; per-ticket verification in v0.6.1 as the working agreement below.
+
+## v0.6.1 (rc.1 out)
+
+- **Scope (D-114):** taste and a note per infusion, entered on the timer screen for the infusion ended last and on the session page (chips *Alle · 1. · 2. …*; umamit.db v7 with a tested migration; the tea's radar averages every infusion); GESCHMACK folds; quick-timer chips 1:00 · 2:00 · 3:00 · 5:00 · 8:00 · 10:00 · 15:00; a full-screen photo viewer; ⋮ *Tee ansehen* / *Im Katalog ansehen*; the Katalog opens with every kind, grouped by kind; „N Tees"; *Darstellung* › *Design*.
+- **Timer code:** #241 and #244 change `feature:brew`: T3+ implementers, a T4 timer review, the 04 §12 unit tests, and all three accuracy variants on the rc and the final (09 §4a). `core:timer` / `core:timer-engine` stay untouched; if a ticket needs them, stop and ask the PO.
+- **Order and tiers:** the plan's task graph (PO-approved): #242 + #241, #243 + #247, #244 + #245, #246 + #249, #248; then #250 (reviews, accuracy, rc.1, checklist 09 §4 „v0.6.1", design review in `docs/design/review/v0.6.1/`) and #251 (merge, final).
+- **Milestone PR:** #252 (draft).
+- **Then Statistik (v0.7.0, M4 part 2; not yet specified):** its own specify session. Starting point, not yet confirmed by the PO: INS-01–INS-07 (02 §12), SCR-18, the A9 empty state. With D-114 the taste data is per infusion.
+- **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
+- **Config housekeeping (2026-11-12, #253 on `main`):** a prompt audit of the Claude Code config pointed `CLAUDE.md` at the
   per-release plans and plainly restated `emil-design-eng`'s review format (a local edit; its hash no longer
   matches `skills-lock.json`, see `CLAUDE.md`). No app change.
-- **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab
-  that comes back to the Journal can show the earlier list for a frame until the next build. The drag feel of
-  the slim pin is first seen on the device with `v0.6.0` (D-113, answer 7): the PO's word on it is welcome.
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
   init script (`~/.gradle/init.d`, not in the repository) pointed
   `repo.maven.apache.org` at Google's Maven Central mirror
@@ -48,13 +43,13 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **Feedback round on v0.6.0**: not yet specified, release number open (the PO decides it in the specify session, which is next). Then **Statistik** (M4 part 2; D-112; called v0.6.1 in the specs so far), not yet specified. **v0.6.0** (the journal, M4 part 1; D-112, D-113, spec #221, plan `docs/plans/v0.6.0.md`) is released (2026-11-12) |
+| Current milestone | **v0.6.1, feedback round on v0.6.0** (D-114; spec #240, tickets #241–#251, plan `docs/plans/v0.6.1.md`): `v0.6.1-rc.1` out, waiting on the PO's checklist and design review. Then **Statistik** (v0.7.0, M4 part 2), not yet specified. v0.6.0 is released (2026-11-12) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi`, restarted from `main` after every merge (#235 `232c4b82`, the docs PR #238 `e1d18896`, and the docs PR that carries this row); it equals `main` until the feedback round's first commit |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `8a880d0d`; carries the v0.6.1 specs and plan) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none (#235, the v0.6.0 milestone PR, was merged on 2026-11-12) |
-| Latest APK | [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (full release, versionCode 60099, from `main` `232c4b82`, certificate verified); rc [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (pre-release, 60001); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-113** used; the next free is **D-114** |
+| Open PR | **#252** (draft, v0.6.1 milestone; #241–#249 landed, #250 at rc.1) |
+| Latest APK | rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (full release, versionCode 60099, from `main` `232c4b82`, certificate verified); rc [`v0.6.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0-rc.1) (pre-release, 60001); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
+| Decision numbers | Up to **D-114** used; the next free is **D-115** |
 
 ## Working agreements in effect
 
@@ -63,13 +58,14 @@
 - **Next-session prompt (PO, 2026-11-10):** whenever a new session is to be started, the current session's last message ends with the ready-to-paste prompt for it (CLAUDE.md „Start of every session", 12 §5.1).
 - **Briefs and reviews (D-101):** lean implementer briefs (12 §5.2); one milestone review at T3, plus T4 for a changed timer path; `/review-animations` once per milestone.
 - **Parallelism:** at most **2** implementer subagents at a time, and **one Gradle build at a time** (the machine-wide lock in `v0.4.0-resume.md` §3).
+- **Per-ticket verification in v0.6.1 (PO, 2026-11-12):** the orchestrator's diff review + a local cross-module check, then push; CI on #252 is the full gate, checked before the next merge builds on it; the full local gate once more on the rc commit (`docs/plans/v0.6.1.md` „Verification").
 - **Reporting:** push notifications only when the PO must act (rc ready, a blocking question). Questions go to the PO as selectable options.
 - **Merging:** Claude merges all PRs (D-037); the PO only approves milestone PRs.
 - **CI (D-105):** a change of `docs/**`, `*.md` or `.claude/**` only skips the checks, build and emulator jobs and still counts as a successful run for the release check; anything else, or any doubt, runs the full gate.
 
 ## Waiting on the PO
 
-1. **Feedback round on v0.6.0:** the PO's points and the answers in the specify session's grilling round (the next session asks them as selectable options), including the round's release number. Nothing else waits on the PO.
+1. Nothing blocking: v0.6.1 was approved on 2026-11-13.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.

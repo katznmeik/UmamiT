@@ -95,10 +95,21 @@ enum class TastingWrite {
     /** Written, with the session's `updated_at`; an unchanged value is written again. */
     SAVED,
 
-    /** No such session, or it is not `COMPLETED` (one in progress, D-112): nothing changes. */
+    /**
+     * No such session, or it is not `COMPLETED` (one in progress, D-112): nothing changes. For an infusion write
+     * (D-114): no such session, or it is neither in progress nor completed.
+     */
     NOT_COMPLETED,
 
-    /** A value out of its bounds (a rating off the half steps, a taste value beyond 0–5, notes over 5000). */
+    /**
+     * An infusion write whose step row is missing, not ended, or *Spülen* (05 §3.7, D-114): nothing changes.
+     */
+    NOT_AN_INFUSION,
+
+    /**
+     * A value out of its bounds (a rating off the half steps, a taste value beyond 0–5, notes over 5000, an infusion
+     * note over 200).
+     */
     INVALID,
 
     /** A 21st descriptor (JRN-04): „Höchstens 20 Beschreibungen". */
@@ -106,19 +117,24 @@ enum class TastingWrite {
 }
 
 /**
- * The tasting inputs of the session page and the „Gespeichert" sheet (05 §3.7, JRN-02–JRN-05, D-112): one small
- * write per input, each its own transaction on a `COMPLETED` session only. Every input is optional: each can be
- * cleared again. None touches steps, stock, cost or `active_brew`, and none runs inside a timer transition.
+ * The tasting inputs of the session page, the „Gespeichert" sheet and the timer's taste sheet (05 §3.7, JRN-02–JRN-05,
+ * D-112, D-114): one small write per input, each its own transaction. The session's rating, notes and descriptors on a
+ * `COMPLETED` session only; an infusion's taste and note (umamit.db v7) on its ended step that is not *Spülen*, in a
+ * session in progress or completed, addressed by the step's `position`. Every input is optional: each can be cleared
+ * again. None touches stock, cost, `active_brew` or a step's timer columns, and none runs inside a timer transition.
  */
 interface SessionTasting {
     /** The rating, 0,5–5,0 in half steps (JRN-02), or null to remove it. */
     suspend fun setRating(sessionId: String, rating: Double?): TastingWrite
 
-    /** One taste value, 0–5 (JRN-03), or null to unset that axis; the other five stay. */
-    suspend fun setTaste(sessionId: String, axis: TasteAxis, value: Int?): TastingWrite
+    /** One taste value of the infusion at [position], 0–5 (JRN-03), or null to unset that axis; the other five stay. */
+    suspend fun setInfusionTaste(sessionId: String, position: Int, axis: TasteAxis, value: Int?): TastingWrite
 
-    /** *Zurücksetzen* (JRN-03): all six taste values unset. */
-    suspend fun clearTaste(sessionId: String): TastingWrite
+    /** *Zurücksetzen* (JRN-03): the six taste values of the infusion at [position] unset; its note stays. */
+    suspend fun clearInfusionTaste(sessionId: String, position: Int): TastingWrite
+
+    /** The note of the infusion at [position] (JRN-05, D-114): trimmed, blank stored as null, at most 200 chars. */
+    suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): TastingWrite
 
     /** The notes (JRN-05): trimmed, blank stored as null, at most 5000 characters after trimming. */
     suspend fun setNotes(sessionId: String, notes: String?): TastingWrite

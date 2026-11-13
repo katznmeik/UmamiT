@@ -3,10 +3,13 @@ package com.umamit.core.data
 import androidx.room.withTransaction
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.database.dao.JournalSessionRow
+import com.umamit.core.database.dao.StepTastingRow
 import com.umamit.core.database.dao.TasteAveragesRow
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.DescriptorCount
+import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +48,18 @@ interface JournalRepository {
     /** [sessionId]'s session as [observeSessions] lists it; null while there is none (a deleted one). */
     fun observeSession(sessionId: String): Flow<JournalSession?>
 
-    /** [teaId]'s tasting summary over its finished sessions (TEA-13, JRN-03); [TeaTasting.EMPTY] without data. */
+    /**
+     * The taste and note stored per step `position` of [sessionId] (JRN-03, JRN-05, D-114); steps without any are
+     * absent, and so is a session that does not exist. Only the step rows' taste columns are read, for the timer's
+     * taste button and sheet (SCR-05 v0.6.1), so a taste write next to a running timer re-reads no whole session.
+     */
+    fun observeStepTastings(sessionId: String): Flow<Map<Int, StepTasting>> =
+        observeSession(sessionId).map { it?.session?.stepTastings.orEmpty() }
+
+    /**
+     * [teaId]'s tasting summary over its finished sessions (TEA-13, JRN-03); the taste averages over every infusion of
+     * them (D-114). [TeaTasting.EMPTY] without data.
+     */
     fun observeTeaTasting(teaId: String): Flow<TeaTasting>
 }
 
@@ -74,6 +88,9 @@ class RoomJournalRepository @Inject constructor(private val db: UmamiDatabase, p
     override fun observeSession(sessionId: String): Flow<JournalSession?> =
         journal.observeSession(sessionId).map { it?.toJournalSession() }.flowOn(Dispatchers.Default)
 
+    override fun observeStepTastings(sessionId: String): Flow<Map<Int, StepTasting>> =
+        tasting.observeStepTastings(sessionId).map { rows -> rows.associate { it.position to it.tasting() } }
+
     private fun JournalSessionRow.toJournalSession() = JournalSession(
         session = session.toModel(steps.sortedBy { it.position }, descriptors),
         coverPhoto = teaCoverPhotoId?.let(photos::file),
@@ -92,7 +109,7 @@ class RoomJournalRepository @Inject constructor(private val db: UmamiDatabase, p
     }
 }
 
-/** The set axes' averages; an axis no session set is absent. */
+/** The set axes' averages; an axis no infusion set is absent. */
 private fun TasteAveragesRow.byAxis(): Map<TasteAxis, Double> = buildMap {
     umami?.let { put(TasteAxis.UMAMI, it) }
     sweetness?.let { put(TasteAxis.SWEETNESS, it) }
@@ -101,3 +118,15 @@ private fun TasteAveragesRow.byAxis(): Map<TasteAxis, Double> = buildMap {
     body?.let { put(TasteAxis.BODY, it) }
     aroma?.let { put(TasteAxis.AROMA, it) }
 }
+
+private fun StepTastingRow.tasting() = StepTasting(
+    taste = TasteProfile(
+        umami = tasteUmami,
+        sweetness = tasteSweetness,
+        bitterness = tasteBitterness,
+        astringency = tasteAstringency,
+        body = tasteBody,
+        aroma = tasteAroma,
+    ),
+    note = tastingNote,
+)

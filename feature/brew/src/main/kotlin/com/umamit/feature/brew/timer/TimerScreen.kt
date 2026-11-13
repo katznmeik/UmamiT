@@ -72,6 +72,10 @@ const val TIMER_RING_TAG = "timer_ring"
  * @param onOpenOther a tap on the row: the [other] timer's screen.
  * @param stock the brew tea's stock, shown on READY under the leaf and water (BRW-11, D-098); null: no line
  *   (the quick timer never has one). Its space is reserved in every brew, so the pill never moves for it.
+ * @param tasting the taste of the infusion ended last (JRN-03, JRN-05, D-114): the button „Geschmack · N. Aufguss"
+ *   below the step strip and its sheet ([TasteButtonSlot], [TimerTasteHost]), its space kept from the first READY;
+ *   null: none (the quick timer). The sheet is removed in an alert's first frame like the other overlays (rule 8)
+ *   and sends no engine event.
  */
 @Composable
 fun TimerScreen(
@@ -91,6 +95,7 @@ fun TimerScreen(
     other: TimerUiState.Active? = null,
     onOtherEvent: (TimerEvent) -> Unit = {},
     onOpenOther: () -> Unit = {},
+    tasting: TimerTasting? = null,
 ) {
     SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
         val alerting = state.alerting
@@ -142,6 +147,7 @@ fun TimerScreen(
                     teaStyleKey,
                     stock,
                     other?.let { OtherTimerArgs(it, onOtherEvent, onOpenOther) },
+                    tasting.takeUnless { state.isQuick },
                 )
             // One body for both surfaces: it moves between them with its state (scroll, menu, focus).
             val body = remember { movableContentOf { bodyArgs: TimerBodyArgs -> TimerBody(bodyArgs) } }
@@ -155,6 +161,7 @@ fun TimerScreen(
         }
 
         TimerStepsSheet(state, overlays, onEvent)
+        TimerTasteHost(state, tasting.takeUnless { state.isQuick }, overlays)
         overlays.confirmation?.takeIf { overlays.confirmationShown }?.let { confirmation ->
             DiscardSessionDialog(
                 onConfirm = {

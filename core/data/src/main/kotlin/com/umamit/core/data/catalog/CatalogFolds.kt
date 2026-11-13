@@ -37,10 +37,17 @@ interface CatalogFoldRepository {
 
 /**
  * The key of a folded group in `catalogFolded` (05 §6, D-098, D-108): `<kind key>/<sorte key>`, „Ohne Sorte" as
- * `<kind key>/-`. The kinds `green` and `herbal` keep the keys of v0.4.1.
+ * `<kind key>/-`. The kinds `green` and `herbal` keep the keys of v0.4.1. Without a kind (D-114) the kind groups
+ * fold, as `all/<kind key>`.
  */
 object CatalogFoldKey {
     private const val UNTYPED = "-"
+
+    /** Every key of the view without a kind starts with this (D-114). */
+    const val ALL_PREFIX = "all/"
+
+    /** The group of [kind] in the view without a kind (D-114). */
+    fun ofKind(kind: CatalogKind): String = "$ALL_PREFIX${kind.key}"
 
     /** The group of [teaType] (null = „Ohne Sorte") in the view of [kind]. */
     fun of(kind: CatalogKind, teaType: String?): String = "${prefix(kind)}${teaType ?: UNTYPED}"

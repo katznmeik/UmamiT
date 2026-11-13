@@ -14,6 +14,9 @@ import com.umamit.core.database.entity.ActiveBrewEntity
 import com.umamit.core.database.entity.BrewSessionEntity
 import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.database.entity.SessionStepEntity
+import com.umamit.core.database.entity.SessionStepTimerColumns
+import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerSlot
 import kotlinx.coroutines.flow.Flow
 
@@ -70,8 +73,13 @@ interface SessionDao {
     @Insert
     suspend fun insertSteps(steps: List<SessionStepEntity>)
 
-    @Update
-    suspend fun updateSteps(steps: List<SessionStepEntity>)
+    /**
+     * Writes the rows' timer columns: every column but the infusion's taste and `tasting_note` (schema v7, D-114),
+     * which only [TastingDao]'s column-level writes set (05 §3.7). Build the argument with
+     * [SessionStepEntity.timerColumns].
+     */
+    @Update(entity = SessionStepEntity::class)
+    suspend fun updateSteps(steps: List<SessionStepTimerColumns>)
 
     /** Deletes the rows of [sessionId] from [position] on: the pending suffix (05 §3.7). */
     @Query("DELETE FROM session_step WHERE session_id = :sessionId AND position >= :position")
@@ -85,7 +93,7 @@ data class TeaRatingRow(
     @ColumnInfo(name = "count") val count: Int,
 )
 
-/** A tea's taste averages, each over the sessions that set that axis; null when none did (JRN-03). */
+/** Taste averages, each over the infusions that set that axis; null when none did (JRN-03, D-114). */
 data class TasteAveragesRow(
     @ColumnInfo(name = "umami") val umami: Double?,
     @ColumnInfo(name = "sweetness") val sweetness: Double?,
@@ -102,9 +110,34 @@ data class DescriptorCountRow(
 )
 
 /**
- * The tasting writes and the per-tea tasting reads (05 §3.6, §3.8, JRN-02–JRN-05, D-112). Every write acts on a
- * `COMPLETED` session only and returns the number of session rows it changed (0: no such completed session); none
- * touches steps, stock, cost or `active_brew`. The reads count the sessions that are no longer in progress.
+ * The taste columns and `tasting_note` of one `session_step` row (schema v7, D-114), by its `position`: what the
+ * timer's taste button and sheet read (SCR-05 v0.6.1).
+ */
+data class StepTastingRow(
+    @ColumnInfo(name = "position") val position: Int,
+    @ColumnInfo(name = "taste_umami") val tasteUmami: Int?,
+    @ColumnInfo(name = "taste_sweetness") val tasteSweetness: Int?,
+    @ColumnInfo(name = "taste_bitterness") val tasteBitterness: Int?,
+    @ColumnInfo(name = "taste_astringency") val tasteAstringency: Int?,
+    @ColumnInfo(name = "taste_body") val tasteBody: Int?,
+    @ColumnInfo(name = "taste_aroma") val tasteAroma: Int?,
+    @ColumnInfo(name = "tasting_note") val tastingNote: String?,
+)
+
+/** What an infusion tasting write checks of its target row (05 §3.7 „Infusion tasting writes"). */
+data class InfusionTargetRow(
+    @ColumnInfo(name = "status") val status: SessionStatus,
+    @ColumnInfo(name = "kind") val kind: StepKind?,
+    @ColumnInfo(name = "ended") val ended: Boolean?,
+)
+
+/**
+ * The tasting writes and the per-tea tasting reads (05 §3.6, §3.7, §3.8, JRN-02–JRN-05, D-112, D-114). The session
+ * writes act on a `COMPLETED` session only and return the number of session rows they changed (0: no such completed
+ * session). The infusion writes (schema v7) set one or more of a `session_step` row's taste columns or its
+ * `tasting_note` with a column-level UPDATE, only on an ended row that is not *Spülen* of a session `IN_PROGRESS` or
+ * `COMPLETED`, and return the number of step rows they changed. None touches stock, cost, `active_brew` or a step's
+ * other columns. The reads count the sessions that are no longer in progress.
  */
 @Suppress("TooManyFunctions") // one statement per tasting input and one read per summary (05 §3.6, §3.8)
 @Dao
@@ -116,26 +149,54 @@ interface TastingDao {
     @Query("UPDATE brew_session SET rating = :rating, updated_at = :now WHERE id = :sessionId AND $COMPLETED")
     suspend fun setRating(sessionId: String, rating: Double?, now: Long): Int
 
-    /** Sets the column of [axis] (a `TasteAxis` name) to [value]; the other five stay. */
+    /**
+     * The session of [sessionId] and its row at [position], as an infusion write checks them; null without such a
+     * session. [InfusionTargetRow.kind] and [InfusionTargetRow.ended] are null without such a row.
+     */
     @Query(
-        "UPDATE brew_session SET " +
+        "SELECT brew_session.status AS status, session_step.kind AS kind, " +
+            "(session_step.actual_seconds IS NOT NULL) AS ended FROM brew_session " +
+            "LEFT JOIN session_step ON session_step.session_id = brew_session.id " +
+            "AND session_step.position = :position WHERE brew_session.id = :sessionId",
+    )
+    suspend fun infusionTarget(sessionId: String, position: Int): InfusionTargetRow?
+
+    /** Sets the taste column of [axis] (a `TasteAxis` name) of one infusion to [value]; the other five stay. */
+    @Query(
+        "UPDATE session_step SET " +
             "taste_umami = CASE WHEN :axis = 'UMAMI' THEN :value ELSE taste_umami END, " +
             "taste_sweetness = CASE WHEN :axis = 'SWEETNESS' THEN :value ELSE taste_sweetness END, " +
             "taste_bitterness = CASE WHEN :axis = 'BITTERNESS' THEN :value ELSE taste_bitterness END, " +
             "taste_astringency = CASE WHEN :axis = 'ASTRINGENCY' THEN :value ELSE taste_astringency END, " +
             "taste_body = CASE WHEN :axis = 'BODY' THEN :value ELSE taste_body END, " +
-            "taste_aroma = CASE WHEN :axis = 'AROMA' THEN :value ELSE taste_aroma END, " +
-            "updated_at = :now WHERE id = :sessionId AND $COMPLETED",
+            "taste_aroma = CASE WHEN :axis = 'AROMA' THEN :value ELSE taste_aroma END " +
+            "WHERE $INFUSION_ROW",
     )
-    suspend fun setTaste(sessionId: String, axis: String, value: Int?, now: Long): Int
+    suspend fun setInfusionTaste(sessionId: String, position: Int, axis: String, value: Int?): Int
 
-    /** *Zurücksetzen* (JRN-03): all six taste columns null. */
+    /** *Zurücksetzen* (JRN-03): the infusion's six taste columns null; its note stays. */
     @Query(
-        "UPDATE brew_session SET taste_umami = NULL, taste_sweetness = NULL, taste_bitterness = NULL, " +
-            "taste_astringency = NULL, taste_body = NULL, taste_aroma = NULL, updated_at = :now " +
-            "WHERE id = :sessionId AND $COMPLETED",
+        "UPDATE session_step SET taste_umami = NULL, taste_sweetness = NULL, taste_bitterness = NULL, " +
+            "taste_astringency = NULL, taste_body = NULL, taste_aroma = NULL WHERE $INFUSION_ROW",
     )
-    suspend fun clearTaste(sessionId: String, now: Long): Int
+    suspend fun clearInfusionTaste(sessionId: String, position: Int): Int
+
+    /** The infusion's short note (JRN-05, D-114). */
+    @Query("UPDATE session_step SET tasting_note = :note WHERE $INFUSION_ROW")
+    suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): Int
+
+    /**
+     * The taste and note of [sessionId]'s step rows that have any (SCR-05 v0.6.1, D-114): one plain read of
+     * `session_step`, no transaction and no join, so a taste write beside a running timer re-runs only this.
+     */
+    @Query(
+        "SELECT position, taste_umami, taste_sweetness, taste_bitterness, taste_astringency, taste_body, " +
+            "taste_aroma, tasting_note FROM session_step WHERE session_id = :sessionId AND (" +
+            "taste_umami IS NOT NULL OR taste_sweetness IS NOT NULL OR taste_bitterness IS NOT NULL OR " +
+            "taste_astringency IS NOT NULL OR taste_body IS NOT NULL OR taste_aroma IS NOT NULL OR " +
+            "tasting_note IS NOT NULL)",
+    )
+    fun observeStepTastings(sessionId: String): Flow<List<StepTastingRow>>
 
     @Query("UPDATE brew_session SET notes = :notes, updated_at = :now WHERE id = :sessionId AND $COMPLETED")
     suspend fun setNotes(sessionId: String, notes: String?, now: Long): Int
@@ -173,12 +234,23 @@ interface TastingDao {
     )
     fun observeTeaRating(teaId: String): Flow<TeaRatingRow?>
 
-    /** [teaId]'s taste averages: SQL's AVG skips nulls, so each axis averages the sessions that set it. */
+    /**
+     * [teaId]'s taste averages over every infusion of its finished sessions (JRN-03, D-114): SQL's AVG skips nulls, so
+     * each axis averages the infusions that set it. Every step row counts: the writes set values on infusions only,
+     * and a v0.6.0 session whose steps never brewed keeps its values on the row the v7 migration chose (05 §9). A
+     * v0.6.0 session without any step row kept its values on its own row, which counts too, so the tea's radar is
+     * the one it had before the update (JRN-03 AC3); from v7 nothing writes a session's own taste columns.
+     */
     @Query(
-        "SELECT AVG(taste_umami) AS umami, AVG(taste_sweetness) AS sweetness, " +
-            "AVG(taste_bitterness) AS bitterness, AVG(taste_astringency) AS astringency, " +
-            "AVG(taste_body) AS body, AVG(taste_aroma) AS aroma FROM brew_session " +
-            "WHERE tea_id = :teaId AND $FINISHED",
+        "SELECT AVG(umami) AS umami, AVG(sweetness) AS sweetness, AVG(bitterness) AS bitterness, " +
+            "AVG(astringency) AS astringency, AVG(body) AS body, AVG(aroma) AS aroma FROM (" +
+            "SELECT session_step.taste_umami AS umami, session_step.taste_sweetness AS sweetness, " +
+            "session_step.taste_bitterness AS bitterness, session_step.taste_astringency AS astringency, " +
+            "session_step.taste_body AS body, session_step.taste_aroma AS aroma FROM session_step " +
+            "JOIN brew_session ON brew_session.id = session_step.session_id " +
+            "WHERE brew_session.tea_id = :teaId AND brew_session.$FINISHED " +
+            "UNION ALL SELECT taste_umami, taste_sweetness, taste_bitterness, taste_astringency, taste_body, " +
+            "taste_aroma FROM brew_session WHERE tea_id = :teaId AND $FINISHED)",
     )
     fun observeTasteAverages(teaId: String): Flow<TasteAveragesRow>
 
@@ -194,6 +266,14 @@ interface TastingDao {
 
 private const val COMPLETED = "status = 'COMPLETED'"
 private const val FINISHED = "status != 'IN_PROGRESS'"
+
+/**
+ * The one `session_step` row an infusion write may change: [sessionId]'s row at [position], ended, not *Spülen*, of a
+ * session in progress or completed (05 §3.7). The repository checks the same first, to tell why it refused.
+ */
+private const val INFUSION_ROW = "session_id = :sessionId AND position = :position AND actual_seconds IS NOT NULL " +
+    "AND kind != 'RINSE' AND session_id IN " +
+    "(SELECT id FROM brew_session WHERE status IN ('IN_PROGRESS', 'COMPLETED'))"
 
 /** The journal's read side (SCR-15, JRN-08): read-only, the writes are [SessionDao]'s. */
 @Dao

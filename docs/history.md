@@ -533,6 +533,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-12 | **v0.6.1 specified (feedback round on v0.6.0):** the PO's nine points grilled in five rounds (Q1–Q19) into **D-114**: taste and a note per infusion, also on the timer screen (umamit.db v7), GESCHMACK folds, quick-timer chips 1:00–15:00, photo viewer, catalog links in ⋮, the Katalog opens with every kind, „N Tees", *Design*. Timer code (`feature:brew`): T3+, T4 timer review, accuracy runs per rc. Statistik becomes v0.7.0. Spec #240, tickets #241–#251 (approved as proposed), plan `docs/plans/v0.6.1.md`. Next: the build. |
 | 2026-11-12 | **v0.6.0 done:** PO approved rc.1 (all twelve checklist points) and the slim slider's renders (D-113, #237; no rc.2); full local gate, CI and all three accuracy variants PASS on `d10e7ef0`; #235 merged (`232c4b82`), `v0.6.0` released (versionCode 60099, certificate verified); #221–#234, #236, #237 closed. Next: v0.6.1 (Statistik), its specify session. |
 | 2026-11-10 | **v0.5.1 done:** PO approved rc.2 (checklist with the Start hand-off of D-111, design review); all three accuracy variants PASS on `5d461669`; #219 merged (`73a97fc5`), `v0.5.1` released (versionCode 50199, certificate verified); #212–#218, #220 closed. Next: M4 → v0.6.0. |
 | 2026-11-10 | **v0.5.0 done:** PO approved rc.1 (checklist and design review); #210 merged (`db2ba2b3`), all three accuracy variants PASS on `main`, `v0.5.0` released (versionCode 50099, certificate verified); #194, #196–#208 closed. Next: M4 → v0.6.0. |

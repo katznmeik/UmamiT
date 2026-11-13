@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
@@ -22,12 +23,13 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SessionStart
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
-import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
@@ -35,9 +37,7 @@ import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.ui.RATING_STARS_TAG
-import com.umamit.core.ui.TASTE_RADAR_TAG
 import com.umamit.core.ui.ratingStarTag
-import com.umamit.core.ui.tasteSliderTag
 import com.umamit.feature.journal.JournalSessions
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -62,6 +62,8 @@ class SessionPageScreenTest {
     private val collection = FakeCollection()
     private val sessions = FakeSessions(collection)
     private val archive = FakeTeaArchive(sessions)
+    private val catalog = FakeCatalogRepository()
+    private val openedCatalog = mutableListOf<String>()
     private val openedTeas = mutableListOf<String>()
     private val brewedAgain = mutableListOf<String>()
     private var deleted = 0
@@ -116,6 +118,7 @@ class SessionPageScreenTest {
                 collection.teas,
                 archive,
                 sessions.tasting,
+                catalog,
             )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
@@ -126,6 +129,7 @@ class SessionPageScreenTest {
                             onOpenTea = { openedTeas += it },
                             onBrewAgain = { brewedAgain += it },
                             onDeleted = { deleted++ },
+                            onOpenCatalog = { openedCatalog += it },
                         ),
                         viewModel = viewModel,
                         heroViewModel = heroViewModel(sessions, PAST),
@@ -224,6 +228,91 @@ class SessionPageScreenTest {
         assertThat(deleted).isEqualTo(1)
     }
 
+    /** The tea gets the catalog key TG0557; [inCatalog] says whether the catalog has that tea. */
+    private fun linkToCatalog(inCatalog: Boolean = true) {
+        runBlocking { collection.teas.saveTea(collection.teas.getTea(TEA)!!.copy(catalogKey = "TG0557")) }
+        if (inCatalog) {
+            catalog.details.value = mapOf(
+                "TG0557" to CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = "https://shop.example/hisui"),
+            )
+        }
+    }
+
+    private fun openMenu() {
+        compose.onNodeWithTag(SESSION_MENU_TAG).performClick()
+        compose.waitForIdle()
+    }
+
+    /** ⋮ (D-114 Q11): *Tee ansehen* and *Im Katalog ansehen* above *Bearbeiten* and *Löschen*; a tap hands over. */
+    @Test
+    fun `the menu of a catalog tea offers Tee ansehen and Im Katalog ansehen, each handing over its target`() {
+        linkToCatalog()
+        show()
+
+        openMenu()
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_EDIT_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(openedCatalog).containsExactly("TG0557")
+        // The menu closed with the tap.
+        compose.onNodeWithTag(SESSION_EDIT_TAG).assertDoesNotExist()
+
+        openMenu()
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(openedTeas).containsExactly(TEA)
+    }
+
+    @Test
+    fun `a tea without a catalog key has Tee ansehen, but no Im Katalog ansehen`() {
+        show()
+
+        openMenu()
+
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_EDIT_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a key whose catalog tea is gone has no Im Katalog ansehen`() {
+        linkToCatalog(inCatalog = false)
+        show()
+
+        openMenu()
+
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `an archived tea still offers Tee ansehen and Im Katalog ansehen`() {
+        linkToCatalog()
+        runBlocking { archive.archive(TEA) }
+        show()
+
+        openMenu()
+
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertIsDisplayed()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertIsDisplayed()
+    }
+
+    /** A deleted tea has neither item: the session keeps no catalog key of its own (D-114 details). */
+    @Test
+    fun `a deleted tea has neither Tee ansehen nor Im Katalog ansehen`() {
+        linkToCatalog()
+        runBlocking { archive.delete(TEA) }
+        show()
+
+        openMenu()
+
+        compose.onNodeWithTag(SESSION_MENU_TEA_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_MENU_CATALOG_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(SESSION_EDIT_TAG).assertIsDisplayed()
+    }
+
     @Test
     fun `a session that is gone shows the not-found state`() {
         runBlocking { sessions.sessions.discardSession(PAST) }
@@ -303,90 +392,6 @@ class SessionPageScreenTest {
         compose.onNodeWithText("4.501 / 5.000").assertExists()
         compose.onNodeWithTag(SESSION_NOTES_TAG).performTextInput("c".repeat(600))
         compose.onNodeWithText("5.000 / 5.000").assertExists()
-    }
-
-    private fun slider(axis: TasteAxis) = compose.onNodeWithTag(tasteSliderTag(axis)).performScrollTo()
-
-    private fun release(axis: TasteAxis, value: Float) {
-        slider(axis).performSemanticsAction(SemanticsActions.SetProgress) { it(value) }
-        compose.waitForIdle()
-    }
-
-    private fun openTaste() {
-        compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).performScrollTo().performClick()
-        compose.waitForIdle()
-    }
-
-    @Test
-    fun `GESCHMACK starts as one row and opening it writes nothing, untouched sliders stay unset`() {
-        show()
-        compose.onNodeWithText("Geschmack hinzufügen").performScrollTo().assertExists()
-        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
-
-        openTaste()
-        release(TasteAxis.UMAMI, 4f)
-
-        slider(TasteAxis.SWEETNESS).assert(hasStateDescription("nicht gesetzt"))
-        slider(TasteAxis.UMAMI).assert(hasStateDescription("4 von 5"))
-        assertThat(session().taste.umami).isEqualTo(4)
-        assertThat(session().taste.sweetness).isNull()
-        assertThat(session().taste.setCount).isEqualTo(1)
-    }
-
-    @Test
-    fun `a taste value persists and the page shows it again when it opens, already unfolded`() {
-        runBlocking { sessions.tasting.setTaste(PAST, TasteAxis.BODY, 3) }
-        show()
-
-        slider(TasteAxis.BODY).assert(hasStateDescription("3 von 5"))
-        compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).assertDoesNotExist()
-    }
-
-    @Test
-    fun `the radar appears with the third axis and not before`() {
-        show()
-        openTaste()
-
-        release(TasteAxis.UMAMI, 4f)
-        release(TasteAxis.AROMA, 2f)
-        compose.onNodeWithTag(TASTE_RADAR_TAG).assertDoesNotExist()
-
-        release(TasteAxis.BODY, 1f)
-        compose.onNodeWithTag(TASTE_RADAR_TAG).performScrollTo().assertExists()
-        compose.onNodeWithTag(TASTE_RADAR_TAG)
-            .assert(hasContentDescription("Geschmacksprofil: Umami 4 von 5, Körper 1 von 5, Aroma 2 von 5"))
-    }
-
-    @Test
-    fun `a release followed at once by Zuruecksetzen ends folded with nothing set`() {
-        show()
-        openTaste()
-        slider(TasteAxis.UMAMI).performSemanticsAction(SemanticsActions.SetProgress) { it(3f) }
-        compose.onNodeWithTag(SESSION_TASTE_RESET_TAG).performScrollTo().performClick()
-        compose.waitForIdle()
-
-        assertThat(session().taste.setCount).isEqualTo(0)
-        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
-        compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).performScrollTo().assertExists()
-    }
-
-    @Test
-    fun `Zuruecksetzen clears all six and folds back to the one row`() {
-        runBlocking {
-            sessions.tasting.setTaste(PAST, TasteAxis.UMAMI, 5)
-            sessions.tasting.setTaste(PAST, TasteAxis.BODY, 3)
-            sessions.tasting.setTaste(PAST, TasteAxis.AROMA, 1)
-        }
-        show()
-        compose.onNodeWithTag(TASTE_RADAR_TAG).performScrollTo().assertExists()
-
-        compose.onNodeWithTag(SESSION_TASTE_RESET_TAG).performScrollTo().performClick()
-        compose.waitForIdle()
-
-        assertThat(session().taste.setCount).isEqualTo(0)
-        compose.onNodeWithTag(TASTE_RADAR_TAG).assertDoesNotExist()
-        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
-        compose.onNodeWithTag(SESSION_TASTE_ADD_TAG).performScrollTo().assertExists()
     }
 
     @Test

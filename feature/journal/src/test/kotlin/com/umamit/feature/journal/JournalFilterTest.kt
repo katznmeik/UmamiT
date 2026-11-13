@@ -2,6 +2,9 @@ package com.umamit.feature.journal
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.StepKind
+import com.umamit.core.model.StepTasting
+import com.umamit.core.model.TasteProfile
 import com.umamit.feature.journal.JournalSessions.TODAY
 import com.umamit.feature.journal.JournalSessions.session
 import com.umamit.feature.journal.JournalSessions.step
@@ -10,7 +13,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
-/** The journal's search and filters (JRN-09, D-112, GEN-10): a pure function over the rows. */
+/** The journal's search and filters (JRN-09, D-112, D-114, GEN-10): a pure function over the rows. */
 class JournalFilterTest {
     private fun at(date: LocalDate, hour: Int) = LocalDateTime.of(date, LocalTime.of(hour, 0))
 
@@ -156,6 +159,41 @@ class JournalFilterTest {
     @Test
     fun `mit Notizen keeps the sessions with note text`() {
         assertThat(ids(JournalFilter(withNotes = true))).containsExactly("hisui", "yesterday")
+    }
+
+    /** A session whose only note is its 2nd infusion's (D-114), and one whose note sits on a step never brewed. */
+    private val infusionNotes = journalList(
+        listOf(
+            session(
+                "infusion-note",
+                at(TODAY, 9),
+                teaName = "Gyokuro Asahi",
+                steps = listOf(step(0, 10, kind = StepKind.RINSE), step(1, 60), step(2, 20)),
+                stepTastings = mapOf(2 to StepTasting(TasteProfile(umami = 4), note = "Algig, dann Brühe")),
+            ),
+            session(
+                "unbrewed-note",
+                at(TODAY, 8),
+                teaName = "Gyokuro Asahi",
+                steps = listOf(step(0, 60), step(1, 20, actualSeconds = null)),
+                stepTastings = mapOf(1 to StepTasting(note = "Algig")),
+            ),
+        ),
+        TODAY,
+    )
+
+    private fun infusionNoteIds(filter: JournalFilter) =
+        infusionNotes.filtered(filter).days.flatMap { it.entries }.map { it.sessionId }
+
+    @Test
+    fun `the search finds a word of an infusion note`() {
+        assertThat(infusionNoteIds(JournalFilter(search = "brühe"))).containsExactly("infusion-note")
+        assertThat(infusionNoteIds(JournalFilter(search = "algig"))).containsExactly("infusion-note")
+    }
+
+    @Test
+    fun `mit Notizen counts a session whose only note is an infusion's`() {
+        assertThat(infusionNoteIds(JournalFilter(withNotes = true))).containsExactly("infusion-note")
     }
 
     @Test

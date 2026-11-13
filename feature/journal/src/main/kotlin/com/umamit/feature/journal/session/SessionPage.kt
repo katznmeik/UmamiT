@@ -45,6 +45,24 @@ data class SessionPageStep(
 }
 
 /**
+ * One chip of GESCHMACK (JRN-03, JRN-05, D-114).
+ *
+ * @property position the step's `position`, which the tasting writes address.
+ * @property number the step table's number („2. Aufguss"); null for an *Aufschlagen* step, which reads its kind.
+ * @property note the infusion's short note (≤ 200), trimmed; null without.
+ */
+data class SessionInfusion(
+    val position: Int,
+    val number: Int?,
+    val kind: StepKind,
+    val taste: TasteProfile = TasteProfile.EMPTY,
+    val note: String? = null,
+) {
+    /** The chip's dot: a taste value or a note is stored (SCR-16 v0.6.1). */
+    val hasData: Boolean get() = taste.setCount > 0 || note != null
+}
+
+/**
  * The session page (SCR-16, read-only in v0.4.0, D-100): the tea, the start in the session's own time zone, method,
  * vessel, leaf / water / ratio and the step table, all from the session's snapshot (05 §1.5), so a renamed or deleted
  * tea never changes it.
@@ -70,12 +88,21 @@ data class SessionPage(
     val rating: Double? = null,
     /** The notes as stored (trimmed); null without (JRN-05). */
     val notes: String? = null,
-    /** The six taste values, each null while unset (JRN-03). */
-    val taste: TasteProfile = TasteProfile.EMPTY,
+    /**
+     * The infusions GESCHMACK offers a chip for (JRN-03, D-114): the ended steps that are not *Spülen* and not
+     * skipped, in the step table's order, each with its taste and note. A skipped step that still carries values
+     * (a v0.6.0 migration, 05 §9) keeps its chip, so nothing stored is hidden.
+     */
+    val infusions: List<SessionInfusion> = emptyList(),
     /** The ticked descriptor keys (JRN-04); keys the vocabulary lacks are kept and not shown. */
     val descriptorKeys: List<String> = emptyList(),
     /** The line under the step table (PRF-07, D-112): null without an offer. */
     val recipeOffer: RecipeOfferState? = null,
+    /**
+     * The tea's catalog key while its catalog tea exists, discontinued or not, else null (SCR-04, D-114 Q11): ⋮ *Im
+     * Katalog ansehen* shows only then. Never set for a deleted tea, as the session keeps no key of its own.
+     */
+    val catalogKey: String? = null,
 ) {
     /** The tasting inputs are offered for a finished session only (05 §3.7: the writes refuse one in progress). */
     val canTaste: Boolean get() = !inProgress
@@ -96,8 +123,11 @@ data class SessionPage(
     }
 }
 
-/** The page of [session], whose tea is now [tea]. Every stored step is listed, never-started ones included (Q-19). */
-fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
+/**
+ * The page of [session], whose tea is now [tea], with [catalogKey] while the tea's catalog tea exists. Every stored
+ * step is listed, never-started ones included (Q-19).
+ */
+fun sessionPage(session: BrewSession, tea: SessionTea, catalogKey: String? = null): SessionPage {
     val snapshot = session.snapshot
     var infusions = 0
     val steps = session.steps.sortedBy { it.position }.map { row ->
@@ -126,9 +156,20 @@ fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
         inProgress = session.status == SessionStatus.IN_PROGRESS,
         rating = session.rating,
         notes = session.notes,
-        taste = session.taste,
+        infusions = infusionsOf(session),
         descriptorKeys = session.descriptorKeys,
+        catalogKey = catalogKey.takeIf { tea != SessionTea.DELETED },
     )
+}
+
+/** The session's infusions with a chip: skipped ones only when they carry values (D-114). */
+private fun infusionsOf(session: BrewSession): List<SessionInfusion> {
+    val rows = session.steps.associateBy { it.position }
+    return session.infusions.mapNotNull { infusion ->
+        val row = rows.getValue(infusion.position)
+        SessionInfusion(infusion.position, infusion.number, row.kind, infusion.taste, infusion.note)
+            .takeIf { !row.skipped || it.hasData }
+    }
 }
 
 /** The session's zone; one this device doesn't know counts as the device's (as in the journal, D-054). */

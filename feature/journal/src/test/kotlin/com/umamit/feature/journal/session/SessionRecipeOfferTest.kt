@@ -23,6 +23,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
@@ -82,6 +83,7 @@ class SessionRecipeOfferTest {
         collection.teas,
         archive,
         sessions.tasting,
+        FakeCatalogRepository(),
     )
 
     private fun show() {

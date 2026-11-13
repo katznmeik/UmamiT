@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.2** · Last updated: 2026-11-09 (active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
+> Status: **Draft v0.2** · Last updated: 2026-11-12 (catalog kind default, infusion taste, D-114; 2026-11-09: active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
 
 ## Tea terms
 
@@ -50,7 +50,8 @@
 | **Rezept** | UI name for a brew profile (recipe). |
 | **Rezept prüfen** | Flag on a tea whose recipe was not taken directly from the shop's brewing table. |
 | **Pre-alert (Vorwarnung)** | A short sound (*Vorwarnton*) a few seconds before a step ends, so the kyusu can be picked up; per step *Automatisch*, *Aus* or 5–30 s (TMR-23). Long steps have none. |
-| **Catalog kind (Katalogart)** | One range of the catalog list with its own chip in Sammlung › Katalog (CAT-10, v0.5.0, D-108): *Grüntee* (the default), *Schwarztee*, *Weißer Tee*, *Oolong*, *Pu-Erh*, *Kräutertee*, *Rotbusch*, *Früchtetee* and *Chai*, in that chip order. A catalog tea's kind comes from its style (a chai's is *Chai* whatever its base tea, #206); folds are remembered per kind; „Pur" and the umami filter apply to the green kind only. |
+| **Catalog kind (Katalogart)** | One range of the catalog list with its own chip in Sammlung › Katalog (CAT-10, v0.5.0, D-108): *Grüntee* (the default), *Schwarztee*, *Weißer Tee*, *Oolong*, *Pu-Erh*, *Kräutertee*, *Rotbusch*, *Früchtetee* and *Chai*, in that chip order. A catalog tea's kind comes from its style (a chai's is *Chai* whatever its base tea, #206); folds are remembered per kind; „Pur" and the umami filter apply to the green kind only. From v0.6.1 (D-114) no kind is the default: the list shows every tea grouped by kind, and a selected chip can be cleared. |
+| **Infusion taste (Geschmack je Aufguss)** | From v0.6.1 (D-114): the six taste values (JRN-03) and a short note (≤ 200) of one infusion, i.e. an ended step that is not *Spülen*. Entered on the timer screen for the infusion ended last and on the session page per infusion; the session's *Alle* and the tea's GESCHMACK average every infusion per axis. |
 | **Merkliste (Merken, Gemerkt)** | Catalog teas marked for later without adding them to the collection (CAT-18, v0.2.2). Not *Favoriten*, which are the user's own teas. |
 | **Frische (Frisch, Bald genießen, Über dem Höhepunkt)** | A tea's freshness label (INV-06, from v0.4.1): by thirds of its style's window from the opening date, or *Über dem Höhepunkt* once its best-before date has passed. None for an unopened or an empty tea. |
 | **Knapp** | Stock status of a tea at or below the threshold (SET-16, 15 g from v0.2.2; from v0.5.0 the tea's own *Knapp ab* when set); *Leer* at 0 g (INV-05). |

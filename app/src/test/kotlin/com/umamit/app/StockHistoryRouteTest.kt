@@ -163,6 +163,7 @@ class StockHistoryRouteTest {
                     collection.teas,
                     archive,
                     sessions.tasting,
+                    FakeCatalogRepository(),
                 )
             },
             heroViewModel = viewModel {

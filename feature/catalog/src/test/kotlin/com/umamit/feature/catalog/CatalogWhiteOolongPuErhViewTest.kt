@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -72,6 +73,8 @@ class CatalogWhiteOolongPuErhViewTest {
             FakeCatalogRefreshRunner(),
             folds = SettingsCatalogFoldRepository(settings),
         )
+        // From the Grüntee view: no kind is the default since v0.6.1 (D-114).
+        viewModel.changeFilter { it.withKind(CatalogKind.GREEN) }
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 CatalogRoute(alerting = false, onOpenTea = {}, viewModel = viewModel)
@@ -100,19 +103,19 @@ class CatalogWhiteOolongPuErhViewTest {
 
         switchTo(R.string.catalog_filter_white)
         chip(R.string.catalog_filter_white).assertIsSelected()
-        shown("Tee-Kontor Kiel · 2 Weiße Tees · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 2 Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Bai Mu Dan")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag(null)).assertIsDisplayed()
         hidden("Bergnebel Oolong")
 
         switchTo(R.string.catalog_filter_oolong)
-        shown("Tee-Kontor Kiel · 3 Oolongs · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 3 Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Taiwan")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("China")).assertIsDisplayed()
         hidden("Mandelwolke")
 
         switchTo(R.string.catalog_filter_dark)
-        shown("Tee-Kontor Kiel · 2 Pu-Erhs · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 2 Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Sheng")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Shou")).assertIsDisplayed()
         shown("Nebelberg Bing Cha")
@@ -139,18 +142,19 @@ class CatalogWhiteOolongPuErhViewTest {
     }
 
     @Test
-    fun searchHitsAmongTheNewKindsAreHiddenInTheGreenViewAndShowAllOpensTheKindWithMost() {
+    fun searchHitsAmongTheNewKindsAreHiddenInTheGreenViewAndShowAllShowsEveryKind() {
         show()
 
         compose.onNodeWithTag(CATALOG_SEARCH_TAG).performTextInput("nebelberg")
         compose.waitForIdle()
-        // One oolong and two Pu-Erhs are hidden: *Alle zeigen* opens the Pu-Erhs.
+        // One oolong and two Pu-Erhs are hidden: *Alle zeigen* clears the kind (D-114).
         shown(compose.activity.resources.getQuantityString(R.plurals.catalog_hidden_matches, 3, 3))
 
         compose.onNodeWithText(str(R.string.catalog_show_all)).performClick()
         compose.waitForIdle()
 
-        chip(R.string.catalog_filter_dark).assertIsSelected()
+        chip(R.string.catalog_filter_dark).assertIsNotSelected()
+        shown("Felsentee Nebelberg")
         shown("Nebelberg Bing Cha")
         shown("Waldboden Nebelberg")
     }

@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -146,6 +148,18 @@ internal fun TimerBand(modifier: Modifier = Modifier) {
  * [aboveControls]' place when it is taller: the running quick timer passes the content of its screen before
  * *Start* (the chips and the *Vorwarnung* row below the ring), so both compute the same band and the ring and the
  * pill do not move at *Start*. The space it adds lies between [aboveControls] and [controls].
+ *
+ * **Header and the flexible row (D-114).** [header] (the title and the step strip) is placed first, then
+ * [flexible] (the timer's taste button) and [aboveControls]; [header] counts as content like [aboveControls]. The band
+ * gives way for [flexible] like for the other content, as far as it can (down to the top bar, with the seal's lower
+ * half); where [flexible] would still push the primary control off the screen, it is placed below the controls
+ * instead and scrolls with [afterControls]. The choice follows only the screen, the insets and the measured content,
+ * never the phase, so nothing moves when the alert starts. It is made as if the other timer's row were there, at
+ * least [reservedRowHeight] tall, so the row coming or going never moves the button between above and below.
+ *
+ * **Insets.** The page follows the safe drawing insets without the keyboard's (SCR-05 v0.6.1, D-114): the timer has
+ * no text field of its own, so the taste sheet's keyboard never reflows it, and the keyboard leaving at an alert
+ * moves nothing (rule 8, D-096).
  */
 @Composable
 internal fun TimerBandPage(
@@ -161,8 +175,11 @@ internal fun TimerBandPage(
     reservedAboveControls: @Composable ColumnScope.() -> Unit = {},
     afterControls: @Composable ColumnScope.() -> Unit = {},
     belowBand: @Composable () -> Unit = {},
+    header: @Composable ColumnScope.() -> Unit = {},
+    flexible: @Composable ColumnScope.() -> Unit = {},
+    reservedRowHeight: Dp = 0.dp,
 ) {
-    val insets = WindowInsets.safeDrawing
+    val insets = WindowInsets.safeDrawing.exclude(WindowInsets.ime)
     val top: @Composable () -> Unit = {
         Box(modifier = Modifier.fillMaxSize()) { topBar() }
     }
@@ -177,6 +194,12 @@ internal fun TimerBandPage(
     }
     val after: @Composable () -> Unit = {
         Column(horizontalAlignment = Alignment.CenterHorizontally, content = afterControls)
+    }
+    val headerColumn: @Composable () -> Unit = {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, content = header)
+    }
+    val flexibleColumn: @Composable () -> Unit = {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, content = flexible)
     }
     val reserved: @Composable () -> Unit = {
         // Only measured: never placed, drawn, touched or read out.
@@ -197,7 +220,19 @@ internal fun TimerBandPage(
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenHeight = constraints.maxHeight
         Layout(
-            contents = listOf(band, top, column, below, after, reserved, belowBand, sealOnEdge, reservedContent),
+            contents = listOf(
+                band,
+                top,
+                column,
+                below,
+                after,
+                reserved,
+                belowBand,
+                sealOnEdge,
+                reservedContent,
+                headerColumn,
+                flexibleColumn,
+            ),
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
@@ -211,13 +246,20 @@ internal fun TimerBandPage(
             val rowSlot = slots[6]
             val sealSlot = slots[7]
             val reservedContentSlot = slots[8]
+            val headerSlot = slots[9]
+            val flexibleSlot = slots[10]
             val statusBar = insets.getTop(this)
             val left = insets.getLeft(this, layoutDirection)
             val width = constraints.maxWidth
             val columnWidth = (width - left - insets.getRight(this, layoutDirection)).coerceAtLeast(0)
             val inColumn = Constraints.fixedWidth(columnWidth)
+            val headerPlaceable = headerSlot.single().measure(inColumn)
+            val flexiblePlaceable = flexibleSlot.single().measure(inColumn)
             val contentPlaceable = contentSlot.single().measure(inColumn)
-            val contentHeight = maxOf(contentPlaceable.height, reservedContentSlot.single().measure(inColumn).height)
+            val fixedContentHeight = maxOf(
+                headerPlaceable.height + contentPlaceable.height,
+                reservedContentSlot.single().measure(inColumn).height,
+            )
             val controlsPlaceable = controlsSlot.single().measure(inColumn)
             val afterPlaceable = afterSlot.single().measure(inColumn)
             val rowPlaceables = rowSlot.map { it.measure(inColumn) }
@@ -230,13 +272,24 @@ internal fun TimerBandPage(
             val tallest = (TimerBandHeight.roundToPx() - rowHeight).coerceAtLeast(lowest)
             // The band's lower edge as low as the content, the reserved controls and the margin allow (without the
             // seal's lower half); null where the band keeps its height.
-            val fits = if (adaptive && screenHeight != Constraints.Infinity) {
+            val fitsWithout = if (adaptive && screenHeight != Constraints.Infinity) {
                 val reservedHeight = reservedSlot.single().measure(inColumn).height
                 val fitted = maxOf(controlHeight.roundToPx(), reservedHeight)
-                screenHeight - insets.getBottom(this) - margin - fitted - contentHeight - rowHeight
+                screenHeight - insets.getBottom(this) - margin - fitted - fixedContentHeight - rowHeight
             } else {
                 null
             }
+            // Decided as if the other timer's row were there: the row coming or going never moves the button.
+            val decidedRowHeight = maxOf(rowHeight, reservedRowHeight.roundToPx())
+            val flexibleRow = flexibleRow(
+                height = flexiblePlaceable.height,
+                fitsWithout = fitsWithout?.let { it + rowHeight - decidedRowHeight },
+                withSeal = withSeal,
+                sealSize = sealSize,
+                lowest = lowest,
+            )
+            val contentHeight = fixedContentHeight + flexibleRow.heightAbove
+            val fits = fitsWithout?.minus(flexibleRow.heightAbove)
             val sealYields = sealYieldsToRow(withSeal, rowHeight, fits, sealSize / 2, lowest)
             val sealHalf = if (withSeal && !sealYields) sealSize / 2 else 0
             val bandHeight = fits?.let { (it - sealHalf).coerceIn(lowest, tallest) } ?: tallest
@@ -251,20 +304,42 @@ internal fun TimerBandPage(
 
             val rowTop = statusBar + topHeight
             val contentTop = rowTop + rowHeight
+            val flexibleTopAbove = contentTop + headerPlaceable.height
             val controlsTop = contentTop + contentHeight
-            val afterTop = controlsTop + controlsPlaceable.height
+            val belowControls = controlsTop + controlsPlaceable.height
+            val afterTop = belowControls + flexibleRow.heightBelow
             val height = afterTop + afterPlaceable.height + margin + insets.getBottom(this)
             layout(width, height.coerceAtLeast(constraints.minHeight)) {
                 bandPlaceables.forEach { it.place(0, 0) }
                 topPlaceable.place(left, statusBar)
                 sealPlaceables.forEach { it.place(left + (columnWidth - sealSize) / 2, bandHeight - sealSize / 2) }
                 rowPlaceables.forEach { it.place(left, rowTop) }
-                contentPlaceable.place(left, contentTop)
+                headerPlaceable.place(left, contentTop)
+                flexiblePlaceable.place(left, flexibleRow.top(above = flexibleTopAbove, below = belowControls))
+                contentPlaceable.place(left, flexibleTopAbove + flexibleRow.heightAbove)
                 controlsPlaceable.place(left, controlsTop)
                 afterPlaceable.place(left, afterTop)
             }
         }
     }
+}
+
+/** Where the flexible row goes (D-114): above the controls ([above]) or below them; [height] tall. */
+private class FlexibleRow(val height: Int, val above: Boolean) {
+    val heightAbove: Int get() = if (above) height else 0
+    val heightBelow: Int get() = height - heightAbove
+
+    fun top(above: Int, below: Int): Int = if (this.above) above else below
+}
+
+/**
+ * The flexible row goes above the controls where the band, down to [lowest] (with the seal's lower half, [withSeal]),
+ * still leaves the primary control on the screen ([fitsWithout]: where the band's edge may go without the row; null
+ * where the band keeps its height), else below them.
+ */
+private fun flexibleRow(height: Int, fitsWithout: Int?, withSeal: Boolean, sealSize: Int, lowest: Int): FlexibleRow {
+    val sealHalf = if (withSeal) sealSize / 2 else 0
+    return FlexibleRow(height, above = fitsWithout == null || fitsWithout - height - sealHalf >= lowest)
 }
 
 /**

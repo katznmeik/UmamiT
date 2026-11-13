@@ -9,11 +9,18 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.SessionTasting
+import com.umamit.core.data.TastingWrite
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.StepTasting
+import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeCollection
@@ -21,7 +28,13 @@ import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.ui.INFUSION_NOTE_TAG
+import com.umamit.core.ui.tasteSliderTag
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -58,17 +71,26 @@ class TimerRouteTest {
     private var closed = 0
     private val shownOther = mutableListOf<TimerSlot>()
 
-    private fun show(timer: FakeBrewTimer, slot: TimerSlot? = null) {
-        val collection = FakeCollection()
+    private val collection = FakeCollection()
+    private val sessions = FakeSessions(collection)
+
+    private fun show(
+        timer: FakeBrewTimer,
+        slot: TimerSlot? = null,
+        journal: JournalRepository = sessions.journal,
+        tasting: SessionTasting = sessions.tasting,
+    ) {
         val viewModel = TimerViewModel(
             timer,
             clock,
             FakeSettingsRepository(),
             FakeTimerReliability(),
-            FakeSessions(collection).sessions,
+            sessions.sessions,
             collection.teas,
             PhotoFiles(folder.newFolder()),
             collection.stock,
+            journal,
+            tasting,
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
@@ -265,5 +287,84 @@ class TimerRouteTest {
         timer.show(TimerUiState.Idle)
         compose.waitForIdle()
         assertThat(closed).isEqualTo(1)
+    }
+
+    // --- The taste of two brews (D-108, D-114; T4 review MIN-4) -------------------------------------------------
+
+    /** The 2nd brew session in its own slot, running its 2nd infusion. */
+    private val secondBrew = TimerStates.running(stepIndex = 1)
+        .copy(kind = SessionKind.Brew("s2"), inSlot = TimerSlot.BREW_2)
+
+    /** Every taste write the route sent, as „session/position". */
+    private val written = mutableListOf<String>()
+    private val recording = object : SessionTasting by sessions.tasting {
+        override suspend fun setInfusionTaste(
+            sessionId: String,
+            position: Int,
+            axis: TasteAxis,
+            value: Int?,
+        ): TastingWrite {
+            written += "$sessionId/$position"
+            return TastingWrite.SAVED
+        }
+
+        override suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): TastingWrite {
+            written += "$sessionId/$position"
+            return TastingWrite.SAVED
+        }
+    }
+
+    private fun setBody(value: Float) {
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.BODY)).performScrollTo()
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(value) }
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `the other brew's alert closes the sheet, and every write goes to the shown brew's session only`() {
+        val timer = FakeBrewTimer()
+        val first = TimerStates.running(stepIndex = 1)
+        timer.showSlots(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to secondBrew), front = first)
+        show(timer, slot = TimerSlot.BREW, tasting = recording)
+        compose.onNodeWithTag(TIMER_TASTE_BUTTON_TAG).performClick()
+        compose.waitForIdle()
+        setBody(4f)
+        compose.onNodeWithTag(INFUSION_NOTE_TAG).performTextInput("Mild")
+
+        // The 2nd brew rings: the route shows its alert, the sheet is gone and its note handed over to „s1".
+        val ringing = TimerStates.alerting(stepIndex = 1).copy(kind = SessionKind.Brew("s2"), inSlot = TimerSlot.BREW_2)
+        timer.showSlots(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to ringing), front = ringing)
+        compose.waitForIdle()
+        compose.onNodeWithTag(TIMER_TASTE_SHEET_TAG).assertDoesNotExist()
+        compose.onNodeWithText("Abgegossen").assertExists()
+
+        // *Abgegossen* on the 2nd brew: the route shows its own brew again, and the sheet writes to „s1" still.
+        val poured = TimerStates.ready(stepIndex = 2).copy(kind = SessionKind.Brew("s2"), inSlot = TimerSlot.BREW_2)
+        timer.showSlots(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to poured), front = first)
+        compose.waitForIdle()
+        compose.onNodeWithTag(TIMER_TASTE_SHEET_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(TIMER_TASTE_BUTTON_TAG).performClick()
+        compose.waitForIdle()
+        setBody(2f)
+
+        assertThat(written).isNotEmpty()
+        assertThat(written.distinct()).containsExactly("s1/0")
+    }
+
+    @Test
+    fun `a read of the slot's previous session is not shown for its next one`() {
+        // „s1" has a note on its 1st infusion; „s4", the slot's next session, is never read here.
+        val journal = object : JournalRepository by sessions.journal {
+            override fun observeStepTastings(sessionId: String): Flow<Map<Int, StepTasting>> =
+                if (sessionId == "s1") flowOf(mapOf(0 to StepTasting(note = "Nori"))) else emptyFlow()
+        }
+        val timer = FakeBrewTimer(TimerStates.ready(stepIndex = 1))
+        show(timer, journal = journal)
+        compose.onNodeWithText("Geschmack · 1. Aufguss ✓").assertExists()
+
+        timer.show(TimerStates.ready(stepIndex = 1).copy(kind = SessionKind.Brew("s4")))
+        compose.waitForIdle()
+        compose.onNodeWithText("Geschmack · 1. Aufguss").assertExists()
+        compose.onNodeWithText("Geschmack · 1. Aufguss ✓").assertDoesNotExist()
     }
 }

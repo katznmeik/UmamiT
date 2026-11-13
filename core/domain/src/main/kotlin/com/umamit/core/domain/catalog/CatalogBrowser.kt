@@ -1,6 +1,7 @@
 package com.umamit.core.domain.catalog
 
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogSection
 import com.umamit.core.model.CatalogSort
@@ -19,9 +20,10 @@ object CatalogBrowser {
         .thenBy { it.key }
 
     /**
-     * The list of [teas] as [filter] shows it: the teas of the filter's catalog kind (D-108): the green teas, or in the
-     * *Kräutertee* view its Kräutertees (v0.2.1, D-093); search hits of the other kinds count as
-     * hidden (CAT-10). In the *Gemerkt* view (CAT-18, D-097) every marked tea, of either kind and
+     * The list of [teas] as [filter] shows it: the teas of the filter's catalog kind (D-108), such as the
+     * *Kräutertee* view's Kräutertees (v0.2.1, D-093); search hits of the other kinds count as
+     * hidden (CAT-10). Without a kind (v0.6.1, D-114) every tea, grouped by kind in the chip order, the sort applying
+     * inside each kind group. In the *Gemerkt* view (CAT-18, D-097) every marked tea, of either kind and
      * whatever its stock, the discontinued ones included, grouped by *Sorte*; only the search
      * applies there, and nothing counts as hidden.
      *
@@ -37,25 +39,22 @@ object CatalogBrowser {
     ): CatalogListing {
         val current = teas.filterNot { it.discontinued }
         if (filter.marked) return markedListing(teas, current, filter, searchHits, lastRefreshAtMillis)
-        val range = current.filter { it.kind == filter.kind }
+        val range = current.filter { filter.shows(it) }
         val found = if (searchHits == null) current else current.filter { it.key in searchHits }
-        val shown = found.filter { it.kind == filter.kind && filter.admits(it) }
-        val grouped = filter.sort == CatalogSort.TYPE
-        val sections = when (filter.sort) {
-            CatalogSort.TYPE -> bySorte(shown)
-
-            CatalogSort.NAME -> listOf(CatalogSection(null, shown.sortedWith(byName)))
-
-            CatalogSort.PRICE -> listOf(
-                CatalogSection(
-                    null,
-                    shown.sortedWith(compareBy(nullsLast(), CatalogTeaSummary::basePriceCentsPer100g).then(byName)),
-                ),
-            )
+        val shown = found.filter { filter.shows(it) && filter.admits(it) }
+        val sections = if (filter.kind == null) {
+            val byKind = shown.groupBy { it.kind }
+            // The chip order (D-108 point 5); a kind outside it, if any, after the known ones.
+            (CatalogKind.ALL + (byKind.keys - CatalogKind.ALL.toSet())).flatMap { kind ->
+                sorted(byKind[kind].orEmpty(), filter.sort).map { it.copy(kind = kind) }
+            }
+        } else {
+            sorted(shown, filter.sort)
         }.filter { it.teas.isNotEmpty() }
         return CatalogListing(
             sections = sections,
-            grouped = grouped,
+            grouped = filter.sort == CatalogSort.TYPE,
+            byKind = filter.kind == null,
             totalCount = range.size,
             hiddenMatches = if (searchHits == null) 0 else found.size - shown.size,
             types = range.mapNotNull { it.teaType }.distinct().sortedWith(collator),
@@ -65,7 +64,7 @@ object CatalogBrowser {
             hiddenInOtherKinds = if (searchHits == null) {
                 emptyMap()
             } else {
-                found.filter { it.kind != filter.kind }.groupingBy { it.kind }.eachCount()
+                found.filterNot { filter.shows(it) }.groupingBy { it.kind }.eachCount()
             },
             tasteNotes = CatalogTaste.notes(range),
             tasteScales = CatalogTaste.scales(range),
@@ -83,7 +82,7 @@ object CatalogBrowser {
     ): CatalogListing {
         val marked = teas.filter { it.marked }
         val shown = if (searchHits == null) marked else marked.filter { it.key in searchHits }
-        val range = current.filter { it.kind == filter.kind }
+        val range = current.filter { filter.shows(it) }
         return CatalogListing(
             sections = bySorte(shown),
             grouped = true,
@@ -93,6 +92,20 @@ object CatalogBrowser {
             origins = range.flatMap { it.originCountries }.distinct().sortedWith(collator),
             lastRefreshAtMillis = lastRefreshAtMillis,
             catalogCount = current.size,
+        )
+    }
+
+    /** [teas] in the order of [sort]: under a section per *Sorte* (D-073), else in one section. */
+    private fun sorted(teas: List<CatalogTeaSummary>, sort: CatalogSort): List<CatalogSection> = when (sort) {
+        CatalogSort.TYPE -> bySorte(teas)
+
+        CatalogSort.NAME -> listOf(CatalogSection(null, teas.sortedWith(byName)))
+
+        CatalogSort.PRICE -> listOf(
+            CatalogSection(
+                null,
+                teas.sortedWith(compareBy(nullsLast(), CatalogTeaSummary::basePriceCentsPer100g).then(byName)),
+            ),
         )
     }
 
@@ -112,6 +125,9 @@ object CatalogBrowser {
         .takeIf { it.isNotEmpty() }
         ?.joinToString(" ") { "$it*" }
 
+    /** The tea belongs to the view's kind; without a kind every tea does (D-114). */
+    private fun CatalogFilter.shows(tea: CatalogTeaSummary): Boolean = kind == null || tea.kind == kind
+
     private fun CatalogFilter.admits(tea: CatalogTeaSummary): Boolean = admitsFlavour(tea) &&
         admitsUmami(tea) &&
         CatalogTaste.admits(this, tea) &&
@@ -119,14 +135,14 @@ object CatalogBrowser {
         (origins.isEmpty() || tea.originCountries.any { it in origins }) &&
         admitsSwitches(tea)
 
-    /** „Pur" doesn't apply to Kräutertees (D-093 Q14). */
+    /** „Pur" applies in the Grüntee view only (D-093 Q14, D-114 Q13). */
     private fun CatalogFilter.admitsFlavour(tea: CatalogTeaSummary): Boolean = !isGreen || when (flavour) {
         FlavourFilter.ALL -> true
         FlavourFilter.PURE -> !tea.isFlavored
         FlavourFilter.FLAVOURED -> tea.isFlavored
     }
 
-    /** Kräutertees have no umami: the filter is hidden in their view (D-093 Q19) and doesn't apply. */
+    /** Umami applies in the Grüntee view only: hidden in every other view (D-093 Q19, D-114 Q13). */
     private fun CatalogFilter.admitsUmami(tea: CatalogTeaSummary): Boolean {
         val min = minUmami?.takeIf { isGreen } ?: return true
         return tea.umamiLevel?.let { it >= min } ?: false

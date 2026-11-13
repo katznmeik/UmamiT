@@ -106,7 +106,7 @@ internal object CatalogNotifications {
             .build()
     }
 
-    /** „274 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen" (CAT-07 AC3). */
+    /** „274 Tees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen" (CAT-07 AC3). */
     fun summary(context: Context, outcome: CatalogRefreshOutcome.Success): String {
         val resources = context.resources
         return outcome.summary().joinToString(context.getString(R.string.data_catalog_summary_separator)) { part ->

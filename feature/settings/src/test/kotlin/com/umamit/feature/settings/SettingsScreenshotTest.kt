@@ -9,6 +9,7 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.LowStockReminderInterval
+import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
@@ -198,6 +199,18 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
     fun settingsLowStockDialog() = capture("Settings_lowStock", clickText = "Knapp ab") {
         SettingsScreen(
             settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+        )
+    }
+
+    /** *Design* (SET-05, D-114): the choice dialog with *Dunkel* picked. */
+    @Test
+    fun settingsThemeDialog() = capture("Settings_theme", clickText = "Design") {
+        SettingsScreen(
+            settings = UserSettings(theme = ThemeMode.DARK),
             status = ReliabilityStatus.AllOk,
             alerting = false,
             onBack = {},

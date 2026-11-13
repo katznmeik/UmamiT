@@ -27,6 +27,7 @@ import com.umamit.core.model.TastingLimits
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
@@ -97,6 +98,7 @@ class SessionDescriptorsTest {
             collection.teas,
             archive,
             tasting,
+            FakeCatalogRepository(),
         )
         compose.setContent {
             UmamiTheme(reduceMotion = reduceMotion) {
@@ -227,6 +229,7 @@ class SessionDescriptorsTest {
             collection.teas,
             archive,
             sessions.tasting,
+            FakeCatalogRepository(),
         )
 
         viewModel.setDescriptor(vocabulary[TastingLimits.MAX_DESCRIPTORS].key, true)

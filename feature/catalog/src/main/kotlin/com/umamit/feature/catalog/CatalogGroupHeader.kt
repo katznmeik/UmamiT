@@ -21,7 +21,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -33,6 +33,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.germanUppercase
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogKind
 
 /** The foldable header of the *Sorte* group [teaType] (null = „Ohne Sorte"; SCR-19, D-098). */
 fun catalogGroupTag(teaType: String?): String = "catalog_group_${teaType ?: "-"}"
@@ -92,8 +93,66 @@ internal fun CatalogGroupHeader(
             painter = painterResource(UmamiIcons.ChevronRight),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.rotate(turn),
+            modifier = Modifier.graphicsLayer { rotationZ = turn },
         )
+    }
+}
+
+/** The header of [kind]'s group in the view without a kind (SCR-19, D-114). */
+fun catalogKindGroupTag(kind: CatalogKind): String = "catalog_kind_group_${kind.key}"
+
+/**
+ * A kind group's header in the view without a kind (v0.6.1, SCR-19, D-114): „Grüntee · 274" ([count] = the group's
+ * teas under the current filters), one level above the *Sorte* headings inside it, so in the title style rather than
+ * the overline. While the groups fold ([folded] not null) the whole row is the 48 dp toggle with the chevron and the
+ * same TalkBack as a *Sorte* header (D-098); while a search is typed it is a plain heading.
+ */
+@Composable
+internal fun CatalogKindHeader(
+    title: String,
+    count: Int,
+    folded: Boolean?,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val description = pluralStringResource(R.plurals.catalog_group_description, count, title, count)
+    val state = folded?.let {
+        stringResource(if (it) R.string.catalog_group_folded else R.string.catalog_group_unfolded)
+    }
+    val action = folded?.let { stringResource(if (it) R.string.catalog_group_unfold else R.string.catalog_group_fold) }
+    val turn by animateFloatAsState(
+        targetValue = if (folded == true) 0f else OPEN_DEGREES,
+        animationSpec = UmamiTheme.motion.exit(),
+        label = "chevron",
+    )
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = UmamiSpacing.MinTouchTarget)
+            .then(if (folded != null) Modifier.clickable(onClickLabel = action, onClick = onToggle) else Modifier)
+            .semantics {
+                heading()
+                contentDescription = description
+                if (state != null) stateDescription = state
+            }
+            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.catalog_group_title, title, count),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (folded != null) {
+            Spacer(Modifier.width(UmamiSpacing.Small))
+            Icon(
+                painter = painterResource(UmamiIcons.ChevronRight),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.graphicsLayer { rotationZ = turn },
+            )
+        }
     }
 }
 

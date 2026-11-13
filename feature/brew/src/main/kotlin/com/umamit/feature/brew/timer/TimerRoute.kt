@@ -95,6 +95,9 @@ fun BrewTimerRoute(
                 .collectAsStateWithLifecycle()
             val stock by remember(viewModel, active.slot) { viewModel.teaStock(active.slot) }
                 .collectAsStateWithLifecycle()
+            val tastings by remember(viewModel, active.slot) { viewModel.stepTastings(active.slot) }
+                .collectAsStateWithLifecycle()
+            val refusals by viewModel.tasteWrites.refusals.collectAsStateWithLifecycle()
             TimerScreen(
                 state = active,
                 nowElapsedMs = remember(viewModel) { viewModel::nowElapsedMs },
@@ -117,6 +120,19 @@ fun BrewTimerRoute(
                 // The row's button and tap name the other timer's slot, never this one's (D-098).
                 onOtherEvent = { event -> other?.let { viewModel.send(it.slot, event) } },
                 onOpenOther = { other?.let { onShowOther(it.slot) } },
+                // The shown session's taste (D-114): read and written beside the timer, never as an engine event; a
+                // read of another session (the slot's previous one) is not used.
+                tasting = active.sessionId?.let { sessionId ->
+                    TimerTasting(
+                        byPosition = tastings?.takeIf { it.sessionId == sessionId }?.byPosition,
+                        onTaste = { position, axis, value ->
+                            viewModel.tasteWrites.setTaste(sessionId, position, axis, value)
+                        },
+                        onReset = { position -> viewModel.tasteWrites.clearTaste(sessionId, position) },
+                        onNote = { position, note -> viewModel.tasteWrites.setNote(sessionId, position, note) },
+                        refusals = refusals,
+                    )
+                },
             )
         }
     }

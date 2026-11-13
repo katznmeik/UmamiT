@@ -22,8 +22,8 @@ import org.robolectric.annotation.Config
 /**
  * The tasting reads (05 §3.6, §3.8, JRN-02–JRN-05, TEA-08, TEA-13, #223): the session's inputs and descriptor keys
  * with the journal row and the session; per tea the average rating over its rated sessions, the taste averages per
- * axis over the sessions that set that axis, and the descriptor counts. Sessions in progress never count, and a
- * deleted session takes its descriptors with it (JRN-10).
+ * axis over the infusions that set that axis (D-114), and the descriptor counts. Sessions in progress never count,
+ * and a deleted session takes its descriptors with it (JRN-10).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -54,13 +54,13 @@ class TeaTastingTest {
     private suspend fun brewed() {
         completed("a", startedAtMs = 2_000)
         tasting.setRating("a", 4.0)
-        tasting.setTaste("a", TasteAxis.UMAMI, 5)
+        tasting.setInfusionTaste("a", 0, TasteAxis.UMAMI, 5)
         tasting.setDescriptor("a", "marine.nori", ticked = true)
         tasting.setDescriptor("a", "vegetal.spinat", ticked = true)
         completed("b", startedAtMs = 3_000)
         tasting.setRating("b", 3.5)
-        tasting.setTaste("b", TasteAxis.UMAMI, 2)
-        tasting.setTaste("b", TasteAxis.SWEETNESS, 3)
+        tasting.setInfusionTaste("b", 0, TasteAxis.UMAMI, 2)
+        tasting.setInfusionTaste("b", 0, TasteAxis.SWEETNESS, 3)
         tasting.setDescriptor("b", "marine.nori", ticked = true)
         // A key a later version wrote: stored and counted, though a tick of it is refused (05 §3.8).
         data.db.tastingDao().insertDescriptor(SessionDescriptorEntity("b", "unknown.later", createdAt = 3_500))
@@ -69,7 +69,10 @@ class TeaTastingTest {
         tasting.setRating("other", 5.0)
         data.sessions.startSession(SessionStart("running", snapshotOf("t1"), listOf(infusion(60)), 10, 6_000, "UTC"))
         val running = checkNotNull(data.db.sessionDao().get("running"))
-        data.db.sessionDao().update(running.copy(rating = 0.5, tasteUmami = 0, tasteBody = 1))
+        data.db.sessionDao().update(running.copy(rating = 0.5))
+        data.db.openHelper.writableDatabase.execSQL(
+            "UPDATE session_step SET taste_umami = 0, taste_body = 1 WHERE session_id = 'running'",
+        )
     }
 
     @Test
@@ -80,7 +83,7 @@ class TeaTastingTest {
     }
 
     @Test
-    fun `taste averages are per axis over the sessions that set that axis`() = runTest {
+    fun `taste averages are per axis over the infusions that set that axis`() = runTest {
         brewed()
 
         assertThat(journal.observeTeaTasting("t1").first().tasteAverages)
@@ -113,7 +116,7 @@ class TeaTastingTest {
 
         val row = journal.observeSessions().first().single { it.session.id == "b" }.session
         assertThat(row.rating).isEqualTo(3.5)
-        assertThat(row.taste).isEqualTo(TasteProfile(umami = 2, sweetness = 3))
+        assertThat(row.infusions.single().taste).isEqualTo(TasteProfile(umami = 2, sweetness = 3))
         assertThat(row.notes).isEqualTo("Notiz")
         assertThat(row.descriptorKeys).containsExactly("marine.nori", "unknown.later")
         assertThat(data.sessions.getSession("b")).isEqualTo(row)

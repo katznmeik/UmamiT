@@ -19,6 +19,8 @@ import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogTeaSummary
 import com.umamit.core.ui.GermanFormat
@@ -70,8 +72,117 @@ internal fun LazyListScope.teaRows(
     }
 }
 
+/**
+ * A kind's pending hint above its list (D-093 Q20, D-108) and the no-match notice, whose „Filter zurücksetzen" clears
+ * the kind too (D-114).
+ */
+internal fun LazyListScope.viewNotices(state: CatalogUiState, actions: ListActions) {
+    val listing = state.listing
+    // Before the first refresh after the update a new kind is still to come (D-093 Q20, D-108).
+    val kind = state.filter.kind
+    val pendingHint = kind != null && kind in state.pendingKinds
+    if (pendingHint) item(key = "kind_pending") { PendingKindRow(kind, state.isRefreshing, actions) }
+    val pendingOnly = if (kind == null) state.pendingKinds.isNotEmpty() else pendingHint
+    if (listing.sections.isEmpty() && !(pendingOnly && listing.totalCount == 0)) {
+        item(key = "no_match") {
+            NoticeRow(
+                stringResource(R.string.catalog_no_match),
+                stringResource(R.string.catalog_reset_filters),
+            ) { actions.onFilterChange { CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort) } }
+        }
+    }
+}
+
+/** The teas: by kind without one (D-114), else by *Sorte* or flat as the sort says (D-073, D-098). */
+internal fun LazyListScope.listRows(
+    state: CatalogUiState,
+    actions: ListActions,
+    thumbnail: @Composable (path: String?) -> Painter?,
+) {
+    val listing = state.listing
+    if (listing.byKind && !state.filter.marked) {
+        val folding = if (state.foldable) KindFolding(state::isKindFolded, actions.onToggleKindFold) else null
+        kindGroups(
+            listing = listing,
+            pendingKinds = state.pendingKinds,
+            pendingHint = { kind -> PendingKindRow(kind, state.isRefreshing, actions) },
+            rows = TeaRowActions(actions.onOpenTea, actions.onToggleMark, thumbnail),
+            folding = folding,
+        )
+    } else {
+        val folding = if (state.foldable) GroupFolding(state::isFolded, actions.onToggleFold) else null
+        teaRows(listing, actions.onOpenTea, actions.onToggleMark, thumbnail, folding)
+    }
+}
+
 /** The groups' folding in a view where they fold (D-098): which are folded, and a header's tap. */
 internal class GroupFolding(val isFolded: (teaType: String?) -> Boolean, val onToggle: (teaType: String?) -> Unit)
+
+/** The kind groups' folding in the view without a kind (D-114): which are folded, and a header's tap. */
+internal class KindFolding(val isFolded: (CatalogKind) -> Boolean, val onToggle: (CatalogKind) -> Unit)
+
+/** What a tea row does: opens the tea, toggles its bookmark (CAT-18), and loads its thumbnail. */
+internal class TeaRowActions(
+    val onOpenTea: (String) -> Unit,
+    val onToggleMark: (key: String, marked: Boolean) -> Unit,
+    val thumbnail: @Composable (path: String?) -> Painter?,
+)
+
+/**
+ * The list without a kind (v0.6.1, SCR-19, D-114): a group per kind in the chip order, under its header „Grüntee ·
+ * 274" (a toggle while the groups fold, [folding]); inside, with *Sortierung* *Sorte* the *Sorte* headings without
+ * folding of their own, else the kind's teas in the sort's order, each row naming its *Sorte*. A kind still in
+ * [pendingKinds] shows its [pendingHint] as its group's body (above any teas it has); a kind with no tea shown and
+ * none to come is left out. A folded group shows its header only, with no motion.
+ */
+internal fun LazyListScope.kindGroups(
+    listing: CatalogListing,
+    pendingKinds: Set<CatalogKind>,
+    pendingHint: @Composable (CatalogKind) -> Unit,
+    rows: TeaRowActions,
+    folding: KindFolding?,
+) {
+    val byKind = listing.sections.groupBy { it.kind }
+    CatalogKind.ALL.forEach { kind ->
+        val sections = byKind[kind].orEmpty()
+        val pending = kind in pendingKinds
+        if (sections.isEmpty() && !pending) return@forEach
+        val folded = folding?.isFolded(kind) == true
+        item(key = "kind:${kind.key}", contentType = "kind_section") {
+            CatalogKindHeader(
+                title = stringResource(kind.chipLabel),
+                count = sections.sumOf { it.teas.size },
+                folded = if (folding != null) folded else null,
+                onToggle = { folding?.onToggle(kind) },
+                modifier = Modifier
+                    .padding(top = UmamiSpacing.Small)
+                    .testTag(catalogKindGroupTag(kind)),
+            )
+        }
+        if (folded) return@forEach
+        if (pending) item(key = "kind_pending:${kind.key}") { pendingHint(kind) }
+        sections.forEach { section ->
+            if (listing.grouped) {
+                item(key = "type:${kind.key}:${section.teaType}", contentType = "section") {
+                    SectionHeader(
+                        title = section.teaType ?: stringResource(R.string.catalog_group_untyped),
+                        modifier = Modifier.padding(top = UmamiSpacing.XXSmall),
+                    )
+                }
+            }
+            itemsIndexed(section.teas, key = { _, tea -> tea.key }, contentType = { _, _ -> "tea" }) { index, tea ->
+                TeaRow(
+                    tea = tea,
+                    showType = !listing.grouped,
+                    onClick = { rows.onOpenTea(tea.key) },
+                    onToggleMark = { rows.onToggleMark(tea.key, it) },
+                    thumbnail = rows.thumbnail(tea.thumbnailPath),
+                    showDivider = index < section.teas.lastIndex,
+                )
+            }
+        }
+    }
+}
 
 /**
  * A catalog tea's row (CAT-10): name, secondary name (one line, D-090), *Sorte* (when not grouped),

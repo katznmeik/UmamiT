@@ -67,8 +67,8 @@ const val CATALOG_GUIDES_ROW_TAG = "catalog_guides_row"
 /**
  * Sammlung › Katalog (SCR-19) with its view model, as the content below Sammlung's segmented
  * control: the empty state with *Katalog laden* (D-073), or the teas under the header
- * „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." (in the *Kräutertee* view „… · 38
- * Kräutertees · …", D-093) with search, filter chips and the filter sheet (CAT-10). A tap on
+ * „Tee-Kontor Kiel · 274 Tees · aktualisiert am 21. Okt." (N the view's count, D-114 Q16) with search,
+ * filter chips and the filter sheet (CAT-10). A tap on
  * *Katalog laden*, or on *Katalog aktualisieren* in Sammlung's ⋮ menu ([refreshRequest]), starts
  * the refresh and opens its sheet (SCR-22).
  *
@@ -187,6 +187,7 @@ fun CatalogRoute(
         onFilterChange = viewModel::changeFilter,
         onToggleMark = viewModel::toggleMark,
         onToggleFold = viewModel::toggleFold,
+        onToggleKindFold = viewModel::toggleKindFold,
         alerting = alerting,
         scrollToTopRequest = scrollToTopRequest,
     )
@@ -219,7 +220,8 @@ fun CatalogRoute(
  * running refresh; [onOpenTea] opens a tea's detail (SCR-21) by its key; [onFilterChange] takes
  * a changed search, filter or sort (CAT-10); [onOpenGuides] opens the *Ratgeber* (CAT-09);
  * [onToggleMark] marks or unmarks a tea by its key from its row (CAT-18); [onToggleFold] folds or unfolds the
- * group of a *Sorte* from its header while the groups fold (D-098). The
+ * group of a *Sorte* from its header while the groups fold (D-098), [onToggleKindFold] a kind's group in the view
+ * without a kind (D-114). The
  * filter sheet is never composed while [alerting] (rule 8). [scrollToTopRequest] is a counter;
  * every increase scrolls the list to the top. [thumbnail] loads a row's thumbnail file; tests pass placeholder images.
  */
@@ -235,6 +237,7 @@ fun CatalogContent(
     onFilterChange: (FilterChange) -> Unit = {},
     onToggleMark: (key: String, marked: Boolean) -> Unit = { _, _ -> },
     onToggleFold: (teaType: String?) -> Unit = {},
+    onToggleKindFold: (CatalogKind) -> Unit = {},
     alerting: Boolean = false,
     scrollToTopRequest: Int = 0,
     zone: ZoneId = ZoneId.systemDefault(),
@@ -259,6 +262,7 @@ fun CatalogContent(
                     onOpenFilters = { if (!alerting) filterSheetOpen = true },
                     onToggleMark = onToggleMark,
                     onToggleFold = onToggleFold,
+                    onToggleKindFold = onToggleKindFold,
                 ),
                 scrollToTopRequest = scrollToTopRequest,
                 zone = zone,
@@ -278,7 +282,7 @@ fun CatalogContent(
 }
 
 /** What the list's rows and controls do. */
-private class ListActions(
+internal class ListActions(
     val onLoad: () -> Unit,
     val onShowProgress: () -> Unit,
     val onOpenTea: (String) -> Unit,
@@ -287,6 +291,7 @@ private class ListActions(
     val onOpenFilters: () -> Unit,
     val onToggleMark: (key: String, marked: Boolean) -> Unit,
     val onToggleFold: (teaType: String?) -> Unit,
+    val onToggleKindFold: (CatalogKind) -> Unit,
 )
 
 @Composable
@@ -340,8 +345,10 @@ private fun CatalogList(
     val listing = state.listing
     val filter = state.filter
     // While the shown kind's hint is there, its own action is the progress link: no second refreshing row above it
-    // pushes the hint down under the finger that tapped *Jetzt laden* (motion review v0.5.0 N2).
-    val refreshingRow = state.isRefreshing && (filter.marked || filter.kind !in state.pendingKinds)
+    // pushes the hint down under the finger that tapped *Jetzt laden* (motion review v0.5.0 N2). Without a kind the
+    // hints are the bodies of their kind groups (D-114): the same while any kind is pending.
+    val pendingHere = filter.kind?.let { it in state.pendingKinds } ?: state.pendingKinds.isNotEmpty()
+    val refreshingRow = state.isRefreshing && (filter.marked || !pendingHere)
     // header, refreshing?, guides?, search, chips
     ChipRowOnKindChange(
         listState,
@@ -360,27 +367,8 @@ private fun CatalogList(
         if (state.guideCount > 0) item(key = "guides") { GuidesRow(state.guideCount, actions.onOpenGuides) }
         item(key = "search") { CatalogSearchField(filter, actions.onFilterChange) }
         item(key = CHIPS_KEY) { CatalogFilterChips(filter, actions.onFilterChange, actions.onOpenFilters) }
-        if (filter.marked) {
-            markedNotices(listing)
-        } else {
-            // Before the first refresh after the update a new kind is still to come (D-093 Q20, D-108).
-            val pendingHint = filter.kind in state.pendingKinds
-            if (pendingHint) item(key = "kind_pending") { PendingKindRow(filter.kind, state.isRefreshing, actions) }
-            if (listing.sections.isEmpty() && !(pendingHint && listing.totalCount == 0)) {
-                item(key = "no_match") {
-                    NoticeRow(
-                        stringResource(R.string.catalog_no_match),
-                        stringResource(R.string.catalog_reset_filters),
-                    ) {
-                        actions.onFilterChange {
-                            CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort, kind = it.kind)
-                        }
-                    }
-                }
-            }
-        }
-        val folding = if (state.foldable) GroupFolding(state::isFolded, actions.onToggleFold) else null
-        teaRows(listing, actions.onOpenTea, actions.onToggleMark, thumbnail, folding)
+        if (filter.marked) markedNotices(listing) else viewNotices(state, actions)
+        listRows(state, actions, thumbnail)
         if (listing.hiddenMatches > 0) {
             item(key = "hidden") {
                 NoticeRow(
@@ -390,27 +378,27 @@ private fun CatalogList(
                         listing.hiddenMatches,
                     ),
                     stringResource(R.string.catalog_show_all),
-                ) { actions.onFilterChange { showAll(it, listing) } }
+                ) { actions.onFilterChange(::showAll) }
             }
         }
     }
 }
 
 /**
- * *Alle zeigen* for the search hits the filters hide: the current kind without filters, or, when
- * every hidden hit is of the other kind (CAT-10, D-093), the other kind's view without filters.
+ * *Alle zeigen* for the search hits the filters hide: every tea without filters and without a kind (CAT-10, D-114),
+ * so every hidden hit shows, whichever kind it is of.
  */
-internal fun showAll(filter: CatalogFilter, listing: CatalogListing): CatalogFilter {
-    val all = filter.withoutFilters()
-    if (listing.hiddenMatches != listing.hiddenInOtherView) return all
-    // Every hidden hit is of other kinds: the kind with the most of them (the first found on a tie).
-    return listing.hiddenInOtherKinds.maxByOrNull { it.value }?.let { all.withKind(it.key) } ?: all
-}
+internal fun showAll(filter: CatalogFilter): CatalogFilter = filter.withoutFilters()
 
-/** „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." („38 Kräutertees", „4 gemerkt" in their views). */
+/**
+ * „Tee-Kontor Kiel · 312 Tees · aktualisiert am 21. Okt." in every view (D-114 Q16), „4 gemerkt" on the Merkliste.
+ */
 @Composable
 private fun Header(listing: CatalogListing, filter: CatalogFilter, zone: ZoneId) {
-    val plurals = if (filter.marked) R.plurals.catalog_marked_count else filter.kind.countPlural
+    val plurals = when {
+        filter.marked -> R.plurals.catalog_marked_count
+        else -> R.plurals.catalog_all_count
+    }
     val count = pluralStringResource(plurals, listing.totalCount, listing.totalCount)
     val updated = listing.lastRefreshAtMillis
     Text(
@@ -464,11 +452,12 @@ private fun GuidesRow(count: Int, onOpenGuides: () -> Unit) {
 }
 
 /**
- * A kind's view's hint before the first refresh after the update that brings it (SCR-19, D-093 Q20,
+ * A kind's view's hint (or, without a kind, its group's body, D-114) before the first refresh after the update
+ * that brings it (SCR-19, D-093 Q20,
  * D-108): *Jetzt laden* starts the refresh, or, while one runs, *Fortschritt anzeigen* opens its sheet.
  */
 @Composable
-private fun PendingKindRow(kind: CatalogKind, refreshing: Boolean, actions: ListActions) {
+internal fun PendingKindRow(kind: CatalogKind, refreshing: Boolean, actions: ListActions) {
     NoticeRow(
         text = stringResource(kind.pendingHint),
         action = stringResource(if (refreshing) R.string.catalog_show_progress else R.string.catalog_herbal_load_now),
@@ -478,7 +467,7 @@ private fun PendingKindRow(kind: CatalogKind, refreshing: Boolean, actions: List
 
 /** A short notice in the list with one action: no match, or search hits the filters hide. */
 @Composable
-private fun NoticeRow(text: String, action: String, onAction: () -> Unit) {
+internal fun NoticeRow(text: String, action: String, onAction: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

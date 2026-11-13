@@ -150,9 +150,64 @@ internal val MIGRATION_5_6: Migration = object : Migration(5, 6) {
 }
 
 /**
+ * Schema 6 → 7 (v0.6.1, JRN-03, JRN-05, D-114): taste per infusion. `session_step` gains the six `taste_*` columns
+ * and `tasting_note` (nullable, appended in that order). A session's six values (v0.6.0 stored them on
+ * `brew_session`) move to one of its step rows: the first ended row that is neither skipped nor *Spülen* by
+ * `position` (a skipped step records 0 s but was never poured, D-114 build note on T3 m1); else its
+ * first row that is not *Spülen*; else its first row (position 0). Then the session's six columns are nulled. A session
+ * without values, or without any step row, is left as it is. Nothing else changes, so timers running during the update
+ * keep their `active_brew` rows and alert on time (rule 8). Room runs it in one transaction: it applies whole or not
+ * at all, and the database is never opened destructively (05 §9).
+ */
+internal val MIGRATION_6_7: Migration = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        TASTE_COLUMNS.forEach { column -> db.execSQL("ALTER TABLE `session_step` ADD COLUMN `$column` INTEGER") }
+        db.execSQL("ALTER TABLE `session_step` ADD COLUMN `tasting_note` TEXT")
+        val copies = TASTE_COLUMNS.joinToString { column ->
+            "`$column` = (SELECT `b`.`$column` FROM `brew_session` AS `b` WHERE `b`.`id` = `session_step`.`session_id`)"
+        }
+        db.execSQL(
+            "UPDATE `session_step` SET $copies WHERE `session_id` IN ($TASTED_SESSIONS) " +
+                "AND `position` = $TARGET_POSITION",
+        )
+        db.execSQL(
+            "UPDATE `brew_session` SET ${TASTE_COLUMNS.joinToString { "`$it` = NULL" }} " +
+                "WHERE `id` IN ($TASTED_SESSIONS) AND `id` IN (SELECT `session_id` FROM `session_step`)",
+        )
+    }
+}
+
+/** The six taste columns of `brew_session` (v1–v6) and of `session_step` (from v7), in their order. */
+private val TASTE_COLUMNS = listOf(
+    "taste_umami",
+    "taste_sweetness",
+    "taste_bitterness",
+    "taste_astringency",
+    "taste_body",
+    "taste_aroma",
+)
+
+/** The sessions with at least one taste value. */
+private val TASTED_SESSIONS = "SELECT `id` FROM `brew_session` WHERE " +
+    TASTE_COLUMNS.joinToString(" OR ") { "`$it` IS NOT NULL" }
+
+/**
+ * The position of the row that takes the values of the session of the `session_step` row being updated: its first
+ * ended row that is neither skipped nor *Spülen*, else its first row that is not *Spülen*, else its first row.
+ */
+private const val TARGET_POSITION = "COALESCE(" +
+    "(SELECT `s`.`position` FROM `session_step` AS `s` WHERE `s`.`session_id` = `session_step`.`session_id` " +
+    "AND `s`.`actual_seconds` IS NOT NULL AND `s`.`skipped` = 0 AND `s`.`kind` != 'RINSE' " +
+    "ORDER BY `s`.`position` LIMIT 1), " +
+    "(SELECT `s`.`position` FROM `session_step` AS `s` WHERE `s`.`session_id` = `session_step`.`session_id` " +
+    "AND `s`.`kind` != 'RINSE' ORDER BY `s`.`position` LIMIT 1), " +
+    "(SELECT `s`.`position` FROM `session_step` AS `s` WHERE `s`.`session_id` = `session_step`.`session_id` " +
+    "ORDER BY `s`.`position` LIMIT 1))"
+
+/**
  * Every migration of `umamit.db` (05 §9). [umamiDatabaseBuilder] registers exactly these, and
  * `SchemaVersionsTest` opens a database of every committed schema version with that builder,
  * so a version bump whose migration is missing here fails the unit tests.
  */
 internal val UMAMI_MIGRATIONS: List<Migration> =
-    listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+    listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)

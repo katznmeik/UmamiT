@@ -41,7 +41,8 @@ import javax.inject.Inject
  * @property guideCount the *Ratgeber*'s guides (CAT-09); its row shows only when there are some.
  * @property pendingKinds the kinds still to come with the first refresh after the update (D-093 Q20,
  *   D-108): each one's view shows its hint with *Jetzt laden*.
- * @property folded the folded *Sorte* groups of both views as `catalogFolded` keys (CAT-10, D-098).
+ * @property folded the folded *Sorte* groups of every kind's view and the folded kind groups of the view without a
+ *   kind, as `catalogFolded` keys (CAT-10, D-098, D-114).
  */
 data class CatalogUiState(
     val listing: CatalogListing = CatalogListing.EMPTY,
@@ -58,14 +59,21 @@ data class CatalogUiState(
     val isEmpty: Boolean get() = listing.catalogCount == 0
 
     /**
-     * The groups fold (D-098): only in the grouped default and Kräutertee views of a loaded catalog, never in
-     * *Gemerkt* or a flat sort order, and not while a search is typed (it shows every hit unfolded).
+     * The groups fold (D-098, D-114): a kind's *Sorte* groups in its grouped view, the kind groups in every sort of
+     * the view without a kind; only in a loaded catalog, never in *Gemerkt* or a kind's flat sort order, and not while
+     * a search is typed (it shows every hit unfolded).
      */
     val foldable: Boolean
-        get() = !loading && !isEmpty && filter.sort == CatalogSort.TYPE && !filter.marked && filter.search.isBlank()
+        get() = !loading && !isEmpty && !filter.marked && filter.search.isBlank() &&
+            (filter.kind == null || filter.sort == CatalogSort.TYPE)
 
-    /** Whether the group of [teaType] (null = „Ohne Sorte") is folded in the view shown. */
-    fun isFolded(teaType: String?): Boolean = foldable && CatalogFoldKey.of(filter.kind, teaType) in folded
+    /** Whether the group of [teaType] (null = „Ohne Sorte") is folded in the view of a kind. */
+    fun isFolded(teaType: String?): Boolean =
+        foldable && filter.kind?.let { CatalogFoldKey.of(it, teaType) in folded } == true
+
+    /** Whether [kind]'s group is folded in the view without a kind (D-114). */
+    fun isKindFolded(kind: CatalogKind): Boolean =
+        foldable && filter.kind == null && CatalogFoldKey.ofKind(kind) in folded
 }
 
 /**
@@ -125,7 +133,7 @@ class CatalogViewModel @Inject constructor(
     private var lastShare: Long? = null
 
     /**
-     * A changed search, filter or sort. A kind change keeps only the taste notes and scales the new kind's range has
+     * A changed search, filter or sort. A kind change keeps only the taste notes and scales the new view's range has
      * (D-108 point 8), whichever control changed the kind.
      */
     fun changeFilter(transform: (CatalogFilter) -> CatalogFilter) = filter.update { old ->
@@ -139,29 +147,42 @@ class CatalogViewModel @Inject constructor(
         viewModelScope.launch { if (marked) bookmarks.mark(key) else bookmarks.unmark(key) }
     }
 
-    /** A tap on the header of [teaType]'s group (null = „Ohne Sorte"): folds or unfolds it in the view (D-098). */
+    /** A tap on the header of [teaType]'s group (null = „Ohne Sorte"): folds or unfolds it in a kind's view (D-098). */
     fun toggleFold(teaType: String?) {
-        val shown = state.value.takeIf { it.foldable } ?: return
-        val key = CatalogFoldKey.of(shown.filter.kind, teaType)
+        val kind = state.value.takeIf { it.foldable }?.filter?.kind ?: return
+        toggle(CatalogFoldKey.of(kind, teaType))
+    }
+
+    /** A tap on [kind]'s group header in the view without a kind: folds or unfolds it (D-114). */
+    fun toggleKindFold(kind: CatalogKind) {
+        if (state.value.takeIf { it.foldable }?.filter?.kind != null) return
+        toggle(CatalogFoldKey.ofKind(kind))
+    }
+
+    private fun toggle(key: String) {
         viewModelScope.launch { folds.update { if (key in it) it - key else it + key } }
     }
 
     /**
-     * ⋮ *Alle einklappen*: every *Sorte* of the view shown, those the filters hide and „Ohne Sorte" included, so a
-     * changed filter shows no group open; the other view keeps its folding (D-098).
+     * ⋮ *Alle einklappen*: every *Sorte* of the kind's view shown, those the filters hide and „Ohne Sorte" included,
+     * so a changed filter shows no group open; without a kind every kind group (D-114). The other views keep their
+     * folding (D-098).
      */
     fun foldAll() {
         val shown = state.value.takeIf { it.foldable } ?: return
         val kind = shown.filter.kind
-        val types = shown.listing.types + shown.listing.sections.map { it.teaType } + null
-        val keys = types.map { CatalogFoldKey.of(kind, it) }.toSet()
+        val keys = if (kind == null) {
+            CatalogKind.ALL.map(CatalogFoldKey::ofKind)
+        } else {
+            (shown.listing.types + shown.listing.sections.map { it.teaType } + null).map { CatalogFoldKey.of(kind, it) }
+        }.toSet()
         viewModelScope.launch { folds.update { it + keys } }
     }
 
-    /** ⋮ *Alle ausklappen*: every group of the view shown, also keys of a *Sorte* that is gone (D-098). */
+    /** ⋮ *Alle ausklappen*: every group of the view shown, also keys of a *Sorte* that is gone (D-098, D-114). */
     fun unfoldAll() {
         val shown = state.value.takeIf { it.foldable } ?: return
-        val prefix = CatalogFoldKey.prefix(shown.filter.kind)
+        val prefix = shown.filter.kind?.let(CatalogFoldKey::prefix) ?: CatalogFoldKey.ALL_PREFIX
         viewModelScope.launch { folds.update { folded -> folded.filterNot { it.startsWith(prefix) }.toSet() } }
     }
 

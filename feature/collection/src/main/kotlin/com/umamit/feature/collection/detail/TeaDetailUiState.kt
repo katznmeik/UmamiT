@@ -50,6 +50,8 @@ sealed interface TeaDetailUiState {
  * @property cost VORRAT's cost lines (INV-08, D-104): price per 100 g, the default recipe's estimate and the
  *   average of the priced sessions; null without a recorded price („no price, no cost").
  * @property catalogReset ⋮ *Aus Katalog zurücksetzen* (PRF-06), or null when the catalog doesn't hold the tea.
+ * @property catalogKey ⋮ *Im Katalog ansehen* (D-114 Q10): the tea's catalog key while its catalog tea exists
+ *   (discontinued counts), else null: the item is hidden.
  * @property rating the header's „★ 4,5 (12)": the average of the tea's rated sessions and their count (TEA-13,
  *   D-112); null without a rated session.
  * @property taste GESCHMACK: the average radar and the top descriptors (TEA-13, D-112).
@@ -87,6 +89,7 @@ data class TeaDetail(
     val history: List<StockEntry> = emptyList(),
     val cost: TeaCost? = null,
     val catalogReset: CatalogResetOffer? = null,
+    val catalogKey: String? = null,
     val rating: TeaRating? = null,
     val taste: DetailTasting = DetailTasting(),
     val recentSessions: List<RecentSession> = emptyList(),

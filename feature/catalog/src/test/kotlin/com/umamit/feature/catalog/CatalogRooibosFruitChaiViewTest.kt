@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -75,6 +76,8 @@ class CatalogRooibosFruitChaiViewTest {
             FakeCatalogRefreshRunner(),
             folds = SettingsCatalogFoldRepository(settings),
         )
+        // From the Grüntee view: no kind is the default since v0.6.1 (D-114).
+        viewModel.changeFilter { it.withKind(CatalogKind.GREEN) }
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 CatalogRoute(alerting = false, onOpenTea = {}, viewModel = viewModel)
@@ -103,19 +106,19 @@ class CatalogRooibosFruitChaiViewTest {
 
         switchTo(R.string.catalog_filter_rooibos)
         chip(R.string.catalog_filter_rooibos).assertIsSelected()
-        shown("Tee-Kontor Kiel · 3\u00a0Rotbuschtees · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 3\u00a0Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Grüner Rotbusch")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Honeybush")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag(null)).assertIsDisplayed()
         hidden("Beerenwolke")
 
         switchTo(R.string.catalog_filter_fruit)
-        shown("Tee-Kontor Kiel · 2\u00a0Früchtetees · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 2\u00a0Tees · aktualisiert am 22. Okt.")
         shown("Apfelgarten")
         hidden("Pfirsichtal")
 
         switchTo(R.string.catalog_filter_chai)
-        shown("Tee-Kontor Kiel · 3\u00a0Chais · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 3\u00a0Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Schwarztee")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Rotbusch")).assertIsDisplayed()
         hidden("Morgennebel Sencha")
@@ -149,11 +152,14 @@ class CatalogRooibosFruitChaiViewTest {
 
         compose.onNodeWithTag(CATALOG_SEARCH_TAG).performTextInput("chai")
         compose.waitForIdle()
-        // Three chais (one named Rotbusch) are hidden in the green view: *Alle zeigen* opens the chais, off screen.
+        // Three chais (one named Rotbusch) are hidden in the green view: *Alle zeigen* clears the kind (D-114), and
+        // the row goes back to its start.
         compose.onNodeWithText(str(R.string.catalog_show_all)).performClick()
         compose.waitForIdle()
 
-        chip(R.string.catalog_filter_chai).assertIsSelected().assertIsDisplayed()
+        chip(R.string.catalog_filter_green).assertIsNotSelected()
+        // „Filter (1)": *Alle zeigen* turns „Vorrätig" off.
+        compose.onNodeWithText(str(R.string.catalog_filter_button_count, 1)).assertIsDisplayed()
         shown("Karawane Chai")
     }
 
@@ -162,7 +168,7 @@ class CatalogRooibosFruitChaiViewTest {
         // Motion review S2 (v0.5.0): enough chais to scroll the chip row out of the list.
         show(teas + (1..30).map { of(CatalogKind.CHAI, "XC1%03d".format(it), "Chai Nummer $it", "Schwarztee") })
         switchTo(R.string.catalog_filter_chai)
-        val filterChip = compose.onNodeWithText(str(R.string.catalog_filter_button), substring = true) // „Filter (1)"
+        val filterChip = compose.onNodeWithText(str(R.string.catalog_filter_button), substring = true)
         filterChip.performScrollTo() // the user scrolls the row back to its start, *Chai* out of view
         compose.waitForIdle()
         filterChip.assertIsDisplayed()

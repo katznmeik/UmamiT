@@ -11,4 +11,6 @@ dependencies {
     implementation(libs.coil.compose)
     // The POST_NOTIFICATIONS request of the reliability rows (ONB-02, SET-24).
     implementation(libs.androidx.activity.compose)
+    // InfusionTasteEditor saves a pending note when the app stops (JRN-05).
+    implementation(libs.androidx.lifecycle.runtime.compose)
 }

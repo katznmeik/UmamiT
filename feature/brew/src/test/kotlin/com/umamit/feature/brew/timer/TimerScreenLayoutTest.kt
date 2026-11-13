@@ -411,7 +411,8 @@ class TimerScreenLayoutTest {
                 if (shown != null) {
                     TimerScreen(shown, { NOW }, {}, {}, {}, {})
                 } else {
-                    QuickTimerScreen(state = QuickTimerUiState(durationSeconds = 90), actions = QuickTimerActions())
+                    // The 10:00 chip selected: the chip row with its widest labels (D-114).
+                    QuickTimerScreen(state = QuickTimerUiState(durationSeconds = 600), actions = QuickTimerActions())
                 }
             }
         }
@@ -422,9 +423,9 @@ class TimerScreenLayoutTest {
         assertThat(pill.bottom).isAtMost(screen.bottom)
 
         listOf(
-            TimerStates.quick(TimerPhase.RUNNING) to "Pause",
-            TimerStates.quick(TimerPhase.PAUSED) to "Weiter",
-            TimerStates.quick(TimerPhase.ALERTING) to "Fertig",
+            TimerStates.quick(TimerPhase.RUNNING, seconds = 600) to "Pause",
+            TimerStates.quick(TimerPhase.PAUSED, seconds = 600) to "Weiter",
+            TimerStates.quick(TimerPhase.ALERTING, seconds = 600) to "Fertig",
         ).forEach { (state, control) ->
             running = state
             compose.waitForIdle()
@@ -452,12 +453,20 @@ class TimerScreenLayoutTest {
      */
     @Test
     @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)
-    fun `on a 411 x 800 dp screen at font scale 2_0 the quick timer's Start is on the screen`() {
+    fun `on a 411 x 800 dp screen at font scale 2_0 the quick timer's Start is on the screen`() = quickStartOnScreen()
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 the quick timer's Start is on the screen`() = quickStartOnScreen()
+
+    private fun quickStartOnScreen() {
         var quick by mutableStateOf(QuickTimerUiState(durationSeconds = 120))
         compose.setContent {
             UmamiTheme(reduceMotion = true) { QuickTimerScreen(state = quick, actions = QuickTimerActions()) }
         }
         val states = listOf(
+            QuickTimerUiState(),
+            QuickTimerUiState(durationSeconds = 900),
             QuickTimerUiState(durationSeconds = 120),
             QuickTimerUiState(durationSeconds = 20, preAlertChoice = PreAlertChoice.Seconds(20)),
             QuickTimerUiState(durationSeconds = 4_500, preAlertChoice = PreAlertChoice.Seconds(20)),

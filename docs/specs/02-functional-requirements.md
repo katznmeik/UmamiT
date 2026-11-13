@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-11 (v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-12 (v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -303,6 +303,10 @@ the shop, parses all products, and replaces the catalog atomically.
   is kept unchanged and the error „Die Shop-Seite hat sich geändert – ein
   App-Update ist nötig" is shown with technical details for the developer.
 - AC6: Date of the last successful refresh is shown in the catalog header.
+  From v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)) the header reads „Tee-Kontor Kiel · N Tees ·
+  aktualisiert am …" in every view (N the view's count), and the refresh's
+  notification and sheet count the whole range as „N Tees", never as
+  green teas.
 - AC7: Refresh runs **only when the user taps it** (never automatically) and
   is allowed on any connection (Wi-Fi or mobile data) without a warning.
 - AC8: A refresh may run while a brew session is active. The timer always
@@ -412,6 +416,19 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
     the folding.
   - AC3: The catalog's ⋮ offers *Alle einklappen* and *Alle ausklappen*.
   - AC4: *Gemerkt* and the flat sort orders (name, price) have no folding.
+
+- **No kind selected (v0.6.1, [D-114](10-open-questions-and-decisions.md#d-114)).** The Katalog opens with no
+  kind chip selected and shows every tea, grouped by kind in the chip order
+  (each kind group foldable, fold keys `all/<kind key>`), the *Sortierung*
+  applying inside each group (with *Sortierung* *Sorte*, the *Sorte*
+  headings show inside each kind group, without folding of their own).
+  A tap on a kind chip narrows to that kind (one at a time); a tap on the
+  selected chip clears it. *Pur* and the umami filter apply in the Grüntee
+  view only. *Zurücksetzen*, „Filter zurücksetzen" and *Alle zeigen* clear
+  the kind. The kind does not count in „Filter (n)" and is not remembered
+  across app starts. A pending kind's hint (05 §9) is its group's body.
+  - AC1: Opening the Katalog shows every kind; deselecting the last chip
+    never selects *Grüntee*.
 
 **CAT-11 — Catalog tea detail** `Must`
 SCR-21 shows photo, names, type, origin details, organic/flavoured,
@@ -641,6 +658,13 @@ Processing rules: [06 §5.2](06-architecture.md#52-photos).
   then its file. If it was the cover, the next photo by `position` becomes the
   cover (after the last one: the first); the last photo deleted → no cover,
   the tea shows its type leaf again and *+ Foto* is enabled.
+- **Photo viewer (v0.6.1, [D-114](10-open-questions-and-decisions.md#d-114)):** a tap on the hero (tea detail,
+  session page, vessel editor) opens the whole photo full screen on black,
+  with pinch and double-tap zoom (up to 4×) and a swipe over the same
+  photos; ← or back closes it on the photo last shown. A hero without
+  photos opens nothing.
+  - AC1: A portrait photo the 4:3 hero crops shows uncropped in the
+    viewer, upright (#58 rotation).
 - **A catalog tea's shop photo** is just its first photo (`CATALOG_COPY`): it
   can lose the cover or be deleted like any other.
 - **Deleting a tea** removes its photo files, as before (TEA-04).
@@ -707,6 +731,10 @@ reorder link „Beim Tee-Kontor nachbestellen" (INV-09).
   counts; only with data); **LETZTE SITZUNGEN** (the last three sessions,
   a tap opens the session page; with more, *Alle anzeigen* opens the
   Journal filtered to the tea).
+- **v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)):** ⋮ starts with *Im Katalog ansehen* for a tea whose
+  `catalog_key` has a catalog tea (discontinued counts), opening its SCR-21
+  above the detail. GESCHMACK's radar averages every infusion (JRN-03). A
+  tap on the hero opens the photo viewer (TEA-05).
 
 **TEA-14 — Duplicate** `Could` — **not planned** (D-100)
 
@@ -1180,7 +1208,8 @@ Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
 
 **TMR-22 — Quick timer** `Should`
 SCR-07: countdown without a tea: chips 0:30, 1:00, 1:30, 2:00, 3:00, 5:00,
-8:00 (from v0.2.2, D-097) and custom; same alert, pre-alert (global setting,
+8:00 (from v0.2.2, D-097) and custom; from v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)) the chips are
+1:00, 2:00, 3:00, 5:00, 8:00, 10:00, 15:00 (still opening at 1:00); same alert, pre-alert (global setting,
 automatic rule of TMR-23) and Live Update; not logged.
 - **Pre-alert (v0.2.2, D-097).** The screen before *Start* has the
   *Vorwarnung* selector of the brew setup (*Automatisch*, *Aus*, 5–30 s),
@@ -1302,6 +1331,22 @@ radar chart on the session page and, as the average, on the tea detail.
 - An untouched slider is unset, not 0; *Zurücksetzen* clears all six.
 - The radar draws once three axes are set; unset axes sit at the centre.
 - A tea's average is per axis, over its sessions that set that axis.
+- **v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)): taste per infusion.** The six values belong to
+  each infusion (every ended step that is not *Spülen*), not to the session.
+  They are entered on the timer screen for the infusion ended last, while
+  the session runs (SCR-05), and on the session page for every infusion
+  (SCR-16, a chip per infusion, *Alle* shows the average). *Zurücksetzen*
+  clears the selected infusion's six. A v0.6.0 session's values become its
+  first infusion's (umamit.db v7, 05 §9). The session's radar under *Alle*
+  and the tea's average are per axis over every infusion that set that
+  axis (the tea's: in all its finished sessions).
+  - AC1: Six values set for the 1st infusion on the timer during the 2nd
+    infusion are on the session page under „1. Aufguss" after the session
+    ends, also when the app was killed in between.
+  - AC2: An alert closes the timer's taste sheet in its first frame and is
+    never delayed; values released before it are stored.
+  - AC3: After the update a v0.6.0 session shows its taste under
+    „1. Aufguss" and the tea's radar is unchanged.
 
 **JRN-04 — Descriptors** `Should` (v0.6.0)
 Multi-select chips from the German vocabulary ([08 §4](08-content.md#4-tasting-descriptor-vocabulary));
@@ -1312,7 +1357,10 @@ D-112, 09 §5).
 **JRN-05 — Notes** `Must` (v0.6.0; ≤ 5000 chars)
 A text field on the session page, saved 1 s after the last key and when the
 field or the page is left. Notes per infusion (≤ 300) are not built (an idea
-kept for later, D-112, 09 §5).
+kept for later, D-112, 09 §5). **From v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114))** each infusion
+has a short note (≤ 200 characters) beside its taste values, entered on the
+timer's taste sheet and on the session page; saved like the session's
+notes.
 
 **JRN-07 — Session photos** `Should` (v0.6.0)
 Up to 6 own photos per session through the Android photo picker (no camera),
@@ -1335,12 +1383,13 @@ rating if present. In-progress session pinned on top.
   asset A6 with „Deine erste Tasse wartet.".
 
 **JRN-09 — Search & filters** `Should` (v0.6.0)
-- **Search** over the tea's name, the notes and the chosen descriptors'
+- **Search** over the tea's name, the notes (from v0.6.1 also the
+  infusion notes, [D-114](10-open-questions-and-decisions.md#d-114)) and the chosen descriptors'
   labels, ignoring case and accents (GEN-10). It runs in memory over the
   journal's rows; there is no full-text index (D-112, as TEA-09).
 - **Filters:** *Tee* (one of the teas that have sessions), *Bewertung*
   (*ab 3 ★*, *ab 4 ★*, *ab 4,5 ★*) and *Mit Notizen* (sessions with note
-  text). A date range and a filter by Sorte are not built.
+  text; from v0.6.1 also an infusion note). A date range and a filter by Sorte are not built.
 - Search and filters are not remembered across app starts. While either is
   active the in-progress session is not pinned.
 - AC1: smooth with 10 000 sessions (05 §10).
@@ -1360,6 +1409,12 @@ rating if present. In-progress session pinned on top.
   tea's cover (TEA-05), the recipe offer while it applies (PRF-07) and ⋮
   *Bearbeiten* (JRN-11). Deleting a session also deletes its descriptors
   and its photos.
+- **v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)):** the page's ⋮ reads *Tee ansehen* (the tea's
+  detail, SCR-09; not for a deleted tea), *Im Katalog ansehen* (the tea's
+  SCR-21; only when the tea's `catalog_key` has a catalog tea), then
+  *Bearbeiten* and *Löschen*. The tea name's link stays. GESCHMACK is per
+  infusion and folds (JRN-03, SCR-16). A tap on the hero opens the photo
+  viewer (TEA-05).
 
 **JRN-11 — Edit session** `Must` (v0.6.0)
 ⋮ *Bearbeiten* on the session page opens the editor (SCR-17) for the
@@ -1512,7 +1567,7 @@ statistics.
 - **Since v0.1.0:** the session's cost (`cost_cents`) is stored at
   completion.
 - **v0.4.1 (D-100):** price per gram and cost per cup on the tea detail.
-  **v0.6.1:** the statistics (INS-05).
+  **v0.7.0:** the statistics (INS-05).
 - **v0.4.1 (D-104, #182):** the detail's VORRAT shows three lines below the
   stock, each in cents rounded half up:
   - **Price:** „12,40 € / 100 g", from the priced INITIAL and PURCHASE
@@ -1597,7 +1652,8 @@ Start.
 
 ## 12. Statistics (INS) — SCR-18
 
-**v0.6.1 ([D-112](10-open-questions-and-decisions.md#d-112)).** Statistik is
+**v0.7.0 ([D-112](10-open-questions-and-decisions.md#d-112); v0.6.1 until
+[D-114](10-open-questions-and-decisions.md#d-114)).** Statistik is
 M4's second release and gets its own spec and grilling after v0.6.0; the
 lines below are the starting point, not yet confirmed by the PO. Until then
 SCR-18 keeps its placeholder.
@@ -1637,7 +1693,7 @@ Every chart has an accessible table alternative.
 
 | ID | Setting (German label) | Values / default | Priority |
 |---|---|---|---|
-| SET-05 | Design (*Hell / Dunkel / System*) | System | Must |
+| SET-05 | Design (*System / Hell / Dunkel*; from v0.6.1 in the section *Darstellung*, D-114) | System | Must |
 | SET-06 | Hintergrundfarben verwenden (dynamic colour) | aus | Could |
 | SET-09 | Alarmton | Bundled tones (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft; synthesised, D-036) — Klangschale | Must |
 | SET-10 | Vorwarnung (pre-alert; the base B of TMR-23's automatic rule) | Aus, 5, 10, 15, 20, 25, 30 s — **10 s** | Must |
@@ -1661,7 +1717,9 @@ Every chart has an accessible table alternative.
 
 **SET-30 — Sections** `Must`: *Timer & Alarm*, *Brühen & Vorrat*, *Katalog*,
 *Teegeschirr* (→ SCR-13; v0.4.0, D-100), *Darstellung*, *Daten* (→ SCR-26,
-Alle Daten löschen), *Über* (→ SCR-27).
+Alle Daten löschen), *Über* (→ SCR-27). From v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114))
+*Darstellung* is the first section, below the *Timer-Zuverlässigkeit* card,
+and holds *Design* (SET-05).
 
 **SET-31 — Test alert** `Must`: *Alarm testen* plays pre-alert tick + alert
 (the chosen *Vorwarnton*, SET-26, from v0.2.1; from v0.3.0 on the alarm

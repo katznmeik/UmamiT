@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -73,6 +74,8 @@ class CatalogBlackViewTest {
             FakeCatalogRefreshRunner(),
             folds = SettingsCatalogFoldRepository(settings),
         )
+        // From the Grüntee view: no kind is the default since v0.6.1 (D-114).
+        viewModel.changeFilter { it.withKind(CatalogKind.GREEN) }
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 CatalogRoute(alerting = false, onOpenTea = {}, viewModel = viewModel)
@@ -104,7 +107,7 @@ class CatalogBlackViewTest {
         switchToBlack()
 
         chip(R.string.catalog_filter_black).assertIsSelected()
-        shown("Tee-Kontor Kiel · 4 Schwarztees · aktualisiert am 22. Okt.")
+        shown("Tee-Kontor Kiel · 4 Tees · aktualisiert am 22. Okt.")
         compose.onNodeWithTag(catalogGroupTag("Assam")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag("Darjeeling")).assertIsDisplayed()
         compose.onNodeWithTag(catalogGroupTag(null)).assertIsDisplayed()
@@ -132,7 +135,7 @@ class CatalogBlackViewTest {
     }
 
     @Test
-    fun aSearchHitAmongTheBlackTeasIsHiddenInTheGreenViewAndShowAllOpensTheirs() {
+    fun aSearchHitAmongTheBlackTeasIsHiddenInTheGreenViewAndShowAllShowsEveryKind() {
         show()
 
         compose.onNodeWithTag(CATALOG_SEARCH_TAG).performTextInput("darjeeling")
@@ -142,7 +145,9 @@ class CatalogBlackViewTest {
         compose.onNodeWithText(str(R.string.catalog_show_all)).performClick()
         compose.waitForIdle()
 
-        chip(R.string.catalog_filter_black).assertIsSelected()
+        // *Alle zeigen* clears the kind (D-114).
+        chip(R.string.catalog_filter_black).assertIsNotSelected()
+        chip(R.string.catalog_filter_green).assertIsNotSelected()
         shown("Nebelhang Darjeeling")
         shown("Hochweide Darjeeling")
     }

@@ -128,12 +128,15 @@ class CatalogBrowseTest {
         )
     }
 
-    private suspend fun browse(filter: CatalogFilter = CatalogFilter.DEFAULT): CatalogListing =
+    /** The Grüntee view's defaults: no kind is the list's default since v0.6.1 (D-114). */
+    private val greenView = CatalogFilter(kind = CatalogKind.GREEN)
+
+    private suspend fun browse(filter: CatalogFilter = greenView): CatalogListing =
         repository.observeListing(filter).first()
 
-    private suspend fun names(filter: CatalogFilter = CatalogFilter.DEFAULT) = browse(filter).teas.map { it.name }
+    private suspend fun names(filter: CatalogFilter = greenView) = browse(filter).teas.map { it.name }
 
-    private val all = CatalogFilter(flavour = FlavourFilter.ALL, availableOnly = false, sort = CatalogSort.NAME)
+    private val all = greenView.copy(flavour = FlavourFilter.ALL, availableOnly = false, sort = CatalogSort.NAME)
 
     @Test
     fun theDefaultViewGroupsAvailablePureTeasBySorte() = runTest {
@@ -165,8 +168,8 @@ class CatalogBrowseTest {
     fun oneTapOnPurShowsTheFlavouredTeasToo() = runTest {
         refresh(tea("XY0100", "Morgennebel"), tea("XY0400", "Kirschduft", flavored = true))
 
-        assertThat(names(CatalogFilter(flavour = FlavourFilter.ALL))).containsExactly("Kirschduft", "Morgennebel")
-        assertThat(names(CatalogFilter(flavour = FlavourFilter.FLAVOURED))).containsExactly("Kirschduft")
+        assertThat(names(greenView.copy(flavour = FlavourFilter.ALL))).containsExactly("Kirschduft", "Morgennebel")
+        assertThat(names(greenView.copy(flavour = FlavourFilter.FLAVOURED))).containsExactly("Kirschduft")
     }
 
     @Test
@@ -245,7 +248,7 @@ class CatalogBrowseTest {
             tea("XY0300", "Abend Sencha", available = false),
         )
 
-        val listing = browse(CatalogFilter(search = "sencha"))
+        val listing = browse(greenView.copy(search = "sencha"))
 
         assertThat(listing.teas.map { it.name }).containsExactly("Morgen Sencha")
         assertThat(listing.hiddenMatches).isEqualTo(2)
@@ -374,7 +377,7 @@ class CatalogBrowseTest {
             .containsExactly("Wiesenzauber", "Zitronenwiese")
         assertThat(names(herbal.copy(minUmami = UmamiLevel.HIGH))).containsExactly("Wiesenzauber", "Zitronenwiese")
         // In the green view they still do.
-        assertThat(names(CatalogFilter(minUmami = UmamiLevel.HIGH))).containsExactly("Morgennebel")
+        assertThat(names(greenView.copy(minUmami = UmamiLevel.HIGH))).containsExactly("Morgennebel")
     }
 
     @Test
@@ -382,7 +385,7 @@ class CatalogBrowseTest {
         greenAndHerbal()
 
         // CAT-10: „Wiesen" finds a Kräutertee, hidden in the green view, and a green tea's „Kirsch" in the other.
-        val green = browse(CatalogFilter(search = "wiesen"))
+        val green = browse(greenView.copy(search = "wiesen"))
         assertThat(green.teas).isEmpty()
         assertThat(green.hiddenMatches).isEqualTo(1)
         assertThat(green.hiddenInOtherView).isEqualTo(1)
@@ -393,12 +396,13 @@ class CatalogBrowseTest {
     }
 
     @Test
-    fun theKraeuterteeChipCountsAsAChangedFilterAndPurDoesNotInItsView() {
+    fun theKraeuterteeChipDoesNotCountAsAChangedFilterAndNeitherDoesPurInItsView() {
         assertThat(CatalogFilter.DEFAULT.changedFilters).isEqualTo(0)
         val herbal = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL)
         assertThat(herbal.kind).isEqualTo(CatalogKind.HERBAL)
-        assertThat(herbal.changedFilters).isEqualTo(1)
-        assertThat(herbal.copy(flavour = FlavourFilter.ALL, minUmami = UmamiLevel.HIGH).changedFilters).isEqualTo(1)
+        // The kind doesn't count in „Filter (n)" since v0.6.1 (D-114).
+        assertThat(herbal.changedFilters).isEqualTo(0)
+        assertThat(herbal.copy(flavour = FlavourFilter.ALL, minUmami = UmamiLevel.HIGH).changedFilters).isEqualTo(0)
         // Switching drops the Sorten of the other kind and keeps search, sort and the rest.
         val switched = CatalogFilter(
             search = "x",
@@ -407,7 +411,8 @@ class CatalogBrowseTest {
         ).withKind(CatalogKind.HERBAL)
         assertThat(switched).isEqualTo(CatalogFilter(search = "x", organicOnly = true, kind = CatalogKind.HERBAL))
         assertThat(switched.withKind(CatalogKind.GREEN).kind).isEqualTo(CatalogKind.GREEN)
-        assertThat(herbal.withoutFilters().kind).isEqualTo(CatalogKind.HERBAL)
+        // *Alle zeigen* clears the kind (D-114).
+        assertThat(herbal.withoutFilters().kind).isNull()
     }
 
     @Test

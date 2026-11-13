@@ -65,7 +65,8 @@ class CatalogKindTest {
         assertThat(CatalogKind.of("oolong_generic")).isEqualTo(CatalogKind.OOLONG)
         assertThat(CatalogKind.of("sheng")).isEqualTo(CatalogKind.DARK)
         assertThat(CatalogKind.of("shou")).isEqualTo(CatalogKind.DARK)
-        assertThat(CatalogFilter.DEFAULT.kind).isEqualTo(CatalogKind.GREEN)
+        // No kind is the default view (D-114).
+        assertThat(CatalogFilter.DEFAULT.kind).isNull()
     }
 
     @Test
@@ -74,7 +75,10 @@ class CatalogKindTest {
         assertThat(listing.teas.map { it.name }).containsExactly("Berg")
         assertThat(listing.totalCount).isEqualTo(1)
         assertThat(listing.types).containsExactly("Oolong")
-        assertThat(list(CatalogFilter()).teas.map { it.name }).containsExactly("Gruen Rein", "Gruen Ohne Style")
+        assertThat(list(CatalogFilter(kind = CatalogKind.GREEN)).teas.map { it.name })
+            .containsExactly("Gruen Rein", "Gruen Ohne Style")
+        // Without a kind the extra kind's group follows the known ones (D-114).
+        assertThat(list(CatalogFilter()).sections.map { it.kind }.last()).isEqualTo(oolong)
         // Like herbal, a non-green kind ignores „Pur" and Umami.
         val filter = CatalogFilter(kind = oolong, flavour = FlavourFilter.FLAVOURED, minUmami = UmamiLevel.HIGH)
         assertThat(list(filter).teas.map { it.name }).containsExactly("Berg")
@@ -82,7 +86,7 @@ class CatalogKindTest {
 
     @Test
     fun hiddenSearchHitsAreCountedPerOtherKind() {
-        val listing = list(CatalogFilter(search = "x"), hits = setOf("A1", "A2", "H1", "O1"))
+        val listing = list(CatalogFilter(search = "x", kind = CatalogKind.GREEN), hits = setOf("A1", "A2", "H1", "O1"))
         assertThat(listing.hiddenMatches).isEqualTo(2 + 1)
         assertThat(listing.hiddenInOtherKinds).containsExactly(CatalogKind.HERBAL, 1, oolong, 1)
         assertThat(listing.hiddenInOtherView).isEqualTo(2)
@@ -92,8 +96,9 @@ class CatalogKindTest {
     fun switchingKindDropsTheSortenAndKeepsTheRest() {
         val filter = CatalogFilter(search = "x", types = setOf("Sencha"), organicOnly = true).withKind(oolong)
         assertThat(filter).isEqualTo(CatalogFilter(search = "x", organicOnly = true, kind = oolong))
-        assertThat(filter.changedFilters).isEqualTo(2)
-        assertThat(filter.withoutFilters().kind).isEqualTo(oolong)
+        // The kind doesn't count in „Filter (n)", and *Alle zeigen* clears it (D-114).
+        assertThat(filter.changedFilters).isEqualTo(1)
+        assertThat(filter.withoutFilters().kind).isNull()
         assertThat(filter.withKind(CatalogKind.GREEN).changedFilters).isEqualTo(1)
     }
 }

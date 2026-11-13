@@ -34,6 +34,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.LowStockReminderInterval
+import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.alert.AlertSound
 import com.umamit.core.timer.alert.PreAlertSound
@@ -70,6 +71,8 @@ internal fun SettingsDialogs(
             },
             onDismiss = onDismiss,
         )
+
+        SettingsDialog.Theme -> ThemeDialog(settings.theme, actions.setTheme, onDismiss)
 
         SettingsDialog.AlertLength -> AlertLengthDialog(settings.alertLength, actions.setAlertLength, onDismiss)
 
@@ -199,6 +202,26 @@ internal fun ReminderIntervalDialog(
             )
         }
     }
+}
+
+/** SET-05 *Design* (D-114): *System · Hell · Dunkel*; a pick is stored at once and the app follows it. */
+@Composable
+internal fun ThemeDialog(selected: ThemeMode, onSelect: (ThemeMode) -> Unit, onDismiss: () -> Unit) {
+    ChoiceDialog(title = stringResource(R.string.settings_theme), onDismiss = onDismiss) {
+        ThemeMode.entries.forEach { mode ->
+            ChoiceRow(
+                label = stringResource(mode.label()),
+                selected = mode == selected,
+                onClick = { onSelect(mode) },
+            )
+        }
+    }
+}
+
+internal fun ThemeMode.label(): Int = when (this) {
+    ThemeMode.SYSTEM -> R.string.settings_theme_system
+    ThemeMode.LIGHT -> R.string.settings_theme_light
+    ThemeMode.DARK -> R.string.settings_theme_dark
 }
 
 @Composable

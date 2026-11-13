@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Why the default recipe should be checked (CAT-05, 05 §5 RecipeCheckReason): on the catalog tea (SCR-21) and the setup (SCR-04). -->
     <string name="ui_recipe_reason_from_text">Werte stammen aus dem Beschreibungstext, nicht aus der Tabelle des Shops.</string>
     <string name="ui_recipe_reason_from_style">Der Shop nennt nicht alle Werte – die fehlenden stammen aus den Standardwerten der Sorte.</string>
     <string name="ui_recipe_reason_conflict">Tabelle und Beschreibungstext des Shops widersprechen sich – das Rezept folgt der Tabelle.</string>
     <string name="ui_recipe_reason_implausible">Ein Wert des Shops wirkt unplausibel – stattdessen gilt der Standardwert der Sorte.</string>
-    <string name="ui_recipe_reason_unmapped">Der Tee passt zu keiner bekannten Sorte – Umami-Stufe und Ersatzwerte sind allgemeine Grüntee-Werte.</string>
+    <string name="ui_recipe_reason_unmapped">Der Tee passt zu keiner bekannten Sorte – Umami-Stufe und Ersatzwerte sind allgemeine Werte.</string>
     <!-- The stock sheet „Wie viel ist noch da?" (SCR-04, BRW-02, INV-03; D-093). -->
     <string name="ui_stock_title">Wie viel ist noch da?</string>
     <string name="ui_stock_field">Noch da</string>
@@ -123,9 +123,21 @@
     <string name="ui_taste_slider_value">%1$s von 5</string>
     <string name="ui_taste_radar_label">Geschmacksprofil: %1$s</string>
     <string name="ui_taste_radar_item">%1$s %2$s von 5</string>
+    <!-- The summary line under three set axes (SCR-16 v0.6.1, D-114): „Umami 4 · Süße 3"; nothing set. -->
+    <string name="ui_taste_summary_item">%1$s %2$s</string>
+    <string name="ui_taste_summary_separator">" · "</string>
+    <string name="ui_taste_summary_empty">Noch nichts eingetragen</string>
+    <!-- InfusionTasteEditor (SCR-05, SCR-16 v0.6.1, D-114): an infusion's note, ≤ 200 with a counter from 180. -->
+    <string name="ui_infusion_note_placeholder">Notiz zum Aufguss …</string>
+    <string name="ui_infusion_note_counter">%1$d / %2$d</string>
+    <string name="ui_infusion_taste_reset">Zurücksetzen</string>
     <!-- DescriptorChip toggle state for TalkBack: „Nori, ausgewählt" (03 §3.8, JRN-04). -->
     <string name="ui_descriptor_selected">ausgewählt</string>
     <string name="ui_descriptor_not_selected">nicht ausgewählt</string>
     <!-- Read-only DescriptorChip with a count: „Nori · 4". -->
     <string name="ui_descriptor_with_count">%1$s · %2$d</string>
+    <!-- The full-screen photo viewer (SCR-28, TEA-05, D-114 Q9): the hero's TalkBack action, the counter, and each photo. -->
+    <string name="ui_photo_enlarge">Foto vergrößern</string>
+    <string name="ui_photo_viewer_counter">%1$d / %2$d</string>
+    <string name="ui_photo_viewer_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d</string>
 </resources>

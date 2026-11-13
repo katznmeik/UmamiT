@@ -91,7 +91,9 @@ class Migration5To6Test {
             val done = db.sessionDao().get("done-1")!!
             assertThat(done.status).isEqualTo(SessionStatus.COMPLETED)
             assertThat(done.rating).isEqualTo(4.5)
-            assertThat(done.tasteUmami).isEqualTo(5)
+            // The production builder runs on to the current version: from v7 the taste is its first infusion's.
+            assertThat(done.tasteUmami).isNull()
+            assertThat(db.sessionDao().steps("done-1")[0].tasteUmami).isEqualTo(5)
             assertThat(done.notes).isEqualTo("Süß")
             assertThat(db.sessionDao().steps("done-2")).isEmpty()
             assertThat(db.tastingDao().descriptors("done-1")).isEmpty()

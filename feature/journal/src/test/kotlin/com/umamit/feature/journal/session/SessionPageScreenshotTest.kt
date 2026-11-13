@@ -2,6 +2,7 @@ package com.umamit.feature.journal.session
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
@@ -9,6 +10,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.ui.INFUSION_TASTE_RESET_TAG
 import com.umamit.feature.journal.RECIPE_OFFER_TAG
 import com.umamit.feature.journal.RecipeOfferState
 import org.junit.Rule
@@ -22,7 +24,8 @@ import java.time.LocalDateTime
 
 /**
  * The session page (SCR-16, D-100, D-112) in light and dark at font scale 1.0 and 2.0 (03 §6): a tea of the
- * collection (unrated, empty note, GESCHMACK folded to its one row)
+ * collection (unrated, empty note, GESCHMACK as its quiet row; folded with a radar or the summary line, unfolded, and
+ * *Alle*, D-114)
  * with a rinse, an infusion run into overtime, a skipped one and one never started;
  * the same rated 3,5 with a long note; an archived tea (the
  * button greyed out with *Wiederherstellen*); a deleted tea (no link, no button). Goldens: `src/test/screenshots/`.
@@ -58,6 +61,7 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
                 SessionPageStep(StepKind.INFUSION, 2, 20, 0, 70, skipped = true),
                 SessionPageStep(StepKind.INFUSION, 3, 30, null, 75, skipped = false),
             ),
+            infusions = listOf(SessionInfusion(position = 1, number = 1, kind = StepKind.INFUSION)),
         )
     }
 
@@ -66,11 +70,33 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, state: SessionPageUiState, scrollToTag: String? = null) {
+    /**
+     * The steps of the taste renders: as [page]'s, but the 3rd infusion poured (0:32), so its chip „3." matches the
+     * step table (a step never brewed has no chip, D-114).
+     */
+    private val tastedSteps = page.steps.map { if (it.infusionNumber == 3) it.copy(actualSeconds = 32) else it }
+
+    /** The 1st infusion with [first] and [note], and the 3rd (the skipped 2nd has no chip) with [second]. */
+    private fun infusions(first: TasteProfile, note: String? = null, second: TasteProfile = TasteProfile.EMPTY) =
+        listOf(
+            SessionInfusion(position = 1, number = 1, kind = StepKind.INFUSION, taste = first, note = note),
+            SessionInfusion(position = 3, number = 3, kind = StepKind.INFUSION, taste = second),
+        )
+
+    private fun capture(
+        name: String,
+        state: SessionPageUiState,
+        scrollToTag: String? = null,
+        click: String? = null,
+        thenScrollTo: String? = null,
+    ) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent { UmamiTheme(darkTheme = dark, reduceMotion = true) { SessionPageScreen(state) } }
         compose.waitForIdle()
         if (scrollToTag != null) compose.onNodeWithTag(scrollToTag).performScrollTo()
+        if (click != null) compose.onNodeWithTag(click).performClick()
+        compose.waitForIdle()
+        if (thenScrollTo != null) compose.onNodeWithTag(thenScrollTo).performScrollTo()
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/SessionPage_${name}_$variant.png")
     }
@@ -92,29 +118,67 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
         ),
     )
 
-    /** Two axes set: the sliders are open, no radar yet (JRN-03). */
+    /** GESCHMACK without any value: the quiet row „Geschmack hinzufügen" (D-114). */
     @Test
-    fun tasteTwoAxes() = capture(
-        "tasteTwoAxes",
-        SessionPageUiState.Ready(page.copy(taste = TasteProfile(umami = 4, aroma = 2))),
-        scrollToTag = SESSION_TASTE_RESET_TAG,
-    )
+    fun tasteNoValues() = capture("tasteNoValues", SessionPageUiState.Ready(page), scrollToTag = SESSION_TASTE_ADD_TAG)
 
-    /** All six axes set: the radar above the six sliders. */
+    /** Folded on the 1st infusion with three axes: the radar, the note in one line, *Anpassen* ⌄ (D-114 Q7). */
     @Test
-    fun tasteAllSix() = capture(
-        "tasteAllSix",
+    fun tasteFoldedRadar() = capture(
+        "tasteFoldedRadar",
         SessionPageUiState.Ready(
             page.copy(
-                taste = TasteProfile(umami = 5, sweetness = 3, bitterness = 1, astringency = 2, body = 4, aroma = 3),
+                steps = tastedSteps,
+                infusions = infusions(
+                    TasteProfile(umami = 5, sweetness = 3, bitterness = 1, astringency = 2, body = 4, aroma = 3),
+                    note = "Weich, nach Nori, mit einer leichten Süße im Abgang und kaum Bitterkeit",
+                ),
             ),
         ),
-        scrollToTag = SESSION_TASTE_RESET_TAG,
+        scrollToTag = SESSION_TASTE_ADJUST_TAG,
     )
 
-    /** GESCHMACK folded to its one row, scrolled into view below the step table. */
+    /** Folded below three axes: the summary line „Umami 4 · Süße 3". */
     @Test
-    fun tasteFolded() = capture("tasteFolded", SessionPageUiState.Ready(page), scrollToTag = SESSION_TASTE_ADD_TAG)
+    fun tasteFoldedSummary() = capture(
+        "tasteFoldedSummary",
+        SessionPageUiState.Ready(
+            page.copy(steps = tastedSteps, infusions = infusions(TasteProfile(umami = 4, sweetness = 3))),
+        ),
+        scrollToTag = SESSION_TASTE_ADJUST_TAG,
+    )
+
+    /** Unfolded: the radar, the six sliders, the note field and *Zurücksetzen*. */
+    @Test
+    fun tasteUnfolded() = capture(
+        "tasteUnfolded",
+        SessionPageUiState.Ready(
+            page.copy(
+                steps = tastedSteps,
+                infusions = infusions(TasteProfile(umami = 5, sweetness = 3, body = 4), note = "Weich"),
+            ),
+        ),
+        scrollToTag = SESSION_TASTE_ADJUST_TAG,
+        click = SESSION_TASTE_ADJUST_TAG,
+        thenScrollTo = INFUSION_TASTE_RESET_TAG,
+    )
+
+    /** *Alle*: the radar averaged per axis over the infusions, no *Anpassen* (D-114 Q18). */
+    @Test
+    fun tasteAll() = capture(
+        "tasteAll",
+        SessionPageUiState.Ready(
+            page.copy(
+                steps = tastedSteps,
+                infusions = infusions(
+                    TasteProfile(umami = 5, sweetness = 3, body = 4),
+                    second = TasteProfile(umami = 4, sweetness = 2, body = 3, aroma = 2),
+                ),
+            ),
+        ),
+        scrollToTag = SESSION_TASTE_ADJUST_TAG,
+        click = SESSION_TASTE_ALL_TAG,
+    )
 
     /** The recipe offer applies: *Zeiten ins Rezept übernehmen* under the step table, scrolled into view (PRF-07). */
     @Test
@@ -122,6 +186,22 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
         "recipeOffer",
         SessionPageUiState.Ready(page.copy(recipeOffer = RecipeOfferState.OFFERED)),
         scrollToTag = RECIPE_OFFER_TAG,
+    )
+
+    /** ⋮ open for a catalog tea: *Tee ansehen*, *Im Katalog ansehen*, a divider, *Bearbeiten*, *Löschen*. */
+    @Test
+    fun menuCatalogOpen() = capture(
+        "menuCatalogOpen",
+        SessionPageUiState.Ready(page.copy(catalogKey = "TG0557")),
+        click = SESSION_MENU_TAG,
+    )
+
+    /** ⋮ open for a deleted tea: *Bearbeiten* and *Löschen* alone. */
+    @Test
+    fun menuDeletedOpen() = capture(
+        "menuDeletedOpen",
+        SessionPageUiState.Ready(page.copy(teaId = null, tea = SessionTea.DELETED)),
+        click = SESSION_MENU_TAG,
     )
 
     @Test

@@ -93,7 +93,20 @@
     <!-- GESCHMACK of the session page (SCR-16, JRN-03, D-112). -->
     <string name="session_taste">Geschmack</string>
     <string name="session_taste_add">Geschmack hinzufügen</string>
-    <string name="session_taste_reset">Zurücksetzen</string>
+    <!-- GESCHMACK per infusion (SCR-16 v0.6.1, D-114): the chips *Alle* · „1. Aufguss" · „2." …, folded with *Anpassen*. -->
+    <string name="session_taste_all">Alle</string>
+    <string name="session_taste_infusion">%1$d. Aufguss</string>
+    <string name="session_taste_infusion_short">%1$d.</string>
+    <string name="session_taste_chip_selected">ausgewählt</string>
+    <string name="session_taste_chip_not_selected">nicht ausgewählt</string>
+    <string name="session_taste_chip_data">Geschmack eingetragen</string>
+    <!-- TalkBack: „ausgewählt, Geschmack eingetragen". -->
+    <string name="session_taste_chip_state">%1$s, %2$s</string>
+    <string name="session_taste_adjust">Anpassen</string>
+    <!-- TalkBack: „Geschmack anpassen, eingeklappt". -->
+    <string name="session_taste_adjust_description">Geschmack anpassen</string>
+    <string name="session_taste_folded">eingeklappt</string>
+    <string name="session_taste_unfolded">ausgeklappt</string>
     <string name="session_steps">Aufgüsse</string>
     <string name="session_column_step">Schritt</string>
     <string name="session_column_planned">geplant</string>
@@ -130,6 +143,8 @@
     <string name="session_method_ice_brew">Eisaufguss</string>
     <string name="session_method_custom">Eigene</string>
     <!-- ⋮ Bearbeiten on the session page and the editor SCR-17 (JRN-11, D-112). -->
+    <string name="session_menu_tea">Tee ansehen</string>
+    <string name="session_menu_catalog">Im Katalog ansehen</string>
     <string name="session_edit">Bearbeiten</string>
     <string name="session_editor_title">Sitzung bearbeiten</string>
     <string name="session_editor_close">Schließen</string>

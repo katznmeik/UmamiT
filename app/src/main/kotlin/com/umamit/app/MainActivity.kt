@@ -6,13 +6,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.umamit.app.timer.TimerActiveBrewSource
 import com.umamit.app.timer.TimerScreenRequests
 import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.SettingsRepository
-import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.designsystem.theme.UmamiAppTheme
+import com.umamit.core.model.ThemeMode
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.notification.TimerScreenIntents
 import com.umamit.feature.brew.timer.BrewTimer
@@ -21,6 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -97,6 +106,7 @@ class MainActivity : ComponentActivity() {
         val collectionSegments = SettingsCollectionSegments(settings, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
+        val themeMode = themeModeState(settings)
         val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         lifecycleScope.launch {
             combine(brewTimer.state, timerVisible, ::lockScreenFlags).distinctUntilChanged().collect {
@@ -105,7 +115,9 @@ class MainActivity : ComponentActivity() {
             }
         }
         setContent {
-            UmamiTheme {
+            val mode by themeMode.collectAsStateWithLifecycle()
+            UmamiAppTheme(mode ?: ThemeMode.SYSTEM) {
+                WindowBackground()
                 UmamitRoot(
                     activeBrewSource = activeBrewSource,
                     journalSources = journalSources,
@@ -152,6 +164,14 @@ class MainActivity : ComponentActivity() {
         timerRequests.request(intent)
     }
 
+    /** The window behind the app takes the theme's background, so nothing of the phone's theme shows through. */
+    @Composable
+    private fun WindowBackground() {
+        val view = LocalView.current
+        val background = MaterialTheme.colorScheme.background.toArgb()
+        SideEffect { view.rootView.setBackgroundColor(background) }
+    }
+
     /** The timer is about to show: over the lock screen at once, before any frame (D-058, D-064). */
     private fun showTimerOverLockScreen() {
         timerVisible.value = true
@@ -179,3 +199,18 @@ class MainActivity : ComponentActivity() {
  */
 internal fun SettingsRepository.onboardingCompleted(): Flow<Boolean?> =
     settings.map<_, Boolean?> { it.onboardingCompleted }.catch { emit(true) }
+
+/** The stored *Design* (SET-05); an unreadable settings file reads as *System* (D-068). */
+internal fun SettingsRepository.themeMode(): Flow<ThemeMode> =
+    settings.map { it.theme }.catch { emit(ThemeMode.SYSTEM) }.distinctUntilChanged()
+
+/**
+ * The app theme's choice as state, following the settings at once; null until the file is read, and the app
+ * draws *System* until then. Nothing waits for it (rule 8: a start into the timer or the alert never blocks on
+ * the theme, and those surfaces are always [com.umamit.core.designsystem.theme.SteepingTheme]). No flash of the
+ * other theme still: the settings hand the stored choice to the system too (`UiModeManager.setApplicationNightMode`,
+ * SET-05, D-114) when the *Design* dialog closes and whenever they show with no alert, so the starting window and the
+ * configuration *System* reads are already in the chosen theme.
+ */
+internal fun ComponentActivity.themeModeState(settings: SettingsRepository): StateFlow<ThemeMode?> =
+    settings.themeMode().stateIn(lifecycleScope, SharingStarted.Eagerly, null)
