@@ -23,6 +23,7 @@
     <string name="stats_ratings_top">Am besten bewertet</string>
     <string name="stats_ratings_best_recipe">Bestes Rezept</string>
     <string name="stats_ratings_taste">Geschmack</string>
+    <string name="stats_descriptor_with_count">%1$s · %2$d×</string>
     <string name="stats_ratings_descriptors">Beschreibungen</string>
     <string name="stats_ratings_none">Noch keine Bewertung in diesem Zeitraum</string>
     <string name="stats_ratings_average">Ø %1$s ★</string>
@@ -32,12 +33,10 @@
     </plurals>
     <string name="stats_ratings_distribution">Verteilung der Bewertungen</string>
     <string name="stats_ratings_top_meta">Ø %1$s ★ · %2$s</string>
-    <string name="stats_ratings_open_tea">Tee öffnen</string>
-    <string name="stats_ratings_recipe_item">%1$s %2$s ★</string>
+        <string name="stats_ratings_recipe_item">%1$s %2$s ★</string>
     <string name="stats_ratings_recipe_separator">" · "</string>
     <string name="stats_ratings_recipe_unnamed">Rezept</string>
-    <string name="stats_period_week">KW %1$d</string>
-    <plurals name="stats_ratings_count">
+        <plurals name="stats_ratings_count">
         <item quantity="one">%1$d Bewertung</item>
         <item quantity="other">%1$d Bewertungen</item>
     </plurals>
@@ -64,7 +63,7 @@
     <string name="stats_overview_section_sessions">Sitzungen</string>
     <string name="stats_overview_sessions_per_week">Sitzungen pro Woche</string>
     <string name="stats_overview_sessions_per_month">Sitzungen pro Monat</string>
-    <string name="stats_overview_week">KW %1$d</string>
+    <string name="stats_period_week">KW %1$d</string>
     <plurals name="stats_overview_days">
         <item quantity="one">%1$s Tag</item>
         <item quantity="other">%1$s Tage</item>
@@ -74,10 +73,9 @@
     <string name="stats_overview_streak_none">Keine Serie gerade</string>
     <string name="stats_overview_section_most_brewed">Am häufigsten</string>
     <string name="stats_overview_times">%1$d×</string>
-    <string name="stats_overview_open_tea">Öffnen</string>
-    <string name="stats_overview_section_sorten">Tee-Sorten</string>
-    <string name="stats_overview_sorten_title">Tee-Sorten</string>
-    <string name="stats_overview_other">Andere</string>
+    <string name="stats_open_tea">Tee öffnen</string>
+    <string name="stats_overview_sorten">Tee-Sorten</string>
+        <string name="stats_overview_other">Andere</string>
     <string name="stats_overview_section_habits">Gewohnheiten</string>
     <string name="stats_overview_day_part">Tageszeit</string>
     <string name="stats_overview_weekday">Wochentag</string>
@@ -97,11 +95,11 @@
     <!-- ===== end of #260 ===== -->
 
     <!-- ===== #262: Verbrauch (INS-05) ===== -->
-    <string name="stats_consumption_section_grams">GRAMM</string>
-    <string name="stats_consumption_section_cups">TASSEN</string>
-    <string name="stats_consumption_section_money">AUSGABEN</string>
-    <string name="stats_consumption_section_cost">KOSTEN PRO TASSE</string>
-    <string name="stats_consumption_section_running_out">GEHT ZUR NEIGE</string>
+    <string name="stats_consumption_section_grams">Gramm</string>
+    <string name="stats_consumption_section_cups">Tassen</string>
+    <string name="stats_consumption_section_money">Ausgaben</string>
+    <string name="stats_consumption_section_cost">Kosten pro Tasse</string>
+    <string name="stats_consumption_section_running_out">Geht zur Neige</string>
     <string name="stats_consumption_in_range">im Zeitraum</string>
     <string name="stats_consumption_grams_per_week">Gramm pro Woche</string>
     <string name="stats_consumption_grams_per_month">Gramm pro Monat</string>

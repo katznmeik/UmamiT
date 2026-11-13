@@ -65,8 +65,7 @@ class ConsumptionScreenshotTest(private val dark: Boolean, private val fontScale
                 Modifier.width(411.dp).height(height).background(MaterialTheme.colorScheme.background).testTag("shot"),
             ) {
                 ConsumptionTab(
-                    stats = stats,
-                    range = range,
+                    figures = TabFigures(range, stats),
                     scrollState = rememberScrollState(),
                     onOpenTea = {},
                     thumbnail = { null },

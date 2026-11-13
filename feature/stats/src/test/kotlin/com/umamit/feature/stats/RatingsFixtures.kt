@@ -47,8 +47,8 @@ internal object RatingsFixtures {
         sessionCount = 25,
         distribution = listOf(StarBucket(1, 0), StarBucket(2, 1), StarBucket(3, 3), StarBucket(4, 8), StarBucket(5, 6)),
         topRated = listOf(
-            TeaRatingRow("tea-1", "Gyokuro Hisui", 4.6, 5),
-            TeaRatingRow("tea-2", "Sencha Asahi", 4.2, 4),
+            TeaRatingRow("tea-1", "Gyokuro Hisui", 4.6, 5, styleKey = "gyokuro"),
+            TeaRatingRow("tea-2", "Sencha Asahi", 4.2, 4, styleKey = "sencha"),
             TeaRatingRow(null, "Gelöschter Tee", 4.0, 3),
         ),
         ratingPerPeriod = weeks.mapIndexed { index, period -> PeriodValue(period, ratings[index]) },

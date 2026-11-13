@@ -4,19 +4,15 @@ import com.umamit.core.common.WallClock
 import com.umamit.core.database.dao.StatsDao
 import com.umamit.core.database.dao.StatsSessionRow
 import com.umamit.core.database.dao.StatsTeaRow
-import com.umamit.core.domain.stats.ConsumptionStats
-import com.umamit.core.domain.stats.OverviewStats
-import com.umamit.core.domain.stats.RatingsStats
 import com.umamit.core.domain.stats.StatsCalculator
 import com.umamit.core.domain.stats.StatsInput
 import com.umamit.core.domain.stats.StatsSession
 import com.umamit.core.domain.stats.StatsStep
 import com.umamit.core.domain.stats.StatsTea
-import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TasteProfile
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -42,6 +38,7 @@ class RoomStatsRepository @Inject constructor(
     private val dao: StatsDao,
     private val settings: SettingsRepository,
     private val photos: PhotoFiles,
+    @StatsDispatcher private val dispatcher: CoroutineDispatcher,
 ) : StatsRepository {
     override fun observeInput(): Flow<StatsInput> = combine(
         dao.observeFinishedSessions(),
@@ -55,7 +52,7 @@ class RoomStatsRepository @Inject constructor(
             inventoryEvents = events.map { it.toModel() },
             knownDescriptorKeys = KNOWN_DESCRIPTOR_KEYS,
         )
-    }.flowOn(Dispatchers.Default)
+    }.flowOn(dispatcher)
 }
 
 /** The descriptor vocabulary of 08 §4; every other key is dropped from the sessions (INS-04). */
@@ -112,24 +109,17 @@ private fun StatsTeaRow.toStatsTea(lowStockGrams: Double, photos: PhotoFiles) = 
 )
 
 /**
- * The figures of the Statistik screen as flows (INS-01–INS-07): [StatsRepository]'s input through #256's
- * [StatsCalculator] on [Dispatchers.Default], dated by [clock]'s today and zone at the time of each emission.
+ * The statistics' calculator as a flow (INS-01–INS-07): [StatsRepository]'s input through #256's [StatsCalculator]
+ * on [dispatcher], dated by [clock]'s today and zone at the time of each emission. The screen shares one such flow
+ * and derives every tab from it.
  */
-class ObserveStats @Inject constructor(private val repository: StatsRepository, private val clock: WallClock) {
+class ObserveStats @Inject constructor(
+    private val repository: StatsRepository,
+    private val clock: WallClock,
+    @StatsDispatcher private val dispatcher: CoroutineDispatcher,
+) {
     /** A calculator per emission, for [StatsCalculator.hasSessions], [StatsCalculator.window] and every tab. */
     fun calculator(): Flow<StatsCalculator> = repository.observeInput()
-        .map { StatsCalculator(it, javaClock()) }
-        .flowOn(Dispatchers.Default)
-
-    fun overview(range: StatsRange): Flow<OverviewStats> = compute { it.overview(range) }
-
-    fun ratings(range: StatsRange): Flow<RatingsStats> = compute { it.ratings(range) }
-
-    fun consumption(range: StatsRange): Flow<ConsumptionStats> = compute { it.consumption(range) }
-
-    private fun <T> compute(figures: (StatsCalculator) -> T): Flow<T> = repository.observeInput()
-        .map { figures(StatsCalculator(it, javaClock())) }
-        .flowOn(Dispatchers.Default)
-
-    private fun javaClock(): Clock = Clock.fixed(Instant.ofEpochMilli(clock.nowMs()), clock.zone())
+        .map { StatsCalculator(it, Clock.fixed(Instant.ofEpochMilli(clock.nowMs()), clock.zone())) }
+        .flowOn(dispatcher)
 }

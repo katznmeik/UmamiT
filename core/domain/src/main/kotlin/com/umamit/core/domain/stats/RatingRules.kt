@@ -19,12 +19,25 @@ internal fun starBuckets(rated: List<DatedSession>): List<StarBucket> {
 }
 
 /** The top 5 teas by average among those with ≥ 3 rated sessions; ties by more ratings, then by name. */
-internal fun topRated(rated: List<DatedSession>, names: Map<String, String>): List<TeaRatingRow> = rated
+internal fun topRated(
+    rated: List<DatedSession>,
+    names: Map<String, String>,
+    teas: Map<String, StatsTea> = emptyMap(),
+): List<TeaRatingRow> = rated
     .groupBy { it.session.teaKey() }
     .values
     .filter { it.size >= TOP_RATED_MIN_RATINGS }
     .map { group ->
-        TeaRatingRow(group.first().session.teaId, group.teaName(names), group.map { it.rating }.average(), group.size)
+        val teaId = group.first().session.teaId
+        val tea = teaId?.let(teas::get)
+        TeaRatingRow(
+            teaId = teaId,
+            teaName = group.teaName(names),
+            average = group.map { it.rating }.average(),
+            ratingCount = group.size,
+            coverPhoto = tea?.coverPhoto,
+            styleKey = tea?.styleKey ?: group.maxBy { it.session.startedAtMs }.session.styleKey,
+        )
     }
     .sortedWith(
         compareByDescending<TeaRatingRow> { it.average }.thenByDescending { it.ratingCount }.thenBy { it.teaName },
@@ -46,7 +59,11 @@ private data class RatingSum(val total: Double = 0.0, val count: Int = 0) {
  * The best recipe (INS-02): the teas with ≥ 2 recipes rated ≥ 2× each, their qualifying recipes best first; up to
  * 5 teas by the gap between best and worst, then by name. Sessions without a recipe don't count.
  */
-internal fun bestRecipes(rated: List<DatedSession>, names: Map<String, String>): List<BestRecipeTea> = rated
+internal fun bestRecipes(
+    rated: List<DatedSession>,
+    names: Map<String, String>,
+    teas: Map<String, StatsTea> = emptyMap(),
+): List<BestRecipeTea> = rated
     .filter { it.session.profileId != null }
     .groupBy { it.session.teaKey() }
     .values
@@ -59,11 +76,15 @@ internal fun bestRecipes(rated: List<DatedSession>, names: Map<String, String>):
             }
             .sortedWith(compareByDescending<RecipeRating> { it.average }.thenBy { it.profileName.orEmpty() })
         if (recipes.size < BEST_RECIPE_MIN_RECIPES) return@mapNotNull null
+        val teaId = teaSessions.first().session.teaId
+        val tea = teaId?.let(teas::get)
         BestRecipeTea(
-            teaId = teaSessions.first().session.teaId,
+            teaId = teaId,
             teaName = teaSessions.teaName(names),
             recipes = recipes,
             gap = recipes.first().average - recipes.last().average,
+            coverPhoto = tea?.coverPhoto,
+            styleKey = tea?.styleKey ?: teaSessions.maxBy { it.session.startedAtMs }.session.styleKey,
         )
     }
     .sortedWith(compareByDescending<BestRecipeTea> { it.gap }.thenBy { it.teaName })

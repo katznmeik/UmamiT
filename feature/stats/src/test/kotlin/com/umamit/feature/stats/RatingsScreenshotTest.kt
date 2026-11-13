@@ -42,7 +42,12 @@ class RatingsScreenshotTest(private val dark: Boolean, private val fontScale: Fl
 
     private fun capture(name: String, stats: RatingsStats) {
         RuntimeEnvironment.setFontScale(fontScale)
-        compose.setContent { Themed { RatingsTab(stats, StatsRange.DAYS_90, rememberScrollState(), onOpenTea = {}) } }
+        compose.setContent {
+            Themed {
+                RatingsTab(TabFigures(StatsRange.DAYS_90, stats), rememberScrollState(), onOpenTea = {
+                }, thumbnail = { null })
+            }
+        }
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/Ratings_${name}_$variant.png")
     }
