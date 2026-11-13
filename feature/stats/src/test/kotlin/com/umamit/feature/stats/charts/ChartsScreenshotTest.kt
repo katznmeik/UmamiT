@@ -22,6 +22,7 @@ import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.roundToInt
 
 /**
  * The chart components of SCR-18 with placeholder data, in light and dark at font scale 1.0 and 2.0 (03 §6):
@@ -102,6 +103,7 @@ class ChartsScreenshotTest(private val dark: Boolean, private val fontScale: Flo
     @Test
     fun donut6() = shot("donut6") {
         val counts = listOf(21, 13, 8, 5, 3, 4)
+        val percents = counts.map { (it * 100.0 / counts.sum()).roundToInt() }
         val tea = com.umamit.core.designsystem.theme.DefaultExtendedColors.teaTypes
         val own = listOf(tea.sencha, tea.gyokuro, tea.genmaicha, tea.hojicha, null)
         SortenDonut(
@@ -109,9 +111,9 @@ class ChartsScreenshotTest(private val dark: Boolean, private val fontScale: Flo
                 if (index ==
                     5
                 ) {
-                    DonutSlice("Andere", counts[5], isOther = true)
+                    DonutSlice("Andere", counts[5], percents[5], isOther = true)
                 } else {
-                    DonutSlice(SORTEN[index], counts[index], own[index])
+                    DonutSlice(SORTEN[index], counts[index], percents[index], own[index])
                 }
             },
             "Tee-Sorten",
@@ -120,7 +122,7 @@ class ChartsScreenshotTest(private val dark: Boolean, private val fontScale: Flo
 
     @Test
     fun donut1() = shot("donut1") {
-        SortenDonut(listOf(DonutSlice("Sencha", 12, Color(0xFF7C9A5B))), "Tee-Sorten")
+        SortenDonut(listOf(DonutSlice("Sencha", 12, 100, Color(0xFF7C9A5B))), "Tee-Sorten")
     }
 
     @Test

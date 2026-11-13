@@ -1,5 +1,6 @@
 package com.umamit.feature.stats.charts
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.umamit.core.designsystem.motion.LocalReduceMotion
+import com.umamit.core.designsystem.motion.MotionTokens
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -59,6 +62,7 @@ private val TOOLTIP_RADIUS = 6.dp
 private val BASELINE_WIDTH = 1.dp
 private const val SAMPLE_X_LABEL = "KW 44"
 private const val HALF = 0.5f
+private const val SCROLL_GLIDE_MILLIS = 250
 
 /** The pixel geometry of one chart's plot area: [count] equal slots over [width], values from [yMin] to [yMax]. */
 internal class PlotGeometry(
@@ -102,7 +106,7 @@ internal class XYChartSpec(
     val description: String,
     val scrollable: Boolean,
     val selectionKey: Any?,
-    val alpha: Float,
+    val alpha: () -> Float,
     val tooltip: (Int) -> String,
     /** The index selected by a tap at [Offset] (plot pixels), or null for a tap on nothing. */
     val hitTest: Density.(Offset, PlotGeometry) -> Int?,
@@ -133,9 +137,11 @@ internal fun XYChartFrame(
         ?.plus(with(density) { AXIS_LABEL_GAP.toPx() }) ?: 0f
     val baseline = topPad + plotPx
     val geometry = { width: Float -> PlotGeometry(width, topPad, baseline, spec.count, spec.yMin, spec.yMax) }
-    var selected by remember(spec.selectionKey) { mutableStateOf<Int?>(null) }
+    val selection = rememberChartSelection(spec.selectionKey)
+    val selected = selection.index
+    val reduceMotion = LocalReduceMotion.current
 
-    Row(modifier.height(with(density) { (baseline + bandPx).toDp() }).graphicsLayer { alpha = spec.alpha }) {
+    Row(modifier.height(with(density) { (baseline + bandPx).toDp() }).graphicsLayer { alpha = spec.alpha() }) {
         YAxisLabels(spec, geometry, measurer, labelStyle, Modifier.width(with(density) { axisWidthPx.toDp() }))
         BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
             val viewport = constraints.maxWidth.toFloat()
@@ -150,12 +156,37 @@ internal fun XYChartFrame(
                 viewport
             }
             val scroll = rememberScrollState()
-            if (spec.scrollable) LaunchedEffect(scroll.maxValue) { scroll.scrollTo(scroll.maxValue) }
+            if (spec.scrollable) {
+                // Opens at the end; when the range changes later the view glides to the new end (snaps under reduce motion).
+                var shown by remember { mutableStateOf(false) }
+                LaunchedEffect(scroll.maxValue) {
+                    if (shown && !reduceMotion) {
+                        scroll.animateScrollTo(
+                            scroll.maxValue,
+                            tween(SCROLL_GLIDE_MILLIS, easing = MotionTokens.CalmEaseOut),
+                        )
+                    } else {
+                        scroll.scrollTo(scroll.maxValue)
+                    }
+                    shown = true
+                }
+            }
             val scrollModifier = if (spec.scrollable) Modifier.horizontalScroll(scroll) else Modifier
             Box(Modifier.fillMaxSize().then(scrollModifier)) {
-                PlotContent(spec, geometry, measurer, labelStyle, selected, {
-                    selected = it
-                }, draw, Modifier.width(with(density) { content.toDp() }))
+                PlotContent(
+                    spec,
+                    geometry,
+                    measurer,
+                    labelStyle,
+                    selected,
+                    selection::select,
+                    draw,
+                    Modifier.width(
+                        with(density) {
+                            content.toDp()
+                        },
+                    ),
+                )
             }
         }
     }

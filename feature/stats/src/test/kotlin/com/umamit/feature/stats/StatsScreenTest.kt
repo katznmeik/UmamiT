@@ -120,6 +120,28 @@ class StatsScreenTest {
     }
 
     @Test
+    fun `a quick double swipe lands two tabs on and the tab bar follows, whatever the store answers`() {
+        // The store never answers (state.tab stays Überblick): the pager must not jump back.
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                StatsContent(
+                    state = state,
+                    onRangeChange = {},
+                    onTabChange = { tabs += it },
+                    onOpenSettings = {},
+                )
+            }
+        }
+
+        compose.onRoot().performTouchInput { swipeLeft() }
+        compose.onRoot().performTouchInput { swipeLeft() }
+        compose.waitForIdle()
+
+        compose.onNode(hasText(str(R.string.stats_tab_consumption)) and isTab()).assert(isSelected())
+        assertThat(tabs.last()).isEqualTo(StatsTab.CONSUMPTION)
+    }
+
+    @Test
     fun `an empty section says In diesem Zeitraum nichts`() {
         compose.setContent { UmamiTheme(reduceMotion = true) { StatsSection(title = "Test", isEmpty = true) {} } }
 

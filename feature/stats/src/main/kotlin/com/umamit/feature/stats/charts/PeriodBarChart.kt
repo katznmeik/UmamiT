@@ -17,14 +17,13 @@ import kotlin.math.min
 
 private val BAR_WIDTH_MAX = 28.dp
 private val BAR_CORNER = 3.dp
-private val HIT_SLACK_ABOVE = 16.dp
 private const val BAR_WIDTH_SHARE = 0.62f
 private const val EARLIER_ALPHA = 0.7f
 
 /**
  * Bars per period (SCR-18, INS-08): `primary`, the last period in full and earlier ones at 70 %, a
  * baseline, three y labels, thinned x labels. [scrollable] (Gesamt) gives every bar a fixed width and opens at
- * the end. A tap on a bar shows „KW 44 · 6 Sitzungen"; a second tap, or a tap elsewhere, hides it. [title] opens the
+ * the end. A tap in a bar's column (even a zero bar) shows „KW 44 · 6 Sitzungen"; a second tap, or a tap elsewhere, hides it. [title] opens the
  * TalkBack text („Sitzungen pro Woche"); [unit] formats the values. [animateIn] false skips the first-show
  * grow (a tab already shown in this visit); [selectionResetKey] hides the value label when it changes.
  */
@@ -40,58 +39,60 @@ fun PeriodBarChart(
 ) {
     val resources = LocalResources.current
     val reduceMotion = LocalReduceMotion.current
-    val axis = remember(entries) { niceAxis(entries.maxOfOrNull { it.value } ?: 0.0) }
-    val reveal = rememberChartReveal(entries.size, animateIn, reduceMotion)
-    val values = rememberMorphed(entries.map { it.value.toFloat() }, reduceMotion)
+    val reveal = rememberChartReveal(entries.size, title, animateIn, reduceMotion)
+    // The bars morph as fractions of their axis, so a new axis never re-reads the old heights.
+    val morph = rememberChartMorph(entries, reduceMotion) { list ->
+        val max = niceAxis(list.maxOfOrNull { it.value } ?: 0.0).max
+        list.map { (it.value / max).toFloat().coerceIn(0f, 1f) }
+    }
+    val shown = morph.displayed
+    val axis = remember(shown) { niceAxis(shown.maxOfOrNull { it.value } ?: 0.0) }
     val primary = MaterialTheme.colorScheme.primary
     val noValue = stringResource(R.string.stats_chart_no_data)
-    val description = if (entries.isEmpty()) {
+    val description = if (shown.isEmpty()) {
         "$title. $noValue"
     } else {
-        "$title. " + entries.joinToString(" ") { "${it.fullLabel}: ${unit.format(resources, it.value)}." }
+        "$title. " + shown.joinToString(" ") { "${it.fullLabel}: ${unit.format(resources, it.value)}." }
     }
     val spec = XYChartSpec(
-        count = entries.size,
-        xLabels = entries.map { it.label },
+        count = shown.size,
+        xLabels = shown.map { it.label },
         yTicks = axis.labels.map { YTick(it, ChartNumbers.axis(it)) },
         yMin = 0.0,
         yMax = axis.max,
         description = description,
         scrollable = scrollable,
-        selectionKey = listOf(selectionResetKey, entries),
-        alpha = reveal.alpha,
-        tooltip = { "${entries[it].fullLabel} · ${unit.format(resources, entries[it].value)}" },
-        hitTest = { tap, geo ->
-            geo.slotAt(tap.x)?.takeIf { index ->
-                tap.y <= geo.baseline &&
-                    tap.y >= geo.yOf(values.getOrElse(index) { 0f }.toDouble()) - HIT_SLACK_ABOVE.toPx()
-            }
-        },
-        anchor = { index, geo -> Offset(geo.centerX(index), geo.yOf(entries[index].value)) },
+        selectionKey = listOf(selectionResetKey, shown),
+        alpha = { reveal.alpha },
+        tooltip = { "${shown[it].fullLabel} · ${unit.format(resources, shown[it].value)}" },
+        // Any tap in a bar's column counts, a zero or short bar included.
+        hitTest = { tap, geo -> geo.slotAt(tap.x) },
+        anchor = { index, geo -> Offset(geo.centerX(index), geo.yOf(shown[index].value)) },
     )
-    XYChartFrame(spec, modifier) { geo, selected ->
+    val path = remember { Path() }
+    XYChartFrame(spec, modifier.trackReveal(reveal)) { geo, selected ->
         val barWidth = min(geo.slot * BAR_WIDTH_SHARE, BAR_WIDTH_MAX.toPx())
         val corner = CornerRadius(min(BAR_CORNER.toPx(), barWidth / 2f))
-        values.forEachIndexed { index, value ->
-            val top = geo.baseline - (geo.baseline - geo.yOf(value.toDouble())) * reveal.fraction(index)
-            if (geo.baseline - top < 1f) return@forEachIndexed
+        val fade = morph.alpha
+        for (index in 0 until geo.count) {
+            val height = (geo.baseline - geo.top) * morph.fraction(index) * reveal.fraction(index)
+            if (height < 1f) continue
             val left = geo.centerX(index) - barWidth / 2f
-            val full = index == values.lastIndex || index == selected
-            val path = Path().apply {
-                addRoundRect(
-                    RoundRect(
-                        left,
-                        top,
-                        left + barWidth,
-                        geo.baseline,
-                        corner,
-                        corner,
-                        CornerRadius.Zero,
-                        CornerRadius.Zero,
-                    ),
-                )
-            }
-            drawPath(path, primary.copy(alpha = if (full) 1f else EARLIER_ALPHA))
+            val full = index == geo.count - 1 || index == selected
+            path.rewind()
+            path.addRoundRect(
+                RoundRect(
+                    left,
+                    geo.baseline - height,
+                    left + barWidth,
+                    geo.baseline,
+                    corner,
+                    corner,
+                    CornerRadius.Zero,
+                    CornerRadius.Zero,
+                ),
+            )
+            drawPath(path, primary.copy(alpha = (if (full) 1f else EARLIER_ALPHA) * fade))
         }
     }
 }

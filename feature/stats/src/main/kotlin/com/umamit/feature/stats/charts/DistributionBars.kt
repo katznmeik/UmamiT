@@ -1,20 +1,21 @@
 package com.umamit.feature.stats.charts
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -47,16 +48,21 @@ fun DistributionBars(
 ) {
     val counts = List(STAR_LEVELS) { countsByStars.getOrElse(it) { 0 } }
     val resources = LocalResources.current
-    val reveal = rememberChartReveal(STAR_LEVELS, animateIn, LocalReduceMotion.current)
-    val morphed = rememberMorphed(counts.map { it.toFloat() })
-    val peak = (morphed.maxOrNull() ?: 0f).coerceAtLeast(1f)
+    val reduceMotion = LocalReduceMotion.current
+    val reveal = rememberChartReveal(STAR_LEVELS, title, animateIn, reduceMotion)
+    // The bars morph as fractions of the longest, so the lengths move with it.
+    val morph = rememberChartMorph(counts, reduceMotion) { list ->
+        val peak = (list.maxOrNull() ?: 0).coerceAtLeast(1)
+        list.map { it.toFloat() / peak }
+    }
+    val bar = MaterialTheme.colorScheme.primary
     val description = "$title. " + (STAR_LEVELS downTo 1).joinToString(" ") { stars ->
         resources.getString(R.string.stats_chart_stars_axis, stars) + ": " +
             ChartNumbers.axis(counts[stars - 1].toDouble()) +
             "."
     }
     Column(
-        modifier.graphicsLayer { alpha = reveal.alpha }.clearAndSetSemantics {
+        modifier.trackReveal(reveal).graphicsLayer { alpha = reveal.alpha }.clearAndSetSemantics {
             contentDescription = description
             testTag = STATS_CHART_TAG
         },
@@ -70,15 +76,13 @@ fun DistributionBars(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.width(STAR_LABEL_WIDTH),
                 )
-                Box(Modifier.weight(1f)) {
-                    val share = (morphed[stars - 1] / peak * reveal.fraction(row)).coerceIn(0f, 1f)
-                    Box(
-                        Modifier
-                            .fillMaxWidth(share)
-                            .height(ROW_BAR_HEIGHT)
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(BAR_RADIUS)),
-                    )
-                }
+                // The bar is drawn, not laid out, so a frame of the grow never measures anything.
+                Box(
+                    Modifier.weight(1f).height(ROW_BAR_HEIGHT).drawBehind {
+                        val width = size.width * morph.fraction(stars - 1) * reveal.fraction(row)
+                        drawRoundRect(bar, Offset.Zero, Size(width, size.height), CornerRadius(BAR_RADIUS.toPx()))
+                    },
+                )
                 Text(
                     ChartNumbers.axis(counts[stars - 1].toDouble()),
                     style = MaterialTheme.typography.labelMedium,

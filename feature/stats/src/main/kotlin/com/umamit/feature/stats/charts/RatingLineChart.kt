@@ -3,6 +3,7 @@ package com.umamit.feature.stats.charts
 import android.content.res.Resources
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -42,82 +43,99 @@ fun RatingLineChart(
 ) {
     val resources = LocalResources.current
     val reduceMotion = LocalReduceMotion.current
-    val reveal = rememberChartReveal(entries.size, animateIn, reduceMotion)
-    // A missing rating morphs as 0 (below the axis, so it stays on the baseline); the draw skips it.
-    val values = rememberMorphed(entries.map { (it.rating ?: 0.0).toFloat() }, reduceMotion)
+    val reveal = rememberChartReveal(entries.size, title, animateIn, reduceMotion)
+    // A missing rating morphs as the baseline; the draw skips it.
+    val morph = rememberChartMorph(entries, reduceMotion) { list ->
+        list.map { (((it.rating ?: RATING_MIN) - RATING_MIN) / (RATING_MAX - RATING_MIN)).toFloat() }
+    }
+    val shown = morph.displayed
     val color = MaterialTheme.colorScheme.primary
     val ticks = listOf(RATING_MIN, RATING_MID, RATING_MAX).map {
         YTick(it, resources.getString(R.string.stats_chart_stars_axis, it.toInt()))
     }
     val noRating = stringResource(R.string.stats_chart_no_rating)
     val noData = stringResource(R.string.stats_chart_no_data)
-    val description = "$title. " + if (entries.isEmpty()) {
+    val description = "$title. " + if (shown.isEmpty()) {
         noData
     } else {
-        entries.joinToString(" ") { "${it.fullLabel}: ${it.rating?.let { r -> starsText(resources, r) } ?: noRating}." }
+        shown.joinToString(" ") { "${it.fullLabel}: ${it.rating?.let { r -> starsText(resources, r) } ?: noRating}." }
     }
     val spec = XYChartSpec(
-        count = entries.size,
-        xLabels = entries.map { it.label },
+        count = shown.size,
+        xLabels = shown.map { it.label },
         yTicks = ticks,
         yMin = RATING_MIN,
         yMax = RATING_MAX,
         description = description,
         scrollable = scrollable,
-        selectionKey = listOf(selectionResetKey, entries),
-        alpha = reveal.alpha,
+        selectionKey = listOf(selectionResetKey, shown),
+        alpha = { reveal.alpha },
         tooltip = { index ->
-            "${entries[index].fullLabel} · " + starsText(resources, entries[index].rating ?: 0.0)
+            "${shown[index].fullLabel} · " + starsText(resources, shown[index].rating ?: 0.0)
         },
         hitTest = { tap, geo ->
             val distance = { index: Int ->
-                (Offset(geo.centerX(index), geo.yOf(entries[index].rating!!)) - tap).getDistance()
+                (Offset(geo.centerX(index), geo.yOf(shown[index].rating!!)) - tap).getDistance()
             }
-            entries.indices.filter { entries[it].rating != null }.minByOrNull(distance)
+            shown.indices.filter { shown[it].rating != null }.minByOrNull(distance)
                 ?.takeIf { distance(it) <= HIT_RADIUS.toPx() }
         },
         anchor = { index, geo ->
             Offset(
                 geo.centerX(index),
-                geo.yOf(entries[index].rating ?: RATING_MIN) - POINT_RADIUS.toPx(),
+                geo.yOf(shown[index].rating ?: RATING_MIN) - POINT_RADIUS.toPx(),
             )
         },
     )
-    XYChartFrame(spec, modifier) { geo, selected ->
-        val points = entries.indices.map { index ->
-            entries[index].rating?.let {
-                val y = geo.baseline - (geo.baseline - geo.yOf(values[index].toDouble())) * reveal.fraction(index)
-                Offset(geo.centerX(index), y)
-            }
-        }
-        drawRatingLine(points, selected, color)
+    val path = remember { Path() }
+    XYChartFrame(spec, modifier.trackReveal(reveal)) { geo, selected ->
+        val height = geo.baseline - geo.top
+        val yAt = { index: Int -> geo.baseline - height * morph.fraction(index) * reveal.fraction(index) }
+        drawRatingLine(shown, geo, yAt, selected, color.copy(alpha = morph.alpha), path)
     }
 }
 
 private fun starsText(resources: Resources, rating: Double): String =
     resources.getString(R.string.stats_chart_stars_value, ChartNumbers.rating(rating))
 
-/** The line over [points] (null = no rating), broken at every gap, then the points and the selected halo. */
-private fun DrawScope.drawRatingLine(points: List<Offset?>, selected: Int?, color: Color) {
+/** The line over the rated periods, broken at every gap, then the points and the selected halo. */
+private fun DrawScope.drawRatingLine(
+    entries: List<RatingPoint>,
+    geo: PlotGeometry,
+    yAt: (Int) -> Float,
+    selected: Int?,
+    color: Color,
+    path: Path,
+) {
     val stroke = Stroke(LINE_WIDTH.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-    val runs = mutableListOf<MutableList<Offset>>()
-    points.forEachIndexed { index, offset ->
-        when {
-            offset == null -> Unit
-            index > 0 && points[index - 1] != null -> runs.last() += offset
-            else -> runs += mutableListOf(offset)
-        }
+    var open = false
+    var runLength = 0
+    val flush = {
+        if (runLength > 1) drawPath(path, color, style = stroke)
+        path.rewind()
+        open = false
+        runLength = 0
     }
-    runs.filter { it.size > 1 }.forEach { run ->
-        val path = Path().apply {
-            moveTo(run.first().x, run.first().y)
-            run.drop(1).forEach { lineTo(it.x, it.y) }
+    for (index in entries.indices) {
+        if (entries[index].rating == null) {
+            flush()
+            continue
         }
-        drawPath(path, color, style = stroke)
+        val x = geo.centerX(index)
+        val y = yAt(index)
+        if (open) path.lineTo(x, y) else path.moveTo(x, y)
+        open = true
+        runLength++
     }
-    points.forEachIndexed { index, offset ->
-        if (offset == null) return@forEachIndexed
-        if (index == selected) drawCircle(color.copy(alpha = HALO_ALPHA), SELECTED_HALO_RADIUS.toPx(), offset)
-        drawCircle(color, POINT_RADIUS.toPx(), offset)
+    flush()
+    for (index in entries.indices) {
+        if (entries[index].rating == null) continue
+        val center = Offset(geo.centerX(index), yAt(index))
+        if (index ==
+            selected
+        ) {
+            drawCircle(color.copy(alpha = color.alpha * HALO_ALPHA), SELECTED_HALO_RADIUS.toPx(), center)
+        }
+        drawCircle(color, POINT_RADIUS.toPx(), center)
     }
 }

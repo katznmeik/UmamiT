@@ -28,25 +28,17 @@ class ChartLogicTest {
     }
 
     @Test
-    fun `percentages add up to 100`() {
-        assertThat(percentages(listOf(1, 1, 1)).sum()).isEqualTo(100)
-        assertThat(percentages(listOf(21, 13, 8)).sum()).isEqualTo(100)
-        assertThat(percentages(listOf(1))).containsExactly(100)
-        assertThat(percentages(listOf(0, 0))).containsExactly(0, 0)
-    }
-
-    @Test
     fun `slices keep their own colour unless taken and never share one`() {
         val green = Color(0xFF00AA00)
         val blue = Color(0xFF0000AA)
         val other = Color(0xFF888888)
         val palette = listOf(green, blue, Color(0xFFAA0000), Color(0xFFAAAA00))
         val slices = listOf(
-            DonutSlice("A", 5, green),
-            DonutSlice("B", 4, green),
-            DonutSlice("C", 3, null),
-            DonutSlice("D", 2, blue),
-            DonutSlice("Andere", 1, isOther = true),
+            DonutSlice("A", 5, 0, green),
+            DonutSlice("B", 4, 0, green),
+            DonutSlice("C", 3, 0, null),
+            DonutSlice("D", 2, 0, blue),
+            DonutSlice("Andere", 1, 0, isOther = true),
         )
         val colors = assignSliceColors(slices, palette, other)
         assertThat(colors[0]).isEqualTo(green)

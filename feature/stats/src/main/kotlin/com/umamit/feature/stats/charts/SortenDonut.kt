@@ -1,5 +1,7 @@
 package com.umamit.feature.stats.charts
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -13,6 +15,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.motion.LocalReduceMotion
+import com.umamit.core.designsystem.motion.MotionTokens
 import com.umamit.core.designsystem.theme.TeaTypeColors
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.stats.R
@@ -58,6 +63,7 @@ private const val FULL_CIRCLE = 360f
 private const val QUARTER_TURN = 90f
 private const val BELOW_FONT_SCALE = 1.5f
 private const val MAX_SLICES = 6
+private const val MORPH_MILLIS = 250
 
 /**
  * The type colours still free for a Sorte without its own: the order of 03 §3.1, a green series. Colours
@@ -111,10 +117,12 @@ fun SortenDonut(
     val reduceMotion = LocalReduceMotion.current
     val colors =
         assignSliceColors(shown, UmamiTheme.extendedColors.teaTypes.palette(), MaterialTheme.colorScheme.outlineVariant)
-    val percents = percentages(shown.map { it.count })
-    val reveal = rememberChartReveal(1, animateIn, reduceMotion)
-    val counts = rememberMorphed(shown.map { it.count.toFloat() }, reduceMotion)
-    var selected by remember(selectionResetKey, shown) { mutableStateOf<Int?>(null) }
+    val percents = shown.map { it.percent }
+    val reveal = rememberChartReveal(1, title, animateIn, reduceMotion)
+    val morph = remember { DonutMorph(shown, colors) }
+    LaunchedEffect(shown, colors, reduceMotion) { morph.morphTo(shown, colors, reduceMotion) }
+    val selection = rememberChartSelection(listOf(selectionResetKey, shown))
+    val selected = selection.index
     val sessionsText = { count: Int ->
         resources.getQuantityString(R.plurals.stats_chart_sessions, count, ChartNumbers.axis(count.toDouble()))
     }
@@ -126,11 +134,12 @@ fun SortenDonut(
 
     Box(
         modifier
+            .trackReveal(reveal)
             .graphicsLayer { alpha = reveal.alpha }
-            .pointerInput(selectionResetKey, shown) {
+            .pointerInput(selectionResetKey, shown, selected) {
                 detectTapGestures { tap ->
                     val hit = geometry.sliceAt(tap, shown.map { it.count })
-                    selected = if (hit == selected) null else hit
+                    selection.select(if (hit == selected) null else hit)
                 }
             },
     ) {
@@ -141,7 +150,7 @@ fun SortenDonut(
                     testTag = STATS_CHART_TAG
                 },
             ) {
-                drawRing(counts, colors, selected, reveal.fraction(0))
+                drawRing(morph, selection.index, reveal.fraction(0))
             }
         }
         if (below) {
@@ -180,7 +189,9 @@ fun SortenDonut(
     }
 }
 
-private fun DrawScope.drawRing(counts: List<Float>, colors: List<Color>, selected: Int?, progress: Float) {
+private fun DrawScope.drawRing(morph: DonutMorph, selected: Int?, progress: Float) {
+    val labels = morph.labels
+    val counts = labels.map { morph.count(it) }
     val total = counts.sum()
     if (total <= 0f) return
     val extra = RING_SELECTED_EXTRA.toPx() / 2f
@@ -204,7 +215,7 @@ private fun DrawScope.drawRing(counts: List<Float>, colors: List<Color>, selecte
         if (to <= from) return@forEachIndexed
         val width = if (index == selected) ring + RING_SELECTED_EXTRA.toPx() else ring
         drawArc(
-            color = colors[index],
+            color = morph.color(labels[index]),
             startAngle = from - QUARTER_TURN,
             sweepAngle = to - from,
             useCenter = false,
@@ -212,6 +223,49 @@ private fun DrawScope.drawRing(counts: List<Float>, colors: List<Color>, selecte
             size = Size(radius * 2, radius * 2),
             style = Stroke(width),
         )
+    }
+}
+
+/**
+ * The ring's slices by label, not by position (a range change, SCR-18): a new Sorte grows from 0, one that
+ * vanished shrinks to 0 (after the others), the rest move to their new share; colours follow the labels.
+ * The drawing order is the new target's. Read in draw only; under reduce motion the new values apply at once.
+ */
+@Stable
+private class DonutMorph(initial: List<DonutSlice>, colors: List<Color>) {
+    var labels by mutableStateOf(initial.map { it.label })
+        private set
+    private var from: Map<String, Float> by mutableStateOf(initial.associate { it.label to it.count.toFloat() })
+    private var to: Map<String, Float> by mutableStateOf(from)
+    private var colorOf by mutableStateOf(initial.map { it.label }.zip(colors).toMap())
+    private val progress = Animatable(1f)
+
+    fun count(label: String): Float {
+        val start = from[label] ?: 0f
+        return start + ((to[label] ?: 0f) - start) * progress.value
+    }
+
+    fun color(label: String): Color = colorOf[label] ?: Color.Transparent
+
+    suspend fun morphTo(target: List<DonutSlice>, colors: List<Color>, reduceMotion: Boolean) {
+        val targetLabels = target.map { it.label }
+        val targetCounts = target.associate { it.label to it.count.toFloat() }
+        colorOf = colorOf + targetLabels.zip(colors)
+        if (to == targetCounts && labels == targetLabels && progress.value >= 1f) return
+        if (reduceMotion) {
+            labels = targetLabels
+            from = targetCounts
+            to = targetCounts
+            progress.snapTo(1f)
+            return
+        }
+        from = labels.associateWith { count(it) }
+        to = targetCounts
+        labels = targetLabels + labels.filter { it !in targetLabels }
+        progress.snapTo(0f)
+        progress.animateTo(1f, tween(MORPH_MILLIS, easing = MotionTokens.CalmEaseOut))
+        labels = targetLabels
+        from = targetCounts
     }
 }
 

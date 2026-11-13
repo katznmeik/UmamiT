@@ -87,20 +87,3 @@ internal fun labelStride(slot: Float, labelWidth: Float, gap: Float): Int =
 
 /** Whether period [index] of [count] carries an x label at [stride] (the last one always does). */
 internal fun showsLabel(index: Int, count: Int, stride: Int): Boolean = (count - 1 - index) % stride == 0
-
-private const val PERCENT = 100.0
-
-/** Percentages for [counts] that add up to 100 (largest remainder), so a legend never reads 99 % or 101 %. */
-internal fun percentages(counts: List<Int>): List<Int> {
-    val total = counts.sum()
-    if (total <= 0) return counts.map { 0 }
-    val exact = counts.map { it * PERCENT / total }
-    val result = exact.map { floor(it).toInt() }.toMutableList()
-    var missing = PERCENT.toInt() - result.sum()
-    for (index in exact.indices.sortedByDescending { exact[it] - result[it] }) {
-        if (missing <= 0) break
-        result[index]++
-        missing--
-    }
-    return result
-}
