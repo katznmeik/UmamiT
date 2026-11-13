@@ -1,6 +1,6 @@
 # 12 · Subagent Distribution Plan
 
-> Status: **Draft v0.3** · Last updated: 2026-11-12 (v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
+> Status: **Draft v0.3** · Last updated: 2026-11-13 (v0.7.0 tiers, D-115; 2026-11-12: v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
 > Decisions: [D-026](10-open-questions-and-decisions.md#d-026), [D-101](10-open-questions-and-decisions.md#d-101)
 
 UmamiT is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
@@ -192,14 +192,17 @@ Answer the questions in order and take the first tier that matches:
 | Milestone review | T3 |
 | Timer review (`feature:brew` diff) | T4 |
 
-*v0.7.0 — Statistik* (provisional; v0.6.1 until D-114; its spec sets the
-tickets and tiers)
+*v0.7.0 — Statistik* (D-115; tickets in the spec issue, plan
+`docs/plans/v0.7.0.md`)
 
 | Task | Tier |
 |---|---|
-| Statistics computations (streaks, buckets, cost, consumption) + tests | T3 |
-| Charts (Vico bar charts, custom donut) | T2 |
+| Statistics computations in `core:domain` (periods, streaks, buckets, Sorten, ratings, best recipe, taste, cost, consumption, habits) + tests | T3 |
+| Stats data source (`core:data`) and the `statsRange` / `statsTab` settings | T2 |
+| Chart components (Vico bars and line, custom donut, value label, motion, TalkBack) | T2 |
+| SCR-18 shell (range, tabs, empty state) and the three tabs | T2 |
 | Milestone review | T3 |
+| `/review-animations` | T2 |
 
 **M5 — Data & polish → 1.0**
 

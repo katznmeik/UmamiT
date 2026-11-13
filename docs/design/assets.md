@@ -25,7 +25,7 @@
 | A6 | **Empty state: Journal** („Deine erste Tasse wartet.") ✓ delivered, built in with v0.6.0 (#231) | SCR-15 | ≥ 1200 × 900 vignette | M4 |
 | A7 | **Empty state: Meine Tees** ✓ delivered, built in with v0.4.0 | SCR-08 | ≥ 1200 × 900 vignette | M3 |
 | A8 | **Empty state: Katalog** (never loaded) ✓ delivered, built in with v0.2.1 | SCR-19 | ≥ 1200 × 900 vignette | M2 |
-| A9 | **Empty state: Statistik** (not enough data) ✓ delivered | SCR-18 | ≥ 1200 × 900 vignette | M4 |
+| A9 | **Empty state: Statistik** („Noch keine Statistik", no finished session yet, D-115) ✓ delivered, built in with v0.7.0 | SCR-18 | ≥ 1200 × 900 vignette | M4 |
 | A10 | **No search results** ✓ delivered, built in with v0.4.0 (*Meine Tees*) | lists | ≥ 1200 × 900 vignette | M3 |
 | A11 | **Ratgeber header** (guides list) ✓ delivered, built in with v0.2.1 | SCR-19 › Ratgeber | ≥ 2400 × 1000 | M2 |
 | A12 | **Dark variants** of A6–A11 ✓ delivered with them | dark theme | as above | with each asset |

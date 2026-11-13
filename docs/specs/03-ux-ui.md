@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-11-12 (v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SITZUNGEN, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-11-13 (v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SITZUNGEN, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -1480,14 +1480,69 @@ session's **recorded data** (JRN-11), opened by SCR-16's ⋮ *Bearbeiten*.
 
 ### SCR-18 Statistik
 
-Serif „Deine Tee-Reise"; tabs **Überblick · Bewertungen · Verbrauch**; range
-selector. Überblick: teas total („24 · +3 diesen Monat"), sessions this
-week/month, streak, sessions per week, tea-type donut. Bewertungen: average,
-distribution bars, top teas, taste radar. Verbrauch: grams per month, money
-spent per month, cost per session, running-out list.
-**M1 placeholder** (until v0.7.0, D-112; v0.6.1 until D-114): „Deine Statistik folgt bald · Sie kommt mit
-einem späteren Update. Deine Aufgüsse stehen schon im Journal.", true before
-and after the first brew (D-069).
+**v0.7.0 (D-115; INS-01–INS-08).** The placeholder of M1–v0.6.1 is replaced.
+
+```
+Deine Tee-Reise                         (displayLarge, Alegreya Sans)
+[ 30 T | 90 T | 12 M | Gesamt ]         (segmented button, one line)
+ Überblick   Bewertungen   Verbrauch    (primary tabs, swipeable pager)
+───────────────────────────────────────
+Überblick                      Bewertungen                 Verbrauch
+ 42 Sitzungen · 96 Tassen       Ø 4,2 ★                     38 g
+ 24 Tees · +3 im Zeitraum       18 von 25 bewertet          Gramm ▮▮▮▮▮
+ SITZUNGEN  ▮▮▮▯▮▮▮ (KW)        5★ ████████ 6               TASSEN ▮▮▮▮▮
+ SERIE 7 Tage · längste 21      4★ ██████ 8 …               AUSGABEN 64,80 € ▮▮▮
+ AM HÄUFIGSTEN (Top 5)          BEWERTUNG IM VERLAUF ╱╲╱    Ø 0,27 € pro Tasse
+ TEE-SORTEN  ◯ donut + legend   AM BESTEN BEWERTET (Top 5)  GEHT ZUR NEIGE
+ GEWOHNHEITEN  Tageszeit ▮▮▮▮   BESTES REZEPT               (Leer, Knapp …)
+               Wochentag ▮▮▮▮▮  GESCHMACK  radar · aus 34
+                                BESCHREIBUNGEN Top 5 chips
+```
+
+- **Header:** „Deine Tee-Reise" scrolls away with the content; the range
+  selector and the tabs stay pinned below the status bar. Each tab is a
+  vertical scroll of sections; each section has a `labelOverline` heading
+  (SITZUNGEN, SERIE, AM HÄUFIGSTEN, TEE-SORTEN, GEWOHNHEITEN; BEWERTUNGEN,
+  BEWERTUNG IM VERLAUF, AM BESTEN BEWERTET, BESTES REZEPT, GESCHMACK,
+  BESCHREIBUNGEN; GRAMM, TASSEN, AUSGABEN, KOSTEN PRO TASSE, GEHT ZUR NEIGE).
+- **Big numerals** use the display font (`displayMedium`) with a small label
+  below; numbers in German format („4,2", „64,80 €", „1.234").
+- **Bars** in `primary` on the washi surface, the period last in the range
+  in full `primary`, earlier ones at 70 %; a thin baseline, three quiet
+  y-axis labels; x labels „KW 44" (weeks) or „Okt." (months), thinned so
+  they never overlap. Gesamt scrolls sideways, opening at the current month.
+- **Rating line:** a 2 dp `primary` line with 4 dp points on periods with a
+  rating, breaking over periods without; y from 1 to 5 ★.
+- **Rating distribution:** five horizontal bars 5 ★ → 1 ★ with their counts.
+- **Donut:** the five largest Sorten, each in its type colour (§3.1) where
+  one exists; a Sorte without one, or one whose colour is taken, gets the
+  next unused type colour, so no two slices share a colour; „Andere" in
+  `outlineVariant`; 2 dp gaps between slices; legend right of it (below it at
+  font ≥ 1.5) with „42 %".
+- **Habits:** two rows of small vertical bars with the percentages above.
+- **Tea rows** (most brewed, top rated, running out, best recipe): the
+  journal's round thumbnail (cover or leaf), name, a meta line; a chevron
+  when tappable (not for a deleted tea).
+- **Taste:** the shared `TasteRadar` (core:ui) with „aus 34 Aufgüssen";
+  descriptors as read-only chips „Nori · 12×".
+- **Value label** on tap (INS-08): a small `inverseSurface` tooltip above
+  the bar, point or slice.
+- **Empty state:** A9 (`illustration_stats_empty_light/dark`), „Noch keine
+  Statistik", „Brühe deinen ersten Tee, dann wächst hier deine Tee-Reise.";
+  no selector, no tabs. An empty range: each section's body reads „In
+  diesem Zeitraum nichts" in `onSurfaceVariant`.
+- **Motion** (03 §3.6): bars and donut grow from the baseline / sweep from
+  12 o'clock once per tab per screen visit, ≈ 300 ms `emphasizedDecelerate`,
+  staggered by ≤ 20 ms per bar; a range change animates the bars' heights
+  and the donut's sweeps to their new values (≈ 250 ms), the numerals switch
+  without a count-up; tab changes use the pager's swipe. Reduce motion: the
+  100 ms `fade` only.
+- **TalkBack:** each chart is one node with its data read as a list
+  (INS-08); the range selector reads „Zeitraum: 90 Tage, ausgewählt"; tea
+  rows read name, value and „Doppeltippen zum Öffnen".
+- **Before v0.7.0** (M1 placeholder, D-069): „Deine Statistik folgt bald ·
+  Sie kommt mit einem späteren Update. Deine Aufgüsse stehen schon im
+  Journal."
 
 ### SCR-19 Sammlung › Katalog
 
