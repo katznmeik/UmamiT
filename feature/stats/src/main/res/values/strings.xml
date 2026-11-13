@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="stats_title">Statistik</string>
-    <!-- M1 placeholder (#54 S2, GEN-09): true before and after the first brew. -->
-    <string name="stats_later_title">Deine Statistik folgt bald</string>
-    <string name="stats_later_body">Sie kommt mit einem späteren Update. Deine Aufgüsse stehen schon im Journal.</string>
+    <!-- ===== #259: SCR-18 shell (header, range selector, tabs, empty state) ===== -->
+    <string name="stats_title">Deine Tee-Reise</string>
+    <string name="stats_empty_title">Noch keine Statistik</string>
+    <string name="stats_empty_body">Brühe deinen ersten Tee, dann wächst hier deine Tee-Reise.</string>
+    <string name="stats_range_30">30 T</string>
+    <string name="stats_range_90">90 T</string>
+    <string name="stats_range_12m">12 M</string>
+    <string name="stats_range_all">Gesamt</string>
+    <string name="stats_range_30_description">Zeitraum: 30 Tage</string>
+    <string name="stats_range_90_description">Zeitraum: 90 Tage</string>
+    <string name="stats_range_12m_description">Zeitraum: 12 Monate</string>
+    <string name="stats_range_all_description">Zeitraum: Gesamt</string>
+    <string name="stats_tab_overview">Überblick</string>
+    <string name="stats_tab_ratings">Bewertungen</string>
+    <string name="stats_tab_consumption">Verbrauch</string>
+    <string name="stats_section_empty">In diesem Zeitraum nichts</string>
+    <!-- ===== end of #259 ===== -->
 </resources>

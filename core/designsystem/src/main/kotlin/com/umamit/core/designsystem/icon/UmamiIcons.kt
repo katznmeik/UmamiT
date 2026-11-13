@@ -129,6 +129,12 @@ object UmamiIcons {
     /** A6: the empty journal's vignette in the dark theme. */
     @DrawableRes val JournalEmptyDark = R.drawable.illustration_journal_empty_dark
 
+    /** A9: the empty Statistik's vignette in the light theme (SCR-18, „Noch keine Statistik"). */
+    @DrawableRes val StatsEmptyLight = R.drawable.illustration_stats_empty_light
+
+    /** A9: the empty Statistik's vignette in the dark theme. */
+    @DrawableRes val StatsEmptyDark = R.drawable.illustration_stats_empty_dark
+
     /** A10: a search or filter without results in the light theme (SCR-08, „Kein Tee passt zu deiner Suche."). */
     @DrawableRes val NoResultsLight = R.drawable.illustration_no_results_light
 
