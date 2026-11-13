@@ -5,12 +5,12 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-13. **Statistik (v0.7.0, M4 part 2) is specified:** the PO answered the grilling (Q1–Q20, D-115); spec issue #255 with tickets #256–#264 and the plan `docs/plans/v0.7.0.md` **wait for the PO's approval**. `v0.6.1` is released (versionCode 60199). **Next:** the v0.7.0 build session, once the PO approves the tickets.
+**Last updated:** 2026-11-13. **Statistik (v0.7.0, M4 part 2): build in progress.** The PO approved tickets #256–#264 and the plan `docs/plans/v0.7.0.md` (including its per-ticket verification) on 2026-11-13 and started the build session with `/implement-spec #255`. `v0.6.1` is released (versionCode 60199).
 
-## Next: Statistik build (v0.7.0, M4 part 2; specified, waiting for approval)
+## Next: Statistik build (v0.7.0, M4 part 2; approved, building)
 
 - **Spec:** #255, D-115 (Q1–Q20), 02 §12 INS-01–INS-08, 03 SCR-18, 05 §6 `statsRange`/`statsTab`, 09 §4 „v0.7.0". **Tickets:** #256–#264 (tiers T2–T3, blockers in each). **Plan:** `docs/plans/v0.7.0.md` (task graph, order, verification).
-- **Gate:** the build starts only after the PO approves the tickets and the plan (its per-ticket verification is proposed as in v0.6.1), with `/implement-spec #255`.
+- **Gate:** passed. The PO approved the tickets and the plan, including its per-ticket verification, on 2026-11-13.
 - **No timer code, no migration:** no T4 timer review; only the final release needs the accuracy run (09 §4a). `git diff main -- feature/brew core/timer core/timer-engine core/database/schemas` must stay empty.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
 - **Open from D-114 (Claude's note, accepted):** the activity re-creation after the *Design* hand-over can still meet an alert starting in the same ≈ 0.5 s.
@@ -28,7 +28,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **Statistik (v0.7.0, M4 part 2)**: specified (D-115, #255), tickets #256–#264 and the plan wait for the PO's approval. v0.6.1 is released (2026-11-13) |
+| Current milestone | **Statistik (v0.7.0, M4 part 2)**: building (D-115, #255, tickets #256–#264 approved 2026-11-13). v0.6.1 is released (2026-11-13) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `ba3bb2a1` after #254) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -50,10 +50,9 @@
 
 ## Waiting on the PO
 
-1. **Approve the v0.7.0 tickets and plan:** #256–#264 and `docs/plans/v0.7.0.md` (incl. its per-ticket verification); then start the build session.
-2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
-3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
-4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
+1. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
+2. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
+3. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
 
 ## Open for later
 
