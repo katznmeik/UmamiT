@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
@@ -111,7 +112,8 @@ class StatsScreenTest {
     fun `a swipe turns the page and reports the tab`() {
         show()
 
-        compose.onNodeWithText(str(R.string.stats_section_empty)).performTouchInput { swipeLeft() }
+        // The tab bodies draw nothing before their first read, so the swipe goes over the whole screen.
+        compose.onRoot().performTouchInput { swipeLeft() }
         compose.waitForIdle()
 
         assertThat(tabs).containsExactly(StatsTab.RATINGS)
@@ -119,7 +121,7 @@ class StatsScreenTest {
 
     @Test
     fun `an empty section says In diesem Zeitraum nichts`() {
-        show()
+        compose.setContent { UmamiTheme(reduceMotion = true) { StatsSection(title = "Test", isEmpty = true) {} } }
 
         compose.onNodeWithText("In diesem Zeitraum nichts").assertExists()
     }

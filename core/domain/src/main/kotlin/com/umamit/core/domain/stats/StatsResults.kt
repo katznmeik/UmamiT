@@ -4,6 +4,7 @@ import com.umamit.core.domain.collection.CupAverage
 import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TasteAxis
+import java.io.File
 import java.time.DayOfWeek
 
 /**
@@ -44,8 +45,16 @@ data class Streak(val current: Int, val longest: Int)
  *
  * @property teaId the tea to open, or null for a deleted tea (no tap).
  * @property teaName the tea's current name, else the latest session's snapshot.
+ * @property coverPhoto the tea's cover photo file, or null (a leaf stands in).
+ * @property styleKey the style key (08 §2) of the leaf placeholder's colour; a deleted tea's from its latest session.
  */
-data class TeaSessions(val teaId: String?, val teaName: String, val sessions: Int)
+data class TeaSessions(
+    val teaId: String?,
+    val teaName: String,
+    val sessions: Int,
+    val coverPhoto: File? = null,
+    val styleKey: String? = null,
+)
 
 /**
  * A donut slice (INS-03): [sorte] null is „Andere"; [percent] whole numbers that sum to 100 over the slices.

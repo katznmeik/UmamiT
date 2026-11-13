@@ -52,7 +52,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
             teasAddedInRange = activeTeas.count { dayOf(it.createdAtMs) in window },
             sessionsPerPeriod = perPeriod(window, inRange, 0) { sum, _ -> sum + 1 },
             streak = streak(),
-            mostBrewed = mostBrewed(inRange, teaNames()),
+            mostBrewed = mostBrewed(inRange, teaNames(), input.teas.associateBy { it.id }),
             sorten = sorten(inRange),
             dayParts = dayParts(inRange),
             weekdays = weekdays(inRange),

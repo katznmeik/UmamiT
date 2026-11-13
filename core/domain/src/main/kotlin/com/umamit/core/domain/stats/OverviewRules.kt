@@ -43,10 +43,24 @@ internal fun List<DatedSession>.teaName(names: Map<String, String>): String {
     return latest.teaId?.let(names::get) ?: latest.teaName
 }
 
-internal fun mostBrewed(sessions: List<DatedSession>, names: Map<String, String>): List<TeaSessions> = sessions
+internal fun mostBrewed(
+    sessions: List<DatedSession>,
+    names: Map<String, String>,
+    teas: Map<String, StatsTea> = emptyMap(),
+): List<TeaSessions> = sessions
     .groupBy { it.session.teaKey() }
     .values
-    .map { group -> TeaSessions(group.first().session.teaId, group.teaName(names), group.size) }
+    .map { group ->
+        val teaId = group.first().session.teaId
+        val tea = teaId?.let(teas::get)
+        TeaSessions(
+            teaId = teaId,
+            teaName = group.teaName(names),
+            sessions = group.size,
+            coverPhoto = tea?.coverPhoto,
+            styleKey = tea?.styleKey ?: group.maxBy { it.session.startedAtMs }.session.styleKey,
+        )
+    }
     .sortedWith(compareByDescending<TeaSessions> { it.sessions }.thenBy { it.teaName })
     .take(TOP)
 

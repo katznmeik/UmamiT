@@ -5,6 +5,7 @@ import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TasteProfile
+import java.io.File
 
 /**
  * Everything the statistics read (02 §12, D-115), loaded by the data source. No database migration: every figure is
@@ -29,6 +30,7 @@ data class StatsInput(
  *
  * @property teaId the tea, or null when it was deleted (the soft link is cleared).
  * @property teaName the `tea_name` snapshot.
+ * @property styleKey the `style_key` snapshot (the leaf placeholder's colour of a deleted tea's row, INS-01).
  * @property teaType the `tea_type` snapshot, the Sorte („Sencha"); null or blank counts as „Andere" (INS-03).
  * @property profileId the recipe it was brewed with, or null (INS-02 best recipe).
  * @property profileName the `profile_name` snapshot.
@@ -57,6 +59,7 @@ data class StatsSession(
     val steps: List<StatsStep> = emptyList(),
     val sessionTaste: TasteProfile = TasteProfile.EMPTY,
     val descriptorKeys: List<String> = emptyList(),
+    val styleKey: String? = null,
 ) {
     /** The session's cups (INV-08): one per poured non-rinse step; whisk-only or nothing poured is one. */
     val cups: Int get() = CostRule.sessionCups(steps.filter { it.ended && !it.skipped }.map { it.kind })
@@ -79,6 +82,8 @@ data class StatsStep(
  * A tea of the collection (INS-01 teas, INS-05 running out).
  *
  * @property createdAtMs `created_at`; „+n im Zeitraum" counts it by this instant's day in the clock's zone.
+ * @property coverPhoto the cover photo's file, or null (INS-01 most brewed thumbnail).
+ * @property styleKey the tea's style key (08 §2), for the placeholder colour.
  * @property stockLevel INV-05's status of [remainingGrams] with the tea's „Knapp ab".
  * @property lowStockWarning `low_stock_warning`: only teas with the warning on are listed as running out.
  */
@@ -90,4 +95,6 @@ data class StatsTea(
     val remainingGrams: Double,
     val stockLevel: StockLevel,
     val lowStockWarning: Boolean,
+    val coverPhoto: File? = null,
+    val styleKey: String? = null,
 )

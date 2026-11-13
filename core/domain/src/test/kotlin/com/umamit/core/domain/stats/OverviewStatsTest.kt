@@ -84,6 +84,22 @@ class OverviewStatsTest {
     }
 
     @Test
+    fun `most brewed carries the cover photo and the style key, a deleted tea the latest snapshot style`() {
+        val photo = java.io.File("cover.jpg")
+        val sessions = List(2) { session(teaId = "a") } +
+            session(day = TODAY.minusDays(3), teaId = null, teaName = "Weg", styleKey = "matcha") +
+            session(teaId = null, teaName = "Weg", styleKey = "gyokuro")
+        val teas = listOf(tea("a", coverPhoto = photo, styleKey = "sencha"))
+
+        val top = calculator(sessions, teas).overview(StatsRange.DAYS_30).mostBrewed
+
+        assertThat(top[0].coverPhoto).isEqualTo(photo)
+        assertThat(top[0].styleKey).isEqualTo("sencha")
+        assertThat(top[1].coverPhoto).isNull()
+        assertThat(top[1].styleKey).isEqualTo("gyokuro")
+    }
+
+    @Test
     fun `Sorten - five named and Andere, whole percentages summing to 100 with ties`() {
         val sorts = listOf("Sencha", "Gyokuro", "Matcha", "Bancha", "Kabusecha", "Genmaicha")
         val sessions = sorts.map { session(teaType = it) } + session(teaType = null) + session(teaType = " ")

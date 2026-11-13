@@ -41,6 +41,7 @@ internal object StatsFixtures {
         sessionTaste: TasteProfile = TasteProfile.EMPTY,
         descriptorKeys: List<String> = emptyList(),
         zone: ZoneId = BERLIN,
+        styleKey: String? = null,
     ) = StatsSession(
         id = "s${counter++}",
         teaId = teaId,
@@ -56,6 +57,7 @@ internal object StatsFixtures {
         steps = steps,
         sessionTaste = sessionTaste,
         descriptorKeys = descriptorKeys,
+        styleKey = styleKey,
     )
 
     fun tea(
@@ -66,7 +68,9 @@ internal object StatsFixtures {
         grams: Double = 100.0,
         level: StockLevel = StockLevel.AVAILABLE,
         warning: Boolean = true,
-    ) = StatsTea(id, name, archived, ms(created.atStartOfDay()), grams, level, warning)
+        coverPhoto: java.io.File? = null,
+        styleKey: String? = null,
+    ) = StatsTea(id, name, archived, ms(created.atStartOfDay()), grams, level, warning, coverPhoto, styleKey)
 
     fun purchase(day: LocalDate, cents: Long?, type: InventoryEventType = InventoryEventType.PURCHASE) =
         InventoryEvent("e${counter++}", "t1", type, 50.0, ms(day.atTime(LocalTime.NOON)), priceCents = cents)
