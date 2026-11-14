@@ -2,6 +2,7 @@ package com.umamit.feature.journal
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -95,6 +96,7 @@ fun JournalScreen(
     onFilterChange: (JournalFilter) -> Unit = {},
     alerting: Boolean = false,
     teaNameFallback: String? = null,
+    listChange: Int = 0,
 ) {
     ScreenScaffold(
         title = stringResource(R.string.journal_title),
@@ -103,23 +105,45 @@ fun JournalScreen(
         scrollable = false,
         verticalArrangement = Arrangement.Top,
     ) {
-        when {
-            list == null -> Unit
-
-            list.isEmpty -> EmptyJournal()
-
-            else -> JournalContent(
-                list = list,
-                filter = filter,
-                onFilterChange = onFilterChange,
-                alerting = alerting,
-                teaNameFallback = teaNameFallback,
-                scrollToTopRequest = scrollToTopRequest,
-                thumbnail = thumbnail,
-                onOpenTimer = onOpenTimer,
-                onOpenSession = onOpenSession,
+        // A list replaced after the route's hold cross-fades once (A-09); the first frame is drawn as it is.
+        Box(modifier = Modifier.fillMaxSize().crossfadeOnChange(listChange)) {
+            JournalBody(
+                list, filter, onFilterChange, alerting, teaNameFallback, scrollToTopRequest, thumbnail,
+                onOpenTimer, onOpenSession,
             )
         }
+    }
+}
+
+@Composable
+@Suppress("LongParameterList") // the screen's state and its callbacks, passed through
+private fun JournalBody(
+    list: JournalList?,
+    filter: JournalFilter,
+    onFilterChange: (JournalFilter) -> Unit,
+    alerting: Boolean,
+    teaNameFallback: String?,
+    scrollToTopRequest: Int,
+    thumbnail: @Composable (File) -> Painter?,
+    onOpenTimer: () -> Unit,
+    onOpenSession: (String) -> Unit,
+) {
+    when {
+        list == null -> Unit
+
+        list.isEmpty -> EmptyJournal()
+
+        else -> JournalContent(
+            list = list,
+            filter = filter,
+            onFilterChange = onFilterChange,
+            alerting = alerting,
+            teaNameFallback = teaNameFallback,
+            scrollToTopRequest = scrollToTopRequest,
+            thumbnail = thumbnail,
+            onOpenTimer = onOpenTimer,
+            onOpenSession = onOpenSession,
+        )
     }
 }
 

@@ -73,10 +73,22 @@ fun JournalRoute(
     }
     // Grouping and the search words are built off the main thread ([JournalSources.listContext]); the last list stays
     // in the first frame of a tab that comes back, and while a new read is built, so nothing flashes (JRN-09).
-    val list by produceState(sources.lastList, sessions, today, locale) {
-        val read = sessions ?: return@produceState
-        value = withContext(sources.listContext) { journalList(read, today, descriptorLabels::get) }
+    // Hold, then show fresh (03 §3.6, A-09): a changed list that is ready within [JOURNAL_HOLD_MS] of the route's
+    // first frame takes the old one's place in place (the tab is still fading in); a later one cross-fades once.
+    var holding by remember(sources) { mutableStateOf(true) }
+    LaunchedEffect(sources) {
+        delay(JOURNAL_HOLD_MS)
+        holding = false
     }
+    val shown by produceState(ShownJournal(sources.lastList), sessions, today, locale) {
+        val read = sessions ?: return@produceState
+        // The read the last list was built from (a tab that comes back): nothing to build again.
+        if (value.list != null && sources.lastListBuiltFor?.isFor(read, today, locale) == true) return@produceState
+        val built = withContext(sources.listContext) { journalList(read, today, descriptorLabels::get) }
+        sources.lastListBuiltFor = JournalListInput(read, today, locale)
+        value = value.next(built, holding)
+    }
+    val list = shown.list
     SideEffect { sources.lastList = list }
     // A tea without finished sessions is no filter option, so its name is looked up (a deleted tea carries it).
     val teaKey = filter.teaKey
@@ -89,6 +101,7 @@ fun JournalRoute(
     }
     JournalScreen(
         list = list,
+        listChange = shown.changes,
         onOpenSettings = onOpenSettings,
         onOpenTimer = onOpenTimer,
         modifier = modifier,
@@ -99,4 +112,20 @@ fun JournalRoute(
         alerting = alerting,
         teaNameFallback = teaNameFallback,
     )
+}
+
+/** How long a tab that comes back holds its last list for a fresh one (03 §3.6: at most ≈ 150 ms, A-09). */
+internal const val JOURNAL_HOLD_MS = 150L
+
+/**
+ * The list on screen and how often it was replaced after the hold ([changes]); each increase cross-fades the list
+ * area once with `fade` (A-09). A list equal to the shown one is never faded.
+ */
+internal data class ShownJournal(val list: JournalList?, val changes: Int = 0) {
+    /** The [built] list after this one; while [holding], or with nothing shown yet, it takes the place in place. */
+    fun next(built: JournalList, holding: Boolean): ShownJournal = when {
+        built == list -> this
+        holding || list == null -> copy(list = built)
+        else -> ShownJournal(built, changes + 1)
+    }
 }
