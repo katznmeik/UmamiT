@@ -1,7 +1,6 @@
 package com.umamit.app
 
 import androidx.activity.compose.PredictiveBackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.SeekableTransitionState
@@ -10,7 +9,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -272,12 +270,14 @@ internal fun UmamitApp(
                     .consumeWindowInsets(insetBelowContent)
                     .consumeCoveredBelow(),
             ) {
-                transition.AnimatedContent(
+                // Fade-through: the old tab leaves, then the new one arrives (03 §3.6 `tabSwitch`); a visited tab
+                // stays composed, so a switch only fades layers (A-10, NFR-PERF-12).
+                KeptTabs(
+                    transition = transition,
+                    tabs = Tab.entries,
+                    inSpec = motion.tabSwitchIn(),
+                    outSpec = motion.tabSwitchOut(),
                     modifier = Modifier.fillMaxSize(),
-                    transitionSpec = {
-                        // Fade-through: the old tab leaves, then the new one arrives (03 §3.6 `tabSwitch`).
-                        fadeIn(motion.tabSwitchIn()) togetherWith fadeOut(motion.tabSwitchOut())
-                    },
                 ) { tab ->
                     stateHolder.SaveableStateProvider(tab) {
                         TabHost(
