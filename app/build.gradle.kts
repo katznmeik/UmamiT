@@ -59,6 +59,10 @@ dependencies {
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    // TransitionJankTest (NFR-PERF-12, D-117): JankStats frames, the screens driven through UiAutomator, so
+    // that no Compose test clock paces the animations it measures.
+    androidTestImplementation(libs.androidx.metrics.performance)
+    androidTestImplementation(libs.androidx.test.uiautomator)
 }
 
 // The build-logic unit tests (versionCode, 06 §6) run with the normal unit tests.

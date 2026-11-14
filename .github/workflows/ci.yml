@@ -346,6 +346,28 @@ jobs:
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest
 
+      # TransitionJankTest's report (NFR-PERF-12, D-117): one line per
+      # transition from the logcat AGP records per test, into the log, the
+      # job summary and an artifact. It gates only once switched on (JankGate).
+      - name: Transition jank report
+        if: ${{ !cancelled() }}
+        run: |
+          out="transition-jank-api-${{ matrix.api-level }}.txt"
+          find . -path "*androidTest-results*" -name "logcat-*TransitionJankTest*.txt" -print0 |
+            xargs -0 -r grep -h "TransitionJank:" | sed 's/^.*TransitionJank:/TransitionJank:/' > "$out" || true
+          [ -s "$out" ] || echo "No TransitionJankTest lines found in the recorded logcat." > "$out"
+          cat "$out"
+          { echo "### Transition jank (API ${{ matrix.api-level }})"; echo '```'; cat "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload transition jank report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: transition-jank-api-${{ matrix.api-level }}
+          path: transition-jank-api-${{ matrix.api-level }}.txt
+          retention-days: 30
+          if-no-files-found: ignore
+
       # Failure details straight into the log (the artifact below is not
       # reachable from every environment): each failed test with its message
       # and stack trace, plus the app's own diagnostic logcat lines.
