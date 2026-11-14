@@ -5,14 +5,13 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-14. **`v0.7.0` (Statistik, M4 part 2) is released** (versionCode 70099, from `main` `f3582466`, certificate verified): the PO approved rc.3 („All changes approved", D-115 „Approval"), #266 merged, all three accuracy variants PASS. **Next:** the v0.7.1 specify session (D-116: tea and brewing rated separately, a transition smoothness audit). **After v0.7.1:** the code cleanup review (v0.7.2, below).
+**Last updated:** 2026-11-14 (v0.7.1 specify session). **`v0.7.0` (Statistik, M4 part 2) is released** (versionCode 70099, from `main` `f3582466`, certificate verified): the PO approved rc.3 („All changes approved", D-115 „Approval"), #266 merged, all three accuracy variants PASS. **v0.7.1 is specified** (D-117, #279, tickets #280–#289, `docs/plans/v0.7.1.md`), waiting for the PO's approval. **Next:** the v0.7.1 build session. **After v0.7.1:** the code cleanup review (v0.7.2, below).
 
-## Next: v0.7.1 specify session (D-116)
+## Next: v0.7.1 build session (D-116, D-117), after the PO's approval
 
-- **What:** a grilling round with the PO (questions as selectable options), then to-spec (02/03/05/09/11 and a D-117 entry or D-116 amendment), a spec issue, tickets and `docs/plans/v0.7.1.md`, all waiting for the PO's approval. **No code** in that session (rule 1).
-- **Decided already (D-116 R1–R3):** both in v0.7.1; the finish sheet and the journal edit ask for „Tee" and „Zubereitung" separately (both optional, 0,5–5 ★); a tea's rating everywhere is the Ø of its *Tee* ratings; existing ratings are copied to both by the migration.
-- **Open for the grilling (D-116):** where each rating shows (journal row, tea detail, Meine Tees sort, Statistik incl. Tee-Rangliste, Bewertung im Verlauf, Bestes Rezept); the Room migration's details (T3 at least, backup format 05); how transitions are checked (the PO's screen recordings, recorded frames on the CI emulator, a code audit with the motion skills) and which transitions are in scope (unlock into the app is the worst case the PO saw).
-- **Tiers to expect:** migration and backup code T3+; if the rating change touches `feature:brew` (check where the finish sheet lives), that means the timer tests (rule 8) and a T4 review of the timer path; the accuracy run before each rc.
+- **Specified 2026-11-14** (the specify session): the PO's grilling Q1–Q20 in four rounds is **D-117**; specs written (`a635f391`); spec issue **#279**, tickets **#280–#289** (label `needs-triage`), plan [`docs/plans/v0.7.1.md`](docs/plans/v0.7.1.md). **All three wait for the PO's approval**; then the build session relabels the tickets `ready-for-agent` and runs `/implement-spec #279` (rule 1).
+- **What:** two ratings per session, *Tee* and *Zubereitung* (umamit.db v8 `brewing_rating`, old ratings copied); a tea's Ø from its Tee ratings; rows „Tee ★ 4,5 · Zubereitung ★ 3,5"; tea detail with a Zubereitung line; Statistik: a remembered Tee/Zubereitung switch on the Tee-Rangliste, two Verlauf lines, Bestes Rezept by Zubereitung. A transition audit of four groups (unlock/resume/cold start, tabs and push/pop, sheets and dialogs, the timer screen) by `/improve-animations` and `TransitionJankTest` on the CI emulator (≤ 1 janky frame, none over 50 ms; NFR-PERF-12); done with the PO's rc check. One rc.
+- **Tiers:** migration and every transition ticket T3; the timer-path fixes (#287) bring the timer tests, the T4 timer review and all three accuracy variants before the rc and the final.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
 - **Open from D-114 (Claude's note, accepted):** the activity re-creation after the *Design* hand-over can still meet an alert starting in the same ≈ 0.5 s.
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
@@ -47,13 +46,13 @@ Claude's proposal of 2026-11-13, recorded on the PO's request. It is **not a go 
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.7.1** (D-116), to be specified. **v0.7.0** (Statistik, M4 part 2) is released (2026-11-14) |
+| Current milestone | **v0.7.1** (D-116, D-117), specified; waiting for the PO's approval. **v0.7.0** (Statistik, M4 part 2) is released (2026-11-14) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `f3582466` after #266) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `d8b85319`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | the docs PR with this handover (merged when CI is green); #266 is merged |
+| Open PR | the v0.7.1 spec PR (docs only; stays open for the PO's approval, then becomes the milestone PR) |
 | Latest APK | [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-116** used; the next free is **D-117** |
+| Decision numbers | Up to **D-117** used; the next free is **D-118** |
 
 ## Working agreements in effect
 
@@ -69,7 +68,7 @@ Claude's proposal of 2026-11-13, recorded on the PO's request. It is **not a go 
 
 ## Waiting on the PO
 
-1. **Start the v0.7.1 specify session** (prompt at the end of the v0.7.0 session; D-116). Install `v0.7.0` over rc.3 if not yet done.
+1. **Approve the v0.7.1 spec, tickets and plan** (#279, #280–#289, `docs/plans/v0.7.1.md`; D-117's „Claude" details are open to correction), then start the build session (prompt at the end of the specify session). Install `v0.7.0` over rc.3 if not yet done.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
