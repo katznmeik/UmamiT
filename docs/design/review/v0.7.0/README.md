@@ -24,7 +24,7 @@ The `StatsShell_*` renders were re-recorded too; they change only where a folded
 
 ### Claude's defaults in rc.3 (not put to you; change any of them)
 
-1. **„l" in the display font:** at the big numeral the lowercase „l" of „12,4 l" is drawn in Alegreya Sans and looks close to a bar (see `Overview_days90_light_font2x`). Kept as is; the alternative would be the unit in the small body font.
+1. **„l" in the display font:** at the big numeral the lowercase „l" of „12,4 l" is drawn in Alegreya Sans and looks close to a bar (see `Overview_days90_light_font2x`). **Your answer (V8):** the unit moves to the smaller body font.
 2. **TalkBack** reads the visible text („12,4 l Tee"); no extra „Liter" description.
 3. **„aus N Sitzungen mit Preis"** stays under GETRUNKEN's total, as in rc.2, and counts the sessions in the € pro Liter average (V5). A priced session without water still counts in the total but not in N.
 4. **The TEE chart** has no big numeral of its own: the range's volume is on *Überblick* (as TASSEN in rc.2). Its fold line reads „TEE · 12,4 l".

@@ -650,6 +650,11 @@ what was actually drunk.
 7. **V7, tea detail:** as V2: „ca. 1,60 € pro Liter (Rezept)", „Ø 1,80 €
    pro Liter aus 5 Sitzungen"; a recipe without water, or whose steps are
    all rinses, shows no estimate.
+8. **V8, the unit in the body font (PO, 2026-11-14, on Claude's rc.3
+   default 1):** in *Überblick*'s big volume numeral the unit („ml", „l")
+   is set in the smaller **body font** after the display-font number
+   („12,4" + „ l"), because the display font's „l" looks like a bar. The
+   other numerals are unchanged.
 
 **Details of Amendment 2 (Claude; not asked, open to the PO's correction
 in the rc.3 review).**

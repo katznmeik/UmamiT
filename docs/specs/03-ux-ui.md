@@ -1528,7 +1528,8 @@ Deine Tee-Reise                         (displayLarge, Alegreya Sans)
 - **Überblick (rc.2, R10, R12, R13):** Sitzungen · Tee (volume) · Tees in **one
   row** („42 Sitzungen · 12,4 l Tee · 24 Tees"; below 1 l „750 ml Tee"; rc.3,
   D-115 A2: the cups numeral „96 Tassen" is replaced, format as INS counting
-  rules); no „+n im Zeitraum" under *Gesamt*; SERIE at 0 reads „Keine Serie
+  rules; rc.3, D-115 A2 V8: the unit „l"/„ml" in the smaller body font
+  after the display-font number); no „+n im Zeitraum" under *Gesamt*; SERIE at 0 reads „Keine Serie
   gerade · längste 21 Tage" (the longest only when there is one). The second
   donut TEES follows TEE-SORTEN.
 - **Bewertungen (rc.2, R4, R11):** order TEE-RANGLISTE (rows „4,6 ★ · 5×",
