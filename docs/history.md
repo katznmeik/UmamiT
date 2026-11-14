@@ -11,11 +11,13 @@
 
 ## Releases and plans
 
-### v0.7.0: the PO's review of rc.1 and rc.2 (2026-11-13/14)
+### v0.7.0: the PO's review of rc.1 and rc.2, rc.3 (2026-11-13/14)
 
 - **PO review of rc.1:** ten points on the checklist and the design review, not an approval: what a „Tasse" is, a per-tea donut, a more compact and foldable Überblick, Bewertungen rethought, Verbrauch with the value drunk, a custom month range, separate tea and brewing ratings, the Knapp chip losing the grams, transitions that are not smooth (worst after unlocking into the app).
 - **Decisions:** D-115 Amendment 1 (R1–R16) for rc.2; D-116 plans v0.7.1 (Tee + Zubereitung ratings per session, old ratings copied to both; a transition audit).
 - **Build:** #268 cups by volume + *Tassengröße* (SET-34), #269 „14 g · knapp", #270 stats data (custom range, Tees donut, GETRUNKEN, Tee-Rangliste, Neu entdeckt, removals), #271 shell (Monate sheet, folding, half-height charts, label fade), #272 tab contents, #273 review, gate and rc.2. Renders in `docs/design/review/v0.7.0/`.
+- **PO review of rc.2 (2026-11-14):** everything approved except „Tassen": the PO's cups differ in size, so a cup count is not informative. Grilled V1–V7, then V8–V9 on the rc.3 renders: D-115 Amendment 2: volume (ml/l) instead of cups everywhere, „€ pro Liter", the chart TEE, *Tassengröße* removed, „12,4 Liter Tee" with the unit in the body font.
+- **Build rc.3:** #274 volume rule, tea detail € pro Liter, *Tassengröße* removed; #275 Statistik in volume; #277 „Liter" in full; #276 gate (GATE PASS), renders, `v0.7.0-rc.3` (70003) from `73907f6d`. No T3 review for the rc.3 diff (a unit change within reviewed code; the next milestone review is v0.7.1's).
 
 ### v0.6.1: released (2026-11-13)
 

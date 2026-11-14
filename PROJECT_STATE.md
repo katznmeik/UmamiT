@@ -5,14 +5,15 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-14. **Statistik (v0.7.0, M4 part 2): `v0.7.0-rc.2` is out and waits for the PO's checklist and design review.** The PO's review of rc.1 (ten points) was grilled (R1–R16) into D-115 Amendment 1 and built as #268–#273 on PR #266 (draft); T3 milestone and motion review, all 12 findings fixed, full local gate (GATE PASS) and CI green. The split rating and a transition audit are planned for v0.7.1 (D-116); the cleanup review moves to v0.7.2. `v0.6.1` is released (versionCode 60199). **Next:** the PO's answer on 09 §4 „v0.7.0" (rc.2 items) and the design review; then an rc.3 fix session if needed, else #264: merge and `v0.7.0` with the accuracy run.
+**Last updated:** 2026-11-14. **Statistik (v0.7.0, M4 part 2): `v0.7.0-rc.3` is out and waits for the PO's checklist and design review.** The PO approved everything in rc.2 except „Tassen" (cups of different sizes are not informative); grilled V1–V9 into D-115 Amendment 2 (volume in ml/l instead of cups everywhere, „€ pro Liter", chart TEE, *Tassengröße* removed, „12,4 Liter Tee" with the unit in the body font), built as #274, #275, #277 on PR #266 (draft); full local gate (GATE PASS) and CI green on the rc commit. `v0.6.1` is released (versionCode 60199). **Next:** the PO's answer on 09 §4 „v0.7.0" (rc.3 items) and the rc.3 part of the design review; then #264: merge and `v0.7.0` with the accuracy run (or an rc.4 session if needed).
 
-## Next: the PO's test of `v0.7.0-rc.2`, then #264 (v0.7.0, M4 part 2)
+## Next: the PO's test of `v0.7.0-rc.3`, then #264 (v0.7.0, M4 part 2)
 
-- **Spec:** #255, D-115 (Q1–Q20, „Build notes", **Amendment 1** R1–R16 with its details and the rc.2 build notes), 02 §12 INS-01–INS-08, INV-08, SET-34, 03 SCR-18, 05 §6 (`statsRange` CUSTOM, `statsRangeFrom`/`To`, `statsFolded`, `cupSizeMl`), 09 §4 „v0.7.0" (rc.2 items). **Plan:** `docs/plans/v0.7.0.md` („rc.2" section). **PR:** #266 (draft, closes #255–#262 and #268–#272; #263 and #273 once the PO approves).
-- **rc:** `v0.7.0-rc.2` (versionCode 70002) from `ccc57917`. **Design review:** `docs/design/review/v0.7.0/README.md` (what changed since rc.1 and Claude's rc.2 defaults 1–8). Not rendered: *Tassengröße* in Einstellungen (check on the phone).
+- **Spec:** #255, D-115 (Q1–Q20, „Build notes", **Amendment 1** R1–R16 with its details and the rc.2 build notes, **Amendment 2** V1–V9 with its details), 02 §12 INS-01–INS-08, INV-08, SET-34 (removed), 03 SCR-18, 05 §6 (`statsRange` CUSTOM, `statsRangeFrom`/`To`, `statsFolded`; `cupSizeMl` retired), 09 §4 „v0.7.0" (rc.3 items). **Plan:** `docs/plans/v0.7.0.md` („rc.3" section). **PR:** #266 (draft, closes #255–#262, #268–#272, #274, #275, #277; #263, #273 and #276 once the PO approves).
+- **rc:** `v0.7.0-rc.3` (versionCode 70003) from `73907f6d`. **Design review:** `docs/design/review/v0.7.0/README.md` („What changed since rc.2" and Claude's rc.3 defaults 2–5; default 1 answered as V8/V9). Everything else of rc.2 and its defaults 2–8 are approved (D-115 Amendment 2). **Tickets:** #274, #275, #277 built; #276 (rc.3 gate and release) done once rc.3 is out.
+- **Reviews for rc.3:** no separate T3 review: a unit change inside the reviewed rc.2 code, verified by the orchestrator's diff reviews and render checks, the full local gate and CI; the milestone's T3 review (#273) stands.
 - **Reviews done (#273):** one T3 review (correctness + the `review-animations` rules) of the rc.2 diff: no blocker, 12 findings (recipe estimate below 1 cup, donut slices keyed by name, fold/month taps waiting on DataStore, fold motion direction and summary fade, small ones), all fixed in one T2 round.
-- **After the PO's answer:** answers that change behaviour go through the process again (D-115 amendment, tickets, rc.3). If the PO approves rc.2: record „Approval" in D-115, tick #256–#263 and #268–#273, mark the PR ready, merge (merge commit), wait for CI on `main`, run `accuracy.yml` (all variants, 09 §4a, full SHA) on the merge commit, bump to `0.7.0` and dispatch `v0.7.0` from `main` (#264), verify the certificate.
+- **After the PO's answer:** answers that change behaviour go through the process again (D-115 amendment, tickets, rc.4). If the PO approves rc.3: record „Approval" in D-115, tick #256–#263, #268–#277, mark the PR ready, merge (merge commit), wait for CI on `main`, run `accuracy.yml` (all variants, 09 §4a, full SHA) on the merge commit, bump to `0.7.0` and dispatch `v0.7.0` from `main` (#264), verify the certificate.
 - **Then v0.7.1 (D-116):** a specify session (grilling) for the split rating (Tee + Zubereitung per session, old ratings copied to both; a Room migration, T3+) and the transition audit (unlock into the app is the worst case the PO saw).
 - **No timer code, no migration:** `git diff main -- feature/brew core/timer core/timer-engine core/database/schemas` is empty; no T4 timer review.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
@@ -48,12 +49,12 @@ Claude's proposal of 2026-11-13, recorded on the PO's request. It is **not a go 
 
 | Item | Status |
 |---|---|
-| Current milestone | **Statistik (v0.7.0, M4 part 2)**: built on PR #266; `v0.7.0-rc.1` with the PO (checklist, design review, questions A–E). v0.6.1 is released (2026-11-13) |
+| Current milestone | **Statistik (v0.7.0, M4 part 2)**: built on PR #266; `v0.7.0-rc.3` with the PO (checklist rc.3 items, design review). v0.6.1 is released (2026-11-13) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `bc410bbc` after #265) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | #266 (v0.7.0 milestone PR, draft; rc.2) |
-| Latest APK | rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
+| Open PR | #266 (v0.7.0 milestone PR, draft; rc.3) |
+| Latest APK | rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
 | Decision numbers | Up to **D-116** used; the next free is **D-117** |
 
 ## Working agreements in effect
@@ -70,7 +71,7 @@ Claude's proposal of 2026-11-13, recorded on the PO's request. It is **not a go 
 
 ## Waiting on the PO
 
-1. **Test `v0.7.0-rc.2`:** the checklist 09 §4 „v0.7.0" (rc.2 items) and the design review `docs/design/review/v0.7.0/` with Claude's rc.2 defaults (answer in the session or on PR #266).
+1. **Test `v0.7.0-rc.3`:** the checklist 09 §4 „v0.7.0" (rc.3 items) and the design review `docs/design/review/v0.7.0/` (rc.3 part) with Claude's rc.3 defaults (answer in the session or on PR #266).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
