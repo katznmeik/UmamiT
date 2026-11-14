@@ -509,6 +509,18 @@ does.
     the icons flip 150 ms into `fade`, on timer → shell 100 ms into
     `exitFade`; the back stack stays their one owner and an alert flips them
     at once (`alertEnter`). Amends D-069's timing.
+- **Jank gate (#285, *Accepted (PO, 2026-11-14)*):** the first CI run of
+  `TransitionJankTest` (run 43633045854, API 36) showed the software-rendered
+  emulator over the absolute limit everywhere (a tab switch 28 of 28 frames
+  over 16,7 ms, longest frame 310–550 ms; even resume after stop 57 ms), so
+  Q16's absolute limit cannot pass there whatever the app does. The PO chose
+  the **relative gate**: each run also measures a trivial reference
+  transition; a transition fails when its median run has a stall (longest
+  frame over about 3× the reference's typical frame) or more janky frames
+  than the reference scaled to its length. The factors are calibrated on
+  three CI runs before the gate goes on and recorded in the audit file §7;
+  absolute numbers stay reported; the PO's rc check has the final say.
+  NFR-PERF-12 is reworded.
 
 <a id="d-116"></a>
 ### D-116 — v0.7.1 (planned): tea and brewing rated separately, a transition smoothness audit; the cleanup review becomes v0.7.2 · *Accepted* in part (PO, 2026-11-13, R1–R3 below; the rest is grilled in the v0.7.1 specify session)
