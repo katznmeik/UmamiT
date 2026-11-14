@@ -33,14 +33,15 @@ import com.umamit.core.timer.reliability.problem
 import com.umamit.core.ui.alertCovers
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -174,9 +175,10 @@ class HomeViewModel @Inject constructor(
             reliabilityProblem = problem,
         )
     }.combine(
-        // The card never holds back or breaks Start's state, which carries the alert (rule 8): none until
-        // the stock is read, and none after a read error.
-        lowStock.observeCard().onStart { emit(null) }.catch { emit(null) },
+        // Start arrives in one piece (A-03, 03 §3.6): its first state waits for the card at most ≈ 150 ms, then
+        // goes on without it. The card never breaks Start's state, which carries the alert (rule 8): none after a
+        // read error. A later alert never waits for it: once each part has a value, any change emits at once.
+        lowStock.observeCard().orNullAfter(FIRST_CARD_WAIT_MS).catch { emit(null) },
     ) { home, card ->
         // A plain card of the list (rule 8: never over an alert); only with teas to remind of.
         home.copy(lowStock = card.takeUnless { home.collectionEmpty })
@@ -351,5 +353,23 @@ class HomeViewModel @Inject constructor(
 
         /** Any two timers at once, never a third (D-108). */
         const val MAX_ACTIVE_TIMERS = 2
+    }
+}
+
+/** How long Start's first state waits for the low-stock card (03 §3.6: at most ≈ 150 ms, A-03). */
+internal const val FIRST_CARD_WAIT_MS = 150L
+
+/**
+ * This flow, with `null` first if it has not emitted within [timeoutMs]: a first value that comes in time is the first
+ * value, so a layout built on it does not change a moment later.
+ */
+internal fun <T : Any> Flow<T?>.orNullAfter(timeoutMs: Long): Flow<T?> = channelFlow {
+    val fallback = launch {
+        delay(timeoutMs)
+        send(null)
+    }
+    collect { value ->
+        fallback.cancel()
+        send(value)
     }
 }
