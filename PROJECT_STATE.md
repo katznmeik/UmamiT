@@ -9,9 +9,11 @@
 
 ## Now: v0.7.1 build session (D-116, D-117), in progress
 
-- **Resume note (2026-11-14):** the PO approved spec, tickets and plan; tickets `ready-for-agent`; PR #290 is the draft milestone PR.
-  - **Done on the branch:** #284 audit (`docs/plans/v0.7.1-motion-audit.md`, 16 findings), the PO's answers to A-08/A-11/A-16 (D-117 build notes), #280 umamit.db v8 (`a0ed3b9e`).
-  - **Running/next:** #281, #285, then #282 + #283, #286 (audit findings off the timer path, incl. A-08 `configChanges="uiMode"` and A-16), #287 (A-01, A-05, A-12 setup part, A-15; A-11 only if #285 measures it over budget). #285's baseline needs three agreeing CI runs; if even trivial transitions miss the limit on the CI emulator, ask the PO (Q17), never widen it.
+- **Resume note (2026-11-14, late):** the PO approved spec, tickets and plan; tickets `ready-for-agent`; PR #290 is the draft milestone PR.
+  - **On the branch (all locally verified, CI green up to #286):** #284 audit, #280 (umamit.db v8), #285 `TransitionJankTest` + the relative gate (reference fade), #281, #283, #282, #286 (A-02, A-03, A-04, A-06, A-07, A-08, A-09, A-10, A-12, A-13, A-16), #287 (A-01, A-05, A-12 setup, A-13 setup, A-15, Teeauswahl first frame, band bitmap off the main thread; the timer tests of 04 §12 pass locally).
+  - **The PO's answers in this session:** A-08 in place at once, A-11 measure first, A-16 at the fade's midpoint, the relative jank gate (D-117 build notes).
+  - **Jank gate, open:** stall factor 3.0 (longest frame ÷ reference typical frame); numbers in `docs/plans/v0.7.1-motion-audit.md` §7 and the session's runs. Tab switches, Teeauswahl in, Schritte-Sheet in and setup → timer sit around or over 3.0, partly flaky; A-10 showed no measured effect; cold start went 2.0 → 3.0 after A-03/A-04. Next: a reporting follow-up (longest frame's index, first frame, 7 runs), two CI runs on one commit, then one PO round (exempt floor-bound transitions / fix more / another factor). The janky-count half never binds on the emulator; stale or empty frames are proven by unit tests and the rc check, not by JankStats.
+  - **Then:** #288 (T3 milestone review, T4 timer review, `/review-animations`, the three accuracy variants, full local gate, renders, rc.1), #289 after the PO's approval.
 
 ## Next: v0.7.1 build session (D-116, D-117), after the PO's approval (the specify session's handover)
 
