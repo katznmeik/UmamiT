@@ -53,7 +53,7 @@ class OverviewTabTest {
 
         compose.onNodeWithText("42").assertExists()
         compose.onNodeWithText("Sitzungen").assertExists()
-        compose.onNodeWithText("12,4 l").assertExists()
+        compose.onNodeWithText("12,4 Liter").assertExists()
         compose.onNodeWithText("Tee").assertExists()
         compose.onNodeWithText("24").assertExists()
         compose.onNodeWithText("Tees · +3 im Zeitraum").assertExists()
@@ -63,7 +63,9 @@ class OverviewTabTest {
     fun `sessions, volume and teas sit in one row`() {
         show(OverviewFixtures.data())
 
-        val tops = listOf("42", "12,4 l", "24").map { compose.onNodeWithText(it).fetchSemanticsNode().boundsInRoot.top }
+        val tops = listOf("42", "12,4 Liter", "24").map {
+            compose.onNodeWithText(it).fetchSemanticsNode().boundsInRoot.top
+        }
         assertThat(tops.distinct()).hasSize(1)
     }
 

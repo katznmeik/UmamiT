@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import coil3.compose.rememberAsyncImagePainter
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.theme.UmamiSpacing
@@ -118,10 +120,14 @@ private fun Numerals(stats: OverviewStats) {
             pluralStringResource(R.plurals.stats_overview_sessions_label, stats.sessionCount),
             Modifier.weight(1f),
         )
+        val (volume, shortUnit) = VolumeFormat.parts(stats.volumeMl)
+        // Written in full here only; axes and value labels keep "l" (D-115 A2 V8).
+        val volumeUnit = if (shortUnit == "l") stringResource(R.string.stats_overview_volume_unit_liter) else shortUnit
         Numeral(
-            VolumeFormat.volume(stats.volumeMl),
+            volume,
             stringResource(R.string.stats_overview_volume_label),
             Modifier.weight(1f),
+            unit = volumeUnit,
         )
         val teas = pluralStringResource(R.plurals.stats_overview_teas_label, stats.teaCount)
         val added = stats.teasAddedInRange ?: 0
@@ -134,10 +140,15 @@ private fun Numerals(stats: OverviewStats) {
 }
 
 @Composable
-private fun Numeral(value: String, label: String, modifier: Modifier = Modifier) {
+private fun Numeral(value: String, label: String, modifier: Modifier = Modifier, unit: String? = null) {
     Column(modifier) {
+        // The unit in the body font on the same baseline: the display font's "l" reads as a bar (D-115 A2 V8).
+        val unitStyle = MaterialTheme.typography.bodyLarge.toSpanStyle()
         Text(
-            text = value,
+            text = buildAnnotatedString {
+                append(value)
+                if (unit != null) withStyle(unitStyle) { append(" $unit") }
+            },
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
