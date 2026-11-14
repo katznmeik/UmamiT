@@ -107,7 +107,9 @@ class MainActivity : ComponentActivity() {
         val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         val themeMode = themeModeState(settings)
-        val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
+        // Seeded with the controller's current alert, so a re-created activity's first frame already knows it (A-07).
+        val alertKey = brewTimer.state.map { it.alertKey() }
+            .stateIn(lifecycleScope, SharingStarted.Eagerly, brewTimer.state.value.alertKey())
         lifecycleScope.launch {
             combine(brewTimer.state, timerVisible, ::lockScreenFlags).distinctUntilChanged().collect {
                 setShowWhenLocked(it.showWhenLocked)
