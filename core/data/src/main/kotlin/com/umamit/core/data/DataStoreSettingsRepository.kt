@@ -85,7 +85,7 @@ internal fun settingsRetryDelayMs(attempt: Long): Long {
 /**
  * Keeps the pre-alert (SET-10) and the quick timer's choice (TMR-22, D-097; null stays *Automatisch*) in 0, 5…30,
  * „Knapp ab" in 0…500 g in steps of 5 (SET-16), *Lautstärke* in 10…100 % in steps of 10 (SET-27, D-098) and the
- * reminder's time within the day (SET-29, D-098).
+ * reminder's time within the day (SET-29, D-098); the custom stats range's *Von* is never after its *Bis*.
  */
 internal fun UserSettings.normalized(): UserSettings = copy(
     preAlertSeconds = preAlertOf(preAlertSeconds),
@@ -93,6 +93,8 @@ internal fun UserSettings.normalized(): UserSettings = copy(
     lowStockGrams = snap5(lowStockGrams).coerceIn(0, MAX_LOW_STOCK_GRAMS).toDouble(),
     alertVolumePercent = volumeOf(alertVolumePercent),
     lowStockReminderTime = lowStockReminderTime.coerceIn(0, UserSettings.LAST_MINUTE_OF_DAY),
+    statsRangeFrom = statsRangeFrom?.let { from -> statsRangeTo?.let { minOf(from, it) } ?: from },
+    statsRangeTo = statsRangeTo?.let { to -> statsRangeFrom?.let { maxOf(to, it) } ?: to },
 )
 
 /** The nearest 10 % step (half up), never below 10 %, so the app itself can never silence a cue (rule 8). */

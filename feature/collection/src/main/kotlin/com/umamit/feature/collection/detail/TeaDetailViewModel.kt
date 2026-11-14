@@ -384,12 +384,15 @@ class TeaDetailViewModel @Inject constructor(
             sessionLeafGrams = brew.sessionLeaf(),
             today = clock.today(),
             history = stockEvents.asReversed().map { it.entry(clock.zone()) },
-            cost = CostRule.of(StockSummary.of(stockEvents), recipeList.firstOrNull { it.isDefault }, finished),
+            cost = costOf(stockEvents, recipeList, finished),
             rating = brew.tasting.rating,
             taste = DetailTasting.of(brew.tasting),
             recentSessions = finished.sortedByDescending { it.startedAtMs }.take(RECENT_SESSIONS).map { it.recent() },
         )
     }
+
+    private fun costOf(stockEvents: List<InventoryEvent>, recipes: List<Recipe>, finished: List<BrewSession>) =
+        CostRule.of(StockSummary.of(stockEvents), recipes.firstOrNull { it.isDefault }, finished)
 
     private data class Globals(val lowStockGrams: Double, val deductStock: Boolean)
 

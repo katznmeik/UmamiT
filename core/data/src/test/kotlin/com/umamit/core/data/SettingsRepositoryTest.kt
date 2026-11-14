@@ -132,4 +132,17 @@ class SettingsRepositoryTest {
         repository.update { it.copy(lowStockGrams = -10.0) }
         assertThat(repository.settings.first().lowStockGrams).isEqualTo(0.0)
     }
+
+    @Test
+    fun customStatsMonthsAreKeptInOrder() = runTest {
+        val repository = repository()
+
+        repository.update {
+            it.copy(statsRangeFrom = java.time.YearMonth.of(2026, 9), statsRangeTo = java.time.YearMonth.of(2026, 3))
+        }
+
+        val settings = repository.settings.first()
+        assertThat(settings.statsRangeFrom).isEqualTo(java.time.YearMonth.of(2026, 3))
+        assertThat(settings.statsRangeTo).isEqualTo(java.time.YearMonth.of(2026, 9))
+    }
 }

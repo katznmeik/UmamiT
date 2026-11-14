@@ -323,6 +323,32 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-116"></a>
+### D-116 — v0.7.1 (planned): tea and brewing rated separately, a transition smoothness audit; the cleanup review becomes v0.7.2 · *Accepted* in part (PO, 2026-11-13, R1–R3 below; the rest is grilled in the v0.7.1 specify session)
+
+**Context.** From the PO's review of `v0.7.0-rc.1` (D-115 Amendment 1):
+a failed brew rated 1 ★ pulls down the rating of an otherwise good tea, and
+several screen transitions don't feel smooth, most when the phone is
+unlocked into the app.
+
+**Decision (the PO's answers).**
+
+1. **R1, release:** both come in **v0.7.1**, after v0.7.0; the code cleanup
+   review (PROJECT_STATE) moves to **v0.7.2**.
+2. **R2, two ratings per session:** the finish sheet (and the journal edit)
+   ask for **„Tee"** and **„Zubereitung"** separately, both optional,
+   0,5–5 ★. A tea's rating everywhere is the Ø of its *Tee* ratings;
+   *Zubereitung* shows the brewing (e.g. its trend on Statistik). Both are
+   visible at every place that shows a rating today.
+3. **R3, existing ratings are copied to both** *Tee* and *Zubereitung* by
+   the migration.
+
+**Open for the v0.7.1 specify session (grilling):** where each rating shows
+(journal row, tea detail, Meine Tees sort, Statistik), the migration's
+details (T3 at least), how transitions are checked (e.g. the PO's screen
+recordings, recorded frames on the CI emulator, a code audit with the
+motion skills) and which transitions are in scope.
+
 <a id="d-115"></a>
 ### D-115 — v0.7.0 Statistik: three tabs, a remembered rolling range, neutral streaks, Sorten donut, ratings with their history and the best recipe, taste over every infusion, purchases as money spent, brewing habits (INS-01–INS-08; SCR-18; 05 §6 `statsRange`, `statsTab`) · *Accepted* (PO, 2026-11-13, grilled in the session Q1–Q20 as options in five rounds; details marked „Claude" are Claude's defaults and were not put to the PO)
 
@@ -440,6 +466,226 @@ what it has); custom descriptors (D-112).
   final release needs the accuracy run (09 §4a), as v0.6.0.
 - **Specs written:** 02 §12 (INS-01–INS-08), 03 SCR-18, 05 §6, 09 (§2,
   §4), 11, 12, `docs/design/assets.md` (A9), the specs README.
+
+**Build notes (Claude, v0.7.0 build, 2026-11-13; not put to the PO, listed
+in the design review for the PO to see).**
+
+- **12 M** counts the current calendar month and the 11 before, from the 1st
+  (the 12 bars of INS-07), rather than a strict 365 days, which would touch
+  13 months.
+- **Gesamt** counts every day up to today in its totals; only its bars start
+  at the first session's month (a priced purchase dated earlier counts in
+  the money total without a bar).
+- **Teas** are grouped by id; a deleted tea by its snapshot name. The name
+  shown is the tea's current name, else the latest snapshot; a recipe's name
+  is its latest `profile_name` snapshot.
+- **Taste** counts every step row with a taste plus a v0.6.0 session's own
+  taste, as the tea detail does; „aus N Aufgüssen" counts the rows with any
+  axis set.
+- **Whole percentages** of the day parts and weekdays also use the largest
+  remainder (ties: the larger count, then the earlier entry).
+- **Dates:** sessions dated after today are not counted; a tea's
+  `created_at` and a purchase's `occurred_at` are dated in the phone's
+  current zone (those rows store no zone). A descriptor ticked twice on one
+  session counts once.
+- **Untracked teas** (no stock event) are never *Knapp* or *Leer*, as in the
+  collection list.
+- **Charts:** the bars and the rating line are drawn on Canvas like the
+  donut, not with Vico: Vico 3 draws a series in one colour (no 70 % earlier
+  bars), has no line broken across gaps and no own value label or
+  reduce-motion fade. Nothing visible changes; 06 §4 updated.
+- **Value label:** it also hides when the range, the tab or the data
+  changes; bars take a tap on their column, the line its nearest point
+  within 28 dp, the donut its ring. The distribution and habit bars print
+  their numbers and take no tap.
+- **TalkBack** reads each value with its unit („KW 44: 6 Sitzungen.").
+- **After the milestone review (#263):**
+  - **Grow once:** a chart grows the first time it is at least half on
+    screen on the settled tab, and never again for that tab while the
+    screen lives (also not after swiping away and back).
+  - **Range change with a different number of periods** (30 T ↔ 90 T ↔ 12 M
+    ↔ Gesamt): the old bars fade out in 100 ms and the new set grows in
+    250 ms without stagger; with the same number of periods the bars morph
+    (250 ms). The donut morphs per Sorte. Stagger spread at most 120 ms.
+  - **Header:** „Deine Tee-Reise" settles fully open or fully closed after
+    a scroll (200 ms; snaps with reduce motion) and comes back when a tab is
+    switched to at its top.
+  - **Value label:** one at a time on the screen; a tap anywhere else, a
+    scroll or a tab change hides it. It appears without animation.
+  - **Large font:** the range selector and the tabs stop growing at font
+    scale 1,15 („Bewertungen" and „Gesamt" would wrap); from 1,5 the habit
+    bars become rows like the star distribution (the donut's legend moves
+    below at the same scale). The title row carries ⋮ (Einstellungen) and
+    scrolls away with the title.
+  - **Descriptor chips** read „Nori · 12×" on Statistik; the tea detail
+    keeps „Nori · 4".
+  - **Day change:** the figures move to the new day when the screen is
+    resumed (not at midnight while it stays open).
+
+**Amendment 1: the PO's review of `v0.7.0-rc.1` (PO, 2026-11-13, ten
+points on the checklist and the design review, grilled in the session R1–R16
+as options in four rounds; not an approval of rc.1).** The rc.1 defaults 1–8
+stand unless changed below. Questions A and C fall away with the new
+*Bewertungen* (R6).
+
+1. **R1, scope:** `v0.7.0-rc.2` carries the Statistik changes below and the
+   *Knapp* chip (R14). The split rating (R2, R3 there) and the transition
+   audit move to **v0.7.1** ([D-116](#d-116)); the code cleanup review
+   moves to v0.7.2.
+2. **R2, „Tasse" by volume:** a cup is poured water ÷ the **cup size**, a
+   new setting in *Einstellungen* (default **150 ml**). A 1 l Kanne
+   infusion counts ≈ 7 Tassen, a 120 ml Kyusu infusion ≈ 1.
+3. **R3, the cup size applies everywhere:** Statistik (Tassen, Ø € pro
+   Tasse) and the tea detail's „pro Tasse" lines (estimate and average,
+   INV-08) use the same rule.
+4. **R4, Bewertungen** is rebuilt from four parts: **Tee-Rangliste** (every
+   tea rated in the range, best Ø first, „4,6 ★ · 5×"; replaces the Ø
+   headline, the 5 ★–1 ★ distribution and „Am besten bewertet"), **Neu
+   entdeckt** (teas first brewed in the range, with their rating),
+   **Bewertung im Verlauf** (kept) and **Bestes Rezept** (kept).
+5. **R5, Geschmack and Beschreibungen are removed** from Statistik; taste
+   stays on each tea's detail.
+6. **R6, a second donut „Tees"** on *Überblick*: share of sessions per tea,
+   the five largest named, the rest „Andere", as *Tee-Sorten*.
+7. **R7, custom range:** a fifth segment **„Monate"** opens a sheet with
+   two month pickers (*Von*, *Bis*); the segment then reads „Dez.–Aug.".
+   It is remembered like the others; bars per month, per week when the span
+   is at most 3 months.
+8. **R8, foldable sections** on all three tabs: open at first; a tap on the
+   heading folds the section to one line with its key number
+   („SITZUNGEN · 42"); folded sections stay folded across app starts.
+9. **R9, money drunk:** a new section **GETRUNKEN** on *Verbrauch* below
+   AUSGABEN (which stays priced purchases, Q10): the € value of the leaf
+   brewed per period (each session's `cost_cents`), the range's total, and
+   „Ø € pro Tasse" (moved here from AUSGABEN).
+10. **R10, compact:** every bar chart about **half as tall**; Sitzungen ·
+    Tassen · Tees in **one row**; tighter section spacing. Verbrauch keeps
+    separate charts.
+11. **R11, Tee-Rangliste:** teas with **at least one rating** in the range,
+    **top 10**, then „Alle anzeigen".
+12. **R12 (question B):** no „+n im Zeitraum" under *Gesamt*.
+13. **R13 (question D):** Serie at 0 reads „Keine Serie gerade · längste
+    21 Tage" (the longest only when there is one).
+14. **R14, *Knapp* in Meine Tees:** the row's stock chip reads **„14 g ·
+    knapp"** (one chip, *Knapp* colours); *Leer* stays „Leer".
+15. **R15 (question E):** the value label **fades** (0,12 s in, 0,1 s out;
+    reduce motion: at once).
+16. **R16, transitions (point 10):** the PO sees transitions that are not
+    smooth, most when the phone is unlocked into the app. Handled in v0.7.1
+    (D-116), not in rc.2.
+
+**Details of Amendment 1 (Claude; not asked, open to the PO's correction
+in the rc.2 review).**
+
+- **Cups:** a session's cups = Σ over its poured non-rinse infusions of
+  `water_ml` ÷ cup size; a whisk-only session, or one whose every step was
+  skipped, counts one infusion. Totals and bars sum the unrounded cups and
+  round half up for display (whole cups; a session never shows below 1). A
+  session without `water_ml` keeps 1 per infusion. The setting is
+  *Tassengröße* in *Einstellungen*, 50–500 ml in 10 ml steps (`cupSizeMl`,
+  05 §6); changing it recomputes every figure (nothing is stored per
+  session). The recipe estimate uses the recipe's water × its non-rinse
+  steps.
+- **Custom range:** months from the first session's month to the current
+  month; *Bis* not before *Von*; a range that ends with the current month
+  counts up to today. The segment shows „Dez.–Aug.", with years when they
+  differ („Dez. 25–Aug. 26"). The empty state and „+n" rules follow the
+  other ranges (the „+n" shows).
+- **Folding:** the chevron turns; the body expands or collapses (≈ 200 ms;
+  reduce motion: at once); TalkBack announces „eingeklappt"/„ausgeklappt".
+  The folded set is kept in `statsFolded` (05 §6).
+- **Tee-Rangliste:** the Ø over the range's rated sessions, one decimal;
+  ties: more ratings first, then name; a tap opens the tea (none for a
+  deleted tea); „Alle anzeigen (N)" expands the list in place.
+- **Neu entdeckt:** teas whose first finished session ever falls in the
+  range, newest first, five rows then „Alle anzeigen (N)"; each shows its
+  Ø in the range or „ohne Bewertung"; hidden under *Gesamt* (every tea would
+  be new).
+- **Order on *Bewertungen*:** Tee-Rangliste, Neu entdeckt, Bewertung im
+  Verlauf, Bestes Rezept. Without any rating in the range the tab says „In
+  diesem Zeitraum nichts bewertet" above Neu entdeckt.
+- **GETRUNKEN:** sessions without a `cost_cents` don't count; „aus 20
+  Sitzungen mit Preis"; without one: „Keine Sitzungen mit Preis".
+- **Tee donut** heading „TEES", after TEE-SORTEN; a deleted tea under its
+  snapshot name; slice colours distinct within the donut.
+- **Build notes rc.2 (Claude, #268–#273):** a session's water is stored once,
+  so each poured infusion counts the session's `water_ml`; a recipe's
+  estimate is at least 1 cup; the first tap on „Monate" applies the last 3
+  months, the pickers are ‹ › steppers; at font 1,15 the five segments drop
+  the check icon and the tab labels never wrap; fold summaries: Serie the
+  current streak (none at 0), Am häufigsten the top tea, Gewohnheiten the
+  busiest day part, Bewertung im Verlauf the latest Ø; without any rating
+  the Verlauf hides and „x von y bewertet" is gone with the Ø headline;
+  „Alle anzeigen" has no „weniger"; *Monate* bars scroll like *Gesamt*.
+  Listed in `docs/design/review/v0.7.0/README.md` for the PO.
+
+**Amendment 2: the PO's review of `v0.7.0-rc.2` (PO, 2026-11-14; grilled
+in the session V1–V7 as options in two rounds; not an approval of rc.2).**
+Every other rc.2 change and the rc.2 defaults 2–8 are **approved** as built;
+default 1 (cups) is replaced below. The PO: „Tassen" are not informative
+because the PO's cups differ in size, so a default cup size does not show
+what was actually drunk.
+
+1. **V1, no „Tasse" as a unit anywhere:** Statistik and the tea detail count
+   **volume** (poured water) instead of cups. The setting *Tassengröße*
+   (SET-34, `cupSizeMl`) is **removed**. Replaces R2, R3 and the cup rule
+   of Amendment 1.
+2. **V2, € pro Liter:** „Ø € pro Tasse" becomes **„Ø 1,80 € pro Liter"**:
+   Σ `cost_cents` ÷ Σ poured litres of the priced sessions (GETRUNKEN and
+   the tea detail's average); the tea detail's estimate reads **„ca. 1,60 €
+   pro Liter (Rezept)"** (recipe leaf × price per gram ÷ recipe water × its
+   non-rinse steps). Cents rounded half up.
+3. **V3, format:** below 1 l in **ml**, rounded to the nearest **10 ml**
+   („750 ml"; a non-zero amount shows at least „10 ml"); from 1 l in
+   **litres with one decimal**, half up („12,4 l"). Bar values and the
+   value label follow the same rule.
+4. **V4, the word:** Verbrauch's chart is **TEE** (was TASSEN); the
+   *Überblick* row reads „Sitzungen · 12,4 l Tee · Tees" (the numeral with
+   its unit and „Tee").
+5. **V5, no water recorded or every infusion skipped:** the session adds
+   **0 ml**; its cost still counts in GETRUNKEN's total and bars but is
+   **left out of „Ø € pro Liter"** (and „aus N Sitzungen mit Preis" counts
+   only the sessions in the average).
+6. **V6, rounding below 1 l:** nearest 10 ml, as V3.
+7. **V7, tea detail:** as V2: „ca. 1,60 € pro Liter (Rezept)", „Ø 1,80 €
+   pro Liter aus 5 Sitzungen"; a recipe without water, or whose steps are
+   all rinses, shows no estimate.
+8. **V8, the unit in the body font (PO, 2026-11-14, on Claude's rc.3
+   default 1):** in *Überblick*'s big volume numeral the unit („ml", „l")
+   is set in the smaller **body font** after the display-font number
+   („12,4" + „ l"), because the display font's „l" looks like a bar. The
+   other numerals are unchanged.
+9. **V9, „Liter" in full (PO, 2026-11-14, on the V8 render):** the small
+   „l" still read as a bar, so the numeral reads „12,4" + „Liter" (body
+   font); below 1 l „750" + „ml". Chart axes, value labels and „€ pro
+   Liter" keep the format of V3.
+
+**Details of Amendment 2 (Claude; not asked, open to the PO's correction
+in the rc.3 review).**
+
+- **Volume of a session** = Σ over its poured non-rinse steps (ended, not
+  skipped) of the session's `water_ml` (stored once per session, as rc.2);
+  a whisk-only session counts its `water_ml` once. Sums stay in ml
+  (integers) and are formatted only for display.
+- **Bars:** the TEE chart's bars are ml per period; the axis and the value
+  label format with V3 (a period of 0 ml has an empty bar).
+- **Fold summary** of TEE: „TEE · 12,4 l".
+- **The stored `cupSizeMl`** is no longer read or written; a value stored
+  by rc.2 stays in `settings.json` unused (no migration; the settings
+  file ignores a key nobody reads, 05 §6). The *Einstellungen* row and its dialog go.
+- **Wording kept:** „Deine erste Tasse wartet." (journal empty state) and
+  „Jede Tasse, die du brühst …" stay: they are prose, not a unit.
+
+**Approval (PO, 2026-11-14, in the session).** Asked for the result on
+`v0.7.0-rc.3` (the rc.3 items of the on-device checklist 09 §4 „v0.7.0" and
+the rc.3 part of `docs/design/review/v0.7.0/README.md` with Claude's rc.3
+defaults 2–5), the PO answered **„All changes approved"**: every rc.3
+checklist item passed, and the defaults stand as built (TalkBack reads the
+visible text, „Liter" wraps below the numeral at font 2.0, „aus N Sitzungen
+mit Preis" under GETRUNKEN, no numeral of its own on TEE with the fold line
+„TEE · 12,4 l"). With the approvals of rc.1 and rc.2 (Amendments 1 and 2)
+the milestone is approved; there is no rc.4, and #264 (the merge and the
+final release) follows.
 
 <a id="d-114"></a>
 ### D-114 — v0.6.1: the PO's feedback on v0.6.0: taste per infusion (also on the timer), folding taste, quick-timer chips, photo viewer, catalog links in ⋮, all kinds without a chip, „N Tees", the *Design* setting; Statistik becomes v0.7.0 (TMR-22, JRN-03, JRN-05, JRN-09, JRN-10, TEA-05, TEA-13, CAT-07, CAT-10, SET-05; SCR-05, SCR-07, SCR-09, SCR-16, SCR-19, SCR-25, SCR-28; amends D-112's taste per session and Q1's numbering, D-103's default kind, D-097's 8:00 chip row) · *Accepted* (PO, 2026-11-12, grilled in the session Q1–Q19 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
@@ -7667,6 +7913,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-13 | D-115 Amendment 1 (PO review of v0.7.0-rc.1, R1–R16): cups by volume with a cup-size setting (also on the tea detail), a Tee donut, one-row totals, foldable sections, half-height charts, a custom month range, GETRUNKEN on Verbrauch, Bewertungen rebuilt (Tee-Rangliste, Neu entdeckt, Verlauf, Bestes Rezept; taste and descriptors removed), „14 g · knapp" in Meine Tees, B/D/E answered → rc.2. D-116: v0.7.1 planned (Tee and Zubereitung rated separately, old ratings copied to both; transition audit); cleanup review → v0.7.2. |
 | 2026-11-13 | D-115: Statistik (v0.7.0) grilled with the PO (Q1–Q20): three tabs, a remembered rolling range 30 T · 90 T · 12 M · Gesamt with weekly or monthly bars, a neutral all-time streak, the Sorten donut, brewing habits, ratings with distribution, top rated, rating over time and best recipe, taste over every infusion, top descriptors, money spent as purchases, cost per cup, running out; A9 only without any session; TalkBack lists. No migration, no timer code. |
 | 2026-11-12 | D-114: PO feedback after v0.6.0 → v0.6.1 (Statistik becomes v0.7.0): taste per infusion with a short note, also on the timer screen (umamit.db v7); GESCHMACK folds; quick-timer chips 1:00–15:00; a full-screen photo viewer; *Tee ansehen* / *Im Katalog ansehen* in the ⋮ of the session page and the tea detail; the Katalog opens with every kind and groups by kind; „N Tees" everywhere; *Design* (System · Hell · Dunkel). Timer code: T3+, T4 timer review, accuracy runs per rc. |
 | 2026-11-11 | D-112: M4 is specified with the PO (Q1–Q18) and split: **v0.6.0** is the journal (rating, taste, descriptors, notes and session photos entered in place on the session page, all optional; stars on the „Gespeichert" sheet; the session editor for date, vessel, leaf, water and step times; journal search with three filters; *Zeiten ins Rezept übernehmen* only after deliberate changes, without a setting, SET-18 retired; ratings on the tea detail and in *Meine Tees*; LETZTE SITZUNGEN and GESCHMACK; umamit.db v6), **v0.6.1** is Statistik. JRN-08's no-notes dot is dropped; custom descriptors, notes per infusion, manual entries and coach tips stay ideas for later. The anchors of D-110 and D-111 are corrected. |

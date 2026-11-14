@@ -8,57 +8,72 @@ import com.umamit.core.model.StockSummary
 import kotlin.math.roundToLong
 
 /**
- * What a tea costs on its detail (INV-08, D-104); all amounts in cents, rounded half up.
+ * What a tea costs on its detail (INV-08, D-104, D-115 Amendment 2); all amounts in cents, rounded half up.
  *
  * @property pricePer100gCents „12,40 € / 100 g".
- * @property recipeCupCents „ca. 0,24 € pro Tasse (Rezept)"; null without a default recipe with a cup.
- * @property average „Ø 0,27 € pro Tasse aus 5 Sitzungen"; null before the first priced session.
+ * @property recipeLiterCents „ca. 2,40 € pro Liter (Rezept)"; null without a default recipe with water and a
+ * brewing step.
+ * @property average „Ø 2,70 € pro Liter aus 5 Sitzungen"; null before the first priced session with a volume.
  */
-data class TeaCost(val pricePer100gCents: Long, val recipeCupCents: Long? = null, val average: CupAverage? = null)
+data class TeaCost(val pricePer100gCents: Long, val recipeLiterCents: Long? = null, val average: LiterAverage? = null)
 
-/** The real cost per cup over [sessionCount] finished sessions with a stored cost. */
-data class CupAverage(val cupCents: Long, val sessionCount: Int)
+/** The real cost per litre over [sessionCount] finished sessions with a stored cost and a volume. */
+data class LiterAverage(val literCents: Long, val sessionCount: Int)
 
 /**
- * The cost rule of INV-08 and D-104, on top of [StockSummary]. One poured infusion is one cup: a rinse is none, a
- * whisk-only recipe or session is one.
+ * The cost rule of INV-08 and D-104, on top of [StockSummary], and the volume rule (D-115 Amendment 2): a session's
+ * volume is the session's water for each poured non-rinse step (a whisk-only session pours it once), 0 ml without a
+ * `water_ml` or when every step was skipped. Cost is shown per litre.
  */
 object CostRule {
     private const val GRAMS_PER_PRICE = 100
+    private const val ML_PER_LITER = 1000.0
 
     /**
      * The tea's cost, or null when no priced INITIAL or PURCHASE event exists („no price, no cost").
      *
      * @param stock the tea's [StockSummary]: its weighted price per gram.
      * @param defaultRecipe the tea's default recipe, for the estimate.
-     * @param sessions the tea's sessions; only the finished ones with a `cost_cents` count for the average.
+     * @param sessions the tea's sessions; only finished ones with a `cost_cents` and a volume count for the average.
      */
     fun of(stock: StockSummary, defaultRecipe: Recipe?, sessions: List<BrewSession>): TeaCost? {
         val perGram = stock.costPerGramCents ?: return null
         return TeaCost(
             pricePer100gCents = (perGram * GRAMS_PER_PRICE).roundToLong(),
-            recipeCupCents = defaultRecipe?.let { recipe ->
-                val cups = cups(recipe.steps.map { it.kind })
-                if (cups > 0) (recipe.leafGrams * perGram / cups).roundToLong() else null
+            recipeLiterCents = defaultRecipe?.let { recipe ->
+                val ml = sessionVolumeMl(recipe.steps.map { it.kind }, recipe.waterMl)
+                if (ml > 0) (recipe.leafGrams * perGram * ML_PER_LITER / ml).roundToLong() else null
             },
             average = average(sessions),
         )
     }
 
-    private fun average(sessions: List<BrewSession>): CupAverage? {
-        val priced = sessions.filter { it.status != SessionStatus.IN_PROGRESS && it.costCents != null }
+    private fun average(sessions: List<BrewSession>): LiterAverage? {
+        val priced = sessions
+            .filter { it.status != SessionStatus.IN_PROGRESS && it.costCents != null }
+            .map { session ->
+                val poured = session.steps.filter { it.actualSeconds != null && !it.skipped }.map { it.kind }
+                (session.costCents ?: 0L) to sessionVolumeMl(poured, session.snapshot.waterMl)
+            }
+            .filter { (_, ml) -> ml > 0 }
         if (priced.isEmpty()) return null
-        val cost = priced.sumOf { it.costCents ?: 0L }
-        // A priced session whose every step was skipped still used its leaf: it counts as one cup.
-        val cups = priced.sumOf { session ->
-            val poured = session.steps.filter { it.actualSeconds != null && !it.skipped }.map { it.kind }
-            cups(poured).coerceAtLeast(1)
-        }
-        return CupAverage(cupCents = (cost.toDouble() / cups).roundToLong(), sessionCount = priced.size)
+        val cents = priced.sumOf { it.first }
+        val ml = priced.sumOf { it.second.toLong() }
+        return LiterAverage(literCents = (cents * ML_PER_LITER / ml).roundToLong(), sessionCount = priced.size)
     }
 
-    /** The cups of these brewing step kinds: one per non-rinse step, one for whisking only. */
-    private fun cups(kinds: List<StepKind>): Int {
+    /**
+     * A session's volume in ml (INV-08, INS-01, D-115 Amendment 2): [waterMl] for each poured non-rinse step, once
+     * for whisking only; 0 without a positive [waterMl] or when nothing was poured.
+     *
+     * @param poured the kinds of the session's poured steps: ended (an actual time) and not skipped; for a recipe,
+     * its steps.
+     */
+    fun sessionVolumeMl(poured: List<StepKind>, waterMl: Int?): Int =
+        if (waterMl == null || waterMl <= 0) 0 else infusions(poured) * waterMl
+
+    /** The infusions of these step kinds: one per non-rinse step, one for whisking only. */
+    private fun infusions(kinds: List<StepKind>): Int {
         val brewing = kinds.filter { it != StepKind.RINSE }
         return if (brewing.isNotEmpty() && brewing.all { it == StepKind.WHISK }) 1 else brewing.size
     }

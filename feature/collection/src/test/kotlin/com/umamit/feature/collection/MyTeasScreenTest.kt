@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onChildAt
@@ -296,6 +297,14 @@ class MyTeasScreenTest {
         row("a").performClick()
 
         assertThat(opened).containsExactly("a")
+    }
+
+    @Test
+    fun aKnappTeaShowsGramsAndKnappInOneChip() {
+        show(tea("a", "Asamushi"), stock = mapOf("a" to 14.0))
+
+        compose.onNode(hasText("14 g · knapp"), useUnmergedTree = true).assertExists()
+        compose.onNode(hasContentDescription("Knapp, 14 g übrig"), useUnmergedTree = true).assertExists()
     }
 
     @Test

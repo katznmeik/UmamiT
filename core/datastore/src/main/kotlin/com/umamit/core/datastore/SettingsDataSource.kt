@@ -8,6 +8,9 @@ import com.umamit.core.model.AlertLength
 import com.umamit.core.model.CollectionSegment
 import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.LowStockReminderInterval
+import com.umamit.core.model.MonthSpan
+import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsTab
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import kotlinx.coroutines.CoroutineScope
@@ -71,6 +74,14 @@ data class StoredSettings(
     /** TEA-11, SCR-08 (v0.4.0, D-100); a file of v0.3.0 has neither key and reads the defaults, no migration. */
     val collectionSort: String = CollectionSort.LAST_BREWED.name,
     val collectionSegment: String = CollectionSegment.MY_TEAS.name,
+    /** INS-07 (v0.7.0, D-115); a file of v0.6.x has neither key and reads the defaults, no migration. */
+    val statsRange: String = StatsRange.DAYS_90.name,
+    /** The custom range's months as `yyyy-MM` (D-115 Amendment 1); a file of v0.7.0-rc.1 has neither, no migration. */
+    val statsRangeFrom: String? = null,
+    val statsRangeTo: String? = null,
+    val statsTab: String = StatsTab.OVERVIEW.name,
+    /** The folded Statistik sections (INS-08, D-115 Amendment 1, R8); a file of v0.7.0-rc.1 has no key and reads ∅. */
+    val statsFolded: Set<String> = emptySet(),
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
@@ -228,6 +239,11 @@ private fun StoredSettings.toModel() = UserSettings(
     catalogFolded = catalogFolded,
     collectionSort = enumOrDefault(collectionSort, CollectionSort.LAST_BREWED),
     collectionSegment = enumOrDefault(collectionSegment, CollectionSegment.MY_TEAS),
+    statsRange = enumOrDefault(statsRange, StatsRange.DAYS_90),
+    statsRangeFrom = MonthSpan.parse(statsRangeFrom),
+    statsRangeTo = MonthSpan.parse(statsRangeTo),
+    statsTab = enumOrDefault(statsTab, StatsTab.OVERVIEW),
+    statsFolded = statsFolded,
 )
 
 private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
@@ -257,6 +273,11 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     catalogFolded = catalogFolded,
     collectionSort = collectionSort.name,
     collectionSegment = collectionSegment.name,
+    statsRange = statsRange.name,
+    statsRangeFrom = statsRangeFrom?.toString(),
+    statsRangeTo = statsRangeTo?.toString(),
+    statsTab = statsTab.name,
+    statsFolded = statsFolded,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
     seedTeaLinksDone = markersOf.seedTeaLinksDone,

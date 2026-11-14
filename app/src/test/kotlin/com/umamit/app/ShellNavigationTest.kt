@@ -287,7 +287,7 @@ class ShellNavigationTest {
         val journalPosition = scrollPosition()
 
         tab(Tab.Stats).performClick()
-        compose.onNodeWithText(str(StatsR.string.stats_later_title)).assertExists()
+        compose.onNodeWithText(str(StatsR.string.stats_empty_title)).assertExists()
         tab(Tab.Journal).performClick()
 
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertExists()

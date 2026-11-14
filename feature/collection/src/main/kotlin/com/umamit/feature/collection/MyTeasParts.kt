@@ -336,7 +336,10 @@ internal fun MyTeaItem(
     )
 }
 
-/** „38 g", *Knapp* or *Leer* (TEA-08, INV-05); nothing for a tea without stock events. */
+/**
+ * „38 g", „14 g · knapp" in the Knapp colours or *Leer* (TEA-08, INV-05, D-115 R14);
+ * nothing for a tea without stock events.
+ */
 @Composable
 private fun StockChip(row: MyTeaRow) {
     val level = row.stockLevel ?: return
@@ -347,7 +350,8 @@ private fun StockChip(row: MyTeaRow) {
             stringResource(R.string.my_teas_stock_grams, grams) to stringResource(R.string.my_teas_stock_left, grams)
 
         StockLevel.LOW ->
-            stringResource(R.string.my_teas_stock_low) to stringResource(R.string.my_teas_stock_low_description, grams)
+            stringResource(R.string.my_teas_stock_low_chip, grams) to
+                stringResource(R.string.my_teas_stock_low_description, grams)
 
         StockLevel.EMPTY ->
             stringResource(R.string.my_teas_stock_empty) to stringResource(R.string.my_teas_stock_empty_description)

@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.TeaPurchase
-import com.umamit.core.domain.collection.CupAverage
+import com.umamit.core.domain.collection.LiterAverage
 import com.umamit.core.domain.collection.TeaCost
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
@@ -74,19 +74,19 @@ class TeaDetailCostViewModelTest {
 
     @Test
     fun `a priced tea has its price, the default recipe's estimate and no average before a priced session`() = runTest {
-        // 50 g for 9,90 €: 19,8 ct per gram; the default Kyusu: 5 g over three infusions = 33 ct.
+        // 50 g for 9,90 €: 19,8 ct per gram; the default Kyusu: 99 ct over 3 × 250 ml = 132 ct per litre.
         TeaDetailFixture.seed(collection)
 
-        assertThat(viewModel().tea.cost).isEqualTo(TeaCost(pricePer100gCents = 1980, recipeCupCents = 33))
+        assertThat(viewModel().tea.cost).isEqualTo(TeaCost(pricePer100gCents = 1980, recipeLiterCents = 132))
     }
 
     @Test
     fun `a finished priced session gives the average`() = runTest {
         TeaDetailFixture.seed(collection)
-        // 5 g × 19,8 ct = 99 ct for one poured infusion.
+        // 5 g × 19,8 ct = 99 ct for one poured infusion of 250 ml → 396 ct per litre.
         TeaDetailFixture.brewed(sessions, "s1", at = LAST_BREW_MS)
 
-        assertThat(viewModel().tea.cost?.average).isEqualTo(CupAverage(cupCents = 99, sessionCount = 1))
+        assertThat(viewModel().tea.cost?.average).isEqualTo(LiterAverage(literCents = 396, sessionCount = 1))
     }
 
     @Test
@@ -96,10 +96,10 @@ class TeaDetailCostViewModelTest {
             TeaDetailFixture.brewed(sessions, "s1", at = LAST_BREW_MS)
             val vm = viewModel()
 
-            // + 100 g for 18,90 €: 28,80 € for 150 g = 19,2 ct per gram; 5 g over three infusions = 32 ct.
+            // + 100 g for 18,90 €: 28,80 € for 150 g = 19,2 ct per gram; 96 ct over 750 ml = 128 ct per litre.
             vm.recordPurchase(TeaPurchase(100.0, 1890, today))
 
-            assertThat(vm.tea.cost).isEqualTo(TeaCost(1920, 32, CupAverage(99, 1)))
+            assertThat(vm.tea.cost).isEqualTo(TeaCost(1920, 128, LiterAverage(396, 1)))
         }
 
     @Test

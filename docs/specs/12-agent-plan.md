@@ -199,7 +199,7 @@ Answer the questions in order and take the first tier that matches:
 |---|---|
 | Statistics computations in `core:domain` (periods, streaks, buckets, Sorten, ratings, best recipe, taste, cost, consumption, habits) + tests | T3 |
 | Stats data source (`core:data`) and the `statsRange` / `statsTab` settings | T2 |
-| Chart components (Vico bars and line, custom donut, value label, motion, TalkBack) | T2 |
+| Chart components (Canvas bars, line and donut, value label, motion, TalkBack) | T2 |
 | SCR-18 shell (range, tabs, empty state) and the three tabs | T2 |
 | Milestone review | T3 |
 | `/review-animations` | T2 |

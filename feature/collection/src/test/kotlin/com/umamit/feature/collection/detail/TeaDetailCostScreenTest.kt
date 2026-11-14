@@ -7,7 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.domain.collection.CupAverage
+import com.umamit.core.domain.collection.LiterAverage
 import com.umamit.core.domain.collection.TeaCost
 import org.junit.Rule
 import org.junit.Test
@@ -37,29 +37,29 @@ class TeaDetailCostScreenTest {
 
     @Test
     fun `a priced tea shows its price per 100 g, the recipe estimate and the average`() {
-        show(TeaCost(pricePer100gCents = 1240, recipeCupCents = 24, average = CupAverage(27, 5)))
+        show(TeaCost(pricePer100gCents = 1240, recipeLiterCents = 240, average = LiterAverage(270, 5)))
 
         compose.onNodeWithText("12,40 € / 100 g").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("ca. 0,24 € pro Tasse (Rezept)").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Ø 0,27 € pro Tasse aus 5 Sitzungen").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("ca. 2,40 € pro Liter (Rezept)").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ø 2,70 € pro Liter aus 5 Sitzungen").performScrollTo().assertIsDisplayed()
         // TalkBack reads „Durchschnitt", not the sign.
-        compose.onNodeWithContentDescription("Durchschnittlich 0,27 € pro Tasse aus 5 Sitzungen").assertExists()
+        compose.onNodeWithContentDescription("Durchschnittlich 2,70 € pro Liter aus 5 Sitzungen").assertExists()
     }
 
     @Test
     fun `one priced session reads in the singular`() {
-        show(TeaCost(pricePer100gCents = 1240, recipeCupCents = 24, average = CupAverage(31, 1)))
+        show(TeaCost(pricePer100gCents = 1240, recipeLiterCents = 240, average = LiterAverage(310, 1)))
 
-        compose.onNodeWithText("Ø 0,31 € pro Tasse aus 1 Sitzung").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ø 3,10 € pro Liter aus 1 Sitzung").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun `before the first priced session only the price and the estimate show`() {
-        show(TeaCost(pricePer100gCents = 1240, recipeCupCents = 24))
+        show(TeaCost(pricePer100gCents = 1240, recipeLiterCents = 240))
 
         compose.onNodeWithText("12,40 € / 100 g").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("ca. 0,24 € pro Tasse (Rezept)").assertExists()
-        compose.onNodeWithText("pro Tasse aus", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("ca. 2,40 € pro Liter (Rezept)").assertExists()
+        compose.onNodeWithText("pro Liter aus", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -68,6 +68,6 @@ class TeaDetailCostScreenTest {
 
         compose.onNodeWithTag(TEA_DETAIL_COST_TAG).assertDoesNotExist()
         compose.onNodeWithText("/ 100 g", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("pro Tasse", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("pro Liter", substring = true).assertDoesNotExist()
     }
 }

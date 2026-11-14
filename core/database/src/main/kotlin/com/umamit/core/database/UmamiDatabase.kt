@@ -11,6 +11,7 @@ import com.umamit.core.database.dao.JournalDao
 import com.umamit.core.database.dao.RecipeDao
 import com.umamit.core.database.dao.SessionDao
 import com.umamit.core.database.dao.SessionPhotoDao
+import com.umamit.core.database.dao.StatsDao
 import com.umamit.core.database.dao.TastingDao
 import com.umamit.core.database.dao.TeaDao
 import com.umamit.core.database.dao.VesselDao
@@ -70,6 +71,8 @@ abstract class UmamiDatabase : RoomDatabase() {
     abstract fun catalogBookmarkDao(): CatalogBookmarkDao
 
     abstract fun tastingDao(): TastingDao
+
+    abstract fun statsDao(): StatsDao
 
     abstract fun sessionPhotoDao(): SessionPhotoDao
 

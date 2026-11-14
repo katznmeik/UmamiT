@@ -97,5 +97,6 @@
 | **TTID / TTFD** | Time to initial / full display (startup metrics). |
 | **PO** | Product owner. |
 | **Serie** (streak) | Statistik (INS-01, D-115): consecutive calendar days with at least one finished session, over all time; shown neutrally as „7 Tage in Folge · längste 21 Tage". |
-| **Zeitraum** | Statistik's range (INS-07): 30 T, 90 T, 12 M or Gesamt, rolling up to today; the charts' periods are ISO weeks (30 T, 90 T) or months (12 M, Gesamt). |
+| **Zeitraum** | Statistik's range (INS-07): 30 T, 90 T, 12 M or Gesamt, rolling up to today, or (rc.2, D-115 A1) „Monate", a custom span of whole months; the charts' periods are ISO weeks (30 T, 90 T, a custom span of ≤ 3 months) or months (12 M, Gesamt, longer custom spans). |
+| **Tasse** (cup) / **Tassengröße** | From v0.7.0-rc.2 (D-115 A1, INV-08, SET-34): a cup is poured water ÷ the cup size (setting *Tassengröße*, default 150 ml); a session's cups are the sum over its poured non-rinse infusions, unrounded, shown rounded half up. Used by Statistik and the tea detail's „pro Tasse". |
 | **Tageszeit** | Statistik's day parts (INS-06): Morgen 05–11, Mittag 11–14, Nachmittag 14–18, Abend 18–05 Uhr. |

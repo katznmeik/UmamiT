@@ -1,0 +1,106 @@
+package com.umamit.core.data
+
+import com.umamit.core.common.WallClock
+import com.umamit.core.database.dao.StatsDao
+import com.umamit.core.database.dao.StatsSessionRow
+import com.umamit.core.database.dao.StatsTeaRow
+import com.umamit.core.domain.stats.StatsCalculator
+import com.umamit.core.domain.stats.StatsInput
+import com.umamit.core.domain.stats.StatsSession
+import com.umamit.core.domain.stats.StatsStep
+import com.umamit.core.domain.stats.StatsTea
+import com.umamit.core.model.StockLevel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import java.time.Clock
+import java.time.Instant
+import javax.inject.Inject
+
+/** The statistics' data source (INS-01–INS-07, D-115). */
+interface StatsRepository {
+    /**
+     * Everything the statistics read, from the existing rows (no schema change): the finished sessions (`COMPLETED`
+     * or `MANUAL`; also those of a deleted or archived tea) with steps, every tea
+     * (archived ones too) and the priced INITIAL / PURCHASE events. Emits again on every write to the sessions,
+     * their steps, the teas, their stock events, or SET-16's „Knapp ab".
+     */
+    fun observeInput(): Flow<StatsInput>
+}
+
+/** [StatsRepository] on Room and the settings. */
+class RoomStatsRepository @Inject constructor(
+    private val dao: StatsDao,
+    private val settings: SettingsRepository,
+    private val photos: PhotoFiles,
+    @StatsDispatcher private val dispatcher: CoroutineDispatcher,
+) : StatsRepository {
+    override fun observeInput(): Flow<StatsInput> = combine(
+        dao.observeFinishedSessions(),
+        dao.observeTeas(),
+        dao.observePricedPurchases(),
+        settings.settings.map { it.lowStockGrams }.distinctUntilChanged(),
+    ) { sessions, teas, events, lowStockGrams ->
+        StatsInput(
+            sessions = sessions.map { it.toStatsSession() },
+            teas = teas.map { it.toStatsTea(lowStockGrams, photos) },
+            inventoryEvents = events.map { it.toModel() },
+        )
+    }.flowOn(dispatcher)
+}
+
+private fun StatsSessionRow.toStatsSession() = StatsSession(
+    id = session.id,
+    teaId = session.teaId,
+    teaName = session.teaName,
+    teaType = session.teaType,
+    styleKey = session.styleKey,
+    profileId = session.profileId,
+    profileName = session.profileName,
+    startedAtMs = session.startedAt,
+    zoneId = session.zoneId,
+    rating = session.rating,
+    leafGrams = session.leafGrams,
+    waterMl = session.waterMl,
+    costCents = session.costCents,
+    steps = steps.sortedBy { it.position }.map { step ->
+        StatsStep(
+            kind = step.kind,
+            ended = step.actualSeconds != null,
+            skipped = step.skipped,
+        )
+    },
+)
+
+/** A tea without any stock event is not tracked (as in the collection list): never *Knapp* or *Leer*. */
+private fun StatsTeaRow.toStatsTea(lowStockGrams: Double, photos: PhotoFiles) = StatsTea(
+    id = id,
+    name = name,
+    archived = isArchived,
+    createdAtMs = createdAt,
+    remainingGrams = remainingGrams ?: 0.0,
+    stockLevel = remainingGrams?.let { StockLevel.of(it, this.lowStockGrams ?: lowStockGrams) }
+        ?: StockLevel.AVAILABLE,
+    lowStockWarning = lowStockWarning,
+    coverPhoto = coverPhotoId?.let(photos::file),
+    styleKey = styleKey,
+)
+
+/**
+ * The statistics' calculator as a flow (INS-01–INS-07): [StatsRepository]'s input through #256's [StatsCalculator]
+ * on [dispatcher], dated by [clock]'s today and zone at the time of each emission. The screen shares one such flow
+ * and derives every tab from it.
+ */
+class ObserveStats @Inject constructor(
+    private val repository: StatsRepository,
+    private val clock: WallClock,
+    @StatsDispatcher private val dispatcher: CoroutineDispatcher,
+) {
+    /** A calculator per emission, for [StatsCalculator.hasSessions], [StatsCalculator.window] and every tab. */
+    fun calculator(): Flow<StatsCalculator> = repository.observeInput()
+        .map { StatsCalculator(it, Clock.fixed(Instant.ofEpochMilli(clock.nowMs()), clock.zone())) }
+        .flowOn(dispatcher)
+}

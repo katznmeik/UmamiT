@@ -1,7 +1,138 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="stats_title">Statistik</string>
-    <!-- M1 placeholder (#54 S2, GEN-09): true before and after the first brew. -->
-    <string name="stats_later_title">Deine Statistik folgt bald</string>
-    <string name="stats_later_body">Sie kommt mit einem späteren Update. Deine Aufgüsse stehen schon im Journal.</string>
+    <!-- ===== #259: SCR-18 shell (header, range selector, tabs, empty state) ===== -->
+    <string name="stats_title">Deine Tee-Reise</string>
+    <string name="stats_empty_title">Noch keine Statistik</string>
+    <string name="stats_empty_body">Brühe deinen ersten Tee, dann wächst hier deine Tee-Reise.</string>
+    <string name="stats_range_30">30 T</string>
+    <string name="stats_range_90">90 T</string>
+    <string name="stats_range_12m">12 M</string>
+    <string name="stats_range_all">Gesamt</string>
+    <string name="stats_range_30_description">Zeitraum: 30 Tage</string>
+    <string name="stats_range_90_description">Zeitraum: 90 Tage</string>
+    <string name="stats_range_12m_description">Zeitraum: 12 Monate</string>
+    <string name="stats_range_all_description">Zeitraum: Gesamt</string>
+    <string name="stats_tab_overview">Überblick</string>
+    <string name="stats_tab_ratings">Bewertungen</string>
+    <string name="stats_tab_consumption">Verbrauch</string>
+    <string name="stats_section_empty">In diesem Zeitraum nichts</string>
+    <string name="stats_range_months">Monate</string>
+    <string name="stats_range_months_description">Zeitraum: Monate wählen</string>
+    <string name="stats_range_months_chosen_description">Zeitraum: %1$s bis %2$s</string>
+    <string name="stats_range_span">%1$s–%2$s</string>
+    <string name="stats_range_span_years">%1$s&#160;%2$s–%3$s&#160;%4$s</string>
+    <string name="stats_months_sheet_title">Monate wählen</string>
+    <string name="stats_months_from">Von</string>
+    <string name="stats_months_to">Bis</string>
+    <string name="stats_months_done">Fertig</string>
+    <string name="stats_months_earlier">%1$s: früherer Monat</string>
+    <string name="stats_months_later">%1$s: späterer Monat</string>
+    <string name="stats_section_folded_title">%1$s · %2$s</string>
+    <string name="stats_section_folded">eingeklappt</string>
+    <string name="stats_section_unfolded">ausgeklappt</string>
+    <string name="stats_section_unfold">Ausklappen</string>
+    <string name="stats_section_fold">Einklappen</string>
+    <!-- ===== end of #259 ===== -->
+
+    <!-- ===== #261: Bewertungen tab (INS-02, INS-04) ===== -->
+    <string name="stats_ratings_ranking">Tee-Rangliste</string>
+    <string name="stats_ratings_new">Neu entdeckt</string>
+    <string name="stats_ratings_show_all">Alle anzeigen (%1$d)</string>
+    <string name="stats_ratings_rank_meta">%1$s ★ · %2$d×</string>
+    <string name="stats_ratings_unrated">ohne Bewertung</string>
+    <string name="stats_ratings_history">Bewertung im Verlauf</string>
+    <string name="stats_ratings_best_recipe">Bestes Rezept</string>
+    <string name="stats_ratings_none">In diesem Zeitraum nichts bewertet</string>
+    <string name="stats_ratings_average">Ø %1$s ★</string>
+        <string name="stats_ratings_recipe_item">%1$s %2$s ★</string>
+    <string name="stats_ratings_recipe_separator">" · "</string>
+    <string name="stats_ratings_recipe_unnamed">Rezept</string>
+    <!-- ===== end of #261 ===== -->
+
+    <!-- ===== #260: Überblick (INS-01, INS-03, INS-06) ===== -->
+    <plurals name="stats_overview_sessions_label">
+        <item quantity="one">Sitzung</item>
+        <item quantity="other">Sitzungen</item>
+    </plurals>
+    <string name="stats_overview_volume_label">Tee</string>
+    <string name="stats_overview_volume_unit_liter">Liter</string>
+    <plurals name="stats_overview_teas_label">
+        <item quantity="one">Tee</item>
+        <item quantity="other">Tees</item>
+    </plurals>
+    <string name="stats_overview_teas_added">%1$s · +%2$d im Zeitraum</string>
+    <string name="stats_overview_section_sessions">Sitzungen</string>
+    <string name="stats_overview_sessions_per_week">Sitzungen pro Woche</string>
+    <string name="stats_overview_sessions_per_month">Sitzungen pro Monat</string>
+    <string name="stats_period_week">KW %1$d</string>
+    <plurals name="stats_overview_days">
+        <item quantity="one">%1$s Tag</item>
+        <item quantity="other">%1$s Tage</item>
+    </plurals>
+    <string name="stats_overview_section_streak">Serie</string>
+    <string name="stats_overview_streak">%1$s in Folge · längste %2$s · seit Beginn</string>
+    <string name="stats_overview_streak_none">Keine Serie gerade</string>
+    <string name="stats_overview_streak_none_longest">Keine Serie gerade · längste %1$s</string>
+    <string name="stats_overview_tees">Tees</string>
+    <string name="stats_overview_section_most_brewed">Am häufigsten</string>
+    <string name="stats_overview_times">%1$d×</string>
+    <string name="stats_open_tea">Tee öffnen</string>
+    <string name="stats_overview_sorten">Tee-Sorten</string>
+        <string name="stats_overview_other">Andere</string>
+    <string name="stats_overview_section_habits">Gewohnheiten</string>
+    <string name="stats_overview_day_part">Tageszeit</string>
+    <string name="stats_overview_weekday">Wochentag</string>
+    <string name="stats_overview_morning">Morgen</string>
+    <string name="stats_overview_noon">Mittag</string>
+    <string name="stats_overview_afternoon">Nachmittag</string>
+    <string name="stats_overview_evening">Abend</string>
+    <string-array name="stats_overview_weekdays_short">
+        <item>Mo</item>
+        <item>Di</item>
+        <item>Mi</item>
+        <item>Do</item>
+        <item>Fr</item>
+        <item>Sa</item>
+        <item>So</item>
+    </string-array>
+    <!-- ===== end of #260 ===== -->
+
+    <!-- ===== #262: Verbrauch (INS-05) ===== -->
+    <string name="stats_consumption_section_grams">Gramm</string>
+    <string name="stats_consumption_section_volume">Tee</string>
+    <string name="stats_consumption_section_money">Ausgaben</string>
+    <string name="stats_consumption_section_drunk">Getrunken</string>
+    <string name="stats_consumption_drunk_per_week">Getrunken pro Woche</string>
+    <string name="stats_consumption_drunk_per_month">Getrunken pro Monat</string>
+    <string name="stats_consumption_no_priced_sessions">Keine Sitzungen mit Preis</string>
+    <plurals name="stats_consumption_priced_sessions">
+        <item quantity="one">aus %s Sitzung mit Preis</item>
+        <item quantity="other">aus %s Sitzungen mit Preis</item>
+    </plurals>
+    <string name="stats_consumption_cost_per_liter">Ø %1$s € pro Liter</string>
+    <string name="stats_consumption_section_running_out">Geht zur Neige</string>
+    <string name="stats_consumption_in_range">im Zeitraum</string>
+    <string name="stats_consumption_grams_per_week">Gramm pro Woche</string>
+    <string name="stats_consumption_grams_per_month">Gramm pro Monat</string>
+    <string name="stats_consumption_volume_per_week">Tee pro Woche</string>
+    <string name="stats_consumption_volume_per_month">Tee pro Monat</string>
+    <string name="stats_consumption_money_per_week">Ausgaben pro Woche</string>
+    <string name="stats_consumption_money_per_month">Ausgaben pro Monat</string>
+    <string name="stats_consumption_no_purchases">Keine Käufe mit Preis</string>
+    <string name="stats_consumption_empty">leer</string>
+    <string name="stats_consumption_low">%1$s g · knapp</string>
+    <!-- ===== end of #262 ===== -->
+
+    <!-- Charts (SCR-18, INS-08): value labels and TalkBack lists; numbers arrive in German format. -->
+    <plurals name="stats_chart_sessions">
+        <item quantity="one">%1$s Sitzung</item>
+        <item quantity="other">%1$s Sitzungen</item>
+    </plurals>
+    <string name="stats_chart_grams">%1$s g</string>
+    <string name="stats_chart_euros">%1$s €</string>
+    <string name="stats_chart_percent">%1$d %%</string>
+    <string name="stats_chart_stars_axis">%1$d ★</string>
+    <string name="stats_chart_stars_value">%1$s ★</string>
+    <string name="stats_chart_no_rating">keine Bewertung</string>
+    <string name="stats_chart_no_data">Keine Daten.</string>
 </resources>
