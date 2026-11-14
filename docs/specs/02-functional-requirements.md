@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-13 (v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -1565,13 +1565,16 @@ Weekly digest notification (off by default).
 
 **INV-08 — Cost** `Must`
 Cost per gram from purchase events (weighted by grams of each purchase); cost
-per session = leaf × cost per gram. **A cup is poured water ÷ the cup size**
-(SET-34, default 150 ml; from v0.7.0-rc.2, D-115 A1; before: one poured
-infusion = one cup): cost per cup = session cost ÷ the session's cups. A
-session's cups = Σ over its poured non-rinse infusions of `water_ml` ÷ cup
-size, unrounded; a whisk-only session, or one whose every step was skipped,
-counts one infusion; a session without `water_ml` keeps 1 per infusion.
-Shown on tea detail („0,24 € pro Tasse") and in statistics.
+per session = leaf × cost per gram. **rc.3 (D-115 A2): no cups; cost is per
+litre.** A session's **volume** = Σ over its poured non-rinse infusions
+(ended, not skipped) of the session's `water_ml` (stored once per session),
+a whisk-only session counting its `water_ml` once; a session without water
+recorded, or whose every step was skipped, adds 0 ml. Cost per litre = Σ
+`cost_cents` ÷ Σ poured litres of the priced sessions that have a volume,
+cents rounded half up. Shown on tea detail („ca. 1,60 € pro Liter (Rezept)",
+„Ø 1,80 € pro Liter aus 5 Sitzungen") and in statistics. (Before rc.3: cups
+by volume ÷ Tassengröße, „0,24 € pro Tasse"; rc.2 A1; before rc.2: one
+poured infusion = one cup.)
 - **Since v0.1.0:** the session's cost (`cost_cents`) is stored at
   completion.
 - **v0.4.1 (D-100):** price per gram and cost per cup on the tea detail.
@@ -1580,30 +1583,24 @@ Shown on tea detail („0,24 € pro Tasse") and in statistics.
   stock, each in cents rounded half up:
   - **Price:** „12,40 € / 100 g", from the priced INITIAL and PURCHASE
     events weighted by grams (`costPerGramCents`).
-  - **Estimate:** „ca. 0,24 € pro Tasse (Rezept)": the default recipe's
-    leaf × price per gram ÷ its cups. **v0.7.0-rc.2 (D-115 A1):** its cups
-    are the recipe's water × its non-rinse steps ÷ the cup size (SET-34);
-    before, its non-rinse steps. A whisk-only recipe is one cup. Without a
-    default recipe, no estimate.
-  - **Average:** „Ø 0,27 € pro Tasse aus 5 Sitzungen" („aus 1 Sitzung"),
+  - **Estimate:** „ca. 1,60 € pro Liter (Rezept)": the default recipe's
+    leaf × price per gram ÷ its litres, i.e. the recipe's water × its
+    non-rinse steps. **rc.3 (D-115 A2):** per litre, not per cup (before
+    rc.3: ÷ cups by volume ÷ Tassengröße; before rc.2: „pro Tasse" ÷ its
+    non-rinse steps). A recipe without water, or whose steps are all
+    rinses, or without a default recipe: no estimate.
+  - **Average:** „Ø 1,80 € pro Liter aus 5 Sitzungen" („aus 1 Sitzung"),
     from the first finished session with a `cost_cents`: Σ `cost_cents` ÷
-    Σ cups of those sessions. A session's cups are its poured non-rinse
-    steps (ended and not skipped; never-started rows don't count), each
-    counting its `water_ml` ÷ the cup size (v0.7.0-rc.2, D-115 A1; before:
-    one per step); a whisk-only session is one cup, and so is a priced
-    session whose every step was skipped (its leaf was used). Changing the
-    cup size changes the average at once (nothing is stored per session). Sessions without a cost and the
+    Σ poured litres of those sessions (volume as above). **rc.3 (D-115 A2):**
+    a priced session without water (or all steps skipped) adds 0 ml: it is
+    left out of the average and of „aus N Sitzungen". Before rc.3: „Ø … €
+    pro Tasse", cups = water ÷ Tassengröße. Sessions without a cost and the
     running one are left out. The stored `cost_cents` stays as it was at
     completion; a later purchase changes only the price and the estimate.
-  - **Cups by volume (D-115 Amendment 1, #268):** a cup is poured water ÷
-    the **cup size** (*Tassengröße* in *Einstellungen*, `cupSizeMl`, default
-    150 ml, 50–500 in 10 ml steps). A session's cups = Σ over its poured
-    non-rinse infusions of `water_ml` ÷ cup size; whisk-only or all-skipped
-    counts one infusion; without `water_ml` each infusion is one cup; never
-    below 1 per session. Sums stay unrounded and display rounds half up. The
-    estimate uses recipe water × its non-rinse steps ÷ cup size. Changing the
-    setting recomputes every figure (nothing is stored per session); this
-    replaces „one infusion = one cup" above.
+  - **Cups by volume (D-115 Amendment 1, #268), retired in rc.3 (D-115
+    A2):** rc.2 counted cups = poured water ÷ the *Tassengröße* (`cupSizeMl`,
+    default 150 ml). Removed in rc.3: no „Tasse" as a unit; volume (ml/l)
+    replaces it. Nothing is stored per session either way.
   - **No price, no cost:** without a priced INITIAL or PURCHASE event none
     of the three lines shows (never „0 €"). The lines update at once after
     a purchase, a correction or a history delete.
@@ -1693,15 +1690,14 @@ transition audit are v0.7.1 (D-116), not here.
   Sessions the app finished on its own (`auto_finished`) count too.
 - A session belongs to the **day of its `started_at`** in its own `zone_id`
   (the journal's day).
-- **Cups** as INV-08. **rc.2 (D-115 A1):** by volume: a session's cups = Σ
-  over its poured non-rinse steps (ended, not skipped) of `water_ml` ÷ the
-  cup size (SET-34, default 150 ml); a whisk-only session, or one whose
-  every step was skipped, counts one infusion; a session without `water_ml`
-  keeps 1 per infusion. Totals and bars sum the unrounded cups and round
-  half up for display (whole cups; a session never shows below 1). A 1 l
-  Kanne infusion counts ≈ 7 Tassen, a 120 ml Kyusu infusion ≈ 1. Changing
-  the cup size recomputes every figure. (Before rc.2: one cup per poured
-  non-rinse step.)
+- **Volume** as INV-08. **rc.3 (D-115 A2):** a session's volume = Σ over
+  its poured non-rinse steps (ended, not skipped) of `water_ml`; a whisk-only
+  session counts its `water_ml` once; without `water_ml`, or all steps
+  skipped, 0 ml. Sums stay in ml (integers) and are formatted only for
+  display: below 1 l in **ml** rounded to the nearest 10 ml („750 ml"; a
+  non-zero amount shows at least „10 ml"), from 1 l in **litres with one
+  decimal**, half up („12,4 l"). (Before rc.3: cups = water ÷ Tassengröße,
+  SET-34; before rc.2: one cup per poured non-rinse step.)
 - **Taste** is per infusion (D-114): averages run per axis over the
   infusions that set that axis (and the v0.6.0 sessions without step rows,
   05 §3.6).
@@ -1711,8 +1707,9 @@ transition audit are v0.7.1 (D-116), not here.
   edited or deleted, and when a purchase or a tea changes.
 
 **INS-01 — Activity (Überblick)** `Must`
-- Big numerals: **sessions** in the range, **cups** in the range, and
-  **teas** in the collection („24 Tees · +3 im Zeitraum": non-archived teas
+- Big numerals: **sessions** in the range, the **volume of tea** in
+  the range (**rc.3, D-115 A2:** „12,4 l Tee", „750 ml Tee"; before: cups),
+  and **teas** in the collection („24 Tees · +3 im Zeitraum": non-archived teas
   now; the plus counts teas created in the range and is hidden at 0).
   **rc.2 (D-115 A1, R10, R12):** the three numerals sit in **one row**; under
   *Gesamt* there is no „+n im Zeitraum" (every tea would be new).
@@ -1781,21 +1778,26 @@ JRN-04).
 - **Grams:** the big numeral of leaf used in the range („38 g") and bars of
   grams per period (Σ `leaf_grams` of the finished sessions; a session
   without a leaf amount adds nothing).
-- **Cups:** per period as a second bar chart below the grams (by volume,
-  rc.2). *Verbrauch* keeps separate charts (R10).
+- **Tee (volume):** per period as a second bar chart below the grams, the
+  chart titled **TEE** (**rc.3, D-115 A2:** ml per period; axis, bar value
+  label and fold summary „TEE · 12,4 l" use the INS counting format; a period
+  of 0 ml has an empty bar; before rc.3: TASSEN, cups by volume). *Verbrauch*
+  keeps separate charts (R10).
 - **Money spent:** what was paid for tea: Σ `price_cents` of the INITIAL
   and PURCHASE events with a price whose `occurred_at` is in the range
   („64,80 € im Zeitraum"), and bars per period. Events of deleted teas are
   gone with their tea (cascade) and don't count. Without a priced purchase
   in the range: „Keine Käufe mit Preis". AUSGABEN stays priced purchases
-  (D-115 Q10); „Ø € pro Tasse" moved from here to GETRUNKEN (rc.2).
+  (D-115 Q10); „Ø € pro Tasse" moved from here to GETRUNKEN (rc.2; „Ø € pro Liter" from rc.3).
 - **Money drunk (GETRUNKEN, rc.2, D-115 A1, R9):** a section below AUSGABEN:
   the € value of the leaf brewed per period (each session's `cost_cents`) as
-  bars, the range's total, and **„Ø 0,27 € pro Tasse"**: Σ `cost_cents` ÷ Σ
-  cups (by volume) over the sessions in the range that have a `cost_cents`;
-  hidden without such a session (never „0 €"). Sessions without a
-  `cost_cents` don't count: „aus 20 Sitzungen mit Preis"; without any:
-  „Keine Sitzungen mit Preis".
+  bars, the range's total, and **„Ø 1,80 € pro Liter"** (**rc.3, D-115 A2**; before:
+  „Ø 0,27 € pro Tasse"): Σ `cost_cents` ÷ Σ poured litres over the sessions
+  in the range that have a `cost_cents` and a volume; hidden without such a
+  session (never „0 €"). Sessions without a `cost_cents` don't count:
+  „aus 20 Sitzungen mit Preis" (counting only the sessions in the average); a
+  priced session without water counts in the total and the bars but not in
+  the average; without any: „Keine Sitzungen mit Preis".
 - **Running out:** the non-archived teas whose stock is *Leer* or *Knapp*
   (INV-05) and whose stock warning is on (`low_stock_warning`), *Leer*
   first, then by remaining grams; „12 g · knapp" / „leer"; a tap opens the
@@ -1868,7 +1870,7 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 | SET-32 | Bei „Nicht stören" klingeln (below *Alarmdauer*; v0.3.0, D-099) | **an**. On: while Do Not Disturb lets alarms through („Nur Alarme", or priority mode whose policy allows alarms), Vorwarnung and alarm ring even when the phone reports silent, as with the ringer on normal (sound, plus vibration per SET-11). Off: the reported ringer mode decides (as in `v0.3.0-rc.1`). *Alarm testen* and *Anhören* follow it (04 §9.1) | Must |
 | SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Brühen & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
-| SET-34 | Tassengröße (*Einstellungen*, v0.7.0-rc.2, D-115 A1, R2–R3; in *Brühen & Vorrat*, Claude's placement, not asked): the size of one cup. Poured water is counted in cups by it: Statistik (Tassen, Ø € pro Tasse) and the tea detail's „pro Tasse" lines (INV-08). Changing it recomputes every figure; nothing is stored per session | 50–500 ml in 10 ml steps — **150 ml** (`cupSizeMl`, 05 §6) | Should |
+| SET-34 | ~~Tassengröße~~ **removed in rc.3 (D-115 A2)**: the setting, its row and dialog are gone; Statistik and the tea detail count volume (INV-08, INS-05). Until rc.2 (D-115 A1, R2–R3): 50–500 ml in 10 ml steps, **150 ml** (`cupSizeMl`, retired, 05 §6) | — | — |
 | SET-28 | Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; a switch „Tägliche Vorrats-Erinnerung" in v0.3.0, D-098; from v0.5.0 *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich · Aus*, D-108) | Täglich | Should |
 | SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is not *Aus*; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |
