@@ -58,7 +58,7 @@ fun PeriodBarChart(
     val spec = XYChartSpec(
         count = shown.size,
         xLabels = shown.map { it.label },
-        yTicks = axis.labels.map { YTick(it, ChartNumbers.axis(it)) },
+        yTicks = axis.labels.map { YTick(it, unit.axisLabel(it)) },
         yMin = 0.0,
         yMax = axis.max,
         description = description,

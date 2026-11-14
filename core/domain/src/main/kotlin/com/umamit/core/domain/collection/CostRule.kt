@@ -5,7 +5,6 @@ import com.umamit.core.model.Recipe
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockSummary
-import kotlin.math.floor
 import kotlin.math.roundToLong
 
 /**
@@ -21,9 +20,6 @@ data class TeaCost(val pricePer100gCents: Long, val recipeLiterCents: Long? = nu
 /** The real cost per litre over [sessionCount] finished sessions with a stored cost and a volume. */
 data class LiterAverage(val literCents: Long, val sessionCount: Int)
 
-/** The real cost per cup over [sessionCount] sessions; kept for the Statistik until #275 converts it to litres. */
-data class CupAverage(val cupCents: Long, val sessionCount: Int)
-
 /**
  * The cost rule of INV-08 and D-104, on top of [StockSummary], and the volume rule (D-115 Amendment 2): a session's
  * volume is the session's water for each poured non-rinse step (a whisk-only session pours it once), 0 ml without a
@@ -32,10 +28,6 @@ data class CupAverage(val cupCents: Long, val sessionCount: Int)
 object CostRule {
     private const val GRAMS_PER_PRICE = 100
     private const val ML_PER_LITER = 1000.0
-
-    /** The old cup size, 150 ml: only the Statistik's cups still use it until #275. */
-    const val DEFAULT_CUP_SIZE_ML = 150
-    private const val HALF = 0.5
 
     /**
      * The tea's cost, or null when no priced INITIAL or PURCHASE event exists („no price, no cost").
@@ -79,23 +71,6 @@ object CostRule {
      */
     fun sessionVolumeMl(poured: List<StepKind>, waterMl: Int?): Int =
         if (waterMl == null || waterMl <= 0) 0 else infusions(poured) * waterMl
-
-    /**
-     * A finished session's cups, unrounded: its poured infusions × [waterMl] ÷ [cupSizeMl], never below 1. Only the
-     * Statistik still uses it, until #275 converts it to volume.
-     */
-    fun sessionCups(poured: List<StepKind>, waterMl: Int?, cupSizeMl: Int): Double {
-        val infusions = infusions(poured).coerceAtLeast(1)
-        val cups = if (waterMl == null || waterMl <= 0) {
-            infusions.toDouble()
-        } else {
-            infusions.toDouble() * waterMl / cupSizeMl.coerceAtLeast(1)
-        }
-        return cups.coerceAtLeast(1.0)
-    }
-
-    /** A sum of unrounded cups as shown: whole cups, rounded half up. */
-    fun displayCups(cups: Double): Int = floor(cups + HALF).toInt()
 
     /** The infusions of these step kinds: one per non-rinse step, one for whisking only. */
     private fun infusions(kinds: List<StepKind>): Int {

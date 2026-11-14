@@ -24,6 +24,7 @@ import com.umamit.core.domain.stats.OverviewStats
 import com.umamit.core.domain.stats.PeriodUnit
 import com.umamit.core.domain.stats.TeaSessions
 import com.umamit.core.model.StatsRange
+import com.umamit.core.ui.VolumeFormat
 import com.umamit.feature.stats.charts.ChartNumbers
 import com.umamit.feature.stats.charts.ChartUnit
 import com.umamit.feature.stats.charts.DonutSlice
@@ -105,7 +106,7 @@ fun OverviewTab(
     }
 }
 
-/** „42 Sitzungen · 96 Tassen · 24 Tees (+3 im Zeitraum)" in ONE row (R10), in the display font. */
+/** „42 Sitzungen · 12,4 l Tee · 24 Tees (+3 im Zeitraum)" in ONE row (R10), in the display font. */
 @Composable
 private fun Numerals(stats: OverviewStats) {
     Row(
@@ -113,19 +114,19 @@ private fun Numerals(stats: OverviewStats) {
         horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Medium),
     ) {
         Numeral(
-            stats.sessionCount,
+            ChartNumbers.axis(stats.sessionCount.toDouble()),
             pluralStringResource(R.plurals.stats_overview_sessions_label, stats.sessionCount),
             Modifier.weight(1f),
         )
         Numeral(
-            stats.cupCount,
-            pluralStringResource(R.plurals.stats_overview_cups_label, stats.cupCount),
+            VolumeFormat.volume(stats.volumeMl),
+            stringResource(R.string.stats_overview_volume_label),
             Modifier.weight(1f),
         )
         val teas = pluralStringResource(R.plurals.stats_overview_teas_label, stats.teaCount)
         val added = stats.teasAddedInRange ?: 0
         Numeral(
-            stats.teaCount,
+            ChartNumbers.axis(stats.teaCount.toDouble()),
             if (added > 0) stringResource(R.string.stats_overview_teas_added, teas, added) else teas,
             Modifier.weight(1f),
         )
@@ -133,10 +134,10 @@ private fun Numerals(stats: OverviewStats) {
 }
 
 @Composable
-private fun Numeral(value: Int, label: String, modifier: Modifier = Modifier) {
+private fun Numeral(value: String, label: String, modifier: Modifier = Modifier) {
     Column(modifier) {
         Text(
-            text = ChartNumbers.axis(value.toDouble()),
+            text = value,
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )

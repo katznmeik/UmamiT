@@ -91,11 +91,11 @@ class StatsAmendmentTest {
     }
 
     @Test
-    fun `GETRUNKEN - sum of session costs, sessions with a price and cost per cup`() {
+    fun `GETRUNKEN - sum of session costs, sessions with a price and cost per litre`() {
         val calc = calculator(
             listOf(
-                session(costCents = 300),
-                session(costCents = 200),
+                session(costCents = 300, waterMl = 100),
+                session(costCents = 200, waterMl = 100),
                 session(),
                 session(TODAY.minusDays(100), costCents = 999),
             ),
@@ -105,10 +105,10 @@ class StatsAmendmentTest {
         assertThat(stats.drunkCents).isEqualTo(500)
         assertThat(stats.drunkSessionCount).isEqualTo(2)
         assertThat(stats.drunkPerPeriod.sumOf { it.value }).isEqualTo(500)
-        assertThat(stats.costPerCup).isNotNull()
+        assertThat(stats.costPerLiter).isNotNull()
         val none = calculator(listOf(session())).consumption(StatsRange.DAYS_30)
         assertThat(none.drunkSessionCount).isEqualTo(0)
-        assertThat(none.costPerCup).isNull()
+        assertThat(none.costPerLiter).isNull()
     }
 
     @Test

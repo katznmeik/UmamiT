@@ -1,7 +1,7 @@
 package com.umamit.core.domain.stats
 
 import com.umamit.core.domain.collection.CostRule
-import com.umamit.core.domain.collection.CupAverage
+import com.umamit.core.domain.collection.LiterAverage
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
@@ -28,7 +28,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
     private val sessions: List<DatedSession> = input.sessions.mapNotNull { session ->
         val local = Instant.ofEpochMilli(session.startedAtMs).atZone(ZoneId.of(session.zoneId))
         val day = local.toLocalDate()
-        if (day > today) null else DatedSession(session, day, local.toLocalTime(), session.cups(input.cupSizeMl))
+        if (day > today) null else DatedSession(session, day, local.toLocalTime(), session.volumeMl.toLong())
     }
 
     private val firstSessionDay: LocalDate? = sessions.minOfOrNull { it.day }
@@ -50,7 +50,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
         val activeTeas = input.teas.filter { !it.archived }
         return OverviewStats(
             sessionCount = inRange.size,
-            cupCount = CostRule.displayCups(inRange.sumOf { it.cups }),
+            volumeMl = inRange.sumOf { it.volumeMl },
             teaCount = activeTeas.size,
             teasAddedInRange = if (window.from == null) null else activeTeas.count { dayOf(it.createdAtMs) in window },
             sessionsPerPeriod = perPeriod(window, inRange, 0) { sum, _ -> sum + 1 },
@@ -91,15 +91,14 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
         return ConsumptionStats(
             grams = inRange.sumOf { it.session.leafGrams ?: 0.0 },
             gramsPerPeriod = perPeriod(window, inRange, 0.0) { sum, s -> sum + (s.session.leafGrams ?: 0.0) },
-            cups = CostRule.displayCups(inRange.sumOf { it.cups }),
-            cupsPerPeriod = perPeriod(window, inRange, 0.0) { sum, s -> sum + s.cups }
-                .map { PeriodValue(it.period, CostRule.displayCups(it.value)) },
+            volumeMl = inRange.sumOf { it.volumeMl },
+            volumePerPeriod = perPeriod(window, inRange, 0L) { sum, s -> sum + s.volumeMl },
             moneyCents = purchases.sumOf { it.cents },
             hasPurchases = purchases.isNotEmpty(),
             moneyPerPeriod = window.periods.mapIndexed { index, period ->
                 PeriodValue(period, purchases.filter { window.periodIndex(it.day) == index }.sumOf { it.cents })
             },
-            costPerCup = costPerCup(inRange),
+            costPerLiter = costPerLiter(inRange),
             drunkCents = inRange.sumOf { it.session.costCents ?: 0L },
             drunkSessionCount = inRange.count { it.session.costCents != null },
             drunkPerPeriod = perPeriod(window, inRange, 0L) { sum, s -> sum + (s.session.costCents ?: 0L) },
@@ -112,12 +111,12 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
     /** The current names of the existing teas, by id. */
     private fun teaNames(): Map<String, String> = input.teas.associate { it.id to it.name }
 
-    private fun costPerCup(inRange: List<DatedSession>): CupAverage? {
-        val priced = inRange.filter { it.session.costCents != null }
+    private fun costPerLiter(inRange: List<DatedSession>): LiterAverage? {
+        val priced = inRange.filter { it.session.costCents != null && it.volumeMl > 0 }
         if (priced.isEmpty()) return null
         val cents = priced.sumOf { it.session.costCents ?: 0L }
-        val cups = priced.sumOf { it.cups }
-        return CupAverage(cupCents = (cents.toDouble() / cups).roundToLong(), sessionCount = priced.size)
+        val ml = priced.sumOf { it.volumeMl }
+        return LiterAverage(literCents = (cents * ML_PER_LITER / ml).roundToLong(), sessionCount = priced.size)
     }
 
     private fun runningOut(): List<RunningOutTea> = input.teas
@@ -132,12 +131,13 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
     private class DatedPrice(val day: LocalDate, val cents: Long)
 
     private companion object {
+        const val ML_PER_LITER = 1000.0
         val PRICED_TYPES = setOf(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
     }
 }
 
-/** A session with its day and local start time in its own zone, and its cups. */
-internal class DatedSession(val session: StatsSession, val day: LocalDate, val time: LocalTime, val cups: Double) {
+/** A session with its day and local start time in its own zone, and its volume in ml. */
+internal class DatedSession(val session: StatsSession, val day: LocalDate, val time: LocalTime, val volumeMl: Long) {
     /** The rating; only read on rated sessions. */
     val rating: Double get() = session.rating ?: 0.0
 }

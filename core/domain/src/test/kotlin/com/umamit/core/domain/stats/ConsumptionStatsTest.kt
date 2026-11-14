@@ -1,7 +1,7 @@
 package com.umamit.core.domain.stats
 
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.domain.collection.CupAverage
+import com.umamit.core.domain.collection.LiterAverage
 import com.umamit.core.domain.stats.StatsFixtures.TODAY
 import com.umamit.core.domain.stats.StatsFixtures.calculator
 import com.umamit.core.domain.stats.StatsFixtures.infusion
@@ -14,41 +14,43 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
 import org.junit.Test
 
-/** *Verbrauch* (INS-05) and the cups rule shared with INV-08's `CostRule`. */
+/** *Verbrauch* (INS-05) and the volume rule shared with INV-08's `CostRule`. */
 class ConsumptionStatsTest {
     private val rinse = StatsStep(StepKind.RINSE, ended = true)
     private val whisk = StatsStep(StepKind.WHISK, ended = true)
 
     @Test
-    fun `cups - one per poured non-rinse step, whisk-only, all-skipped and no rows are one, never-started rows none`() {
-        assertThat(session(steps = listOf(rinse, infusion(), infusion())).cups(150)).isEqualTo(2.0)
-        assertThat(session(steps = listOf(whisk)).cups(150)).isEqualTo(1.0)
-        assertThat(session(steps = listOf(whisk, whisk)).cups(150)).isEqualTo(1.0)
+    fun `volume - water per poured non-rinse step, whisk-only once, nothing without water or poured steps`() {
+        fun volume(steps: List<StatsStep>, water: Int? = 100) = session(steps = steps, waterMl = water).volumeMl
+        assertThat(volume(listOf(rinse, infusion(), infusion()))).isEqualTo(200)
+        assertThat(volume(listOf(whisk))).isEqualTo(100)
+        assertThat(volume(listOf(whisk, whisk))).isEqualTo(100)
         val skipped = StatsStep(StepKind.INFUSION, ended = false, skipped = true)
-        assertThat(session(steps = listOf(skipped, skipped)).cups(150)).isEqualTo(1.0)
-        assertThat(session(steps = listOf(rinse)).cups(150)).isEqualTo(1.0)
-        assertThat(session(steps = emptyList()).cups(150)).isEqualTo(1.0)
+        assertThat(volume(listOf(skipped, skipped))).isEqualTo(0)
+        assertThat(volume(listOf(rinse))).isEqualTo(0)
+        assertThat(volume(emptyList())).isEqualTo(0)
         val neverStarted = StatsStep(StepKind.INFUSION, ended = false)
-        assertThat(session(steps = listOf(infusion(), infusion(), neverStarted)).cups(150)).isEqualTo(2.0)
-        assertThat(session(steps = listOf(StatsStep(StepKind.INFUSION, ended = true, skipped = true))).cups(150))
-            .isEqualTo(1.0)
+        assertThat(volume(listOf(infusion(), infusion(), neverStarted))).isEqualTo(200)
+        assertThat(volume(listOf(StatsStep(StepKind.INFUSION, ended = true, skipped = true)))).isEqualTo(0)
+        assertThat(volume(listOf(infusion(), infusion()), water = null)).isEqualTo(0)
     }
 
     @Test
-    fun `grams and cups in total and per period, a session without leaf adds nothing`() {
+    fun `grams and volume in total and per period, a session without leaf adds nothing`() {
         val sessions = listOf(
-            session(leafGrams = 5.0, steps = listOf(infusion(), infusion())),
+            session(leafGrams = 5.0, waterMl = 120, steps = listOf(infusion(), infusion())),
             session(leafGrams = null),
-            session(TODAY.minusDays(28), leafGrams = 4.5),
-            session(TODAY.minusDays(40), leafGrams = 100.0),
+            session(TODAY.minusDays(28), leafGrams = 4.5, waterMl = 300),
+            session(TODAY.minusDays(40), leafGrams = 100.0, waterMl = 500),
         )
 
         val use = calculator(sessions).consumption(StatsRange.DAYS_30)
 
         assertThat(use.grams).isWithin(1e-9).of(9.5)
-        assertThat(use.cups).isEqualTo(4)
+        assertThat(use.volumeMl).isEqualTo(540L)
         assertThat(use.gramsPerPeriod.map { it.value }).containsExactly(4.5, 0.0, 0.0, 0.0, 5.0).inOrder()
-        assertThat(use.cupsPerPeriod.map { it.value }).containsExactly(1, 0, 0, 0, 3).inOrder()
+        assertThat(use.volumePerPeriod.map { it.value }).containsExactly(300L, 0L, 0L, 0L, 240L).inOrder()
+        assertThat(calculator(sessions).overview(StatsRange.DAYS_30).volumeMl).isEqualTo(540L)
     }
 
     @Test
@@ -74,19 +76,31 @@ class ConsumptionStatsTest {
     }
 
     @Test
-    fun `cost per cup only over the sessions with a cost`() {
+    fun `cost per litre only over the sessions with a cost and a volume, cents half up`() {
         val sessions = listOf(
-            session(costCents = 120, steps = listOf(rinse, infusion(), infusion(), infusion())),
-            session(costCents = 60, steps = listOf(whisk)),
-            session(costCents = null, steps = listOf(infusion(), infusion())),
-            session(TODAY.minusDays(40), costCents = 9999),
+            session(costCents = 120, waterMl = 100, steps = listOf(rinse, infusion(), infusion(), infusion())),
+            session(costCents = 60, waterMl = 200, steps = listOf(whisk)),
+            session(costCents = 500, steps = listOf(infusion(), infusion())),
+            session(costCents = null, waterMl = 100, steps = listOf(infusion(), infusion())),
+            session(TODAY.minusDays(40), costCents = 9999, waterMl = 100),
         )
 
         val use = calculator(sessions).consumption(StatsRange.DAYS_30)
 
-        // 180 ct over 4 cups.
-        assertThat(use.costPerCup).isEqualTo(CupAverage(cupCents = 45, sessionCount = 2))
-        assertThat(calculator(listOf(session())).consumption(StatsRange.DAYS_30).costPerCup).isNull()
+        // 180 ct over 500 ml = 360 ct per litre; the 500 ct session has no volume and stays out of average and N.
+        assertThat(use.costPerLiter).isEqualTo(LiterAverage(literCents = 360, sessionCount = 2))
+        assertThat(use.drunkCents).isEqualTo(680)
+        assertThat(use.drunkSessionCount).isEqualTo(3)
+        assertThat(calculator(listOf(session())).consumption(StatsRange.DAYS_30).costPerLiter).isNull()
+        assertThat(calculator(listOf(session(costCents = 5))).consumption(StatsRange.DAYS_30).costPerLiter).isNull()
+    }
+
+    @Test
+    fun `cost per litre rounds half up`() {
+        val sessions = listOf(session(costCents = 5, waterMl = 400))
+
+        // 5 ct over 0,4 l = 12,5 ct per litre.
+        assertThat(calculator(sessions).consumption(StatsRange.DAYS_30).costPerLiter?.literCents).isEqualTo(13)
     }
 
     @Test
@@ -118,34 +132,13 @@ class ConsumptionStatsTest {
     }
 
     @Test
-    fun `cups by volume - a 1 l Kanne session of two infusions is 13 cups, sums stay unrounded until shown`() {
+    fun `volume sums stay exact - a 1 l Kanne session of two infusions is 2 l`() {
         val kanne = session(waterMl = 1_000, steps = listOf(infusion(), infusion()))
         val kyusu = session(waterMl = 120, steps = listOf(infusion()))
         val noWater = session(steps = listOf(infusion(), infusion()))
 
-        assertThat(kanne.cups(150)).isWithin(1e-9).of(40.0 / 3)
-        assertThat(kyusu.cups(150)).isEqualTo(1.0)
-        assertThat(noWater.cups(150)).isEqualTo(2.0)
-
-        // 13,33 + 1 + 2 = 16,33 → 16; per period each bar rounds on its own.
         val use = calculator(listOf(kanne, kyusu, noWater)).consumption(StatsRange.DAYS_30)
-        assertThat(use.cups).isEqualTo(16)
-        assertThat(calculator(listOf(kanne, kyusu, noWater)).overview(StatsRange.DAYS_30).cupCount).isEqualTo(16)
-    }
 
-    @Test
-    fun `the cup size setting recomputes cups and the cost per cup`() {
-        val sessions = listOf(session(waterMl = 300, costCents = 100, steps = listOf(infusion(), infusion())))
-        val at150 = StatsFixtures.calculator(sessions).consumption(StatsRange.DAYS_30)
-        val at300 = StatsCalculator(
-            StatsInput(sessions, emptyList(), emptyList(), cupSizeMl = 300),
-            StatsFixtures.clock(),
-        )
-            .consumption(StatsRange.DAYS_30)
-
-        assertThat(at150.cups).isEqualTo(4)
-        assertThat(at150.costPerCup?.cupCents).isEqualTo(25)
-        assertThat(at300.cups).isEqualTo(2)
-        assertThat(at300.costPerCup?.cupCents).isEqualTo(50)
+        assertThat(use.volumeMl).isEqualTo(2_120L)
     }
 }
