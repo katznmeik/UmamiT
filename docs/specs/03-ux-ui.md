@@ -705,7 +705,10 @@ The status-bar icons and the gesture handle follow the surface, not the phone's
 theme: light on the dark Steeping surface (also SCR-07), dark on the washi/matcha
 alert; the app theme's own on every other screen. The root sets them from the
 route on top, never the screens themselves
-([D-069](10-open-questions-and-decisions.md#d-069)).
+([D-069](10-open-questions-and-decisions.md#d-069)). On the timer's own
+transitions they flip at the fade's midpoint (v0.7.1, D-117 build note A-16):
+150 ms into `fade` on setup → timer, 100 ms into `exitFade` on timer → shell;
+an alert flips them at once (`alertEnter`).
 
 **Ink-wash band and tea seal (v0.2.1, [D-095](10-open-questions-and-decisions.md#d-095)).**
 The top is our own ink-wash picture A13 (`docs/design/assets.md`; a bamboo
@@ -1953,8 +1956,10 @@ v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)): a section *Darstellu
 („System"); it opens a choice dialog *System · Hell · Dunkel* (a pick
 is stored and recolours the app at once, *Fertig* closes), like
 *Vorrats-Erinnerung*. The app switches without a restart and starts in the
-chosen theme with no flash of the other. The system's own night mode (which
-re-creates the app once) follows only when the dialog closes, so the dialog
+chosen theme with no flash of the other. The system's own night mode follows only when the dialog closes; since
+v0.7.1 it no longer re-creates the app: the app handles the `uiMode` change
+in place and recolours in one frame, also for the phone's own night switch
+under *System* (D-117 build note A-08), so the dialog
 never shows again after a pick (PO, 2026-11-12, motion review M21). The timer, the quick timer and the alert surface stay as they
 are (Steeping, washi/matcha); the status-bar icons follow D-069 on the
 chosen theme.

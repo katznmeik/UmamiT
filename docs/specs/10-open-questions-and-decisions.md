@@ -487,6 +487,29 @@ does.
   `RatingStars`; 05 §3.6, §6, §8, §9; 07 NFR-PERF-12; 09 §2, §4 „v0.7.1";
   11; the specs README.
 
+**Build notes (v0.7.1 build session).**
+
+- **Approval (PO, 2026-11-14):** the PO approved the spec #279, the tickets
+  #280–#289 and `docs/plans/v0.7.1.md` in the build-session prompt; the
+  tickets are `ready-for-agent`.
+- **Audit findings to the PO (#284, `docs/plans/v0.7.1-motion-audit.md` §4;
+  one round, *Accepted (PO, 2026-11-14)*):**
+  - **A-08, theme change:** *in place, at once.* `MainActivity` handles
+    `uiMode` itself (`android:configChanges="uiMode"`); a *Design* pick (and
+    the system's own night switch under *System*) recolours the app in one
+    frame with no activity re-creation, so the ≈ 0.5 s window of D-114's note
+    is gone. The handed-over night mode still reaches the system (starting
+    window). Amends D-114 and SCR-25.
+  - **A-11, the screen below a pop:** *measure first.* `TransitionJankTest`
+    (#285) decides for detail → list and timer → shell: within NFR-PERF-12,
+    no change; over it, the cheaper first frame (defer subtrees not visible
+    in the pop's first frame by one frame). The timer stays a navigation
+    destination.
+  - **A-16, status-bar icons:** *at the fade's midpoint.* On setup → timer
+    the icons flip 150 ms into `fade`, on timer → shell 100 ms into
+    `exitFade`; the back stack stays their one owner and an alert flips them
+    at once (`alertEnter`). Amends D-069's timing.
+
 <a id="d-116"></a>
 ### D-116 — v0.7.1 (planned): tea and brewing rated separately, a transition smoothness audit; the cleanup review becomes v0.7.2 · *Accepted* in part (PO, 2026-11-13, R1–R3 below; the rest is grilled in the v0.7.1 specify session)
 
