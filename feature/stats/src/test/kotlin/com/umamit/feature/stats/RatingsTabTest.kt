@@ -80,6 +80,13 @@ class RatingsTabTest {
     }
 
     @Test
+    fun theSwitchReadsRanglisteNachTeeAndNachZubereitung() {
+        show(RatingsFixtures.withData)
+        compose.onNodeWithContentDescription("Rangliste nach Tee", useUnmergedTree = true).assertExists()
+        compose.onNodeWithContentDescription("Rangliste nach Zubereitung", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
     fun theFoldedRankingNamesTheTopTeaOfTheChosenKind() {
         show(RatingsFixtures.withData)
         compose.onNodeWithTag(statsSectionTag("ratings.ranking")).performScrollTo().performClick()

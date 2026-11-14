@@ -52,8 +52,8 @@
     <!-- ===== #283: Tee and Zubereitung ratings (INS-02, D-117) ===== -->
     <string name="stats_ratings_switch_tea">Tee</string>
     <string name="stats_ratings_switch_brewing">Zubereitung</string>
-    <string name="stats_ratings_switch_tea_description">Rangliste nach Tee-Bewertung</string>
-    <string name="stats_ratings_switch_brewing_description">Rangliste nach Zubereitung-Bewertung</string>
+    <string name="stats_ratings_switch_tea_description">Rangliste nach Tee</string>
+    <string name="stats_ratings_switch_brewing_description">Rangliste nach Zubereitung</string>
     <string name="stats_ratings_none_of_kind">Keine Bewertung dieser Art im Zeitraum</string>
     <string name="stats_ratings_best_recipe_by">nach Zubereitung</string>
     <string name="stats_chart_legend_tea">Tee</string>

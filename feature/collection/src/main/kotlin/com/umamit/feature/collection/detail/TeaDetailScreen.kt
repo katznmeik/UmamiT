@@ -64,6 +64,9 @@ import com.umamit.feature.collection.R
 /** The detail's scrolling content (SCR-09). */
 const val TEA_DETAIL_TAG = "tea_detail"
 
+/** The top bar while the tea is read; it stays underneath until the arriving content has faded in (A-12). */
+const val TEA_DETAIL_LOADING_BAR_TAG = "tea_detail_loading_bar"
+
 /** The sticky *Brühen*. */
 const val TEA_DETAIL_BREW_TAG = "tea_detail_brew"
 
@@ -135,11 +138,18 @@ fun TeaDetailScreen(
     val arrivesDuringPush = remember { state == TeaDetailUiState.Loading }
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // While the tea is read, the top bar with its back arrow, like every pushed screen; never a bare sheet (A-12).
-        if (state == TeaDetailUiState.Loading) {
-            ScreenScaffold(title = "", navigationIcon = { BackAction(actions.back) }) {}
+        // It stays underneath the arriving content until that has faded in, so the back arrow never blinks out.
+        var loadingBar by remember { mutableStateOf(arrivesDuringPush) }
+        if (state == TeaDetailUiState.Loading || loadingBar) {
+            ScreenScaffold(
+                title = "",
+                navigationIcon = { BackAction(actions.back) },
+                modifier = Modifier.testTag(TEA_DETAIL_LOADING_BAR_TAG),
+            ) {}
         }
         // The tea's first arrival fades in with `fade`, instead of popping in part-way through the enter (A-12).
-        Box(Modifier.fillMaxSize().fadeInOnArrival(arrived = state != TeaDetailUiState.Loading)) {
+        val arrived = state != TeaDetailUiState.Loading
+        Box(Modifier.fillMaxSize().fadeInOnArrival(arrived, onFadeEnd = { loadingBar = false })) {
             when (state) {
                 TeaDetailUiState.Loading -> Unit
 

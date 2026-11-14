@@ -44,7 +44,6 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.ui.GermanFormat
-import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.core.ui.rememberStartsAfterStop
 import kotlinx.coroutines.delay
@@ -85,7 +84,7 @@ fun HomeScreen(
         verticalArrangement = Arrangement.Top,
     ) {
         // Start arrives in one piece (A-03, 03 §3.6): nothing below the title until its state is read, then the
-        // whole body fades in at once, so no card pushes the lists down.
+        // whole body at once, so no card pushes the lists down. No fade: its first frame is on the cold start's path.
         HomeBody(state, nowElapsedMs, actions)
         // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).
         val question = state.question?.takeIf { state.alertKey == null }
@@ -101,7 +100,7 @@ fun HomeScreen(
 
 @Composable
 private fun HomeBody(state: HomeUiState, nowElapsedMs: () -> Long, actions: HomeActions) =
-    Column(modifier = Modifier.fillMaxWidth().fadeInOnArrival(arrived = !state.loading)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         if (state.loading) return@Column
         state.reliabilityProblem?.let { problem ->
             ReliabilityBanner(

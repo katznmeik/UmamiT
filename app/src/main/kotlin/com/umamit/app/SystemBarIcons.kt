@@ -4,13 +4,15 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import com.umamit.core.designsystem.motion.MotionTokens
@@ -69,65 +71,70 @@ internal fun SystemBarIcons(darkIcons: Boolean) {
  * [immediate] flips at once, in that frame: an alert (`alertEnter`, rule 8), also one that comes while a flip waits,
  * and the timer opened from a notification, whose cover is dark at once.
  *
- * @param topEntryId the id of the back stack's top entry: one that was on top before came back by a pop (`exitFade`),
- *   a new one was pushed (`fade`).
+ * @param topEntry the back stack's top entry: one that was on top before came back by a pop (`exitFade`), a new one
+ *   was pushed (`fade`).
  */
 @Composable
 internal fun timedDarkIcons(
     darkIcons: Boolean,
     timerShown: Boolean,
-    topEntryId: String?,
+    topEntry: NavBackStackEntry?,
     immediate: Boolean,
 ): Boolean {
     val reduceMotion = UmamiTheme.motion.reduceMotion
     val timing = remember { IconTiming(timerShown, darkIcons) }
-    // Read here, so the end of a wait recomposes; the timing itself is plain state of this composition.
-    var settled by remember { mutableIntStateOf(0) }
-    timing.observe(timerShown, topEntryId, reduceMotion, settled)
-    if (immediate) timing.pending = false
-    val icons = if (timing.pending) timing.held else darkIcons
-    timing.lastIcons = icons
-    LaunchedEffect(timing.changes) {
-        if (timing.pending) {
-            delay(timing.delayMs)
-            timing.pending = false
-            settled++
-        }
-    }
-    return icons
-}
+    // Decided in this composition from what the last applied one left, so the frame that sees the change already
+    // holds the icons; the bookkeeping is written only once a composition is applied (SideEffect), never by one that
+    // is discarded.
+    // Always read, so the end of a wait recomposes whichever branch decided this composition.
+    val running = timing.wait
+    val wait = when {
+        immediate -> null
 
-/** Whether a flip waits, what it holds meanwhile, and how long: from whether the timer's change was a push or a pop. */
-private class IconTiming(private var lastShown: Boolean, var lastIcons: Boolean) {
-    /** The entries that were on top so far: a pop returns to one of them. */
-    private val seen = mutableSetOf<String>()
-
-    var delayMs: Long = 0L
-        private set
-    var changes: Int = 0
-        private set
-    var pending: Boolean = false
-    private var lastSettled: Int = 0
-    var held: Boolean = lastIcons
-        private set
-
-    /** [settled] counts the waits that ended; read by the caller so their end recomposes. */
-    fun observe(timerShown: Boolean, topEntryId: String?, reduceMotion: Boolean, settled: Int) {
-        lastSettled = settled
-        if (timerShown != lastShown) {
-            val pop = topEntryId != null && topEntryId in seen
+        timerShown != timing.lastShown -> {
+            val pop = topEntry != null && topEntry.id in timing.seen
             val fadeMillis = when {
                 reduceMotion -> MotionTokens.REDUCED_FADE_MILLIS
                 pop -> MotionTokens.EXIT_MILLIS
                 else -> MotionTokens.STANDARD_MILLIS
             }
-            delayMs = fadeMillis / 2L
-            held = lastIcons
-            pending = true
-            changes++
-            lastShown = timerShown
+            IconWait(held = timing.lastIcons, delayMs = fadeMillis / 2L)
         }
-        topEntryId?.let(seen::add)
+
+        else -> running
+    }
+    val icons = wait?.held ?: darkIcons
+    SideEffect {
+        timing.lastShown = timerShown
+        timing.lastIcons = icons
+        timing.wait = wait
+        timing.saw(topEntry)
+    }
+    LaunchedEffect(wait) {
+        if (wait != null) {
+            delay(wait.delayMs)
+            if (timing.wait === wait) timing.wait = null
+        }
+    }
+    return icons
+}
+
+/** A flip that waits: the icons [held] meanwhile, for [delayMs]. Compared by identity: each change is its own wait. */
+private class IconWait(val held: Boolean, val delayMs: Long)
+
+/**
+ * What the last applied composition left: whether the timer was shown, the icons it returned and the wait running.
+ * Written only in a `SideEffect`; [wait] is snapshot state, so the end of a wait recomposes.
+ */
+private class IconTiming(var lastShown: Boolean, var lastIcons: Boolean) {
+    var wait: IconWait? by mutableStateOf(null)
+
+    /** The entries that were on top and are still on the back stack: a pop returns to one of them. */
+    val seen = mutableMapOf<String, Lifecycle>()
+
+    fun saw(top: NavBackStackEntry?) {
+        seen.values.removeAll { it.currentState == Lifecycle.State.DESTROYED }
+        if (top != null) seen[top.id] = top.lifecycle
     }
 }
 
@@ -152,7 +159,7 @@ internal fun RootSystemBarIcons(
                 darkTheme = UmamiTheme.isDark,
             ),
             timerShown = timerShown,
-            topEntryId = entry?.id,
+            topEntry = entry,
             immediate = alert != null || requestPending,
         ),
     )

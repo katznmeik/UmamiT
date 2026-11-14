@@ -60,8 +60,8 @@ private val SWITCH_SEGMENT_PADDING = 8.dp
  * above Neu entdeckt when nothing of either kind was rated. From v0.7.1 (D-117) the Tee-Rangliste has a switch *Tee ·
  * Zubereitung* ([rankingBy], remembered by the caller; [onRankingByChange] writes it), Neu entdeckt shows the *Tee* Ø,
  * the history draws both ratings and the best recipe compares the *Zubereitung* Ø. [figures] are null until the first
- * read and change in place with their range; [onOpenTea] opens a collection tea's detail (SCR-09), never called for a deleted tea. [thumbnail]
- * loads a tea's cover photo (tests pass a placeholder).
+ * read and change in place with their range; [onOpenTea] opens a collection tea's detail (SCR-09), never called for
+ * a deleted tea. [thumbnail] loads a tea's cover photo (tests pass a placeholder).
  */
 @Composable
 fun RatingsTab(

@@ -60,6 +60,8 @@ sealed interface StatsUiState {
         val months: MonthSpan? = null,
         /** The keys of the folded sections (`statsFolded`, INS-08, R8). */
         val folded: Set<String> = emptySet(),
+        /** The Tee-Rangliste's switch (INS-02, D-117 Q9), stored: it arrives with the rest, never a frame later. */
+        val rankingBy: StatsRankingBy = StatsRankingBy.TEA,
     ) : StatsUiState
 }
 
@@ -96,6 +98,7 @@ class StatsViewModel @Inject constructor(
         val tab: StatsTab,
         val custom: MonthSpan?,
         val folded: Set<String>,
+        val rankingBy: StatsRankingBy,
     )
 
     private val choice: Flow<Choice> = settings.settings
@@ -105,6 +108,7 @@ class StatsViewModel @Inject constructor(
                 it.statsTab,
                 MonthSpan.of(it.statsRangeFrom?.toString(), it.statsRangeTo?.toString()),
                 it.statsFolded,
+                it.statsRankingBy,
             )
         }
         .distinctUntilChanged()
@@ -137,7 +141,7 @@ class StatsViewModel @Inject constructor(
 
     val state: StateFlow<StatsUiState> = combine(choice, months) { choice, months ->
         if (months != null) {
-            StatsUiState.Data(choice.range, choice.tab, choice.custom, months, choice.folded)
+            StatsUiState.Data(choice.range, choice.tab, choice.custom, months, choice.folded, choice.rankingBy)
         } else {
             StatsUiState.Empty
         }
@@ -150,12 +154,6 @@ class StatsViewModel @Inject constructor(
     /** *Bewertungen*'s figures with their range; null until the first read. */
     val ratings: StateFlow<TabFigures<RatingsStats>?> =
         figures { calculator, range, custom -> calculator.ratings(range, custom) }
-
-    /** The Tee-Rangliste's switch (INS-02, D-117 Q9): *Tee* the first time, then the last choice. */
-    val rankingBy: StateFlow<StatsRankingBy> = settings.settings
-        .map { it.statsRankingBy }
-        .distinctUntilChanged()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), StatsRankingBy.TEA)
 
     /** *Verbrauch*'s figures with their range; null until the first read. */
     val consumption: StateFlow<TabFigures<ConsumptionStats>?> =

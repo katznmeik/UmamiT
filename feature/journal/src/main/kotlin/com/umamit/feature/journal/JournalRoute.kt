@@ -15,10 +15,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.umamit.core.data.JournalSession
 import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.ui.labelRes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
 
 /**
  * The journal tab: the sessions as the repository writes them, so a finished
@@ -71,23 +73,7 @@ fun JournalRoute(
     val descriptorLabels = remember(locale) {
         TasteDescriptor.entries.associate { it.key to resources.getString(it.labelRes()) }
     }
-    // Grouping and the search words are built off the main thread ([JournalSources.listContext]); the last list stays
-    // in the first frame of a tab that comes back, and while a new read is built, so nothing flashes (JRN-09).
-    // Hold, then show fresh (03 §3.6, A-09): a changed list that is ready within [JOURNAL_HOLD_MS] of the route's
-    // first frame takes the old one's place in place (the tab is still fading in); a later one cross-fades once.
-    var holding by remember(sources) { mutableStateOf(true) }
-    LaunchedEffect(sources) {
-        delay(JOURNAL_HOLD_MS)
-        holding = false
-    }
-    val shown by produceState(ShownJournal(sources.lastList), sessions, today, locale) {
-        val read = sessions ?: return@produceState
-        // The read the last list was built from (a tab that comes back): nothing to build again.
-        if (value.list != null && sources.lastListBuiltFor?.isFor(read, today, locale) == true) return@produceState
-        val built = withContext(sources.listContext) { journalList(read, today, descriptorLabels::get) }
-        sources.lastListBuiltFor = JournalListInput(read, today, locale)
-        value = value.next(built, holding)
-    }
+    val shown = rememberShownJournal(sources, sessions, today, locale, descriptorLabels)
     val list = shown.list
     SideEffect { sources.lastList = list }
     // A tea without finished sessions is no filter option, so its name is looked up (a deleted tea carries it).
@@ -112,6 +98,37 @@ fun JournalRoute(
         alerting = alerting,
         teaNameFallback = teaNameFallback,
     )
+}
+
+/**
+ * The list the Journal shows for [sessions] (JRN-09, A-09). Grouping and the search words are built off the main thread
+ * ([JournalSources.listContext]); the last list stays in the first frame of a tab that comes back, and while a new
+ * read is built, so nothing flashes. Hold, then show fresh (03 §3.6): a changed list that is ready within
+ * [JOURNAL_HOLD_MS] of this composition's first frame takes the old one's place in place (the tab is still fading
+ * in); a later one cross-fades once.
+ */
+@Composable
+internal fun rememberShownJournal(
+    sources: JournalSources,
+    sessions: List<JournalSession>?,
+    today: LocalDate,
+    locale: String,
+    descriptorLabels: Map<String, String>,
+): ShownJournal {
+    var holding by remember(sources) { mutableStateOf(true) }
+    LaunchedEffect(sources) {
+        delay(JOURNAL_HOLD_MS)
+        holding = false
+    }
+    val shown by produceState(ShownJournal(sources.lastList), sessions, today, locale) {
+        val read = sessions ?: return@produceState
+        // The read the last list was built from (a tab that comes back): nothing to build again.
+        if (value.list != null && sources.lastListBuiltFor?.isFor(read, today, locale) == true) return@produceState
+        val built = withContext(sources.listContext) { journalList(read, today, descriptorLabels::get) }
+        sources.lastListBuiltFor = JournalListInput(read, today, locale)
+        value = value.next(built, holding)
+    }
+    return shown
 }
 
 /** How long a tab that comes back holds its last list for a fresh one (03 §3.6: at most ≈ 150 ms, A-09). */

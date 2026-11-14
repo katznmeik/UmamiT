@@ -64,6 +64,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StatsTab
 import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.feature.stats.charts.ChartPageState
@@ -122,7 +123,8 @@ fun StatsRoute(
                 figures = viewModel.ratings.collectAsStateWithLifecycle().value,
                 scrollState = scrollState,
                 onOpenTea = onOpenTea,
-                rankingBy = viewModel.rankingBy.collectAsStateWithLifecycle().value,
+                // With the state, so a stored *Zubereitung* is the first frame's ranking (D-117 Q9).
+                rankingBy = (state as? StatsUiState.Data)?.rankingBy ?: StatsRankingBy.TEA,
                 onRankingByChange = viewModel::selectRankingBy,
             )
 
