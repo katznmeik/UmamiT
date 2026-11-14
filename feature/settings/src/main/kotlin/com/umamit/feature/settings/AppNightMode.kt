@@ -17,8 +17,9 @@ import javax.inject.Inject
  *
  * Only the settings screen calls it ([SettingsViewModel.handOverTheme]): when the *Design* dialog closes, and
  * whenever the screen shows with no alert playing, so a pick an alert interrupted or a theme a backup restore
- * brought is handed over then (PO, motion review M21). A change re-creates the activity (no
- * `configChanges="uiMode"`), which restores its state (S1, #47); it is never called while an alert plays (rule 8).
+ * brought is handed over then (PO, motion review M21). The activity handles the change in place
+ * (`configChanges="uiMode"`, D-117 build note A-08): the app recolours in one frame, with no re-creation. It is still
+ * never called while an alert plays (rule 8).
  *
  * The system has no getter for the app's night mode, so the mode last handed over is kept here, in the app's
  * private preferences, which no backup includes (05 §8): after a restore, or on a new install, nothing is recorded

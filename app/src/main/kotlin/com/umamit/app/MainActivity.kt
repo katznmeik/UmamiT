@@ -3,6 +3,9 @@ package com.umamit.app
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -142,6 +145,28 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+        holdFirstDrawUntil(ready = { onboardingCompleted.value != null }, never = { alertKey.value != null })
+    }
+
+    /**
+     * A cold start draws its first frame only once the root has something to show (A-04, 03 §3.6): at most
+     * [FIRST_DRAW_HOLD_MS], so the starting window goes straight to the app, not through an empty frame. Never while
+     * the timer opens or an alert plays ([never], `timerVisible`): the full-screen intent's first frame is never
+     * delayed (rule 8, D-064).
+     */
+    private fun holdFirstDrawUntil(ready: () -> Boolean, never: () -> Boolean) {
+        val content = findViewById<View>(android.R.id.content)
+        val start = SystemClock.uptimeMillis()
+        content.viewTreeObserver.addOnPreDrawListener(
+            object : ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    val draw = ready() || never() || timerVisible.value ||
+                        SystemClock.uptimeMillis() - start >= FIRST_DRAW_HOLD_MS
+                    if (draw) content.viewTreeObserver.removeOnPreDrawListener(this)
+                    return draw
+                }
+            },
+        )
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -167,7 +192,12 @@ class MainActivity : ComponentActivity() {
         timerRequests.request(intent)
     }
 
-    /** The window behind the app takes the theme's background, so nothing of the phone's theme shows through. */
+    /**
+     * The window behind the app takes the theme's background, so nothing of the phone's theme shows through. It
+     * follows a night switch in place (A-08): the themes.xml window background is resolved only when the window is
+     * made, so this replaces it on every change of the scheme. The system-bar scrims need nothing: `enableEdgeToEdge`
+     * runs once and leaves them transparent (the system keeps the contrast), and [SystemBarIcons] owns the icons.
+     */
     @Composable
     private fun WindowBackground() {
         val view = LocalView.current
@@ -184,6 +214,9 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        /** The longest a cold start holds its first frame for the root's content (03 §3.6: ≈ 150 ms, A-04). */
+        private const val FIRST_DRAW_HOLD_MS = 150L
+
         /**
          * Opens the app's own task with the shared [text] (CAT-17), as the timer's notifications
          * open it (`NEW_TASK | SINGLE_TOP`): a running activity gets it in [onNewIntent].
@@ -213,7 +246,8 @@ internal fun SettingsRepository.themeMode(): Flow<ThemeMode> =
  * the theme, and those surfaces are always [com.umamit.core.designsystem.theme.SteepingTheme]). No flash of the
  * other theme still: the settings hand the stored choice to the system too (`UiModeManager.setApplicationNightMode`,
  * SET-05, D-114) when the *Design* dialog closes and whenever they show with no alert, so the starting window and the
- * configuration *System* reads are already in the chosen theme.
+ * configuration *System* reads are already in the chosen theme. The activity handles the night switch in place
+ * (`configChanges="uiMode"`, D-117 build note A-08): Compose reads the new configuration and recolours in one frame.
  */
 internal fun ComponentActivity.themeModeState(settings: SettingsRepository): StateFlow<ThemeMode?> =
     settings.themeMode().stateIn(lifecycleScope, SharingStarted.Eagerly, null)
