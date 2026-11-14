@@ -521,6 +521,14 @@ does.
   three CI runs before the gate goes on and recorded in the audit file §7;
   absolute numbers stay reported; the PO's rc check has the final say.
   NFR-PERF-12 is reworded.
+- **Build (Claude, 2026-11-14):** A-11 measured within the limit (detail → list
+  1.0–1.4×, timer → shell 1.7–2.7×), so no change. A-10 (visited tabs kept
+  composed) showed no measured gain and was reverted after the T3 milestone
+  review; A-14 not built (within the limit). The Start body's fade-in (A-03)
+  was dropped in the review round; Start's first state still waits ≤ 150 ms
+  for the low-stock card. `TransitionJankTest` takes the median of 7 runs (the
+  plan's lever for a flaky transition, not a wider limit) and reports where the
+  longest frame falls. Runs and numbers: `docs/plans/v0.7.1-motion-audit.md` §7.
 
 <a id="d-116"></a>
 ### D-116 — v0.7.1 (planned): tea and brewing rated separately, a transition smoothness audit; the cleanup review becomes v0.7.2 · *Accepted* in part (PO, 2026-11-13, R1–R3 below; the rest is grilled in the v0.7.1 specify session)
