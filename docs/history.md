@@ -11,6 +11,12 @@
 
 ## Releases and plans
 
+### v0.7.0: the PO's review of rc.1 and rc.2 (2026-11-13/14)
+
+- **PO review of rc.1:** ten points on the checklist and the design review, not an approval: what a „Tasse" is, a per-tea donut, a more compact and foldable Überblick, Bewertungen rethought, Verbrauch with the value drunk, a custom month range, separate tea and brewing ratings, the Knapp chip losing the grams, transitions that are not smooth (worst after unlocking into the app).
+- **Decisions:** D-115 Amendment 1 (R1–R16) for rc.2; D-116 plans v0.7.1 (Tee + Zubereitung ratings per session, old ratings copied to both; a transition audit).
+- **Build:** #268 cups by volume + *Tassengröße* (SET-34), #269 „14 g · knapp", #270 stats data (custom range, Tees donut, GETRUNKEN, Tee-Rangliste, Neu entdeckt, removals), #271 shell (Monate sheet, folding, half-height charts, label fade), #272 tab contents, #273 review, gate and rc.2. Renders in `docs/design/review/v0.7.0/`.
+
 ### v0.6.1: released (2026-11-13)
 
 - **PO approval (2026-11-13, in the session; D-114 „Approval"):** asked for the result on `v0.6.1-rc.1`, the PO answered „Approve everything": every item of checklist 09 §4 „v0.6.1" passed, and the seven design-review points of `docs/design/review/v0.6.1/README.md` stand as built. No rc.2.
@@ -569,6 +575,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-13/14 | **v0.7.0 rc.2:** the PO reviewed rc.1 with ten points (no approval); grilled in four rounds (R1–R16) into D-115 Amendment 1 and D-116 (v0.7.1: split rating, transition audit; cleanup → v0.7.2); specs 02/03/05/09/11 updated; tickets #268–#273 built at T2 (one detekt fix at T3), one T3 review (12 findings, all fixed); full local gate PASS and CI green; `v0.7.0-rc.2` (70002) from `ccc57917`. A container restart lost one implementer run (resumed from its worktree); PR CI had not run while #266 conflicted with `main` (merged `main` in). |
 | 2026-11-13 | **v0.7.0 specified:** the PO answered the Statistik grilling in five rounds of options (Q1–Q20, D-115); 02 §12 INS-01–INS-08, SCR-18, 05 §6, 09, 11, 12 written; spec #255, tickets #256–#264, plan `docs/plans/v0.7.0.md`, waiting for the PO's approval. |
 | 2026-11-13 | **v0.6.1 done:** PO approved rc.1 („Approve everything": checklist and the seven design-review points; D-114 „Approval"; no rc.2); full local gate, CI and all three accuracy variants PASS on `87dc394e`; #252 merged (`22b84788`), `v0.6.1` released (versionCode 60199, certificate verified); #240–#251 closed. Next: Statistik (v0.7.0), its specify session. |
 | 2026-11-12 | **v0.6.1 built, rc.1 out:** #241–#249 built per the plan's task graph, #250's T3 milestone review, T4 timer review, `/review-animations` and fix rounds; full local gate, CI and all three accuracy variants PASS on `62657833`; `v0.6.1-rc.1` (60101) for the PO's checklist and design review. |

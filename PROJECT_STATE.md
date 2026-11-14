@@ -5,14 +5,15 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-13. **Statistik (v0.7.0, M4 part 2): built; `v0.7.0-rc.1` is out and waits for the PO's checklist and design review.** Tickets #256–#262 are built on PR #266 (draft); #263's reviews, fix round, full local gate (GATE PASS) and CI are green on `e37d4631`. `v0.6.1` is released (versionCode 60199). **Next:** the PO's answer on 09 §4 „v0.7.0", the design review and its questions A–E; then (if needed) an rc.2 fix session, else #264: merge and `v0.7.0` with the accuracy run.
+**Last updated:** 2026-11-14. **Statistik (v0.7.0, M4 part 2): `v0.7.0-rc.2` is out and waits for the PO's checklist and design review.** The PO's review of rc.1 (ten points) was grilled (R1–R16) into D-115 Amendment 1 and built as #268–#273 on PR #266 (draft); T3 milestone and motion review, all 12 findings fixed, full local gate (GATE PASS) and CI green. The split rating and a transition audit are planned for v0.7.1 (D-116); the cleanup review moves to v0.7.2. `v0.6.1` is released (versionCode 60199). **Next:** the PO's answer on 09 §4 „v0.7.0" (rc.2 items) and the design review; then an rc.3 fix session if needed, else #264: merge and `v0.7.0` with the accuracy run.
 
-## Next: the PO's test of `v0.7.0-rc.1`, then #264 (v0.7.0, M4 part 2)
+## Next: the PO's test of `v0.7.0-rc.2`, then #264 (v0.7.0, M4 part 2)
 
-- **Spec:** #255, D-115 (Q1–Q20 and its „Build notes"), 02 §12 INS-01–INS-08, 03 SCR-18, 05 §6 `statsRange`/`statsTab`, 09 §4 „v0.7.0". **Plan:** `docs/plans/v0.7.0.md`. **PR:** #266 (draft, closes #255–#262; #263 once the PO answered).
-- **rc:** `v0.7.0-rc.1` (versionCode 70001) from `e37d4631`. **Design review:** `docs/design/review/v0.7.0/README.md` with Claude's defaults 1–8 and the **questions A–E** for the PO (top rated below 3 ratings, „+n" under Gesamt, the first Bewertungen heading, Serie at 0, value-label fade). The rc shows the first option of each.
-- **Reviews done (#263):** T3 milestone review (no blocker; should-fix items fixed in rounds A and B), the motion review by the `review-animations` rules (applied by reading the skill files; the skill itself is user-invocable only), all within-spec findings fixed; a font-2.0 clipping of the habit labels found in the renders and fixed (rows from 1,5 ×). Items needing the PO are the questions A–E.
-- **After the PO's answer:** answers that change behaviour go through the process (D-115 „Approval" plus amendments, tickets, rc.2). If the PO approves rc.1 as is: record it in D-115 „Approval", mark the PR ready, merge (merge commit), wait for CI on `main`, run `accuracy.yml` (all variants, 09 §4a) on the merge commit, bump to `0.7.0` and dispatch `v0.7.0` from `main` (#264).
+- **Spec:** #255, D-115 (Q1–Q20, „Build notes", **Amendment 1** R1–R16 with its details and the rc.2 build notes), 02 §12 INS-01–INS-08, INV-08, SET-34, 03 SCR-18, 05 §6 (`statsRange` CUSTOM, `statsRangeFrom`/`To`, `statsFolded`, `cupSizeMl`), 09 §4 „v0.7.0" (rc.2 items). **Plan:** `docs/plans/v0.7.0.md` („rc.2" section). **PR:** #266 (draft, closes #255–#262 and #268–#272; #263 and #273 once the PO approves).
+- **rc:** `v0.7.0-rc.2` (versionCode 70002) from `ccc57917`. **Design review:** `docs/design/review/v0.7.0/README.md` (what changed since rc.1 and Claude's rc.2 defaults 1–8). Not rendered: *Tassengröße* in Einstellungen (check on the phone).
+- **Reviews done (#273):** one T3 review (correctness + the `review-animations` rules) of the rc.2 diff: no blocker, 12 findings (recipe estimate below 1 cup, donut slices keyed by name, fold/month taps waiting on DataStore, fold motion direction and summary fade, small ones), all fixed in one T2 round.
+- **After the PO's answer:** answers that change behaviour go through the process again (D-115 amendment, tickets, rc.3). If the PO approves rc.2: record „Approval" in D-115, tick #256–#263 and #268–#273, mark the PR ready, merge (merge commit), wait for CI on `main`, run `accuracy.yml` (all variants, 09 §4a, full SHA) on the merge commit, bump to `0.7.0` and dispatch `v0.7.0` from `main` (#264), verify the certificate.
+- **Then v0.7.1 (D-116):** a specify session (grilling) for the split rating (Tee + Zubereitung per session, old ratings copied to both; a Room migration, T3+) and the transition audit (unlock into the app is the worst case the PO saw).
 - **No timer code, no migration:** `git diff main -- feature/brew core/timer core/timer-engine core/database/schemas` is empty; no T4 timer review.
 - **Known from v0.6.0, not blocking:** #231's „smooth with 10 000 sessions" is shown by JVM timing only. A tab that comes back to the Journal can show the earlier list for a frame until the next build.
 - **Open from D-114 (Claude's note, accepted):** the activity re-creation after the *Design* hand-over can still meet an alert starting in the same ≈ 0.5 s.
@@ -51,9 +52,9 @@ Claude's proposal of 2026-11-13, recorded on the PO's request. It is **not a go 
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/wonderful-davinci-fu8tqi` (from `main` `bc410bbc` after #265) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | #266 (v0.7.0 milestone PR, draft) |
-| Latest APK | rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-115** used; the next free is **D-116** |
+| Open PR | #266 (v0.7.0 milestone PR, draft; rc.2) |
+| Latest APK | rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
+| Decision numbers | Up to **D-116** used; the next free is **D-117** |
 
 ## Working agreements in effect
 
@@ -69,7 +70,7 @@ Claude's proposal of 2026-11-13, recorded on the PO's request. It is **not a go 
 
 ## Waiting on the PO
 
-1. **Test `v0.7.0-rc.1`:** the checklist 09 §4 „v0.7.0" and the design review `docs/design/review/v0.7.0/` with its questions A–E (answer in the session or on PR #266).
+1. **Test `v0.7.0-rc.2`:** the checklist 09 §4 „v0.7.0" (rc.2 items) and the design review `docs/design/review/v0.7.0/` with Claude's rc.2 defaults (answer in the session or on PR #266).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
