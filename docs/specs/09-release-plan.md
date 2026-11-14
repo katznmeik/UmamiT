@@ -379,7 +379,7 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 
 - [ ] `v0.7.0-rc.3` installs over rc.2 without losing data (no database change); a timer running during the update still alerts.
 - [ ] *Einstellungen* › *Brühen & Vorrat* has no *Tassengröße* any more.
-- [ ] Überblick reads „Sitzungen · 12,4 l Tee · Tees" (below 1 l „750 ml Tee").
+- [ ] Überblick reads „Sitzungen · 12,4 Liter Tee · Tees" with „Liter" small after the number (below 1 l „750 ml Tee"; V8, V9).
 - [ ] Verbrauch's chart is TEE in ml/l; the value label and the fold summary use the same format.
 - [ ] GETRUNKEN reads „Ø … € pro Liter · aus N Sitzungen mit Preis"; a session without water counts in the total but not in the average.
 - [ ] Tea detail shows „ca. … € pro Liter (Rezept)" and „Ø … € pro Liter aus N Sitzungen".

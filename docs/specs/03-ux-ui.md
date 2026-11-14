@@ -1499,7 +1499,7 @@ Deine Tee-Reise                         (displayLarge, Alegreya Sans)
  Überblick   Bewertungen   Verbrauch    (primary tabs, swipeable pager)
 ───────────────────────────────────────
 Überblick                      Bewertungen                 Verbrauch
- 42 Sitzungen · 12,4 l Tee · 24 Tees   TEE-RANGLISTE (Top 10)      38 g
+ 42 Sitzungen · 12,4 Liter Tee · 24 Tees TEE-RANGLISTE (Top 10)      38 g
    (one row; „+3" not under Gesamt)      1. Sencha  4,6 ★ · 5×      GRAMM ▮▮▮▮▮ (half height)
  ▾ SITZUNGEN  ▮▮▮▯▮▮▮ (KW)               Alle anzeigen (N)          TEE ▮▮▮▮▮▮▮
  ▾ SERIE 7 Tage · längste 21            NEU ENTDECKT (5, newest)    AUSGABEN 64,80 € ▮▮▮
@@ -1526,7 +1526,7 @@ Deine Tee-Reise                         (displayLarge, Alegreya Sans)
   month, per week when the span is at most 3 months. The five segments stay
   on one line; the font-scale rule of D-115 (stop growing at 1,15) holds.
 - **Überblick (rc.2, R10, R12, R13):** Sitzungen · Tee (volume) · Tees in **one
-  row** („42 Sitzungen · 12,4 l Tee · 24 Tees"; below 1 l „750 ml Tee"; rc.3,
+  row** („42 Sitzungen · 12,4 Liter Tee · 24 Tees"; below 1 l „750 ml Tee"; rc.3,
   D-115 A2: the cups numeral „96 Tassen" is replaced, format as INS counting
   rules; rc.3, D-115 A2 V8, V9: the unit „Liter"/„ml" in the smaller body font
   after the display-font number, „12,4 Liter"); no „+n im Zeitraum" under *Gesamt*; SERIE at 0 reads „Keine Serie

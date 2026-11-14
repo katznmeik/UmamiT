@@ -1708,7 +1708,7 @@ transition audit are v0.7.1 (D-116), not here.
 
 **INS-01 — Activity (Überblick)** `Must`
 - Big numerals: **sessions** in the range, the **volume of tea** in
-  the range (**rc.3, D-115 A2:** „12,4 l Tee", „750 ml Tee"; before: cups),
+  the range (**rc.3, D-115 A2:** „12,4 Liter Tee" (V9), „750 ml Tee"; before: cups),
   and **teas** in the collection („24 Tees · +3 im Zeitraum": non-archived teas
   now; the plus counts teas created in the range and is hidden at 0).
   **rc.2 (D-115 A1, R10, R12):** the three numerals sit in **one row**; under
