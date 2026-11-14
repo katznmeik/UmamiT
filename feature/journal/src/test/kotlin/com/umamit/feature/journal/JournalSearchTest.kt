@@ -68,7 +68,14 @@ class JournalSearchTest {
             status = SessionStatus.IN_PROGRESS,
             steps = listOf(step(0, 60, actualSeconds = null)),
         ),
-        session("hisui", at(TODAY, 9), teaName = "Bio Sencha Hisui", rating = 4.5, notes = "Sehr frisch"),
+        session(
+            "hisui",
+            at(TODAY, 9),
+            teaName = "Bio Sencha Hisui",
+            rating = 4.5,
+            brewingRating = 3.5,
+            notes = "Sehr frisch",
+        ),
         session("gyokuro", at(TODAY.minusDays(1), 18), teaName = "Gyokuro Asahi", rating = 3.0),
         session("plain", at(TODAY.minusDays(2), 7), teaName = "Bancha Kuki"),
     )
@@ -94,9 +101,20 @@ class JournalSearchTest {
     fun `a rated row shows the stars and TalkBack hears the rating`() {
         show()
 
-        compose.onNodeWithText("★ 4,5").assertIsDisplayed()
-        compose.onNodeWithText("★ 3,0").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Bewertung 4,5 von 5").assertExists()
+        compose.onNodeWithText("Tee ★ 4,5 ·").assertIsDisplayed()
+        compose.onNodeWithText("Zubereitung ★ 3,5").assertIsDisplayed()
+        compose.onNodeWithText("Tee ★ 3,0").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Tee 4,5 von 5, Zubereitung 3,5 von 5").assertExists()
+        compose.onNodeWithContentDescription("Tee 3,0 von 5").assertExists()
+    }
+
+    @Test
+    fun `a session with only a Zubereitung rating shows only that one`() {
+        show(journalList(listOf(session("brew", at(TODAY, 9), teaName = "Gyokuro Kiri", brewingRating = 3.5)), TODAY))
+
+        compose.onNodeWithText("Zubereitung ★ 3,5").assertIsDisplayed()
+        compose.onNodeWithText("Tee ★", substring = true).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Zubereitung 3,5 von 5").assertExists()
     }
 
     @Test

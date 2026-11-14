@@ -54,11 +54,11 @@ import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.TeaThumbnail
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
-import com.umamit.core.designsystem.text.ratingText
 import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.SessionRatings
 import java.io.File
 
 private const val TITLE_MAX_LINES = 2
@@ -324,16 +324,7 @@ private fun JournalRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                entry.rating?.let { rating ->
-                    val value = ratingText(rating.toFloat())
-                    val spokenRating = stringResource(R.string.journal_rating_description, value)
-                    Text(
-                        text = stringResource(R.string.journal_rating, value),
-                        modifier = Modifier.semantics { contentDescription = spokenRating },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+                SessionRatings(entry.rating, entry.brewingRating)
             }
         }
         if (showDivider) {

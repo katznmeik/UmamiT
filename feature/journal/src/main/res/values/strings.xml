@@ -20,9 +20,6 @@
         <item quantity="one">%1$d von %2$d Aufguss</item>
         <item quantity="other">%1$d von %2$d Aufgüssen</item>
     </plurals>
-    <!-- SCR-15 rows (JRN-08, D-112): „★ 4,5" under the meta line, and for TalkBack. -->
-    <string name="journal_rating">★ %1$s</string>
-    <string name="journal_rating_description">Bewertung %1$s von 5</string>
     <!-- SCR-15 search and filters (JRN-09, D-112). -->
     <string name="journal_search_hint">Tees, Notizen …</string>
     <string name="journal_search_clear">Suche leeren</string>

@@ -32,19 +32,23 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.averageRatingText
 import com.umamit.core.designsystem.text.clockText
-import com.umamit.core.designsystem.text.ratingText
 import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.TeaRating
 import com.umamit.core.ui.DescriptorChip
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.SessionRatings
 import com.umamit.core.ui.TasteRadar
 import com.umamit.core.ui.labelRes
+import com.umamit.core.ui.sessionRatingsSpoken
 import com.umamit.feature.collection.R
 import java.time.LocalDate
 
 /** The header's „★ 4,5 (12)" (TEA-13, D-112). */
 const val TEA_DETAIL_RATING_TAG = "tea_detail_rating"
+
+/** The „Zubereitung Ø 3,8 (10)" line below it (D-117 Q3). */
+const val TEA_DETAIL_BREWING_RATING_TAG = "tea_detail_brewing_rating"
 
 /** GESCHMACK (TEA-13, D-112): the average radar and the top descriptors. */
 const val TEA_DETAIL_TASTE_TAG = "tea_detail_taste"
@@ -71,6 +75,29 @@ internal fun RatingLine(rating: TeaRating, modifier: Modifier = Modifier) {
             text = stringResource(R.string.collection_tea_rating, value, rating.count),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** „Zubereitung Ø 3,8 (10)" in `bodySmall` below the header's rating (D-117 Q3); TalkBack reads the sentence. */
+@Composable
+internal fun BrewingRatingLine(rating: TeaRating, modifier: Modifier = Modifier) {
+    val value = averageRatingText(rating.average)
+    val description = pluralStringResource(
+        R.plurals.collection_tea_brewing_rating_description,
+        rating.count,
+        value,
+        rating.count,
+    )
+    Box(
+        modifier = modifier.testTag(TEA_DETAIL_BREWING_RATING_TAG).clearAndSetSemantics {
+            contentDescription = description
+        },
+    ) {
+        Text(
+            text = stringResource(R.string.collection_tea_brewing_rating, value, rating.count),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -139,8 +166,7 @@ private fun SessionRow(session: RecentSession, today: LocalDate, onOpen: (() -> 
     val spokenSeparator = stringResource(R.string.collection_tea_session_spoken_separator)
     val meta = session.metaParts(day, session.firstInfusionSeconds?.let(::clockText)).joinToString(separator)
     val spoken = session.metaParts(day, session.firstInfusionSeconds?.let { spokenDuration(it) })
-    val rating = session.rating?.let { ratingText(it.toFloat()) }
-    val ratingSpoken = rating?.let { stringResource(R.string.collection_tea_session_rating_description, it) }
+    val ratingSpoken = sessionRatingsSpoken(session.rating, session.brewingRating)
     val description = (spoken + listOfNotNull(ratingSpoken)).joinToString(spokenSeparator)
     val openLabel = stringResource(R.string.collection_tea_history_open_session)
     Row(
@@ -159,19 +185,14 @@ private fun SessionRow(session: RecentSession, today: LocalDate, onOpen: (() -> 
             .testTag(teaDetailSessionTag(session.id)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = meta,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        if (rating != null) {
-            Spacer(Modifier.width(UmamiSpacing.Small))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.collection_tea_session_rating, rating),
-                style = MaterialTheme.typography.labelLarge,
+                text = meta,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
+            // Under the meta line as the journal's row has it: two ratings are too wide for the trailing slot.
+            SessionRatings(session.rating, session.brewingRating, style = MaterialTheme.typography.bodySmall)
         }
         if (onOpen != null) {
             Icon(
