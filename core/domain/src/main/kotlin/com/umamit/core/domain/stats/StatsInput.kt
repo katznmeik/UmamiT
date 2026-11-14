@@ -15,13 +15,11 @@ import java.io.File
  * @property teas every tea in the collection, archived ones included (they are filtered here).
  * @property inventoryEvents the stock events of the existing teas; only the INITIAL and PURCHASE events with a
  * price count (INS-05), the others are ignored. A deleted tea's events are gone with it (cascade).
- * @property cupSizeMl the fixed cup size of the cups until #275 converts the Statistik to volume.
  */
 data class StatsInput(
     val sessions: List<StatsSession>,
     val teas: List<StatsTea>,
     val inventoryEvents: List<InventoryEvent>,
-    val cupSizeMl: Int = CostRule.DEFAULT_CUP_SIZE_ML,
 )
 
 /**
@@ -37,7 +35,7 @@ data class StatsInput(
  * @property zoneId the session's own time zone (IANA id).
  * @property rating 0,5–5,0 in half steps; null when unrated.
  * @property leafGrams the leaf used; null adds nothing to the grams.
- * @property waterMl `water_ml` of the session (the water of each infusion); null counts one cup per infusion.
+ * @property waterMl `water_ml` of the session (the water of each infusion); null gives no volume.
  * @property costCents `cost_cents` (INV-08); null without a cost.
  * @property steps every step row, never-started ones included.
  */
@@ -57,9 +55,9 @@ data class StatsSession(
     val styleKey: String? = null,
     val waterMl: Int? = null,
 ) {
-    /** The session's cups, unrounded (INV-08): poured non-rinse infusions × water ÷ [cupSizeMl], at least 1. */
-    fun cups(cupSizeMl: Int): Double =
-        CostRule.sessionCups(steps.filter { it.ended && !it.skipped }.map { it.kind }, waterMl, cupSizeMl)
+    /** The session's volume in ml (D-115 Amendment 2): the water of each poured non-rinse step; 0 without water. */
+    val volumeMl: Int
+        get() = CostRule.sessionVolumeMl(steps.filter { it.ended && !it.skipped }.map { it.kind }, waterMl)
 }
 
 /**

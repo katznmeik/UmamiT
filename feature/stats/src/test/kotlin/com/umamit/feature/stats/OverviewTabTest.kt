@@ -53,17 +53,17 @@ class OverviewTabTest {
 
         compose.onNodeWithText("42").assertExists()
         compose.onNodeWithText("Sitzungen").assertExists()
-        compose.onNodeWithText("96").assertExists()
-        compose.onNodeWithText("Tassen").assertExists()
+        compose.onNodeWithText("12,4 l").assertExists()
+        compose.onNodeWithText("Tee").assertExists()
         compose.onNodeWithText("24").assertExists()
         compose.onNodeWithText("Tees · +3 im Zeitraum").assertExists()
     }
 
     @Test
-    fun `sessions, cups and teas sit in one row`() {
+    fun `sessions, volume and teas sit in one row`() {
         show(OverviewFixtures.data())
 
-        val tops = listOf("42", "96", "24").map { compose.onNodeWithText(it).fetchSemanticsNode().boundsInRoot.top }
+        val tops = listOf("42", "12,4 l", "24").map { compose.onNodeWithText(it).fetchSemanticsNode().boundsInRoot.top }
         assertThat(tops.distinct()).hasSize(1)
     }
 
@@ -94,12 +94,12 @@ class OverviewTabTest {
 
     @Test
     fun `the plus is hidden at 0, a thousand is grouped and one is singular`() {
-        show(OverviewFixtures.data(teasAdded = 0).copy(sessionCount = 1234, cupCount = 1))
+        show(OverviewFixtures.data(teasAdded = 0).copy(sessionCount = 1234, volumeMl = 750L))
 
         compose.onNodeWithText("Tees").assertExists()
         assertThat(compose.onAllNodesWithText("+", substring = true).fetchSemanticsNodes()).isEmpty()
         compose.onNodeWithText("1.234").assertExists()
-        compose.onNodeWithText("Tasse").assertExists()
+        compose.onNodeWithText("750 ml").assertExists()
     }
 
     @Test
@@ -149,7 +149,8 @@ class OverviewTabTest {
         show(OverviewFixtures.emptyRange())
 
         assertThat(compose.onAllNodesWithText("In diesem Zeitraum nichts").fetchSemanticsNodes()).hasSize(5)
-        assertThat(compose.onAllNodesWithText("0").fetchSemanticsNodes()).hasSize(2)
+        assertThat(compose.onAllNodesWithText("0").fetchSemanticsNodes()).hasSize(1)
+        compose.onNodeWithText("0 ml").assertExists()
         compose.onNodeWithText("Keine Serie gerade · längste 21 Tage").performScrollTo().assertExists()
     }
 

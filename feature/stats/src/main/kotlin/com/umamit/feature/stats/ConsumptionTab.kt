@@ -24,6 +24,7 @@ import com.umamit.core.domain.stats.RunningOutTea
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StockLevel
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.VolumeFormat
 import com.umamit.feature.stats.charts.ChartNumbers
 import com.umamit.feature.stats.charts.ChartUnit
 import com.umamit.feature.stats.charts.PeriodBarChart
@@ -48,7 +49,10 @@ private val GRAMS_TITLES = BarTitles(
     R.string.stats_consumption_grams_per_week,
     R.string.stats_consumption_grams_per_month,
 )
-private val CUPS_TITLES = BarTitles(R.string.stats_consumption_cups_per_week, R.string.stats_consumption_cups_per_month)
+private val VOLUME_TITLES = BarTitles(
+    R.string.stats_consumption_volume_per_week,
+    R.string.stats_consumption_volume_per_month,
+)
 private val DRUNK_TITLES = BarTitles(
     R.string.stats_consumption_drunk_per_week,
     R.string.stats_consumption_drunk_per_month,
@@ -59,7 +63,7 @@ private val MONEY_TITLES = BarTitles(
 )
 
 /**
- * *Verbrauch* (INS-05): grams, cups, money spent, money drunk (GETRUNKEN, with the average cost per cup) and the teas running out. [figures]
+ * *Verbrauch* (INS-05): grams, volume, money spent, money drunk (GETRUNKEN, with the average cost per litre) and the teas running out. [figures]
  * are null until the first read and change in place with their range; [onOpenTea] opens a collection tea's
  * detail (SCR-09),
  * never called for a deleted tea. [thumbnail] loads a tea's cover photo (tests pass a placeholder).
@@ -75,7 +79,7 @@ fun ConsumptionTab(
     StatsTabColumn(scrollState, modifier) {
         if (figures == null) return@StatsTabColumn
         val stats = figures.stats
-        val none = stats.grams <= 0.0 && stats.cups == 0
+        val none = stats.grams <= 0.0 && stats.volumeMl == 0L
         val monthly = stats.gramsPerPeriod.firstOrNull()?.period?.unit == PeriodUnit.MONTH
         val bars = BarSetup(monthly, figures.range, figures.rangeKey)
         StatsSection(
@@ -91,12 +95,12 @@ fun ConsumptionTab(
             Bars(stats.gramsPerPeriod, ChartUnit.GRAMS, GRAMS_TITLES, bars) { it }
         }
         StatsSection(
-            key = "consumption.cups",
-            title = stringResource(R.string.stats_consumption_section_cups),
-            summary = ChartNumbers.axis(stats.cups.toDouble()),
+            key = "consumption.volume",
+            title = stringResource(R.string.stats_consumption_section_volume),
+            summary = VolumeFormat.volume(stats.volumeMl),
             isEmpty = none,
         ) {
-            Bars(stats.cupsPerPeriod, ChartUnit.CUPS, CUPS_TITLES, bars) { it.toDouble() }
+            Bars(stats.volumePerPeriod, ChartUnit.VOLUME, VOLUME_TITLES, bars) { it.toDouble() }
         }
         StatsSection(
             key = "consumption.money",
@@ -202,7 +206,7 @@ private fun MoneySpent(stats: ConsumptionStats, setup: BarSetup) {
     }
 }
 
-/** GETRUNKEN (R9): the € value of the leaf brewed, per period, and the average per cup. */
+/** GETRUNKEN (R9): the € value of the leaf brewed, per period, and the average per litre. */
 @Composable
 private fun Drunk(stats: ConsumptionStats, setup: BarSetup) {
     if (stats.drunkSessionCount == 0) {
@@ -229,9 +233,12 @@ private fun DrunkPriced(stats: ConsumptionStats, setup: BarSetup) {
             ),
         )
         Bars(stats.drunkPerPeriod, ChartUnit.EUROS, DRUNK_TITLES, setup) { it / CENTS }
-        stats.costPerCup?.let { average ->
+        stats.costPerLiter?.let { average ->
             Text(
-                text = stringResource(R.string.stats_consumption_cost_per_cup, GermanFormat.euros(average.cupCents)),
+                text = stringResource(
+                    R.string.stats_consumption_cost_per_liter,
+                    GermanFormat.euros(average.literCents),
+                ),
                 modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,

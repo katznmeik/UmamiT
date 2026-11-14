@@ -41,10 +41,10 @@ class OverviewStatsTest {
     }
 
     @Test
-    fun `sessions, cups and teas with those created in the range`() {
+    fun `sessions, volume and teas with those created in the range`() {
         val sessions = listOf(
-            session(steps = listOf(StatsStep(StepKind.RINSE, ended = true), infusion(), infusion())),
-            session(steps = listOf(StatsStep(StepKind.WHISK, ended = true))),
+            session(waterMl = 100, steps = listOf(StatsStep(StepKind.RINSE, ended = true), infusion(), infusion())),
+            session(waterMl = 100, steps = listOf(StatsStep(StepKind.WHISK, ended = true))),
             session(TODAY.minusDays(40)),
         )
         val teas = listOf(
@@ -56,7 +56,7 @@ class OverviewStatsTest {
         val overview = calculator(sessions, teas).overview(StatsRange.DAYS_30)
 
         assertThat(overview.sessionCount).isEqualTo(2)
-        assertThat(overview.cupCount).isEqualTo(3)
+        assertThat(overview.volumeMl).isEqualTo(300L)
         assertThat(overview.teaCount).isEqualTo(2)
         assertThat(overview.teasAddedInRange).isEqualTo(1)
     }

@@ -1,6 +1,6 @@
 package com.umamit.feature.stats
 
-import com.umamit.core.domain.collection.CupAverage
+import com.umamit.core.domain.collection.LiterAverage
 import com.umamit.core.domain.stats.ConsumptionStats
 import com.umamit.core.domain.stats.PeriodValue
 import com.umamit.core.domain.stats.RunningOutTea
@@ -23,18 +23,18 @@ internal object ConsumptionFixtures {
         periods: List<PeriodValue<Int>> = OverviewFixtures.weekly(),
         grams: Double = 38.0,
         hasPurchases: Boolean = true,
-        costPerCup: CupAverage? = CupAverage(cupCents = 27, sessionCount = 20),
+        costPerLiter: LiterAverage? = LiterAverage(literCents = 270, sessionCount = 20),
         drunkSessions: Int = 20,
         runningOut: List<RunningOutTea> = RUNNING_OUT,
     ) = ConsumptionStats(
         grams = grams,
         gramsPerPeriod = grams(periods),
-        cups = 96,
-        cupsPerPeriod = periods,
+        volumeMl = 12_400L,
+        volumePerPeriod = periods.map { PeriodValue(it.period, it.value * 130L) },
         moneyCents = if (hasPurchases) 6480 else 0,
         hasPurchases = hasPurchases,
         moneyPerPeriod = if (hasPurchases) cents(periods) else periods.map { PeriodValue(it.period, 0L) },
-        costPerCup = costPerCup,
+        costPerLiter = costPerLiter,
         drunkCents = if (drunkSessions > 0) 2340L else 0L,
         drunkSessionCount = drunkSessions,
         drunkPerPeriod = periods.map { PeriodValue(it.period, if (drunkSessions > 0) it.value * 45L else 0L) },
@@ -45,7 +45,7 @@ internal object ConsumptionFixtures {
         periods = OverviewFixtures.weekly().map { PeriodValue(it.period, 0) },
         grams = 0.0,
         hasPurchases = false,
-        costPerCup = null,
+        costPerLiter = null,
         drunkSessions = 0,
-    ).copy(cups = 0)
+    ).copy(volumeMl = 0L)
 }

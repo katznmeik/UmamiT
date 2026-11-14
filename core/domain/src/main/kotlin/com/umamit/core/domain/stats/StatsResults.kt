@@ -1,7 +1,7 @@
 package com.umamit.core.domain.stats
 
 import com.umamit.core.domain.collection.CostRule
-import com.umamit.core.domain.collection.CupAverage
+import com.umamit.core.domain.collection.LiterAverage
 import com.umamit.core.model.StockLevel
 import java.io.File
 import java.time.DayOfWeek
@@ -11,7 +11,7 @@ import java.time.LocalDate
  * The tab *Überblick* (INS-01, INS-03, INS-06) for one range.
  *
  * @property sessionCount the finished sessions in the range.
- * @property cupCount their cups (INV-08).
+ * @property volumeMl their volume in ml (D-115 Amendment 2), shown as „12,4 l Tee".
  * @property teaCount the non-archived teas now („24 Tees").
  * @property teasAddedInRange the non-archived teas created in the range („+3 im Zeitraum", hidden at 0); null under
  * *Gesamt*, where it would be every tea (D-115 Amendment 1, R12).
@@ -25,7 +25,7 @@ import java.time.LocalDate
  */
 data class OverviewStats(
     val sessionCount: Int,
-    val cupCount: Int,
+    val volumeMl: Long,
     val teaCount: Int,
     val teasAddedInRange: Int?,
     val sessionsPerPeriod: List<PeriodValue<Int>>,
@@ -164,11 +164,12 @@ data class NewTea(
  * The tab *Verbrauch* (INS-05) for one range.
  *
  * @property grams Σ leaf of the range's sessions („38 g").
- * @property cups Σ cups of the range's sessions.
+ * @property volumeMl Σ volume in ml of the range's sessions (TEE).
  * @property moneyCents Σ `price_cents` of the priced INITIAL and PURCHASE events dated in the range; 0 reads
  * „Keine Käufe mit Preis" when [hasPurchases] is false.
- * @property costPerCup „Ø € pro Tasse" (GETRUNKEN, R9): Σ `cost_cents` ÷ Σ cups ([CostRule.sessionCups] with the cup
- * size) over the range's sessions with a cost; null hides it.
+ * @property costPerLiter „Ø € pro Liter" (GETRUNKEN, D-115 Amendment 2): Σ `cost_cents` ÷ Σ litres over the range's
+ * sessions with a cost and a volume above 0, cents half up; [LiterAverage.sessionCount] counts only those; null hides
+ * it.
  * @property drunkCents GETRUNKEN (R9): Σ `cost_cents` of the range's sessions; sessions without one add nothing.
  * @property drunkSessionCount the sessions with a `cost_cents` („aus 20 Sitzungen mit Preis"); 0 reads „Keine
  * Sitzungen mit Preis".
@@ -179,12 +180,12 @@ data class NewTea(
 data class ConsumptionStats(
     val grams: Double,
     val gramsPerPeriod: List<PeriodValue<Double>>,
-    val cups: Int,
-    val cupsPerPeriod: List<PeriodValue<Int>>,
+    val volumeMl: Long,
+    val volumePerPeriod: List<PeriodValue<Long>>,
     val moneyCents: Long,
     val hasPurchases: Boolean,
     val moneyPerPeriod: List<PeriodValue<Long>>,
-    val costPerCup: CupAverage?,
+    val costPerLiter: LiterAverage?,
     val drunkCents: Long,
     val drunkSessionCount: Int,
     val drunkPerPeriod: List<PeriodValue<Long>>,

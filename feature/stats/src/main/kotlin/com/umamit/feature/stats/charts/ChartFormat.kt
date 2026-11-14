@@ -2,6 +2,7 @@ package com.umamit.feature.stats.charts
 
 import android.content.res.Resources
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.VolumeFormat
 import com.umamit.feature.stats.R
 import com.umamit.feature.stats.consumptionGrams
 import java.text.NumberFormat
@@ -17,17 +18,21 @@ import kotlin.math.roundToLong
 enum class ChartUnit {
     SESSIONS,
     GRAMS,
-    CUPS,
+    VOLUME,
     EUROS,
     ;
 
     /** [value] with its unit in German format, for the value label and TalkBack. */
     fun format(resources: Resources, value: Double): String = when (this) {
         SESSIONS -> resources.getQuantityString(R.plurals.stats_chart_sessions, value.roundToInt(), count(value))
-        CUPS -> resources.getQuantityString(R.plurals.stats_chart_cups, value.roundToInt(), count(value))
+        VOLUME -> VolumeFormat.volume(value.roundToLong())
         GRAMS -> resources.getString(R.string.stats_chart_grams, consumptionGrams(value))
         EUROS -> resources.getString(R.string.stats_chart_euros, GermanFormat.euros((value * CENTS).roundToLong()))
     }
+
+    /** The y axis label of [value]: the unit's own format for volumes („500 ml", „1,0 l"), a bare number else. */
+    fun axisLabel(value: Double): String =
+        if (this == VOLUME) VolumeFormat.volume(value.roundToLong()) else ChartNumbers.axis(value)
 
     private fun count(value: Double) = ChartNumbers.axis(value.roundToInt().toDouble())
 

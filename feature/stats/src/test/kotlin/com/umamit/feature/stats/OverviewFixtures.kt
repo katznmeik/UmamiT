@@ -57,7 +57,7 @@ internal object OverviewFixtures {
         streak: Streak = Streak(current = 7, longest = 21),
     ) = OverviewStats(
         sessionCount = 42,
-        cupCount = 96,
+        volumeMl = 12_400L,
         teaCount = 24,
         teasAddedInRange = teasAdded,
         sessionsPerPeriod = periods,
@@ -90,7 +90,7 @@ internal object OverviewFixtures {
 
     fun emptyRange() = OverviewStats(
         sessionCount = 0,
-        cupCount = 0,
+        volumeMl = 0L,
         teaCount = 24,
         teasAddedInRange = 0,
         sessionsPerPeriod = weekly().map { PeriodValue(it.period, 0) },
