@@ -15,7 +15,7 @@ import java.io.File
  * @property teas every tea in the collection, archived ones included (they are filtered here).
  * @property inventoryEvents the stock events of the existing teas; only the INITIAL and PURCHASE events with a
  * price count (INS-05), the others are ignored. A deleted tea's events are gone with it (cascade).
- * @property cupSizeMl the cup size setting (`cupSizeMl`, D-115 Amendment 1): the water of one cup.
+ * @property cupSizeMl the fixed cup size of the cups until #275 converts the Statistik to volume.
  */
 data class StatsInput(
     val sessions: List<StatsSession>,

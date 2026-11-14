@@ -18,18 +18,18 @@ import com.umamit.feature.collection.R
 const val TEA_DETAIL_COST_TAG = "tea_detail_cost"
 
 /**
- * The cost of a priced tea (INV-08, D-104): „12,40 € / 100 g", „ca. 0,24 € pro Tasse (Rezept)" with a default recipe,
- * and from the first priced session „Ø 0,27 € pro Tasse aus 5 Sitzungen" (TalkBack: „Durchschnittlich …").
+ * The cost of a priced tea (INV-08, D-104): „12,40 € / 100 g", „ca. 2,40 € pro Liter (Rezept)" with a default recipe,
+ * and from the first priced session „Ø 2,70 € pro Liter aus 5 Sitzungen" (TalkBack: „Durchschnittlich …").
  */
 @Composable
 internal fun CostLines(cost: TeaCost) {
     Column(Modifier.testTag(TEA_DETAIL_COST_TAG)) {
         CostLine(stringResource(R.string.collection_tea_cost_price, GermanFormat.euros(cost.pricePer100gCents)))
-        cost.recipeCupCents?.let {
+        cost.recipeLiterCents?.let {
             CostLine(stringResource(R.string.collection_tea_cost_recipe, GermanFormat.euros(it)))
         }
         cost.average?.let { average ->
-            val euros = GermanFormat.euros(average.cupCents)
+            val euros = GermanFormat.euros(average.literCents)
             val count = average.sessionCount
             val spoken = pluralStringResource(R.plurals.collection_tea_cost_average_spoken, count, euros, count)
             CostLine(
