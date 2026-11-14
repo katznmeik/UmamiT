@@ -1,5 +1,6 @@
 package com.umamit.feature.brew.timer
 
+import android.content.res.Resources
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -31,16 +32,20 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -51,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Test tag of the ink-wash band at the top of the timer (SCR-05, SCR-07, D-095). */
 const val TIMER_BAND_TAG = "timer_band"
@@ -98,8 +105,12 @@ internal val SealContentKey = SemanticsPropertyKey<SealContent>("SealContent")
 @Composable
 internal fun TimerBand(modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.background
+    val resources = LocalResources.current
+    // The same bitmap as `painterResource`, decoded once per process instead of in each timer's first frame
+    // (setup → timer, NFR-PERF-12); usually decoded ahead, off the main thread, by the screens before the timer.
+    val band = remember(resources) { BitmapPainter(TimerBandBitmap.get(resources)) }
     Image(
-        painter = painterResource(UmamiIcons.TimerBand),
+        painter = band,
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = modifier
@@ -111,6 +122,23 @@ internal fun TimerBand(modifier: Modifier = Modifier) {
                 drawRect(Brush.verticalGradient(BAND_FADE_START to Color.Transparent, 1f to background))
             },
     )
+}
+
+/**
+ * The ink-wash band's bitmap (1536 × 822, `drawable-nodpi`), decoded once per process. [get] decodes it on the
+ * calling thread when it is not decoded yet, so the timer's first frame never waits for [preload] (rule 8).
+ */
+internal object TimerBandBitmap {
+    @Volatile
+    private var decoded: ImageBitmap? = null
+
+    fun get(resources: Resources): ImageBitmap =
+        decoded ?: ImageBitmap.imageResource(resources, UmamiIcons.TimerBand).also { decoded = it }
+
+    /** Decodes the band off the main thread, ahead of the timer: called by the screens that open it. */
+    suspend fun preload(resources: Resources) {
+        if (decoded == null) withContext(Dispatchers.Default) { get(resources) }
+    }
 }
 
 /**

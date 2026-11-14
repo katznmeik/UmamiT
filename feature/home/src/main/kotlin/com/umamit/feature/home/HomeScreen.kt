@@ -46,6 +46,7 @@ import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberPhotoPainter
+import com.umamit.core.ui.rememberStartsAfterStop
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
@@ -258,14 +259,18 @@ private fun ActiveCard(active: TimerUiState.Active, nowElapsedMs: () -> Long, on
     )
 }
 
-/** The monotonic time, read again at each whole second of the countdown or the overtime while composed. */
+/**
+ * The monotonic time, read again at each whole second of the countdown or the overtime while composed, and in the
+ * `ON_START` after a stop, so the first frame after unlock never shows a second from before the sleep (A-01).
+ */
 @Composable
 private fun rememberTickingNow(active: TimerUiState.Active, nowElapsedMs: () -> Long): Long {
     var now by remember(active) { mutableLongStateOf(nowElapsedMs()) }
     val clock by rememberUpdatedState(nowElapsedMs)
+    val restarts = rememberStartsAfterStop { now = clock() }
     val deadline = active.deadlineElapsedMs
     if (deadline != null && (active.phase == TimerPhase.RUNNING || active.phase == TimerPhase.ALERTING)) {
-        LaunchedEffect(active) {
+        LaunchedEffect(active, restarts) {
             while (true) {
                 now = clock()
                 delay(MS_PER_SECOND - Math.floorMod(now - deadline, MS_PER_SECOND) + 1)
