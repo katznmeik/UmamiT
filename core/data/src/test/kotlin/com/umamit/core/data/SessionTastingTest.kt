@@ -74,6 +74,68 @@ class SessionTastingTest {
     }
 
     @Test
+    fun `a Zubereitung rating is set in half steps from 0,5 to 5,0 and can be removed (D-117)`() = runTest {
+        listOf(0.5, 3.5, 5.0).forEach { rating ->
+            assertThat(tasting.setBrewingRating("done", rating)).isEqualTo(TastingWrite.SAVED)
+            assertThat(session().brewingRating).isEqualTo(rating)
+        }
+
+        assertThat(tasting.setBrewingRating("done", null)).isEqualTo(TastingWrite.SAVED)
+        assertThat(session().brewingRating).isNull()
+    }
+
+    @Test
+    fun `a Zubereitung rating off the half steps or out of bounds writes nothing`() = runTest {
+        tasting.setBrewingRating("done", 4.0)
+        now += 1_000
+
+        listOf(0.0, 0.25, 3.3, 5.5, -1.0, Double.NaN).forEach { rating ->
+            assertThat(tasting.setBrewingRating("done", rating)).isEqualTo(TastingWrite.INVALID)
+        }
+        assertThat(session().brewingRating).isEqualTo(4.0)
+        assertThat(data.db.sessionDao().get("done")?.updatedAt).isEqualTo(WRITE_AT)
+    }
+
+    @Test
+    fun `the Tee and the Zubereitung rating are written apart, each leaving the other`() = runTest {
+        tasting.setRating("done", 4.5)
+        tasting.setBrewingRating("done", 2.0)
+        assertThat(session().rating).isEqualTo(4.5)
+        assertThat(session().brewingRating).isEqualTo(2.0)
+
+        tasting.setRating("done", null)
+        assertThat(session().rating).isNull()
+        assertThat(session().brewingRating).isEqualTo(2.0)
+
+        tasting.setRating("done", 3.0)
+        tasting.setBrewingRating("done", null)
+        assertThat(session().rating).isEqualTo(3.0)
+        assertThat(session().brewingRating).isNull()
+    }
+
+    @Test
+    fun `a Zubereitung rating sets updated_at and nothing else of the session`() = runTest {
+        val before = checkNotNull(data.db.sessionDao().get("done"))
+        val steps = data.db.sessionDao().steps("done")
+
+        tasting.setBrewingRating("done", 3.5)
+
+        assertThat(data.db.sessionDao().get("done")).isEqualTo(before.copy(brewingRating = 3.5, updatedAt = WRITE_AT))
+        assertThat(data.db.sessionDao().steps("done")).isEqualTo(steps)
+    }
+
+    @Test
+    fun `a Zubereitung rating on a session in progress or a missing one changes nothing`() = runTest {
+        val before = data.db.sessionDao().get("running")
+
+        assertThat(tasting.setBrewingRating("running", 4.0)).isEqualTo(TastingWrite.NOT_COMPLETED)
+        assertThat(tasting.setBrewingRating("running", null)).isEqualTo(TastingWrite.NOT_COMPLETED)
+        assertThat(tasting.setBrewingRating("gone", 4.0)).isEqualTo(TastingWrite.NOT_COMPLETED)
+
+        assertThat(data.db.sessionDao().get("running")).isEqualTo(before)
+    }
+
+    @Test
     fun `notes are trimmed, blank notes are stored as none, and 5000 characters is the limit`() = runTest {
         assertThat(tasting.setNotes("done", "  Süß, wenig Bitterkeit \n")).isEqualTo(TastingWrite.SAVED)
         assertThat(session().notes).isEqualTo("Süß, wenig Bitterkeit")

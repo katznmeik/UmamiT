@@ -192,6 +192,11 @@ class RoomSessionTasting @Inject constructor(private val db: UmamiDatabase, priv
         return tasting.setRating(sessionId, rating, time.nowMs()).written()
     }
 
+    override suspend fun setBrewingRating(sessionId: String, rating: Double?): TastingWrite {
+        if (rating != null && !TastingLimits.isValidRating(rating)) return TastingWrite.INVALID
+        return tasting.setBrewingRating(sessionId, rating, time.nowMs()).written()
+    }
+
     override suspend fun setInfusionTaste(
         sessionId: String,
         position: Int,

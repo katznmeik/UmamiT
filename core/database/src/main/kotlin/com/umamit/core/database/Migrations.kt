@@ -177,6 +177,21 @@ internal val MIGRATION_6_7: Migration = object : Migration(6, 7) {
     }
 }
 
+/**
+ * Schema 7 → 8 (v0.7.1, JRN-02, D-116 R3, D-117 Q10–Q12): the *Zubereitung* rating. `brew_session` gains
+ * `brewing_rating` (REAL, nullable, its last column), and every existing rating is copied into it, a plain copy
+ * without a marker: after the update an old session has both ratings equal. `rating` keeps its values and is the
+ * *Tee* rating. A session in progress has no rating and stays unrated. Nothing else changes, so timers running during
+ * the update keep their `active_brew` rows and alert on time (rule 8). Room runs it in one transaction: it applies
+ * whole or not at all, and the database is never opened destructively (05 §9).
+ */
+internal val MIGRATION_7_8: Migration = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `brew_session` ADD COLUMN `brewing_rating` REAL")
+        db.execSQL("UPDATE `brew_session` SET `brewing_rating` = `rating` WHERE `rating` IS NOT NULL")
+    }
+}
+
 /** The six taste columns of `brew_session` (v1–v6) and of `session_step` (from v7), in their order. */
 private val TASTE_COLUMNS = listOf(
     "taste_umami",
@@ -210,4 +225,4 @@ private const val TARGET_POSITION = "COALESCE(" +
  * so a version bump whose migration is missing here fails the unit tests.
  */
 internal val UMAMI_MIGRATIONS: List<Migration> =
-    listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+    listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)

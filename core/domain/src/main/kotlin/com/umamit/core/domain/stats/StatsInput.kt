@@ -33,7 +33,8 @@ data class StatsInput(
  * @property profileName the `profile_name` snapshot.
  * @property startedAtMs `started_at`; the session belongs to this instant's day in [zoneId] (the journal's day).
  * @property zoneId the session's own time zone (IANA id).
- * @property rating 0,5–5,0 in half steps; null when unrated.
+ * @property rating the *Tee* rating, 0,5–5,0 in half steps; null when unrated.
+ * @property brewingRating the *Zubereitung* rating (umamit.db v8, D-117), 0,5–5,0 in half steps; null when unrated.
  * @property leafGrams the leaf used; null adds nothing to the grams.
  * @property waterMl `water_ml` of the session (the water of each infusion); null gives no volume.
  * @property costCents `cost_cents` (INV-08); null without a cost.
@@ -54,6 +55,7 @@ data class StatsSession(
     val steps: List<StatsStep> = emptyList(),
     val styleKey: String? = null,
     val waterMl: Int? = null,
+    val brewingRating: Double? = null,
 ) {
     /** The session's volume in ml (D-115 Amendment 2): the water of each poured non-rinse step; 0 without water. */
     val volumeMl: Int

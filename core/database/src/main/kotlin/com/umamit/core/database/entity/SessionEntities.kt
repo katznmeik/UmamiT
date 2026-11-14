@@ -15,7 +15,11 @@ import com.umamit.core.model.TimerSlot
 // Session tables of 05 §3.6, §3.7 and §3.12. The lifecycle (05 §3.7) lives in
 // core:data's RoomSessionRepository, the active brew in RoomActiveBrewStore.
 
-/** Table `brew_session` (05 §3.6); the tea, recipe and vessel values are snapshots (05 §1.5). */
+/**
+ * Table `brew_session` (05 §3.6); the tea, recipe and vessel values are snapshots (05 §1.5). `rating` is the *Tee*
+ * rating; `brewing_rating` (schema v8, JRN-02, D-117) the *Zubereitung* rating, the table's last column. Both are
+ * 0,5–5,0 in half steps, or null.
+ */
 @Entity(
     tableName = "brew_session",
     foreignKeys = [
@@ -76,6 +80,7 @@ data class BrewSessionEntity(
     @ColumnInfo(name = "times_applied") val timesApplied: Boolean,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    @ColumnInfo(name = "brewing_rating") val brewingRating: Double? = null,
 )
 
 /**

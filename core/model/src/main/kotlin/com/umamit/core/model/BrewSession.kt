@@ -34,7 +34,8 @@ data class SessionSnapshot(
  * @property zoneId the session's time zone (IANA id).
  * @property steps every row: a session completed from v0.4.0 on keeps its never-started rows, without an actual
  * time (Q-19, D-100); one completed by v0.3.0 or earlier has only its ended rows.
- * @property rating 0,5–5,0 in half steps; null when unrated (JRN-02).
+ * @property rating the *Tee* rating, 0,5–5,0 in half steps; null when unrated (JRN-02). A tea's Ø reads only this.
+ * @property brewingRating the *Zubereitung* rating (umamit.db v8, D-117), 0,5–5,0 in half steps; null when unrated.
  * @property stepTastings the taste and note stored on step rows, by `position`; rows without any are absent
  * (umamit.db v7, D-114). Read them through [infusions].
  * @property notes trimmed, never blank; null without notes (JRN-05).
@@ -57,6 +58,7 @@ data class BrewSession(
     val notes: String? = null,
     val descriptorKeys: List<String> = emptyList(),
     val stepTastings: Map<Int, StepTasting> = emptyMap(),
+    val brewingRating: Double? = null,
 ) {
     /**
      * The infusions (JRN-03, D-114): the ended steps that are not *Spülen*, in position order, each numbered as the

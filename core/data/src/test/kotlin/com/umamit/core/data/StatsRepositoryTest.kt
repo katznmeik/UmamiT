@@ -146,6 +146,17 @@ class StatsRepositoryTest {
     }
 
     @Test
+    fun `a session carries its Tee and its Zubereitung rating (D-117)`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        session("done")
+        RoomSessionTasting(data.db, data.time).setBrewingRating("done", 3.0)
+
+        val session = input().sessions.single()
+        assertThat(session.rating).isEqualTo(4.5)
+        assertThat(session.brewingRating).isEqualTo(3.0)
+    }
+
+    @Test
     fun `a deleted tea's session counts with its snapshot and no tea id, an archived tea counts`() = runTest {
         data.teas.saveTea(tea("t1", "Hisui"))
         data.teas.saveTea(tea("t2", "Gyokuro Alt").copy(isArchived = true))
