@@ -30,22 +30,26 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
  *
  * A hidden tab is not placed (it draws nothing and takes no input), has no semantics, and its lifecycle is held at
  * `CREATED`, so its collectors pause and its back handlers stay off; its state stays as it was.
+ *
+ * Only a tab left by the user's own switch ([TabKeeper.keepLeaving]: the tab bar, back) is kept. A switch the app
+ * makes (a notification's tap, *Alle anzeigen*, a flow's next step) disposes the tab it leaves once the fade is over,
+ * as before: a sheet, dialog or menu open there is a window of its own that hiding the tab would leave on screen.
  */
 @Composable
+@Suppress("LongParameterList") // the transition, the tabs, the two fades, the keeper and the content
 internal fun <T> KeptTabs(
     transition: Transition<T>,
     tabs: List<T>,
     inSpec: FiniteAnimationSpec<Float>,
     outSpec: FiniteAnimationSpec<Float>,
+    keeper: TabKeeper<T>,
     modifier: Modifier = Modifier,
     content: @Composable (T) -> Unit,
 ) {
-    // Plain, not state: it only grows, and only while the selection (read below) changes.
-    val visited = remember { mutableSetOf<T>() }
-    visited += transition.currentState
-    visited += transition.targetState
+    keeper.observe(transition.targetState)
+    val composed = keeper.kept + transition.currentState + transition.targetState
     Box(modifier) {
-        tabs.filter { it in visited }.forEach { tab ->
+        tabs.filter { it in composed }.forEach { tab ->
             key(tab) {
                 val alpha by transition.animateFloat(
                     transitionSpec = { if (targetState == tab) inSpec else outSpec },
@@ -55,6 +59,29 @@ internal fun <T> KeptTabs(
                 TabLayer(shown = shown, alpha = { alpha }) { content(tab) }
             }
         }
+    }
+}
+
+/**
+ * Which tabs stay composed while hidden ([KeptTabs]). Plain, not state: it changes only while the selection, which
+ * the shell reads, changes.
+ */
+internal class TabKeeper<T>(initial: T) {
+    internal val kept = mutableSetOf<T>()
+    private var target: T = initial
+    private var keepNext = false
+
+    /** The next switch is the user's own (the tab bar, back): the tab it leaves stays composed. */
+    fun keepLeaving() {
+        keepNext = true
+    }
+
+    internal fun observe(newTarget: T) {
+        if (newTarget == target) return
+        if (keepNext) kept += target else kept -= target
+        kept -= newTarget
+        keepNext = false
+        target = newTarget
     }
 }
 

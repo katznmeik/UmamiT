@@ -215,6 +215,8 @@ internal fun UmamitApp(
     // Back leaves a tab's own stack first (its NavHost registers later and wins), then returns to Start,
     // with a predictive-back preview of the tab transition.
     val transitionState = remember { SeekableTransitionState(selected) }
+    // The tabs the user left with the tab bar or back stay composed (A-10).
+    val tabKeeper = remember { TabKeeper(selected) }
     val transition = rememberTransition(transitionState, label = "tab")
     LaunchedEffect(selected) {
         if (transitionState.currentState != selected || transitionState.targetState != selected) {
@@ -224,6 +226,7 @@ internal fun UmamitApp(
     // The refresh notification's shell leaves on back, to what was shown before (D-097).
     PredictiveBackHandler(enabled = opening.backReturnsToStart(selected)) { progress ->
         try {
+            tabKeeper.keepLeaving()
             progress.collect { transitionState.seekTo(it.progress, Tab.Start) }
             // Back from the picker's catalog flow returns to the picker.
             brewFlow.leaveFor(Tab.Start)
@@ -242,6 +245,7 @@ internal fun UmamitApp(
                     onClick = {
                         if (tab != selected) {
                             brewFlow.leaveFor(tab)
+                            tabKeeper.keepLeaving()
                             select(tab)
                         } else {
                             reselection.reselect(tab, controllers.getValue(tab))
@@ -277,6 +281,7 @@ internal fun UmamitApp(
                     tabs = Tab.entries,
                     inSpec = motion.tabSwitchIn(),
                     outSpec = motion.tabSwitchOut(),
+                    keeper = tabKeeper,
                     modifier = Modifier.fillMaxSize(),
                 ) { tab ->
                     stateHolder.SaveableStateProvider(tab) {
