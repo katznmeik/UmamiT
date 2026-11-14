@@ -7,7 +7,13 @@
 
 **Last updated:** 2026-11-14 (v0.7.1 specify session). **`v0.7.0` (Statistik, M4 part 2) is released** (versionCode 70099, from `main` `f3582466`, certificate verified): the PO approved rc.3 („All changes approved", D-115 „Approval"), #266 merged, all three accuracy variants PASS. **v0.7.1 is specified** (D-117, #279, tickets #280–#289, `docs/plans/v0.7.1.md`), waiting for the PO's approval. **Next:** the v0.7.1 build session. **After v0.7.1:** the code cleanup review (v0.7.2, below).
 
-## Next: v0.7.1 build session (D-116, D-117), after the PO's approval
+## Now: v0.7.1 build session (D-116, D-117), in progress
+
+- **Resume note (2026-11-14):** the PO approved spec, tickets and plan; tickets `ready-for-agent`; PR #290 is the draft milestone PR.
+  - **Done on the branch:** #284 audit (`docs/plans/v0.7.1-motion-audit.md`, 16 findings), the PO's answers to A-08/A-11/A-16 (D-117 build notes), #280 umamit.db v8 (`a0ed3b9e`).
+  - **Running/next:** #281, #285, then #282 + #283, #286 (audit findings off the timer path, incl. A-08 `configChanges="uiMode"` and A-16), #287 (A-01, A-05, A-12 setup part, A-15; A-11 only if #285 measures it over budget). #285's baseline needs three agreeing CI runs; if even trivial transitions miss the limit on the CI emulator, ask the PO (Q17), never widen it.
+
+## Next: v0.7.1 build session (D-116, D-117), after the PO's approval (the specify session's handover)
 
 - **Specified 2026-11-14** (the specify session): the PO's grilling Q1–Q20 in four rounds is **D-117**; specs written (`a635f391`); spec issue **#279**, tickets **#280–#289** (label `needs-triage`), plan [`docs/plans/v0.7.1.md`](docs/plans/v0.7.1.md). **All three wait for the PO's approval**; then the build session relabels the tickets `ready-for-agent` and runs `/implement-spec #279` (rule 1).
 - **What:** two ratings per session, *Tee* and *Zubereitung* (umamit.db v8 `brewing_rating`, old ratings copied); a tea's Ø from its Tee ratings; rows „Tee ★ 4,5 · Zubereitung ★ 3,5"; tea detail with a Zubereitung line; Statistik: a remembered Tee/Zubereitung switch on the Tee-Rangliste, two Verlauf lines, Bestes Rezept by Zubereitung. A transition audit of four groups (unlock/resume/cold start, tabs and push/pop, sheets and dialogs, the timer screen) by `/improve-animations` and `TransitionJankTest` on the CI emulator (≤ 1 janky frame, none over 50 ms; NFR-PERF-12); done with the PO's rc check. One rc.
