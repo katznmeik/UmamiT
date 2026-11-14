@@ -350,40 +350,40 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 
 ### v0.7.0 — Statistik (D-115)
 
-- [ ] `v0.7.0-rc.1` installs over `v0.6.1` without losing data; a timer running during the update still alerts.
-- [ ] Statistik opens on „Deine Tee-Reise" with 90 T and *Überblick* the first time; pick 12 M and *Verbrauch*, close the app: it reopens on 12 M › *Verbrauch*.
-- [ ] Überblick: sessions, cups and „N Tees · +n im Zeitraum" match the journal and *Meine Tees* for the range; the session bars are weekly for 30 T / 90 T and monthly for 12 M / Gesamt (Gesamt scrolls back to the first session); the streak reads plainly („… Tage in Folge · längste …") and does not change with the range.
-- [ ] Überblick: the top 5 teas and the Sorten donut („Andere" for the rest, percentages sum to 100) are plausible; a tap on a tea opens it; the habits rows show when you brew (Tageszeit, Wochentag).
-- [ ] Bewertungen: Ø and „x von y bewertet" match the journal; the 1–5 ★ bars; teas with ≥ 3 ratings in *Am besten bewertet*; the rating line; *Bestes Rezept* for a tea brewed with two recipes (≥ 2 ratings each), or the section hidden; the taste radar „aus N Aufgüssen" and the top descriptors.
-- [ ] Verbrauch: grams and cups per period; *Ausgaben* equals the priced purchases in the range (add a purchase with a price and see it appear); „Ø … € pro Tasse"; *Geht zur Neige* lists the Knapp/Leer teas with the warning on, Leer first.
-- [ ] Tap a bar, a point and a donut slice: the value label shows and hides; switching the range morphs the bars calmly; with *Animationen entfernen* on, only fades.
-- [ ] TalkBack: each chart reads its numbers as a list; the range selector and the tabs read their state.
-- [ ] Font size at maximum: no numeral, legend or axis label is clipped or overlaps; light and dark both look right.
-- [ ] Delete a session and finish a new one: the numbers follow without reopening the screen.
+- [x] `v0.7.0-rc.1` installs over `v0.6.1` without losing data; a timer running during the update still alerts.
+- [x] Statistik opens on „Deine Tee-Reise" with 90 T and *Überblick* the first time; pick 12 M and *Verbrauch*, close the app: it reopens on 12 M › *Verbrauch*.
+- [x] Überblick: sessions, cups and „N Tees · +n im Zeitraum" match the journal and *Meine Tees* for the range; the session bars are weekly for 30 T / 90 T and monthly for 12 M / Gesamt (Gesamt scrolls back to the first session); the streak reads plainly („… Tage in Folge · längste …") and does not change with the range.
+- [x] Überblick: the top 5 teas and the Sorten donut („Andere" for the rest, percentages sum to 100) are plausible; a tap on a tea opens it; the habits rows show when you brew (Tageszeit, Wochentag).
+- [x] Bewertungen: Ø and „x von y bewertet" match the journal; the 1–5 ★ bars; teas with ≥ 3 ratings in *Am besten bewertet*; the rating line; *Bestes Rezept* for a tea brewed with two recipes (≥ 2 ratings each), or the section hidden; the taste radar „aus N Aufgüssen" and the top descriptors.
+- [x] Verbrauch: grams and cups per period; *Ausgaben* equals the priced purchases in the range (add a purchase with a price and see it appear); „Ø … € pro Tasse"; *Geht zur Neige* lists the Knapp/Leer teas with the warning on, Leer first.
+- [x] Tap a bar, a point and a donut slice: the value label shows and hides; switching the range morphs the bars calmly; with *Animationen entfernen* on, only fades.
+- [x] TalkBack: each chart reads its numbers as a list; the range selector and the tabs read their state.
+- [x] Font size at maximum: no numeral, legend or axis label is clipped or overlaps; light and dark both look right.
+- [x] Delete a session and finish a new one: the numbers follow without reopening the screen.
 
 **rc.2 (D-115 Amendment 1, the PO's review of rc.1; R1–R16):**
 
-- [ ] `v0.7.0-rc.2` installs over rc.1 without losing data (no database change); a timer running during the update still alerts.
-- [ ] *Einstellungen* › *Brühen & Vorrat* has *Tassengröße* („150 ml", 50–500 ml in 10 ml steps); change it to 300 ml and Statistik's Tassen halve, Ø € pro Tasse doubles, and the tea detail's „pro Tasse" lines change too; back to 150 ml restores them.
-- [ ] A 1 l Kanne infusion counts about 7 Tassen at 150 ml, a 120 ml Kyusu infusion about 1; no session shows less than 1 Tasse.
-- [ ] A tea running low shows one chip „14 g · knapp" in *Meine Tees* (*Knapp* colours); an empty tea still reads „Leer"; an ordinary stock reads „38 g".
-- [ ] The range selector has five segments and stays on one line at font scale 1,15: tap *Monate*, pick *Von* and *Bis* in the sheet: the segment reads „Dez.–Aug.", the bars are per month (per week for a span of 3 months or less); close and reopen the app: the range is still there.
-- [ ] Überblick: Sitzungen · Tassen · Tees sit in one row; under *Gesamt* there is no „+n im Zeitraum"; with no streak it reads „Keine Serie gerade · längste N Tage" (or only „Keine Serie gerade" without a longest); the second donut „Tees" follows Tee-Sorten (five teas, „Andere", percentages sum to 100).
-- [ ] Bewertungen: *Tee-Rangliste* lists every rated tea of the range, best first („4,6 ★ · 5×"), ten rows then „Alle anzeigen"; *Neu entdeckt* shows teas first brewed in the range with their Ø or „ohne Bewertung" (hidden under *Gesamt*); *Bewertung im Verlauf* and *Bestes Rezept* are still there; no Ø headline, no 1–5 ★ bars, no *Am besten bewertet*, no *Geschmack*, no *Beschreibungen*.
-- [ ] Verbrauch: *Getrunken* shows the € value of the leaf brewed per period, the total and „Ø … € pro Tasse · aus N Sitzungen mit Preis"; *Ausgaben* still shows only purchases; „Ø € pro Tasse" is no longer under *Ausgaben*.
-- [ ] Fold a section on each tab with a tap on its heading: it shrinks to one line with its key number („SITZUNGEN · 42"), the chevron turns, TalkBack says „eingeklappt"; close and reopen the app: it is still folded; unfold it again.
-- [ ] The bar charts are about half as tall and sections sit closer together; nothing is clipped at maximum font size; light and dark both look right.
-- [ ] The value label fades in and out calmly (at once with *Animationen entfernen*).
+- [x] `v0.7.0-rc.2` installs over rc.1 without losing data (no database change); a timer running during the update still alerts.
+- [x] *Einstellungen* › *Brühen & Vorrat* has *Tassengröße* („150 ml", 50–500 ml in 10 ml steps); change it to 300 ml and Statistik's Tassen halve, Ø € pro Tasse doubles, and the tea detail's „pro Tasse" lines change too; back to 150 ml restores them.
+- [x] A 1 l Kanne infusion counts about 7 Tassen at 150 ml, a 120 ml Kyusu infusion about 1; no session shows less than 1 Tasse.
+- [x] A tea running low shows one chip „14 g · knapp" in *Meine Tees* (*Knapp* colours); an empty tea still reads „Leer"; an ordinary stock reads „38 g".
+- [x] The range selector has five segments and stays on one line at font scale 1,15: tap *Monate*, pick *Von* and *Bis* in the sheet: the segment reads „Dez.–Aug.", the bars are per month (per week for a span of 3 months or less); close and reopen the app: the range is still there.
+- [x] Überblick: Sitzungen · Tassen · Tees sit in one row; under *Gesamt* there is no „+n im Zeitraum"; with no streak it reads „Keine Serie gerade · längste N Tage" (or only „Keine Serie gerade" without a longest); the second donut „Tees" follows Tee-Sorten (five teas, „Andere", percentages sum to 100).
+- [x] Bewertungen: *Tee-Rangliste* lists every rated tea of the range, best first („4,6 ★ · 5×"), ten rows then „Alle anzeigen"; *Neu entdeckt* shows teas first brewed in the range with their Ø or „ohne Bewertung" (hidden under *Gesamt*); *Bewertung im Verlauf* and *Bestes Rezept* are still there; no Ø headline, no 1–5 ★ bars, no *Am besten bewertet*, no *Geschmack*, no *Beschreibungen*.
+- [x] Verbrauch: *Getrunken* shows the € value of the leaf brewed per period, the total and „Ø … € pro Tasse · aus N Sitzungen mit Preis"; *Ausgaben* still shows only purchases; „Ø € pro Tasse" is no longer under *Ausgaben*.
+- [x] Fold a section on each tab with a tap on its heading: it shrinks to one line with its key number („SITZUNGEN · 42"), the chevron turns, TalkBack says „eingeklappt"; close and reopen the app: it is still folded; unfold it again.
+- [x] The bar charts are about half as tall and sections sit closer together; nothing is clipped at maximum font size; light and dark both look right.
+- [x] The value label fades in and out calmly (at once with *Animationen entfernen*).
 
 **rc.3 (D-115 Amendment 2, the PO's review of rc.2; V1–V7):**
 
-- [ ] `v0.7.0-rc.3` installs over rc.2 without losing data (no database change); a timer running during the update still alerts.
-- [ ] *Einstellungen* › *Brühen & Vorrat* has no *Tassengröße* any more.
-- [ ] Überblick reads „Sitzungen · 12,4 Liter Tee · Tees" with „Liter" small after the number (below 1 l „750 ml Tee"; V8, V9).
-- [ ] Verbrauch's chart is TEE in ml/l; the value label and the fold summary use the same format.
-- [ ] GETRUNKEN reads „Ø … € pro Liter · aus N Sitzungen mit Preis"; a session without water counts in the total but not in the average.
-- [ ] Tea detail shows „ca. … € pro Liter (Rezept)" and „Ø … € pro Liter aus N Sitzungen".
-- [ ] No „Tasse" as a unit is left anywhere (the journal's „Deine erste Tasse wartet." stays).
+- [x] `v0.7.0-rc.3` installs over rc.2 without losing data (no database change); a timer running during the update still alerts.
+- [x] *Einstellungen* › *Brühen & Vorrat* has no *Tassengröße* any more.
+- [x] Überblick reads „Sitzungen · 12,4 Liter Tee · Tees" with „Liter" small after the number (below 1 l „750 ml Tee"; V8, V9).
+- [x] Verbrauch's chart is TEE in ml/l; the value label and the fold summary use the same format.
+- [x] GETRUNKEN reads „Ø … € pro Liter · aus N Sitzungen mit Preis"; a session without water counts in the total but not in the average.
+- [x] Tea detail shows „ca. … € pro Liter (Rezept)" and „Ø … € pro Liter aus N Sitzungen".
+- [x] No „Tasse" as a unit is left anywhere (the journal's „Deine erste Tasse wartet." stays).
 
 ### M5 — 1.0
 

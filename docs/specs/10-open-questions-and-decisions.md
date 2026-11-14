@@ -676,6 +676,17 @@ in the rc.3 review).**
 - **Wording kept:** „Deine erste Tasse wartet." (journal empty state) and
   „Jede Tasse, die du brühst …" stay: they are prose, not a unit.
 
+**Approval (PO, 2026-11-14, in the session).** Asked for the result on
+`v0.7.0-rc.3` (the rc.3 items of the on-device checklist 09 §4 „v0.7.0" and
+the rc.3 part of `docs/design/review/v0.7.0/README.md` with Claude's rc.3
+defaults 2–5), the PO answered **„All changes approved"**: every rc.3
+checklist item passed, and the defaults stand as built (TalkBack reads the
+visible text, „Liter" wraps below the numeral at font 2.0, „aus N Sitzungen
+mit Preis" under GETRUNKEN, no numeral of its own on TEE with the fold line
+„TEE · 12,4 l"). With the approvals of rc.1 and rc.2 (Amendments 1 and 2)
+the milestone is approved; there is no rc.4, and #264 (the merge and the
+final release) follows.
+
 <a id="d-114"></a>
 ### D-114 — v0.6.1: the PO's feedback on v0.6.0: taste per infusion (also on the timer), folding taste, quick-timer chips, photo viewer, catalog links in ⋮, all kinds without a chip, „N Tees", the *Design* setting; Statistik becomes v0.7.0 (TMR-22, JRN-03, JRN-05, JRN-09, JRN-10, TEA-05, TEA-13, CAT-07, CAT-10, SET-05; SCR-05, SCR-07, SCR-09, SCR-16, SCR-19, SCR-25, SCR-28; amends D-112's taste per session and Q1's numbering, D-103's default kind, D-097's 8:00 chip row) · *Accepted* (PO, 2026-11-12, grilled in the session Q1–Q19 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
 
