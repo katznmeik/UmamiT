@@ -38,6 +38,7 @@ import org.junit.runner.RunWith
 import java.time.ZoneId
 import java.util.regex.Pattern
 import kotlin.math.roundToLong
+import com.umamit.core.designsystem.R as DsR
 import com.umamit.feature.brew.R as BrewR
 import com.umamit.feature.collection.R as CollectionR
 import com.umamit.feature.home.R as HomeR
@@ -47,9 +48,10 @@ import com.umamit.feature.journal.R as JournalR
  * The frame metric of the transition audit (NFR-PERF-12, D-117 Q15–Q17 „Metric test", #285): each
  * in-scope transition runs [JankGate.runs] times on the debug build in the CI emulator job, JankStats
  * records the frames of every app window ([FrameRecorder]), and one line per transition reports the
- * median run's frames over the budget and its longest frame ([JankReport]). It only reports until the
- * gate is switched on ([JankGate]); the gate then fails a test whose transition is over the limit,
- * from API 36 on.
+ * median run's frames over the budget and its longest frame ([JankReport]). Each test first measures a
+ * trivial [ReferenceTransition] in the same window, and each line also gives the transition relative to
+ * it (D-117 build note „Jank gate"). It only reports until the gate is switched on ([JankGate]); the
+ * gate then fails a test whose transition is over the relative limit, from API 36 on.
  *
  * The screens are driven through UiAutomator with real taps and back presses: a Compose test rule
  * would pace every composition with its own test clock and so never show a real frame's cost. The
@@ -85,6 +87,7 @@ class TransitionJankTest {
     private val savedScales = mutableMapOf<String, String>()
     private var scenario: ActivityScenario<MainActivity>? = null
     private var budgetNs = DEFAULT_BUDGET_NS
+    private var reference: JankReference? = null
 
     private val teaName = SeedData.tanabata.name
     private val sessionTeaName = SeedData.teas.single { it.id == SeedData.HISUI_TEA_ID }.name
@@ -172,15 +175,17 @@ class TransitionJankTest {
     @Test
     fun sessionPagePushAndPop() = measured {
         launchOnStart()
-        val title = context.getString(JournalR.string.session_title)
         tab(context.getString(Tab.Journal.label)).click()
         Thread.sleep(SETTLE_MS)
+        // The loaded page is the hero layout (SCR-16, D-112) without a „Sitzung" title (that shows only while it
+        // loads or for a missing session), so its ← (Zurück) marks it: nothing on the Journal tab carries one.
+        val page = By.desc(context.getString(DsR.string.ds_back))
         repeat(JankGate.runs) {
             val row = await(text(sessionTeaName), "the session in the journal")
             record("session page push") { row.click() }
-            await(By.text(title), "the session page")
+            await(page, "the session page (its Zurück)")
             record("session page pop") { device.pressBack() }
-            awaitGone(By.text(title), "the session page after back")
+            awaitGone(page, "the session page after back")
         }
     }
 
@@ -246,26 +251,52 @@ class TransitionJankTest {
         }
     }
 
-    /** Runs a test's transitions, reports each, then applies the gate (or skips a failed UI step in report mode). */
+    /**
+     * Measures the reference transition, runs the test's transitions, reports each against the reference, then
+     * applies the relative gate (or skips a failed UI step in report mode).
+     */
     private fun measured(block: () -> Unit) {
-        val failure = runCatching(block).exceptionOrNull()
+        val referenceFailure = runCatching(::measureReference).exceptionOrNull()
+        val failure = runCatching(block).exceptionOrNull() ?: referenceFailure
         val windows = recorder.windowCount
-        reports.forEach { Log.i(TAG, it.line(budgetNs, windows)) }
+        reference?.let { Log.i(TAG, it.line(budgetNs, windows)) }
+        reports.forEach { Log.i(TAG, it.line(budgetNs, windows, reference)) }
         failure?.let(::uiStepFailed)
-        val over = reports.filterNot { it.passes }
+        val over = reports.filterNot { it.passes(reference) }
         if (JankGate.active && over.isNotEmpty()) {
             throw AssertionError(
-                "NFR-PERF-12: over the limit (median ≤ ${JankGate.MAX_JANKY_FRAMES} frames over the budget, " +
-                    "none over ${JankGate.MAX_FRAME_MS} ms):\n" + over.joinToString("\n") {
-                        it.line(budgetNs, windows)
-                    },
+                "NFR-PERF-12: over the relative limit (median longest frame ≤ ${JankGate.STALL_FACTOR}× " +
+                    "the reference's typical frame, janky frames ≤ the reference's scaled " +
+                    "+ ${JankGate.JANKY_ALLOWANCE}):\n" +
+                    over.joinToString("\n") { it.line(budgetNs, windows, reference) },
             )
         }
     }
 
+    /**
+     * [JankGate.runs] runs of [ReferenceTransition] in the activity's window, after one unmeasured warm-up crossfade,
+     * measured as every transition is. It needs no session and arms nothing (rule 8).
+     */
+    private fun measureReference() {
+        launchOnStart()
+        val transition = ReferenceTransition(scenario!!)
+        transition.attach()
+        try {
+            Thread.sleep(SETTLE_MS)
+            transition.toggle()
+            Thread.sleep(SETTLE_MS)
+            val runs = List(JankGate.runs) { JankRun(recorder.measure(SETTLE_MS, transition::toggle), budgetNs) }
+            reference = JankReference(JankReport(ReferenceTransition.NAME, runs))
+        } finally {
+            transition.detach()
+        }
+        Thread.sleep(PAUSE_MS)
+    }
+
     /** A UI step that failed fails the test with the gate on; in report-only mode it skips it, with the reason. */
     private fun uiStepFailed(failure: Throwable): Nothing {
-        Log.e(TAG, "${JankReport.LINE_PREFIX} UI step failed (gate=${JankGate.describe})", failure)
+        val line = "${JankReport.LINE_PREFIX} UI step failed (gate=${JankGate.describe}): ${failure.message}"
+        Log.e(TAG, line, failure)
         if (JankGate.active) throw failure
         throw AssumptionViolatedException("report-only: a UI step failed: ${failure.message}")
     }
@@ -290,8 +321,9 @@ class TransitionJankTest {
         }
     }
 
+    /** The activity on Start; launched only when no activity is open (the reference may have launched it). */
     private fun launchOnStart() {
-        scenario = ActivityScenario.launch(MainActivity::class.java)
+        if (scenario == null) scenario = ActivityScenario.launch(MainActivity::class.java)
         awaitStart()
         readBudget()
         Thread.sleep(SETTLE_MS)
