@@ -3,9 +3,12 @@ package com.umamit.core.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -26,7 +29,9 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.model.TastingLimits
 import java.util.Locale
@@ -35,8 +40,15 @@ import kotlin.math.roundToInt
 /** Test tag of the row; the stars are [ratingStarTag] 1 … 5. */
 const val RATING_STARS_TAG = "rating_stars"
 
-/** Test tag of star [n] (1–5). */
-fun ratingStarTag(n: Int): String = "rating_star_$n"
+/** Test tag of the *Zubereitung* row (D-117); its stars are [brewingRatingStarTag] 1 … 5. */
+const val BREWING_RATING_STARS_TAG = "brewing_rating_stars"
+
+/** Test tag of star [n] (1–5) of the row tagged [rowTag] (the *Tee* row by default). */
+fun ratingStarTag(n: Int, rowTag: String = RATING_STARS_TAG): String =
+    if (rowTag == RATING_STARS_TAG) "rating_star_$n" else "${rowTag}_star_$n"
+
+/** Test tag of star [n] (1–5) of the *Zubereitung* row. */
+fun brewingRatingStarTag(n: Int): String = ratingStarTag(n, BREWING_RATING_STARS_TAG)
 
 private const val STAR_COUNT = 5
 private val STAR_TARGET = 48.dp
@@ -82,9 +94,24 @@ object RatingCycle {
  * light tick. TalkBack reads „Bewertung, 3,5 von 5 Sternen" / „Bewertung, keine" (label plus state), adjusts in half
  * steps and offers „Bewertung entfernen". Stateless: [value] is shown as given, [onChange] gets the new rating (null
  * for none).
+ *
+ * From v0.7.1 (D-117) a session has two rows: a [label] („Tee", „Zubereitung"; body font, `onSurfaceVariant`) shows
+ * at the left ([labelWidth] fixed, so two rows line up; [labelAbove] puts it above the stars). [spokenLabel]
+ * replaces „Bewertung" in TalkBack („Tee-Bewertung, 3,5 von 5 Sternen" / „Zubereitung, keine") and [removeLabel]
+ * the action's text („Tee-Bewertung entfernen"). [rowTag] tells two rows apart in tests.
  */
 @Composable
-fun RatingStars(value: Double?, onChange: (Double?) -> Unit, modifier: Modifier = Modifier) {
+fun RatingStars(
+    value: Double?,
+    onChange: (Double?) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    spokenLabel: String = stringResource(R.string.ui_rating_label),
+    removeLabel: String = stringResource(R.string.ui_rating_remove),
+    rowTag: String = RATING_STARS_TAG,
+    labelWidth: Dp = Dp.Unspecified,
+    labelAbove: Boolean = false,
+) {
     val haptics = LocalHapticFeedback.current
     val currentValue = rememberUpdatedState(value)
     val currentOnChange = rememberUpdatedState(onChange)
@@ -92,49 +119,74 @@ fun RatingStars(value: Double?, onChange: (Double?) -> Unit, modifier: Modifier 
         haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
         currentOnChange.value(new)
     }
-    val label = stringResource(R.string.ui_rating_label)
     val state = if (value == null) {
         stringResource(R.string.ui_rating_none)
     } else {
         stringResource(R.string.ui_rating_value, RatingCycle.valueText(value))
     }
-    val remove = stringResource(R.string.ui_rating_remove)
-    Row(
-        modifier = modifier
-            .testTag(RATING_STARS_TAG)
-            .clearAndSetSemantics {
-                contentDescription = label
-                stateDescription = state
-                progressBarRangeInfo = ProgressBarRangeInfo(
-                    current = (value ?: 0.0).toFloat(),
-                    range = 0f..TastingLimits.MAX_RATING.toFloat(),
-                    steps = STEP_COUNT,
-                )
-                setProgress { target ->
-                    val new = RatingCycle.snap(target)
-                    if (new == currentValue.value) {
-                        false
-                    } else {
-                        change(new)
-                        true
-                    }
-                }
-                if (value != null) {
-                    customActions = listOf(
-                        CustomAccessibilityAction(remove) {
-                            change(null)
-                            true
-                        },
-                    )
-                }
-            },
-    ) {
-        for (star in 1..STAR_COUNT) {
-            Star(
-                fill = starFill(value, star),
-                onTap = { change(RatingCycle.afterTap(currentValue.value, star)) },
-                modifier = Modifier.testTag(ratingStarTag(star)),
+    val labelText: @Composable () -> Unit = {
+        if (label != null) {
+            Text(
+                text = label,
+                modifier = (if (labelWidth.isSpecified) Modifier.width(labelWidth) else Modifier)
+                    .clearAndSetSemantics {},
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+    // Two rows decide together (RatingRows): the label beside the stars at one shared width, or above them.
+    val frame: @Composable (@Composable () -> Unit) -> Unit = { stars ->
+        if (labelAbove) {
+            Column(modifier = modifier) {
+                labelText()
+                stars()
+            }
+        } else {
+            Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+                labelText()
+                stars()
+            }
+        }
+    }
+    frame {
+        Row(
+            modifier = Modifier
+                .testTag(rowTag)
+                .clearAndSetSemantics {
+                    contentDescription = spokenLabel
+                    stateDescription = state
+                    progressBarRangeInfo = ProgressBarRangeInfo(
+                        current = (value ?: 0.0).toFloat(),
+                        range = 0f..TastingLimits.MAX_RATING.toFloat(),
+                        steps = STEP_COUNT,
+                    )
+                    setProgress { target ->
+                        val new = RatingCycle.snap(target)
+                        if (new == currentValue.value) {
+                            false
+                        } else {
+                            change(new)
+                            true
+                        }
+                    }
+                    if (value != null) {
+                        customActions = listOf(
+                            CustomAccessibilityAction(removeLabel) {
+                                change(null)
+                                true
+                            },
+                        )
+                    }
+                },
+        ) {
+            for (star in 1..STAR_COUNT) {
+                Star(
+                    fill = starFill(value, star),
+                    onTap = { change(RatingCycle.afterTap(currentValue.value, star)) },
+                    modifier = Modifier.testTag(ratingStarTag(star, rowTag)),
+                )
+            }
         }
     }
 }

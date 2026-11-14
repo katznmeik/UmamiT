@@ -9,6 +9,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -32,6 +33,7 @@ import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
+import com.umamit.core.ui.brewingRatingStarTag
 import com.umamit.core.ui.ratingStarTag
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
@@ -209,7 +211,11 @@ class SavedSheetTest {
 
     private fun star(n: Int) = compose.onNodeWithTag(ratingStarTag(n), useUnmergedTree = true)
 
+    private fun brewingStar(n: Int) = compose.onNodeWithTag(brewingRatingStarTag(n), useUnmergedTree = true)
+
     private fun rating(id: String) = runBlocking { data.sessions.getSession(id) }?.rating
+
+    private fun brewingRating(id: String) = runBlocking { data.sessions.getSession(id) }?.brewingRating
 
     @Test
     fun `a star tap rates the session at once and restarts the 10 s`() {
@@ -249,13 +255,68 @@ class SavedSheetTest {
     }
 
     @Test
-    fun `the stars stay one adjustable node of their own for TalkBack`() {
+    fun `a Zubereitung tap writes only its column, a third tap clears only it, and each row restarts the 10 s`() {
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(1_000)
+
+        star(4).performClick()
+        compose.mainClock.advanceTimeBy(500)
+        compose.waitForIdle()
+        assertThat(rating("s1")).isEqualTo(4.0)
+        assertThat(brewingRating("s1")).isNull()
+
+        // 8 s in, a tap on the Zubereitung row: the 10 s start again.
+        compose.mainClock.advanceTimeBy(7_500)
+        brewingStar(3).performClick()
+        compose.mainClock.advanceTimeBy(500)
+        compose.waitForIdle()
+        assertThat(brewingRating("s1")).isEqualTo(3.0)
+        assertThat(rating("s1")).isEqualTo(4.0)
+
+        compose.mainClock.advanceTimeBy(8_000)
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+
+        brewingStar(3).performClick()
+        brewingStar(3).performClick()
+        compose.mainClock.advanceTimeBy(500)
+        compose.waitForIdle()
+        assertThat(brewingRating("s1")).isNull()
+        assertThat(rating("s1")).isEqualTo(4.0)
+
+        compose.mainClock.advanceTimeBy(11_000)
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a Zubereitung write started before an alert still lands`() {
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(1_000)
+
+        brewingStar(5).performClick()
+        alerting = true
+        Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+        compose.mainClock.autoAdvance = true
+        compose.waitForIdle()
+        assertThat(brewingRating("s1")).isEqualTo(5.0)
+        assertThat(rating("s1")).isNull()
+    }
+
+    @Test
+    fun `the two rows are two adjustable nodes of their own for TalkBack, Tee above Zubereitung`() {
         show()
         controller.brew("s1", 60)
 
-        // Exactly one node adjusts, and it is not the sheet itself.
-        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress))
-            .assert(hasContentDescription("Bewertung"))
+        val adjustable = SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress)
+        compose.onAllNodes(adjustable).assertCountEquals(2)
+        compose.onAllNodes(adjustable)[0].assert(hasContentDescription("Tee-Bewertung"))
+        compose.onAllNodes(adjustable)[1].assert(hasContentDescription("Zubereitung"))
     }
 
     @Test

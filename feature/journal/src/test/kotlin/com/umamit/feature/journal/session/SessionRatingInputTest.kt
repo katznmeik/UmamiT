@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.ui.brewingRatingStarTag
 import com.umamit.core.ui.ratingStarTag
 import org.junit.Rule
 import org.junit.Test
@@ -26,10 +27,11 @@ class SessionRatingInputTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private val page = mutableStateOf(basePage(rating = null))
+    private val page = mutableStateOf(basePage(rating = null, brewingRating = null))
     private val written = mutableListOf<Double?>()
+    private val brewingWritten = mutableListOf<Double?>()
 
-    private fun basePage(rating: Double?) = SessionPage(
+    private fun basePage(rating: Double?, brewingRating: Double? = null) = SessionPage(
         sessionId = "s1",
         teaId = null,
         teaName = "Sencha Morgentau",
@@ -43,11 +45,18 @@ class SessionRatingInputTest {
         waterMl = null,
         steps = emptyList(),
         rating = rating,
+        brewingRating = brewingRating,
     )
 
     private fun show() = compose.setContent {
         UmamiTheme(reduceMotion = true) {
-            TastingInputs(page.value, SessionPageActions(setRating = { written += it }))
+            TastingInputs(
+                page.value,
+                SessionPageActions(setRating = { written += it }, setBrewingRating = {
+                    brewingWritten +=
+                        it
+                }),
+            )
         }
     }
 
@@ -56,8 +65,13 @@ class SessionRatingInputTest {
         compose.waitForIdle()
     }
 
-    private fun emitStored(rating: Double?) {
-        compose.runOnUiThread { page.value = basePage(rating) }
+    private fun tapBrewing(star: Int) {
+        compose.onNodeWithTag(brewingRatingStarTag(star), useUnmergedTree = true).performClick()
+        compose.waitForIdle()
+    }
+
+    private fun emitStored(rating: Double?, brewingRating: Double? = null) {
+        compose.runOnUiThread { page.value = basePage(rating, brewingRating) }
         compose.waitForIdle()
     }
 
@@ -80,5 +94,31 @@ class SessionRatingInputTest {
         emitStored(2.0) // changed elsewhere (the editor): the stars follow it again
         tap(2)
         assertThat(written).containsExactly(4.0, 1.5).inOrder()
+    }
+
+    @Test
+    fun `the two rows keep their own shown values when the other one is stored (D-117)`() {
+        show()
+        tap(4)
+        tapBrewing(2)
+        // Only the Tee write is stored so far: the Zubereitung stars must not flick back to empty.
+        emitStored(4.0, null)
+        tapBrewing(2)
+        assertThat(brewingWritten).containsExactly(2.0, 1.5).inOrder()
+        assertThat(written).containsExactly(4.0)
+        emitStored(4.0, 1.5)
+        tap(4)
+        assertThat(written).containsExactly(4.0, 3.5).inOrder()
+    }
+
+    @Test
+    fun `a stale stored Zubereitung value between taps does not change the next tap`() {
+        show()
+        tapBrewing(4)
+        tapBrewing(4)
+        emitStored(null, 4.0)
+        tapBrewing(4)
+        assertThat(brewingWritten).containsExactly(4.0, 3.5, null).inOrder()
+        assertThat(written).isEmpty()
     }
 }

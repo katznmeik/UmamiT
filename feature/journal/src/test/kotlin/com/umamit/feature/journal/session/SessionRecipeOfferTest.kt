@@ -117,7 +117,7 @@ class SessionRecipeOfferTest {
     fun `without an offer the page shows no button`() {
         show()
 
-        compose.onNode(hasContentDescription("Aufgüsse")).assertIsDisplayed()
+        compose.onNode(hasContentDescription("Aufgüsse")).performScrollTo().assertIsDisplayed()
         offerButton().assertDoesNotExist()
         compose.onNodeWithText("Zeiten ins Rezept übernehmen").assertDoesNotExist()
     }
@@ -219,7 +219,7 @@ class SessionRecipeOfferTest {
         offers.failure = IllegalStateException("database closed")
         show()
 
-        compose.onNode(hasContentDescription("Aufgüsse")).assertIsDisplayed()
+        compose.onNode(hasContentDescription("Aufgüsse")).performScrollTo().assertIsDisplayed()
         offerButton().assertDoesNotExist()
     }
 

@@ -128,6 +128,11 @@ class SessionPageViewModel @Inject constructor(
         launchWrite { ratingLock.withLock { tasting.setRating(sessionId, rating) } }
     }
 
+    /** A tap on the *Zubereitung* stars (JRN-02, D-117): as [setRating], its own column. */
+    fun setBrewingRating(rating: Double?) {
+        launchWrite { ratingLock.withLock { tasting.setBrewingRating(sessionId, rating) } }
+    }
+
     /** GESCHMACK's writes per infusion (JRN-03, JRN-05, D-114): the sliders, *Zurücksetzen* and the infusion note. */
     internal val infusionTasting = InfusionTastingWrites(tasting, sessionId, viewModelScope)
 

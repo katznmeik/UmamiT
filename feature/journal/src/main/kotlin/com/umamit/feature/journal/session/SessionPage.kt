@@ -86,6 +86,8 @@ data class SessionPage(
     val inProgress: Boolean = false,
     /** The rating, 0,5–5,0 in half steps; null when unrated (JRN-02). */
     val rating: Double? = null,
+    /** The *Zubereitung* rating, as [rating] (JRN-02, D-117). */
+    val brewingRating: Double? = null,
     /** The notes as stored (trimmed); null without (JRN-05). */
     val notes: String? = null,
     /**
@@ -155,6 +157,7 @@ fun sessionPage(session: BrewSession, tea: SessionTea, catalogKey: String? = nul
         steps = steps,
         inProgress = session.status == SessionStatus.IN_PROGRESS,
         rating = session.rating,
+        brewingRating = session.brewingRating,
         notes = session.notes,
         infusions = infusionsOf(session),
         descriptorKeys = session.descriptorKeys,

@@ -87,6 +87,12 @@
     <string name="session_unknown">–</string>
     <!-- BEWERTUNG and NOTIZEN of the session page (SCR-16, JRN-02, JRN-05, D-112). -->
     <string name="session_rating">Bewertung</string>
+    <!-- The two star rows of the sheet and the session page (JRN-02, D-117): label, TalkBack name, remove action. -->
+    <string name="journal_rating_tea">Tee</string>
+    <string name="journal_rating_tea_spoken">Tee-Bewertung</string>
+    <string name="journal_rating_tea_remove">Tee-Bewertung entfernen</string>
+    <string name="journal_rating_brewing">Zubereitung</string>
+    <string name="journal_rating_brewing_remove">Zubereitung entfernen</string>
     <string name="session_notes">Notizen</string>
     <string name="session_notes_placeholder">Notizen …</string>
     <string name="session_notes_counter">%1$s / %2$s</string>

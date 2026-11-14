@@ -23,8 +23,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.TastingLimits
-import com.umamit.core.ui.RatingStars
 import com.umamit.feature.journal.R
+import com.umamit.feature.journal.RatingRows
 import java.util.Locale
 
 const val SESSION_NOTES_TAG = "session_notes"
@@ -45,27 +45,39 @@ internal fun TastingInputs(page: SessionPage, actions: SessionPageActions, modif
     }
 }
 
-/** BEWERTUNG (JRN-02): the stars, empty until tapped; the shown value follows the tap before the write returns. */
+/**
+ * BEWERTUNG (JRN-02, D-117): the two star rows, „Tee" above „Zubereitung", empty until tapped; each shown value
+ * follows its own tap before the write returns.
+ */
 @Composable
 private fun RatingSection(page: SessionPage, actions: SessionPageActions) {
-    // The rating as the last tap said it, kept until the repository shows exactly that: a stale emission still
-    // carrying an older value (a later write is queued) must not flick the stars back.
-    var pending by remember(page.sessionId) { mutableStateOf<PendingRating?>(null) }
-    LaunchedEffect(page.rating, pending) { if (pending?.value == page.rating) pending = null }
-    val tapped = pending
-    val shown = if (tapped != null) tapped.value else page.rating
+    // Each row keeps the rating as its last tap said it, until the repository shows exactly that: a stale emission
+    // still carrying an older value (a later write is queued) must not flick the stars back. The rows are independent.
+    var teaPending by remember(page.sessionId) { mutableStateOf<PendingRating?>(null) }
+    var brewingPending by remember(page.sessionId) { mutableStateOf<PendingRating?>(null) }
+    LaunchedEffect(page.rating, teaPending) { if (teaPending?.value == page.rating) teaPending = null }
+    LaunchedEffect(page.brewingRating, brewingPending) {
+        if (brewingPending?.value == page.brewingRating) brewingPending = null
+    }
+    val teaTapped = teaPending
+    val brewingTapped = brewingPending
     Column {
         SectionHeader(
             title = stringResource(R.string.session_rating),
             modifier = Modifier.padding(top = UmamiSpacing.Medium),
         )
-        RatingStars(
-            value = shown,
-            onChange = {
-                pending = PendingRating(it)
+        RatingRows(
+            tea = if (teaTapped != null) teaTapped.value else page.rating,
+            brewing = if (brewingTapped != null) brewingTapped.value else page.brewingRating,
+            onTea = {
+                teaPending = PendingRating(it)
                 actions.setRating(it)
             },
-            modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin - UmamiSpacing.XSmall),
+            onBrewing = {
+                brewingPending = PendingRating(it)
+                actions.setBrewingRating(it)
+            },
+            modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
         )
     }
 }
