@@ -171,7 +171,9 @@ private fun Detail(
     // The sections from the stock on are composed one frame after the rest when the tea arrives during the push:
     // its first frame then holds only what the opening fade shows first (A-12). Nothing moves: the content is still
     // nearly transparent in that frame, and they sit below the photo, the header, the stats and the recipes.
-    var below by remember { mutableStateOf(!deferBelow) }
+    // A restored scroll position (after a process death) needs the whole column at once, or it would be clamped.
+    val scroll = rememberScrollState()
+    var below by remember { mutableStateOf(!deferBelow || scroll.value > 0) }
     LaunchedEffect(Unit) {
         if (!below) {
             withFrameNanos {}
@@ -190,7 +192,7 @@ private fun Detail(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scroll)
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
                         .testTag(TEA_DETAIL_TAG),
                 ) {
