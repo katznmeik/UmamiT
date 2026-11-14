@@ -655,6 +655,10 @@ what was actually drunk.
    is set in the smaller **body font** after the display-font number
    („12,4" + „ l"), because the display font's „l" looks like a bar. The
    other numerals are unchanged.
+9. **V9, „Liter" in full (PO, 2026-11-14, on the V8 render):** the small
+   „l" still read as a bar, so the numeral reads „12,4" + „Liter" (body
+   font); below 1 l „750" + „ml". Chart axes, value labels and „€ pro
+   Liter" keep the format of V3.
 
 **Details of Amendment 2 (Claude; not asked, open to the PO's correction
 in the rc.3 review).**

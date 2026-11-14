@@ -15,7 +15,7 @@ rc.3 carries your answer on rc.2 ([D-115](../../../specs/10-open-questions-and-d
 
 | Part | Renders | What to look at |
 |---|---|---|
-| **Überblick** (V3, V4) | `stats/Overview_days90`, `Overview_gesamt`, `Overview_empty` | The row reads „42 Sitzungen · 12,4 l Tee · 24 Tees"; below 1 l „750 ml Tee". |
+| **Überblick** (V3, V4) | `stats/Overview_days90`, `Overview_gesamt`, `Overview_empty` | The row reads „42 Sitzungen · 12,4 Liter Tee · 24 Tees"; below 1 l „750 ml Tee". |
 | **Verbrauch** (V2–V5) | `stats/Consumption_data`, `Consumption_no_purchases`, `Consumption_none_running_out`, `Consumption_empty` | The chart **TEE** (was TASSEN) in ml/l, the axis „0 ml · 1,0 l · 2,0 l", and GETRUNKEN „Ø 2,70 € pro Liter". |
 | **Tea detail** (V2, V7) | `other/TeaDetail_cost` | „ca. … € pro Liter (Rezept)" and „Ø … € pro Liter aus 5 Sitzungen". |
 | **Einstellungen** (V1) | `other/Settings_teaware` | *Brühen & Vorrat* without *Tassengröße*. |
@@ -24,7 +24,7 @@ The `StatsShell_*` renders were re-recorded too; they change only where a folded
 
 ### Claude's defaults in rc.3 (not put to you; change any of them)
 
-1. **„l" in the display font:** at the big numeral the lowercase „l" of „12,4 l" is drawn in Alegreya Sans and looks close to a bar (see `Overview_days90_light_font2x`). **Your answer (V8):** the unit moves to the smaller body font.
+1. **„l" in the display font:** at the big numeral the lowercase „l" of „12,4 l" is drawn in Alegreya Sans and looks close to a bar (see `Overview_days90_light_font2x`). **Your answers (V8, V9):** the unit moves to the smaller body font and reads „Liter" in full („12,4 Liter Tee"; below 1 l „750 ml").
 2. **TalkBack** reads the visible text („12,4 l Tee"); no extra „Liter" description.
 3. **„aus N Sitzungen mit Preis"** stays under GETRUNKEN's total, as in rc.2, and counts the sessions in the € pro Liter average (V5). A priced session without water still counts in the total but not in N.
 4. **The TEE chart** has no big numeral of its own: the range's volume is on *Überblick* (as TASSEN in rc.2). Its fold line reads „TEE · 12,4 l".
