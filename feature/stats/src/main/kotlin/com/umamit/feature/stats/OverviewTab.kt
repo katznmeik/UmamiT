@@ -120,7 +120,9 @@ private fun Numerals(stats: OverviewStats) {
             pluralStringResource(R.plurals.stats_overview_sessions_label, stats.sessionCount),
             Modifier.weight(1f),
         )
-        val (volume, volumeUnit) = VolumeFormat.parts(stats.volumeMl)
+        val (volume, shortUnit) = VolumeFormat.parts(stats.volumeMl)
+        // Written in full here only; axes and value labels keep "l" (D-115 A2 V8).
+        val volumeUnit = if (shortUnit == "l") stringResource(R.string.stats_overview_volume_unit_liter) else shortUnit
         Numeral(
             volume,
             stringResource(R.string.stats_overview_volume_label),

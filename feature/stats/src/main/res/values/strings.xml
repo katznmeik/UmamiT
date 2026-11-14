@@ -55,6 +55,7 @@
         <item quantity="other">Sitzungen</item>
     </plurals>
     <string name="stats_overview_volume_label">Tee</string>
+    <string name="stats_overview_volume_unit_liter">Liter</string>
     <plurals name="stats_overview_teas_label">
         <item quantity="one">Tee</item>
         <item quantity="other">Tees</item>
