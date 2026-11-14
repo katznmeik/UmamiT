@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-13
+> Status: **Living document** · Last updated: 2026-11-14 (D-117)
 
 ## Open questions
 
@@ -323,6 +323,170 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-117"></a>
+### D-117 — v0.7.1: where *Tee* and *Zubereitung* show, umamit.db v8, and the transition audit (JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02, NFR-PERF-12; SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18; 05 §3.6, §6 `statsRankingBy`, §8, §9 v8) · *Proposed*: the PO's answers Q1–Q20 below are *Accepted (PO, 2026-11-14)*; the spec, tickets and plan wait for the PO's approval
+
+**Context.** D-116 R1–R3 put the split rating and a transition smoothness
+audit in v0.7.1 and left open where each rating shows, the migration's
+details, and the audit's scope, method and done criteria. The PO answered
+them in the v0.7.1 specify session (2026-11-14, Q1–Q20 as options in four
+rounds). The finish sheet's UI lives in `feature:journal` (`SavedSheet`); the
+timer only asks for it through `SavedSheetPort`, so the split rating changes
+no timer code. The transition audit includes the timer screen (Q13), which
+does.
+
+**Decision (the PO's answers).**
+
+*Split rating*
+
+1. **Q1, compact form:** where a session's ratings show in a row (the journal
+   row SCR-15, LETZTE SITZUNGEN on the tea detail), they read
+   **„Tee ★ 4,5 · Zubereitung ★ 3,5"**; only the set one shows when just one
+   is rated. TalkBack: „Tee 4,5 von 5, Zubereitung 3,5 von 5".
+2. **Q2, Meine Tees:** the row shows the **Tee Ø only** („★ 4,5"), and the
+   sort *Bewertung* sorts by it. Zubereitung is not a property of the tea, so
+   it stays off the list (narrows R2's „visible at every place").
+3. **Q3, tea detail:** the header „★ 4,5 (12)" is the Tee Ø with its count;
+   directly below, smaller, **„Zubereitung Ø 3,8 (10)"** (hidden without a
+   Zubereitung rating). LETZTE SITZUNGEN rows as Q1.
+4. **Q4, inputs:** the „Gespeichert" sheet (SCR-06) and the session page's
+   BEWERTUNG (SCR-16) show **two labelled `RatingStars` rows**, „Tee" above
+   „Zubereitung", the label at the left, both always shown, each saved at
+   once; each tap on the sheet restarts its 10 s.
+5. **Q5, Tee-Rangliste:** a **switch Tee / Zubereitung** on the section ranks
+   the teas by the chosen Ø („4,6 ★ · 5×" counts the sessions rated in that
+   rating).
+6. **Q6, Bewertung im Verlauf:** **two lines in one chart**, Tee (`primary`)
+   and Zubereitung (a second colour, dashed), with a small legend; the value
+   label shows both for the tapped period.
+7. **Q7, Bestes Rezept** compares a tea's recipes by their **Zubereitung Ø**
+   (each recipe ≥ 2 Zubereitung-rated sessions in the range).
+8. **Q8, Neu entdeckt and the journal filter** use the **Tee** rating: Neu
+   entdeckt shows the Tee Ø; the filter's three chips (*ab 3 ★*, *ab 4 ★*,
+   *ab 4,5 ★*) filter on the Tee rating.
+9. **Q9, the switch** starts on **Tee** the first time and is **remembered**
+   across app starts, like the range and the tab.
+10. **Q10, migration copy:** a **plain copy** (R3): after the update old
+    sessions have both ratings equal, editable on the session page; no
+    marker.
+11. **Q11, schema:** keep `rating` as the **Tee** rating and **add one column
+    `brewing_rating`** (REAL, nullable), copied from `rating` in the
+    migration (umamit.db v8, one transaction, `MigrationTestHelper` test from
+    a populated v7, running timers untouched). The backup format (05 §8):
+    `data.json` sessions carry `rating` and `brewingRating`; `formatVersion`
+    stays 1 because no export file exists yet (BAK-01 is M5).
+12. **Q12, one of the two rated:** nothing marks the unrated one: its row
+    shows empty stars, compact rows show only the set one; a tea's Ø ignores
+    sessions without a Tee rating.
+
+*Transition audit*
+
+13. **Q13, scope:** all four groups: **unlock / resume into the app** (from
+    the lock screen, from recents, a cold start after the process was
+    killed); **tab switches and screen push/pop** (tea detail, session page,
+    catalog tea, settings); **sheets and dialogs** (Gespeichert, Teeauswahl,
+    Schritte-Sheet, month picker, menus); the **timer screen in and out**
+    (setup → timer, timer → shell after finish, the alert's entry).
+14. **Q14, what the PO sees on unlock:** **old content, then a jump** (a
+    stale or empty frame first, then the screen switches or the layout
+    jumps).
+15. **Q15, method:** a **code audit with the motion skills**
+    (`/improve-animations` over the shell, navigation, lifecycle and sheet
+    code, read-only, a findings file) and **frame metrics on the CI
+    emulator** (an instrumented test with JankStats on API 36 for the
+    in-scope transitions). No screen recordings and no Baseline Profile in
+    v0.7.1 (the latter stays in M5).
+16. **Q16, done when:** **the rc check and the metric**: each in-scope
+    transition is a line of the rc's on-device checklist and passes when the
+    PO judges it smooth on the Galaxy, **and** the CI frame metric passes.
+17. **Q17, the metric's limit:** per measured transition, the median of
+    **5 runs** has **at most 1 janky frame** (over the frame budget of
+    16,7 ms) and **no frame over 50 ms**.
+18. **Q18, findings:** every finding that only removes jank, a stale frame or
+    a jump is **fixed directly**; a finding that changes a designed motion
+    value (03 §3.6) or behaviour goes to the PO first.
+19. **Q19, the unlock fix direction:** **hold, then show fresh**: keep the
+    last frame (no jump) until the fresh state is ready, at most ≈ 150 ms,
+    then cross-fade with `fade` if it changed; no layout jumps.
+20. **Q20, releases:** **one rc** (`v0.7.1-rc.1` with both parts), an rc.2
+    only if the checklist finds something, the final from `main` after the
+    PO's approval.
+
+**Details (Claude; not asked, open to the PO's correction in the review).**
+
+- **Words:** the section heading stays BEWERTUNG; the row labels are „Tee"
+  and „Zubereitung" (body font, `onSurfaceVariant`). TalkBack on the inputs:
+  „Tee-Bewertung, 3,5 von 5 Sternen" / „Zubereitung, keine", actions
+  „Tee-Bewertung entfernen" / „Zubereitung entfernen". The compact text
+  wraps after „·" at large font.
+- **Writes:** `brewing_rating` is a tasting write like `rating` (05 §3.6:
+  its own transaction on a `COMPLETED` session, 0,5–5,0 in 0,5 steps or
+  null, sets `updated_at`).
+- **Sheet:** the two rows replace the one row in the order of SCR-06; the
+  sheet grows by one 48 dp row. An alert still removes it in the same frame;
+  a write already started is never cancelled (rule 8).
+- **Tea detail:** the Zubereitung line counts the tea's sessions with a
+  `brewing_rating`; TalkBack „Zubereitung im Schnitt 3,8 von 5, aus 10
+  Sitzungen".
+- **Tee-Rangliste switch:** a two-segment button „Tee · Zubereitung" under
+  the heading (as the range selector, smaller); `statsRankingBy`
+  (TEA/BREWING, default TEA) in DataStore (05 §6). Folded, the summary names
+  the top tea of the chosen rating. The empty line „In diesem Zeitraum
+  nichts bewertet" means no rating of either kind; with ratings of only the
+  other kind the list says „Keine Bewertung dieser Art im Zeitraum".
+- **Verlauf:** Zubereitung in `tertiary`, a 2 dp dash of 6/4 dp, its own
+  4 dp points; each line breaks over periods without its rating; the legend
+  „— Tee · - - Zubereitung" above the chart (information not by colour
+  alone, NFR-A11Y-05). The fold summary is the latest Tee Ø. TalkBack per
+  period: „KW 44: Tee 4,2, Zubereitung 3,8.".
+- **Bestes Rezept:** the row reads „Gyokuro Hisui · Kalt 4,6 ★ · Klassisch
+  4,0 ★" as before, now the Zubereitung Ø; the heading gets the sub-line
+  „nach Zubereitung".
+- **Journal search** is unchanged; the *Bewertung* filter ignores
+  `brewing_rating`.
+- **Migration v8:** `ALTER TABLE brew_session ADD COLUMN brewing_rating
+  REAL`, then `UPDATE brew_session SET brewing_rating = rating WHERE rating
+  IS NOT NULL`, in one transaction; sessions in progress are copied as well
+  (they have no rating). Tests: `Migration7To8Test` from a populated v7 (a
+  rated finished session, an unrated one, half stars, a session of a deleted
+  tea, a session in progress with its `active_brew` row and a quick timer),
+  then opened with the production builder; `SchemaVersionsTest` opens v1–v8;
+  the v1–v7 JSON keep version and identity hash.
+- **Device backup:** a v7 database restored by Android onto v0.7.1 is
+  migrated on open like any other; nothing else changes (05 §8).
+- **Metric test:** `TransitionJankTest` in `app`'s `androidTest`, in the CI
+  emulator job on API 36 only (API 35 runs it too but does not gate);
+  JankStats per transition, 5 runs, the median compared with the limit;
+  it runs on the debug build the emulator job already installs (no
+  benchmark build type: the metric is the regression guard, the PO's rc
+  check the judge). Measured: resume from the lock screen
+  (`ActivityScenario` STARTED → RESUMED after stop), cold start to Start,
+  each tab switch, push/pop of tea detail and session page, the Gespeichert
+  sheet in and out, the Teeauswahl and Schritte-Sheet, setup → timer and
+  timer → shell. The alert's entry is measured but never slowed by a fix
+  (`alertEnter` stays `snap()`, rule 8). The frame budget follows the
+  emulator's display (60 Hz: 16,7 ms).
+- **Audit file:** `docs/plans/v0.7.1-motion-audit.md` (findings: place,
+  symptom, cause, fix, whether it changes a 03 §3.6 value); the build
+  records which findings went to the PO.
+- **NFR-PERF-12** (07) states the smoothness rule and the metric.
+
+**Consequences.**
+
+- **Timer code:** the audit's fixes may touch `feature:brew` (timer screen in
+  and out), so those tickets are **T3+**, the **timer tests** of 04 §12 must
+  pass (rule 8), the milestone gets the **T4 timer review**, and **all three
+  accuracy variants** run before the rc and the final (09 §4a). The split
+  rating itself touches no timer module; the orchestrator checks that its
+  tickets leave `feature:brew`, `core:timer` and `core:timer-engine`
+  unchanged.
+- **Migration:** umamit.db v8, **T3** (rule 5: migration code never below
+  T3).
+- **Specs written:** 02 JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13,
+  INS-02; 03 SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18, §3.8
+  `RatingStars`; 05 §3.6, §6, §8, §9; 07 NFR-PERF-12; 09 §2, §4 „v0.7.1";
+  11; the specs README.
+
 <a id="d-116"></a>
 ### D-116 — v0.7.1 (planned): tea and brewing rated separately, a transition smoothness audit; the cleanup review becomes v0.7.2 · *Accepted* in part (PO, 2026-11-13, R1–R3 below; the rest is grilled in the v0.7.1 specify session)
 
@@ -348,6 +512,7 @@ unlocked into the app.
 details (T3 at least), how transitions are checked (e.g. the PO's screen
 recordings, recorded frames on the CI emulator, a code audit with the
 motion skills) and which transitions are in scope.
+**Grilled in the v0.7.1 specify session: [D-117](#d-117)** (2026-11-14).
 
 <a id="d-115"></a>
 ### D-115 — v0.7.0 Statistik: three tabs, a remembered rolling range, neutral streaks, Sorten donut, ratings with their history and the best recipe, taste over every infusion, purchases as money spent, brewing habits (INS-01–INS-08; SCR-18; 05 §6 `statsRange`, `statsTab`) · *Accepted* (PO, 2026-11-13, grilled in the session Q1–Q20 as options in five rounds; details marked „Claude" are Claude's defaults and were not put to the PO)
@@ -7913,6 +8078,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-14 | D-117: v0.7.1 grilled with the PO (Q1–Q20): „Tee ★ · Zubereitung ★" in rows, two labelled star rows on the sheet and the session page, Meine Tees on the Tee Ø, the tea detail with a Zubereitung line, a Tee/Zubereitung switch on the Tee-Rangliste, two lines in the Verlauf, Bestes Rezept by Zubereitung, umamit.db v8 (`brewing_rating`, copied); transition audit of all four groups by a motion-skill code audit and a JankStats metric on the CI emulator (≤ 1 janky frame, none over 50 ms), done with the PO's rc check; one rc. |
 | 2026-11-13 | D-115 Amendment 1 (PO review of v0.7.0-rc.1, R1–R16): cups by volume with a cup-size setting (also on the tea detail), a Tee donut, one-row totals, foldable sections, half-height charts, a custom month range, GETRUNKEN on Verbrauch, Bewertungen rebuilt (Tee-Rangliste, Neu entdeckt, Verlauf, Bestes Rezept; taste and descriptors removed), „14 g · knapp" in Meine Tees, B/D/E answered → rc.2. D-116: v0.7.1 planned (Tee and Zubereitung rated separately, old ratings copied to both; transition audit); cleanup review → v0.7.2. |
 | 2026-11-13 | D-115: Statistik (v0.7.0) grilled with the PO (Q1–Q20): three tabs, a remembered rolling range 30 T · 90 T · 12 M · Gesamt with weekly or monthly bars, a neutral all-time streak, the Sorten donut, brewing habits, ratings with distribution, top rated, rating over time and best recipe, taste over every infusion, top descriptors, money spent as purchases, cost per cup, running out; A9 only without any session; TalkBack lists. No migration, no timer code. |
 | 2026-11-12 | D-114: PO feedback after v0.6.0 → v0.6.1 (Statistik becomes v0.7.0): taste per infusion with a short note, also on the timer screen (umamit.db v7); GESCHMACK folds; quick-timer chips 1:00–15:00; a full-screen photo viewer; *Tee ansehen* / *Im Katalog ansehen* in the ⋮ of the session page and the tea detail; the Katalog opens with every kind and groups by kind; „N Tees" everywhere; *Design* (System · Hell · Dunkel). Timer code: T3+, T4 timer review, accuracy runs per rc. |

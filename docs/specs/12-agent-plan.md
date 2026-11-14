@@ -1,6 +1,6 @@
 # 12 · Subagent Distribution Plan
 
-> Status: **Draft v0.3** · Last updated: 2026-11-13 (v0.7.0 tiers, D-115; 2026-11-12: v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
+> Status: **Draft v0.3** · Last updated: 2026-11-14 (v0.7.1 tiers, D-117; 2026-11-13: v0.7.0 tiers, D-115; 2026-11-12: v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
 > Decisions: [D-026](10-open-questions-and-decisions.md#d-026), [D-101](10-open-questions-and-decisions.md#d-101)
 
 UmamiT is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
@@ -202,6 +202,23 @@ Answer the questions in order and take the first tier that matches:
 | Chart components (Canvas bars, line and donut, value label, motion, TalkBack) | T2 |
 | SCR-18 shell (range, tabs, empty state) and the three tabs | T2 |
 | Milestone review | T3 |
+| `/review-animations` | T2 |
+
+*v0.7.1 — Two ratings, smooth transitions* (D-117; tickets in the spec
+issue, plan `docs/plans/v0.7.1.md`)
+
+| Task | Tier |
+|---|---|
+| umamit.db v8 (`brewing_rating`), migration + test, data layer writes and reads | T3 |
+| Two labelled star rows (sheet, session page) | T2 |
+| Rating displays (journal row, tea detail) | T2 |
+| Statistik ratings: domain, `statsRankingBy`, switch, two-line chart | T2 |
+| Motion audit (`/improve-animations`, read-only, incl. the timer path) | T3 |
+| `TransitionJankTest` on the CI emulator | T3 |
+| Transition fixes outside the timer path | T3 |
+| Transition fixes in the timer path (`feature:brew`) | T3 (escalate to T4 on a failure) |
+| Milestone review | T3 |
+| Timer review (`feature:brew` diff) | T4 |
 | `/review-animations` | T2 |
 
 **M5 — Data & polish → 1.0**
