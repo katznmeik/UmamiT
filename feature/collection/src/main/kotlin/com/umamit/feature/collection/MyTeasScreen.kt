@@ -34,6 +34,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CollectionFilter
 import com.umamit.core.model.CollectionSort
+import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberPhotoPainter
 
 /** The list of *Meine Tees* (SCR-08). */
@@ -111,7 +112,8 @@ fun MyTeasContent(
     scrollToTopRequest: Int = 0,
     thumbnail: @Composable (path: String?) -> Painter? = { rememberPhotoPainter(it) },
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
+    // The first arrival of the list fades in instead of popping in (A-12).
+    Box(modifier = modifier.fillMaxSize().fadeInOnArrival(!state.loading)) {
         when {
             state.loading -> Unit
             state.empty == MyTeasEmpty.NO_TEAS && !state.showControls -> NoTeasAlone(actions.onAddFromCatalog)

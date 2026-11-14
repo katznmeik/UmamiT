@@ -65,6 +65,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StatsTab
+import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.feature.stats.charts.ChartPageState
 import com.umamit.feature.stats.charts.ChartSelectionHolder
 import com.umamit.feature.stats.charts.ChartSelectionHost
@@ -159,7 +160,8 @@ fun StatsContent(
             WindowInsetsSides.Top + WindowInsetsSides.End + WindowInsetsSides.Bottom,
         ),
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        // The first arrival of the data fades in instead of popping in part-way through the enter (A-12).
+        Column(modifier = Modifier.fillMaxSize().padding(padding).fadeInOnArrival(state != StatsUiState.Loading)) {
             when (state) {
                 StatsUiState.Loading -> Unit
 

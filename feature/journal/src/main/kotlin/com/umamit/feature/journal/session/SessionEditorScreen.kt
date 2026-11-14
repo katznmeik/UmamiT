@@ -38,6 +38,7 @@ import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
 import com.umamit.core.ui.EditorScaffold
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.journal.R
 import java.time.LocalDate
@@ -99,7 +100,8 @@ fun SessionEditorScreen(
         modifier = modifier,
         alertKey = alertKey,
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        // The first arrival of the data fades in instead of popping in part-way through the enter (A-12).
+        Box(Modifier.fillMaxSize().padding(padding).fadeInOnArrival(state != SessionEditorUiState.Loading)) {
             when (state) {
                 SessionEditorUiState.Loading -> Unit
 

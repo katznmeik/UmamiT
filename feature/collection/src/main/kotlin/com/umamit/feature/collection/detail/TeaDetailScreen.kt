@@ -29,10 +29,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
@@ -53,6 +56,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.StockSheet
+import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.feature.collection.R
@@ -127,21 +131,31 @@ fun TeaDetailScreen(
     alertKey: String? = null,
     photo: @Composable (path: String) -> Painter? = { rememberPhotoPainter(it) },
 ) {
-    when (state) {
-        TeaDetailUiState.Loading -> Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
-
-        TeaDetailUiState.Gone -> ScreenScaffold(
-            title = "",
-            modifier = modifier,
-            navigationIcon = { BackAction(actions.back) },
-        ) {
-            EmptyState(
-                title = stringResource(R.string.collection_tea_gone_title),
-                body = stringResource(R.string.collection_tea_gone_body),
-            )
+    // Pushed before the tea was read: its arrival splits its work over two frames (A-12, NFR-PERF-12).
+    val arrivesDuringPush = remember { state == TeaDetailUiState.Loading }
+    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // While the tea is read, the top bar with its back arrow, like every pushed screen; never a bare sheet (A-12).
+        if (state == TeaDetailUiState.Loading) {
+            ScreenScaffold(title = "", navigationIcon = { BackAction(actions.back) }) {}
         }
+        // The tea's first arrival fades in with `fade`, instead of popping in part-way through the enter (A-12).
+        Box(Modifier.fillMaxSize().fadeInOnArrival(arrived = state != TeaDetailUiState.Loading)) {
+            when (state) {
+                TeaDetailUiState.Loading -> Unit
 
-        is TeaDetailUiState.Ready -> Detail(state.tea, actions, alertKey, photo, modifier)
+                TeaDetailUiState.Gone -> ScreenScaffold(
+                    title = "",
+                    navigationIcon = { BackAction(actions.back) },
+                ) {
+                    EmptyState(
+                        title = stringResource(R.string.collection_tea_gone_title),
+                        body = stringResource(R.string.collection_tea_gone_body),
+                    )
+                }
+
+                is TeaDetailUiState.Ready -> Detail(state.tea, actions, alertKey, photo, deferBelow = arrivesDuringPush)
+            }
+        }
     }
 }
 
@@ -152,7 +166,18 @@ private fun Detail(
     alertKey: String?,
     photo: @Composable (path: String) -> Painter?,
     modifier: Modifier = Modifier,
+    deferBelow: Boolean = false,
 ) {
+    // The sections from the stock on are composed one frame after the rest when the tea arrives during the push:
+    // its first frame then holds only what the opening fade shows first (A-12). Nothing moves: the content is still
+    // nearly transparent in that frame, and they sit below the photo, the header, the stats and the recipes.
+    var below by remember { mutableStateOf(!deferBelow) }
+    LaunchedEffect(Unit) {
+        if (!below) {
+            withFrameNanos {}
+            below = true
+        }
+    }
     val deleteAsk = rememberAlertGate(alertKey)
     val resetAsk = rememberAlertGate(alertKey)
     val stockSheet = rememberAlertGate(alertKey)
@@ -181,29 +206,31 @@ private fun Detail(
                     Header(tea)
                     Stats(tea)
                     Recipes(tea, actions)
-                    Stock(
-                        tea,
-                        onPurchase = purchaseSheet::open,
-                        onCorrect = stockSheet::open,
-                        onReorder = actions.openShop,
-                        onWarning = actions.setStockWarning,
-                        onThreshold = actions.setLowStockGrams,
-                    ) {
-                        StockHistory(
-                            tea.history,
-                            onAskDelete = { id ->
-                                askedEntry = id
-                                entryDeleteAsk.open()
-                            },
-                            onOpenSession = actions.openSession,
-                        )
+                    if (below) {
+                        Stock(
+                            tea,
+                            onPurchase = purchaseSheet::open,
+                            onCorrect = stockSheet::open,
+                            onReorder = actions.openShop,
+                            onWarning = actions.setStockWarning,
+                            onThreshold = actions.setLowStockGrams,
+                        ) {
+                            StockHistory(
+                                tea.history,
+                                onAskDelete = { id ->
+                                    askedEntry = id
+                                    entryDeleteAsk.open()
+                                },
+                                onOpenSession = actions.openSession,
+                            )
+                        }
+                        FreshnessSection(tea.freshness)
+                        TasteSection(tea.taste)
+                        RecentSessions(tea, actions.openSession, actions.showAllSessions)
+                        TextSection(R.string.collection_tea_section_description, tea.description)
+                        TextSection(R.string.collection_tea_section_notes, tea.notes)
+                        Details(tea.details)
                     }
-                    FreshnessSection(tea.freshness)
-                    TasteSection(tea.taste)
-                    RecentSessions(tea, actions.openSession, actions.showAllSessions)
-                    TextSection(R.string.collection_tea_section_description, tea.description)
-                    TextSection(R.string.collection_tea_section_notes, tea.notes)
-                    Details(tea.details)
                     // Room for the FAB above the last line.
                     Spacer(Modifier.height(FAB_CLEARANCE))
                 }
@@ -260,11 +287,9 @@ private fun Detail(
         StockSheet(
             currentGrams = tea.stockGrams.coerceAtLeast(0.0),
             sessionLeafGrams = tea.sessionLeafGrams,
-            onSave = { grams ->
-                actions.correctStock(grams)
-                stockSheet.close()
-            },
+            onSave = actions.correctStock,
             onDismissRequest = stockSheet::close,
+            hideOnClose = true,
         )
     }
     // The stock history's „Kauf löschen?" / „Korrektur löschen?" (SCR-29): as the delete question (rule 8).
