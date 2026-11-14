@@ -6,7 +6,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.domain.collection.CupAverage
+import com.umamit.core.domain.collection.LiterAverage
 import com.umamit.core.domain.collection.TeaCost
 import org.junit.Rule
 import org.junit.Test
@@ -47,7 +47,11 @@ class TeaDetailCostScreenshotTest(private val dark: Boolean, private val fontSca
                 TeaDetailScreen(
                     TeaDetailUiState.Ready(
                         TeaDetailScreenTest.sample().copy(
-                            cost = TeaCost(pricePer100gCents = 1240, recipeCupCents = 24, average = CupAverage(27, 5)),
+                            cost = TeaCost(
+                                pricePer100gCents = 1240,
+                                recipeLiterCents = 240,
+                                average = LiterAverage(270, 5),
+                            ),
                         ),
                     ),
                     TeaDetailActions(),

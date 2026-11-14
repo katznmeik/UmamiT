@@ -42,13 +42,12 @@ class RoomStatsRepository @Inject constructor(
         dao.observeFinishedSessions(),
         dao.observeTeas(),
         dao.observePricedPurchases(),
-        settings.settings.map { it.lowStockGrams to it.cupSizeMl }.distinctUntilChanged(),
-    ) { sessions, teas, events, (lowStockGrams, cupSizeMl) ->
+        settings.settings.map { it.lowStockGrams }.distinctUntilChanged(),
+    ) { sessions, teas, events, lowStockGrams ->
         StatsInput(
             sessions = sessions.map { it.toStatsSession() },
             teas = teas.map { it.toStatsTea(lowStockGrams, photos) },
             inventoryEvents = events.map { it.toModel() },
-            cupSizeMl = cupSizeMl,
         )
     }.flowOn(dispatcher)
 }

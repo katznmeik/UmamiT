@@ -137,7 +137,7 @@ class TeaDetailViewModel @Inject constructor(
         journal.observeSessions().map { list -> list.map { it.session }.filter { it.snapshot.teaId == teaId } },
         // Either brew slot (v0.5.0, D-108): the tea's session may be the second brew.
         archive.observeActiveTeaIds().map { teaId in it }.distinctUntilChanged(),
-        settings.settings.map { Globals(it.lowStockGrams, it.deductStock, it.cupSizeMl) }.distinctUntilChanged(),
+        settings.settings.map { Globals(it.lowStockGrams, it.deductStock) }.distinctUntilChanged(),
         // The rating and GESCHMACK follow the sessions' tasting inputs at once (TEA-13, D-112).
         journal.observeTeaTasting(teaId),
     ) { sessions, active, globals, tasting -> Brewed(sessions, active, globals, tasting) }
@@ -384,21 +384,17 @@ class TeaDetailViewModel @Inject constructor(
             sessionLeafGrams = brew.sessionLeaf(),
             today = clock.today(),
             history = stockEvents.asReversed().map { it.entry(clock.zone()) },
-            cost = costOf(stockEvents, recipeList, finished, brew.globals.cupSizeMl),
+            cost = costOf(stockEvents, recipeList, finished),
             rating = brew.tasting.rating,
             taste = DetailTasting.of(brew.tasting),
             recentSessions = finished.sortedByDescending { it.startedAtMs }.take(RECENT_SESSIONS).map { it.recent() },
         )
     }
 
-    private fun costOf(
-        stockEvents: List<InventoryEvent>,
-        recipes: List<Recipe>,
-        finished: List<BrewSession>,
-        cupMl: Int,
-    ) = CostRule.of(StockSummary.of(stockEvents), recipes.firstOrNull { it.isDefault }, finished, cupMl)
+    private fun costOf(stockEvents: List<InventoryEvent>, recipes: List<Recipe>, finished: List<BrewSession>) =
+        CostRule.of(StockSummary.of(stockEvents), recipes.firstOrNull { it.isDefault }, finished)
 
-    private data class Globals(val lowStockGrams: Double, val deductStock: Boolean, val cupSizeMl: Int)
+    private data class Globals(val lowStockGrams: Double, val deductStock: Boolean)
 
     private data class Brewed(
         val sessions: List<BrewSession>,

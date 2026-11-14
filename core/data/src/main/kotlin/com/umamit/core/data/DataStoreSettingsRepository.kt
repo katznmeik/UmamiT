@@ -93,17 +93,9 @@ internal fun UserSettings.normalized(): UserSettings = copy(
     lowStockGrams = snap5(lowStockGrams).coerceIn(0, MAX_LOW_STOCK_GRAMS).toDouble(),
     alertVolumePercent = volumeOf(alertVolumePercent),
     lowStockReminderTime = lowStockReminderTime.coerceIn(0, UserSettings.LAST_MINUTE_OF_DAY),
-    cupSizeMl = cupSizeOf(cupSizeMl),
     statsRangeFrom = statsRangeFrom?.let { from -> statsRangeTo?.let { minOf(from, it) } ?: from },
     statsRangeTo = statsRangeTo?.let { to -> statsRangeFrom?.let { maxOf(to, it) } ?: to },
 )
-
-/** The nearest 10 ml step (half up) within 50…500 ml (*Tassengröße*, D-115 Amendment 1). */
-private fun cupSizeOf(ml: Int): Int {
-    val step = UserSettings.CUP_SIZE_STEP_ML
-    return (Math.floorDiv(ml + step / 2, step) * step)
-        .coerceIn(UserSettings.MIN_CUP_SIZE_ML, UserSettings.MAX_CUP_SIZE_ML)
-}
 
 /** The nearest 10 % step (half up), never below 10 %, so the app itself can never silence a cue (rule 8). */
 private fun volumeOf(percent: Int): Int {

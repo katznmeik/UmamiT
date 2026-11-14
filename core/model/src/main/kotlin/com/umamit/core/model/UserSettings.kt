@@ -80,23 +80,12 @@ data class UserSettings(
     val statsTab: StatsTab = StatsTab.OVERVIEW,
     /** INS-08 (v0.7.0-rc.2, D-115 Amendment 1, R8): the keys of the folded Statistik sections (05 §6); no open ones. */
     val statsFolded: Set<String> = emptySet(),
-    /**
-     * *Tassengröße* (INV-08, D-115 Amendment 1): the water of one cup in ml, 50–500 in steps of 10; a session's
-     * cups are its poured water ÷ this.
-     */
-    val cupSizeMl: Int = DEFAULT_CUP_SIZE_ML,
 ) {
     companion object {
         const val DEFAULT_ALERT_SOUND = "klangschale"
 
         /** The settings' format version of this app (05 §6). */
         const val CURRENT_SCHEMA_VERSION = 3
-
-        /** *Tassengröße*: 50–500 ml in steps of 10, default 150 ml (D-115 Amendment 1). */
-        const val DEFAULT_CUP_SIZE_ML = 150
-        const val MIN_CUP_SIZE_ML = 50
-        const val MAX_CUP_SIZE_ML = 500
-        const val CUP_SIZE_STEP_ML = 10
 
         /** SET-16's default from v0.2.2 (D-097; was 10 g). */
         const val DEFAULT_LOW_STOCK_GRAMS = 15.0

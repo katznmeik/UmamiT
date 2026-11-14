@@ -57,8 +57,6 @@ internal fun SettingsDialogs(
 
         SettingsDialog.LowStock -> LowStockDialog(settings.lowStockGrams, actions.setLowStock, onDismiss)
 
-        SettingsDialog.CupSize -> CupSizeDialog(settings.cupSizeMl, actions.setCupSize, onDismiss)
-
         SettingsDialog.ReminderInterval -> ReminderIntervalDialog(
             selected = settings.lowStockReminderInterval,
             onSelect = actions.setLowStockReminderInterval,
