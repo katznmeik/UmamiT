@@ -11,6 +11,15 @@
 
 ## Releases and plans
 
+### v0.7.0: released (2026-11-14)
+
+- **PO approval (2026-11-14, in the session; D-115 „Approval"):** asked for the result on `v0.7.0-rc.3`, the PO answered „All changes approved": every rc.3 item of checklist 09 §4 „v0.7.0" passed, and Claude's rc.3 defaults 2–5 stand as built. No rc.4.
+- **Version:** `umamit.version=0.7.0` (versionCode 70099) in `b3897df9`; CI green on it (run 43595619900, incl. both emulator jobs). No local gate on the bump (CI is the full gate; the rc.3 code had GATE PASS).
+- PR #266 merged into `main` with a merge commit (`f3582466`); CI green on it (run 43597854068).
+- **Accuracy on `f3582466` (09 §4a, API 36, 50 steps), all PASS:** standard (run 43597857819), two-brews (run 43597862600), alongside (run 43597860120, attempt 2; attempt 1 stopped at the test's setup guard, 14 s to screen-off on a slow emulator, before any step was measured).
+- **Release:** run 43608440667, [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) from `main` `f3582466` (versionCode 70099, APK SHA-256 `dc0a09a5…9557`), certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`.
+- #255–#263 and #268–#277 closed by the merge, #264 after the release. Working branch restarted from `main`.
+
 ### v0.7.0: the PO's review of rc.1 and rc.2, rc.3 (2026-11-13/14)
 
 - **PO review of rc.1:** ten points on the checklist and the design review, not an approval: what a „Tasse" is, a per-tea donut, a more compact and foldable Überblick, Bewertungen rethought, Verbrauch with the value drunk, a custom month range, separate tea and brewing ratings, the Knapp chip losing the grams, transitions that are not smooth (worst after unlocking into the app).
@@ -577,6 +586,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-14 | **v0.7.0 done:** the PO reviewed rc.2 (all but „Tassen") → D-115 Amendment 2 (V1–V9, volume instead of cups), #274/#275/#277, `v0.7.0-rc.3` (70003); the PO approved rc.3 („All changes approved"); 0.7.0 bump, #266 merged (`f3582466`), all three accuracy variants PASS, `v0.7.0` released (70099, certificate verified); #264 closed. Next: the v0.7.1 specify session (D-116). |
 | 2026-11-13/14 | **v0.7.0 rc.2:** the PO reviewed rc.1 with ten points (no approval); grilled in four rounds (R1–R16) into D-115 Amendment 1 and D-116 (v0.7.1: split rating, transition audit; cleanup → v0.7.2); specs 02/03/05/09/11 updated; tickets #268–#273 built at T2 (one detekt fix at T3), one T3 review (12 findings, all fixed); full local gate PASS and CI green; `v0.7.0-rc.2` (70002) from `ccc57917`. A container restart lost one implementer run (resumed from its worktree); PR CI had not run while #266 conflicted with `main` (merged `main` in). |
 | 2026-11-13 | **v0.7.0 specified:** the PO answered the Statistik grilling in five rounds of options (Q1–Q20, D-115); 02 §12 INS-01–INS-08, SCR-18, 05 §6, 09, 11, 12 written; spec #255, tickets #256–#264, plan `docs/plans/v0.7.0.md`, waiting for the PO's approval. |
 | 2026-11-13 | **v0.6.1 done:** PO approved rc.1 („Approve everything": checklist and the seven design-review points; D-114 „Approval"; no rc.2); full local gate, CI and all three accuracy variants PASS on `87dc394e`; #252 merged (`22b84788`), `v0.6.1` released (versionCode 60199, certificate verified); #240–#251 closed. Next: Statistik (v0.7.0), its specify session. |
