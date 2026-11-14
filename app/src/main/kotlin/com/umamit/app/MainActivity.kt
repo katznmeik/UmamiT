@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
             catalogRefreshRequests.restore(savedInstanceState)
             startRequests.restore(savedInstanceState)
         }
-        val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
+        val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope, lifecycle)
         val collectionSegments = SettingsCollectionSegments(settings, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
