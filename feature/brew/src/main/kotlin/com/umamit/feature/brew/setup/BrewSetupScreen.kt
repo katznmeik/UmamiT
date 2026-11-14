@@ -27,8 +27,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -59,6 +61,7 @@ import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.RecipeCheckNote
 import com.umamit.core.ui.StockSheet
+import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.brew.R
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
@@ -66,6 +69,7 @@ import com.umamit.feature.brew.steps.StepsSheet
 import com.umamit.feature.brew.steps.StepsSheetInput
 import com.umamit.feature.brew.steps.StepsSheetStep
 import com.umamit.feature.brew.steps.rememberStepsSheetState
+import com.umamit.feature.brew.timer.TimerBandBitmap
 import com.umamit.feature.brew.timer.label
 import java.util.Locale
 
@@ -100,6 +104,11 @@ fun BrewSetupScreen(
     modifier: Modifier = Modifier,
     actions: BrewSetupActions = BrewSetupActions(),
 ) {
+    // The first arrival of the setup fades in with `fade` instead of popping in part-way through the push (A-12).
+    val arrival = Modifier.fadeInOnArrival(arrived = state != BrewSetupUiState.Loading)
+    // The timer's band, decoded off the main thread while the setup shows (setup → timer, NFR-PERF-12).
+    val resources = LocalResources.current
+    LaunchedEffect(resources) { TimerBandBitmap.preload(resources) }
     ScreenScaffold(
         title = stringResource(R.string.brew_setup_title),
         modifier = modifier,
@@ -122,18 +131,19 @@ fun BrewSetupScreen(
             BrewSetupUiState.NotFound -> EmptyState(
                 title = stringResource(R.string.brew_setup_not_found_title),
                 body = stringResource(R.string.brew_setup_not_found_body),
+                modifier = arrival,
             )
 
-            is BrewSetupUiState.Ready -> SetupContent(state, actions)
+            is BrewSetupUiState.Ready -> SetupContent(state, actions, arrival)
         }
     }
 }
 
 @Composable
-private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupActions) {
+private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupActions, modifier: Modifier = Modifier) {
     val steps = rememberAlertGate(state.alertKey)
     val stock = rememberAlertGate(state.alertKey)
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()) {
         TeaHeader(
             state,
             onStock = stock::open,
@@ -200,11 +210,10 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
         StockSheet(
             currentGrams = state.stockGrams ?: 0.0,
             sessionLeafGrams = state.sessionLeafGrams,
-            onSave = { grams ->
-                actions.correctStock(grams)
-                stock.close()
-            },
+            // Saved at once; the sheet then slides out and closes itself, like after a drag (A-13).
+            onSave = actions.correctStock,
             onDismissRequest = stock::close,
+            hideOnClose = true,
         )
     }
     // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).

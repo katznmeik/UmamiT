@@ -144,9 +144,11 @@ fun TeaPickerSheet(
         modifier = Modifier.testTag(TEA_PICKER_TAG),
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
+        // The window's first frame holds only the sheet, below the screen; its content follows a frame later.
+        val contentReady = rememberSheetContentReady(reduceMotion)
         // The snackbar overlays the end of the sheet, above the navigation bar.
         Box {
-            PickerContent(state, onQueryChange, onPickTea, onQuickTimer, onCatalog, onRemoveTea)
+            if (contentReady) PickerContent(state, onQueryChange, onPickTea, onQuickTimer, onCatalog, onRemoveTea)
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier

@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -18,6 +19,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.Freshness
@@ -100,6 +102,34 @@ class TeaPickerSheetTest {
 
         assertThat(picked).containsExactly("h")
         assertThat(quick).isEqualTo(1)
+    }
+
+    @Test
+    fun `the content follows the window's first frame, and the sheet still slides in to its full height`() {
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            UmamiTheme(reduceMotion = false) {
+                TeaPickerSheet(
+                    state = TeaPickerUiState(all = listOf(hisui, tanabata), loading = false),
+                    onQueryChange = {},
+                    onPickTea = {},
+                    onQuickTimer = {},
+                    onDismissRequest = {},
+                )
+            }
+        }
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("Tee wählen").assertDoesNotExist()
+
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+        val early = compose.onNodeWithText("Tee wählen").getUnclippedBoundsInRoot().top
+        compose.mainClock.advanceTimeBy(SLIDE_MS)
+        val settled = compose.onNodeWithText("Tee wählen").getUnclippedBoundsInRoot().top
+
+        // Not a snap: the sheet was still low when its content came, and moved up to where it settles.
+        assertThat(early).isGreaterThan(settled + 100.dp)
+        compose.onNodeWithText("Aus dem Katalog").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -342,3 +372,6 @@ class TeaPickerSheetTest {
         assertThat(removedTeas).containsExactly("m")
     }
 }
+
+/** Longer than Material's sheet slide. */
+private const val SLIDE_MS = 2_000L
