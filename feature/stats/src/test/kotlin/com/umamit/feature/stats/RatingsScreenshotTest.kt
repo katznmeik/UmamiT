@@ -13,6 +13,7 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.domain.stats.RatingsStats
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,12 +41,17 @@ class RatingsScreenshotTest(private val dark: Boolean, private val fontScale: Fl
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, stats: RatingsStats) {
+    private fun capture(name: String, stats: RatingsStats, rankingBy: StatsRankingBy = StatsRankingBy.TEA) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             Themed {
-                RatingsTab(TabFigures(StatsRange.DAYS_90, stats), rememberScrollState(), onOpenTea = {
-                }, thumbnail = { null })
+                RatingsTab(
+                    TabFigures(StatsRange.DAYS_90, stats),
+                    rememberScrollState(),
+                    onOpenTea = {},
+                    rankingBy = rankingBy,
+                    thumbnail = { null },
+                )
             }
         }
         compose.waitForIdle()
@@ -59,6 +65,12 @@ class RatingsScreenshotTest(private val dark: Boolean, private val fontScale: Fl
 
     @Test
     fun withData() = capture("data", RatingsFixtures.withData)
+
+    @Test
+    fun withDataByZubereitung() = capture("data_brewing", RatingsFixtures.withData, StatsRankingBy.BREWING)
+
+    @Test
+    fun onlyZubereitungRatedOnTee() = capture("only_brewing", RatingsFixtures.onlyBrewing)
 
     @Test
     fun withoutRatings() = capture("unrated_plain", RatingsFixtures.withoutRatings)

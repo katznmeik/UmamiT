@@ -5,6 +5,7 @@ import com.umamit.core.domain.collection.LiterAverage
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StockLevel
 import java.time.Clock
 import java.time.Instant
@@ -67,16 +68,17 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
     fun ratings(range: StatsRange, custom: MonthSpan? = null): RatingsStats {
         val window = window(range, custom)
         val inRange = sessions.filter { it.day in window }
-        val rated = inRange.filter { it.session.rating != null }
         val names = teaNames()
         val teas = input.teas.associateBy { it.id }
         return RatingsStats(
-            ratedCount = rated.size,
+            ratedCount = inRange.count { it.session.rating != null || it.session.brewingRating != null },
             sessionCount = inRange.size,
-            teaRanking = teaRanking(rated, names, teas),
-            newlyDiscovered = newlyDiscovered(sessions, rated, window, names, teas),
-            ratingPerPeriod = ratingPerPeriod(window, rated),
-            bestRecipes = bestRecipes(rated, names, teas),
+            teaRanking = teaRanking(inRange, StatsRankingBy.TEA, names, teas),
+            brewingRanking = teaRanking(inRange, StatsRankingBy.BREWING, names, teas),
+            newlyDiscovered = newlyDiscovered(sessions, inRange, window, names, teas),
+            ratingPerPeriod = ratingPerPeriod(window, inRange, StatsRankingBy.TEA),
+            brewingRatingPerPeriod = ratingPerPeriod(window, inRange, StatsRankingBy.BREWING),
+            bestRecipes = bestRecipes(inRange, names, teas),
         )
     }
 
@@ -137,10 +139,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
 }
 
 /** A session with its day and local start time in its own zone, and its volume in ml. */
-internal class DatedSession(val session: StatsSession, val day: LocalDate, val time: LocalTime, val volumeMl: Long) {
-    /** The rating; only read on rated sessions. */
-    val rating: Double get() = session.rating ?: 0.0
-}
+internal class DatedSession(val session: StatsSession, val day: LocalDate, val time: LocalTime, val volumeMl: Long)
 
 /** One value per period of [window], folded from the sessions in it. */
 internal fun <T> perPeriod(

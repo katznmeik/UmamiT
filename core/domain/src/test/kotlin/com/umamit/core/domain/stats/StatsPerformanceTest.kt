@@ -31,6 +31,7 @@ class StatsPerformanceTest {
             profileId = "r${index % 3}",
             profileName = "Rezept ${index % 3}",
             rating = if (index % 2 == 0) 1.0 + index % 9 * 0.5 else null,
+            brewingRating = if (index % 3 != 0) 1.0 + index % 7 * 0.5 else null,
             leafGrams = 5.0,
             costCents = if (index % 3 == 0) 120L else null,
             steps = listOf(

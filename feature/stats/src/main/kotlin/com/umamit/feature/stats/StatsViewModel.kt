@@ -13,6 +13,7 @@ import com.umamit.core.domain.stats.RatingsStats
 import com.umamit.core.domain.stats.StatsCalculator
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StatsTab
 import com.umamit.core.model.UserSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -150,6 +151,12 @@ class StatsViewModel @Inject constructor(
     val ratings: StateFlow<TabFigures<RatingsStats>?> =
         figures { calculator, range, custom -> calculator.ratings(range, custom) }
 
+    /** The Tee-Rangliste's switch (INS-02, D-117 Q9): *Tee* the first time, then the last choice. */
+    val rankingBy: StateFlow<StatsRankingBy> = settings.settings
+        .map { it.statsRankingBy }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), StatsRankingBy.TEA)
+
     /** *Verbrauch*'s figures with their range; null until the first read. */
     val consumption: StateFlow<TabFigures<ConsumptionStats>?> =
         figures { calculator, range, custom -> calculator.consumption(range, custom) }
@@ -174,6 +181,9 @@ class StatsViewModel @Inject constructor(
     fun setFolded(key: String, folded: Boolean) = write {
         it.copy(statsFolded = if (folded) it.statsFolded + key else it.statsFolded - key)
     }
+
+    /** The Tee-Rangliste's switch, remembered across app starts (INS-02, D-117 Q9). */
+    fun selectRankingBy(by: StatsRankingBy) = write { it.copy(statsRankingBy = by) }
 
     /** The tab shown, remembered across app starts (INS-07). */
     fun selectTab(tab: StatsTab) = write { it.copy(statsTab = tab) }

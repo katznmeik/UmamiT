@@ -121,6 +121,8 @@ fun StatsRoute(
                 figures = viewModel.ratings.collectAsStateWithLifecycle().value,
                 scrollState = scrollState,
                 onOpenTea = onOpenTea,
+                rankingBy = viewModel.rankingBy.collectAsStateWithLifecycle().value,
+                onRankingByChange = viewModel::selectRankingBy,
             )
 
             StatsTab.CONSUMPTION -> ConsumptionTab(

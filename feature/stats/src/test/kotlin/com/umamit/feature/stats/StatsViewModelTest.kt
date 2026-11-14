@@ -7,6 +7,7 @@ import com.umamit.core.data.ObserveStats
 import com.umamit.core.domain.stats.StatsSession
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StatsTab
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeClock
@@ -201,6 +202,23 @@ class StatsViewModelTest {
         // The range arrives with the figures it belongs to, never ahead of them.
         val after = vm.overview.first { it?.stats?.sessionCount == 1 }
         assertThat(after!!.range).isEqualTo(StatsRange.DAYS_30)
+    }
+
+    @Test
+    fun `the ranking switch starts on Tee and is written and restored`() = runTest {
+        sessions(session("a", daysAgo = 1))
+        val vm = viewModel()
+        keepAlive(vm)
+        vm.rankingBy.onEach { }.launchIn(backgroundScope)
+        assertThat(vm.rankingBy.value).isEqualTo(StatsRankingBy.TEA)
+
+        vm.selectRankingBy(StatsRankingBy.BREWING)
+
+        assertThat(settings.settings.first().statsRankingBy).isEqualTo(StatsRankingBy.BREWING)
+        assertThat(vm.rankingBy.first { it == StatsRankingBy.BREWING }).isEqualTo(StatsRankingBy.BREWING)
+        val restored = viewModel()
+        restored.rankingBy.onEach { }.launchIn(backgroundScope)
+        assertThat(restored.rankingBy.first { it == StatsRankingBy.BREWING }).isEqualTo(StatsRankingBy.BREWING)
     }
 
     @Test

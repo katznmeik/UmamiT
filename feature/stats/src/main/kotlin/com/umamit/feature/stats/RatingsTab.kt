@@ -1,8 +1,13 @@
 package com.umamit.feature.stats
 
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -16,6 +21,9 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.theme.UmamiSpacing
@@ -25,6 +33,7 @@ import com.umamit.core.domain.stats.NewTea
 import com.umamit.core.domain.stats.RatingsStats
 import com.umamit.core.domain.stats.TeaRatingRow
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.feature.stats.charts.ChartNumbers
 import com.umamit.feature.stats.charts.RatingLineChart
 import com.umamit.feature.stats.charts.RatingPoint
@@ -36,16 +45,22 @@ const val RATINGS_RANKING_ROW_TAG = "ratings_ranking_row"
 const val RATINGS_NEW_ROW_TAG = "ratings_new_row"
 const val RATINGS_RANKING_MORE_TAG = "ratings_ranking_more"
 const val RATINGS_NEW_MORE_TAG = "ratings_new_more"
+const val RATINGS_SWITCH_TEA_TAG = "ratings_switch_tea"
+const val RATINGS_SWITCH_BREWING_TAG = "ratings_switch_brewing"
+const val RATINGS_NONE_OF_KIND_TAG = "ratings_none_of_kind"
 
 private const val RANKING_LIMIT = 10
 private const val NEW_LIMIT = 5
 private const val LIST_LIMIT = 5
+private val SWITCH_SEGMENT_PADDING = 8.dp
 
 /**
  * *Bewertungen* (INS-02, D-115 A1 R4): the Tee-Rangliste (top 10, „Alle anzeigen"), Neu entdeckt (5, hidden under
  * *Gesamt*), the rating over the range's periods and the best recipe per tea; „In diesem Zeitraum nichts bewertet"
- * above Neu entdeckt when nothing was rated. [figures] are null until the first read and change in place with
- * their range; [onOpenTea] opens a collection tea's detail (SCR-09), never called for a deleted tea. [thumbnail]
+ * above Neu entdeckt when nothing of either kind was rated. From v0.7.1 (D-117) the Tee-Rangliste has a switch *Tee ·
+ * Zubereitung* ([rankingBy], remembered by the caller; [onRankingByChange] writes it), Neu entdeckt shows the *Tee* Ø,
+ * the history draws both ratings and the best recipe compares the *Zubereitung* Ø. [figures] are null until the first
+ * read and change in place with their range; [onOpenTea] opens a collection tea's detail (SCR-09), never called for a deleted tea. [thumbnail]
  * loads a tea's cover photo (tests pass a placeholder).
  */
 @Composable
@@ -54,6 +69,8 @@ fun RatingsTab(
     scrollState: ScrollState,
     onOpenTea: (teaId: String) -> Unit,
     modifier: Modifier = Modifier,
+    rankingBy: StatsRankingBy = StatsRankingBy.TEA,
+    onRankingByChange: (StatsRankingBy) -> Unit = {},
     thumbnail: @Composable (File) -> Painter? = { rememberAsyncImagePainter(it) },
 ) {
     StatsTabColumn(scrollState, modifier) {
@@ -65,16 +82,20 @@ fun RatingsTab(
         if (unrated && !noSessions) {
             NoRating()
         } else {
-            val top = stats.teaRanking.firstOrNull()
+            val ranking = stats.ranking(rankingBy)
+            val top = ranking.firstOrNull()
             StatsSection(
                 key = "ratings.ranking",
                 title = stringResource(R.string.stats_ratings_ranking),
-                summary = top?.let {
-                    stringResource(R.string.stats_chart_stars_value, ChartNumbers.rating(it.average))
-                },
+                summary = top?.teaName,
                 isEmpty = noSessions,
             ) {
-                RankingRows(stats.teaRanking, figures.rangeKey, onOpenTea, thumbnail)
+                RankingSwitch(rankingBy, onRankingByChange)
+                if (ranking.isEmpty()) {
+                    NoneOfKind()
+                } else {
+                    RankingRows(ranking, figures.rangeKey to rankingBy, onOpenTea, thumbnail)
+                }
             }
         }
         if (range != StatsRange.ALL) {
@@ -105,6 +126,12 @@ fun RatingsTab(
                 title = stringResource(R.string.stats_ratings_best_recipe),
                 summary = stats.bestRecipes.first().teaName,
             ) {
+                Text(
+                    text = stringResource(R.string.stats_ratings_best_recipe_by),
+                    modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 BestRecipeRows(stats.bestRecipes.take(LIST_LIMIT), onOpenTea, thumbnail)
             }
         }
@@ -118,6 +145,59 @@ private fun NoRating() {
         modifier = Modifier
             .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Medium)
             .testTag(RATINGS_NO_RATING_TAG),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** The Tee-Rangliste's two-segment switch *Tee · Zubereitung* (D-117 Q5, Q9): the range selector's style, smaller. */
+@Composable
+private fun RankingSwitch(rankingBy: StatsRankingBy, onChange: (StatsRankingBy) -> Unit) {
+    val options = StatsRankingBy.entries
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+    ) {
+        options.forEachIndexed { index, option ->
+            val brewing = option == StatsRankingBy.BREWING
+            val description = stringResource(
+                if (brewing) {
+                    R.string.stats_ratings_switch_brewing_description
+                } else {
+                    R.string.stats_ratings_switch_tea_description
+                },
+            )
+            SegmentedButton(
+                selected = option == rankingBy,
+                onClick = { onChange(option) },
+                shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                modifier = Modifier.testTag(if (brewing) RATINGS_SWITCH_BREWING_TAG else RATINGS_SWITCH_TEA_TAG),
+                contentPadding = PaddingValues(horizontal = SWITCH_SEGMENT_PADDING),
+                icon = {},
+            ) {
+                Text(
+                    text = stringResource(
+                        if (brewing) R.string.stats_ratings_switch_brewing else R.string.stats_ratings_switch_tea,
+                    ),
+                    modifier = Modifier.semantics { contentDescription = description },
+                    maxLines = 1,
+                    softWrap = false,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+    }
+}
+
+/** With ratings of only the other kind in the range (D-117). */
+@Composable
+private fun NoneOfKind() {
+    Text(
+        text = stringResource(R.string.stats_ratings_none_of_kind),
+        modifier = Modifier
+            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small)
+            .testTag(RATINGS_NONE_OF_KIND_TAG),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -191,13 +271,14 @@ private fun NewRows(
 @Composable
 private fun HistoryChart(stats: RatingsStats, range: StatsRange, rangeKey: Any, title: String) {
     val resources = LocalResources.current
-    val points = remember(stats.ratingPerPeriod) {
-        stats.ratingPerPeriod.map {
-            val label = it.period.label(resources)
+    val points = remember(stats.ratingPerPeriod, stats.brewingRatingPerPeriod) {
+        stats.ratingPerPeriod.mapIndexed { index, point ->
+            val label = point.period.label(resources)
             RatingPoint(
                 label = label,
-                rating = it.value,
-                fullLabel = it.period.fullLabel(label),
+                rating = point.value,
+                fullLabel = point.period.fullLabel(label),
+                brewingRating = stats.brewingRatingPerPeriod.getOrNull(index)?.value,
             )
         }
     }

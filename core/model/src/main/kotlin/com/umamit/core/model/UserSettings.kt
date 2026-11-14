@@ -80,6 +80,8 @@ data class UserSettings(
     val statsTab: StatsTab = StatsTab.OVERVIEW,
     /** INS-08 (v0.7.0-rc.2, D-115 Amendment 1, R8): the keys of the folded Statistik sections (05 §6); no open ones. */
     val statsFolded: Set<String> = emptySet(),
+    /** INS-02, SCR-18 (v0.7.1, D-117): the Tee-Rangliste's switch *Tee · Zubereitung* used last; *Tee* by default. */
+    val statsRankingBy: StatsRankingBy = StatsRankingBy.TEA,
 ) {
     companion object {
         const val DEFAULT_ALERT_SOUND = "klangschale"

@@ -40,6 +40,7 @@ internal object StatsFixtures {
         zone: ZoneId = BERLIN,
         styleKey: String? = null,
         waterMl: Int? = null,
+        brewingRating: Double? = null,
     ) = StatsSession(
         id = "s${counter++}",
         teaId = teaId,
@@ -55,6 +56,7 @@ internal object StatsFixtures {
         steps = steps,
         styleKey = styleKey,
         waterMl = waterMl,
+        brewingRating = brewingRating,
     )
 
     fun tea(

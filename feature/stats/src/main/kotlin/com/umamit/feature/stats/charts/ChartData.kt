@@ -10,12 +10,16 @@ data class PeriodValue(
     val fullLabel: String = label,
 )
 
-/** One period of a [RatingLineChart]: the average [rating] (1–5), or null when nothing was rated in it. */
+/**
+ * One period of a [RatingLineChart]: the average *Tee* [rating] and *Zubereitung* [brewingRating] (1–5), each null
+ * when nothing of that kind was rated in it (D-117).
+ */
 data class RatingPoint(
     val label: String,
     val rating: Double?,
     /** The period as the value label and TalkBack name it; defaults to [label]. */
     val fullLabel: String = label,
+    val brewingRating: Double? = null,
 )
 
 /**

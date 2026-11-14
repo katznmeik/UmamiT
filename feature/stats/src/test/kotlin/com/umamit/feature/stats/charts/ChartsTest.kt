@@ -198,16 +198,18 @@ class ChartsTest {
         val points = listOf(
             RatingPoint("KW 41", 4.0),
             RatingPoint("KW 42", null),
-            RatingPoint("KW 43", 4.5),
+            RatingPoint("KW 43", 4.5, brewingRating = 3.8),
         )
         show { RatingLineChart(points, "Bewertung im Verlauf") }
         val description = chart().fetchSemanticsNode().config[SemanticsProperties.ContentDescription].joinToString()
-        assertThat(description).isEqualTo("Bewertung im Verlauf. KW 41: 4,0 ★. KW 42: keine Bewertung. KW 43: 4,5 ★.")
+        assertThat(
+            description,
+        ).isEqualTo("Bewertung im Verlauf. KW 41: Tee 4,0. KW 42: keine Bewertung. KW 43: Tee 4,5, Zubereitung 3,8.")
         chart().performTouchInput {
             // 4.5 of 1–5 sits at 7/8 of the plot's height; the plot's bottom band holds the x labels.
             click(Offset(width * 2.5f / 3, 0.145f * height))
         }
-        compose.onNodeWithText("KW 43 · 4,5 ★").assertExists()
+        compose.onNodeWithText("KW 43 · Tee 4,5 ★ · Zubereitung 3,8 ★").assertExists()
     }
 
     @Test

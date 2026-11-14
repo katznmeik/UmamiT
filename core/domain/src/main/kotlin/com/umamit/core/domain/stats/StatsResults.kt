@@ -2,6 +2,7 @@ package com.umamit.core.domain.stats
 
 import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.domain.collection.LiterAverage
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StockLevel
 import java.io.File
 import java.time.DayOfWeek
@@ -97,13 +98,18 @@ enum class DayPart {
 /**
  * The tab *Bewertungen* (INS-02, D-115 Amendment 1) for one range.
  *
- * @property ratedCount „18 von [sessionCount] Sitzungen bewertet"; 0 reads „In diesem Zeitraum nichts bewertet".
- * @property teaRanking the Tee-Rangliste (R4, R11): every tea with at least one rating in the range, best average
- * first, ties by more ratings, then by name. All rows; the screen shows the first 10.
- * @property newlyDiscovered „Neu entdeckt" (R4): the teas whose first finished session ever falls in the range,
- * newest first; always empty under *Gesamt*.
- * @property ratingPerPeriod the line: the average per period, null for a period without a rating (the line breaks).
- * @property bestRecipes up to 5 teas with ≥ 2 recipes rated ≥ 2× each, the largest gap first; empty hides it.
+ * @property ratedCount the sessions with a rating of either kind; 0 reads „In diesem Zeitraum nichts bewertet"
+ * (D-117: no rating of either kind).
+ * @property teaRanking the Tee-Rangliste by the *Tee* rating (R4, R11): every tea with at least one *Tee* rating in
+ * the range, best average first, ties by more ratings, then by name. All rows; the screen shows the first 10.
+ * @property brewingRanking the same by the *Zubereitung* rating (D-117 Q5), the switch's other segment.
+ * @property newlyDiscovered „Neu entdeckt" (R4, D-117 Q8): the teas whose first finished session ever falls in the
+ * range, newest first, with their *Tee* average; always empty under *Gesamt*.
+ * @property ratingPerPeriod the *Tee* line: the average per period, null for a period without a *Tee* rating (the
+ * line breaks).
+ * @property brewingRatingPerPeriod the *Zubereitung* line (D-117 Q6), with its own gaps; same periods.
+ * @property bestRecipes up to 5 teas with ≥ 2 recipes with a *Zubereitung* rating ≥ 2× each (D-117 Q7), the largest
+ * gap first; empty hides it.
  */
 data class RatingsStats(
     val ratedCount: Int,
@@ -112,7 +118,15 @@ data class RatingsStats(
     val newlyDiscovered: List<NewTea>,
     val ratingPerPeriod: List<PeriodValue<Double?>>,
     val bestRecipes: List<BestRecipeTea>,
-)
+    val brewingRanking: List<TeaRatingRow> = emptyList(),
+    val brewingRatingPerPeriod: List<PeriodValue<Double?>> = emptyList(),
+) {
+    /** The Tee-Rangliste's rows for the switch's choice [by]. */
+    fun ranking(by: StatsRankingBy): List<TeaRatingRow> = when (by) {
+        StatsRankingBy.TEA -> teaRanking
+        StatsRankingBy.BREWING -> brewingRanking
+    }
+}
 
 /**
  * „4,6 ★ · 5×" in the Tee-Rangliste: [average] over the tea's rated sessions in the range, rounded to one decimal
