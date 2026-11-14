@@ -1,6 +1,7 @@
 package com.umamit.app
 
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.SeekableTransitionState
@@ -9,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -215,8 +217,6 @@ internal fun UmamitApp(
     // Back leaves a tab's own stack first (its NavHost registers later and wins), then returns to Start,
     // with a predictive-back preview of the tab transition.
     val transitionState = remember { SeekableTransitionState(selected) }
-    // The tabs the user left with the tab bar or back stay composed (A-10).
-    val tabKeeper = remember { TabKeeper(selected) }
     val transition = rememberTransition(transitionState, label = "tab")
     LaunchedEffect(selected) {
         if (transitionState.currentState != selected || transitionState.targetState != selected) {
@@ -226,7 +226,6 @@ internal fun UmamitApp(
     // The refresh notification's shell leaves on back, to what was shown before (D-097).
     PredictiveBackHandler(enabled = opening.backReturnsToStart(selected)) { progress ->
         try {
-            tabKeeper.keepLeaving()
             progress.collect { transitionState.seekTo(it.progress, Tab.Start) }
             // Back from the picker's catalog flow returns to the picker.
             brewFlow.leaveFor(Tab.Start)
@@ -245,7 +244,6 @@ internal fun UmamitApp(
                     onClick = {
                         if (tab != selected) {
                             brewFlow.leaveFor(tab)
-                            tabKeeper.keepLeaving()
                             select(tab)
                         } else {
                             reselection.reselect(tab, controllers.getValue(tab))
@@ -274,15 +272,12 @@ internal fun UmamitApp(
                     .consumeWindowInsets(insetBelowContent)
                     .consumeCoveredBelow(),
             ) {
-                // Fade-through: the old tab leaves, then the new one arrives (03 §3.6 `tabSwitch`); a visited tab
-                // stays composed, so a switch only fades layers (A-10, NFR-PERF-12).
-                KeptTabs(
-                    transition = transition,
-                    tabs = Tab.entries,
-                    inSpec = motion.tabSwitchIn(),
-                    outSpec = motion.tabSwitchOut(),
-                    keeper = tabKeeper,
+                transition.AnimatedContent(
                     modifier = Modifier.fillMaxSize(),
+                    transitionSpec = {
+                        // Fade-through: the old tab leaves, then the new one arrives (03 §3.6 `tabSwitch`).
+                        fadeIn(motion.tabSwitchIn()) togetherWith fadeOut(motion.tabSwitchOut())
+                    },
                 ) { tab ->
                     stateHolder.SaveableStateProvider(tab) {
                         TabHost(
