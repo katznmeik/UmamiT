@@ -3,6 +3,7 @@ package com.umamit.app
 import android.content.ComponentName
 import android.content.pm.ActivityInfo
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -57,7 +58,13 @@ class TimerIconTimingTest {
                     journalSources = testJournalSources(),
                     alertKey = alertKey,
                     settings = testSettingsScreens(),
-                    startScreen = { tab -> Button(onClick = tab.navigation.openTimer) { Text("Zum Timer") } },
+                    startScreen = { tab ->
+                        Column {
+                            Button(onClick = tab.navigation.openTimer) { Text("Zum Timer") }
+                            Button(onClick = tab.navigation.openQuickTimer) { Text("Schnell") }
+                        }
+                    },
+                    quickTimerScreen = { _, openTimer -> Button(onClick = openTimer) { Text("QUICK-START") } },
                     timerScreen = { onClose, _, _, _ ->
                         closeTimer = onClose
                         Text("TIMER")
@@ -84,6 +91,20 @@ class TimerIconTimingTest {
         assertDarkIcons(false, "80 ms into the exit fade")
         compose.mainClock.advanceTimeBy(60)
         assertDarkIcons(true, "past the exit fade's midpoint")
+    }
+
+    @Test
+    fun `from the quick timer into the timer the light icons never change (SCR-07 to SCR-05)`() {
+        show()
+        compose.onNodeWithText("Schnell").performClick()
+        compose.mainClock.advanceTimeBy(SETTLE_MS)
+        assertDarkIcons(false, "the quick timer")
+
+        compose.onNodeWithText("QUICK-START").performClick()
+        compose.mainClock.advanceTimeBy(FRAME_MS * 3)
+        assertDarkIcons(false, "the timer's fade, early")
+        compose.mainClock.advanceTimeBy(SETTLE_MS)
+        assertDarkIcons(false, "the timer")
     }
 
     @Test

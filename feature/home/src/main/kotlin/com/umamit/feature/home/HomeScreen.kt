@@ -85,9 +85,7 @@ fun HomeScreen(
     ) {
         // Start arrives in one piece (A-03, 03 §3.6): nothing below the title until its state is read, then the
         // whole body fades in at once, so no card pushes the lists down.
-        Column(modifier = Modifier.fillMaxWidth().fadeInOnArrival(arrived = !state.loading)) {
-            if (!state.loading) HomeBody(state, nowElapsedMs, actions)
-        }
+        HomeBody(state, nowElapsedMs, actions)
         // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).
         val question = state.question?.takeIf { state.alertKey == null }
         if (question != null) {
@@ -101,45 +99,47 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeBody(state: HomeUiState, nowElapsedMs: () -> Long, actions: HomeActions) {
-    state.reliabilityProblem?.let { problem ->
-        ReliabilityBanner(
-            message = stringResource(
-                when (problem) {
-                    ReliabilityProblem.Unreliable -> R.string.home_reliability
-                    ReliabilityProblem.AlarmVolumeOff -> R.string.home_reliability_alarm_volume
-                },
-            ),
-            onFix = actions.fixReliability,
-            modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
-        )
-    }
-    // The empty state brings its own landscape; one is enough.
-    val empty = state.collectionEmpty
-    if (!empty) Header()
-    BrewCards(state, nowElapsedMs, actions)
-    QuickTimerEntry(actions.quickTimer)
-    if (empty) {
-        EmptyState(
-            title = stringResource(R.string.home_empty_title),
-            body = stringResource(R.string.home_empty_body),
-            actionLabel = stringResource(R.string.home_empty_action),
-            onAction = actions.openCatalog,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    } else {
-        // The single nudge slot (SCR-02): the low-stock card takes it before the other nudges.
-        state.lowStock?.let { card ->
-            LowStockNudge(
-                card = card,
-                onReorder = actions.reorder,
-                onHide = actions.hideLowStock,
-                modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
+private fun HomeBody(state: HomeUiState, nowElapsedMs: () -> Long, actions: HomeActions) =
+    Column(modifier = Modifier.fillMaxWidth().fadeInOnArrival(arrived = !state.loading)) {
+        if (state.loading) return@Column
+        state.reliabilityProblem?.let { problem ->
+            ReliabilityBanner(
+                message = stringResource(
+                    when (problem) {
+                        ReliabilityProblem.Unreliable -> R.string.home_reliability
+                        ReliabilityProblem.AlarmVolumeOff -> R.string.home_reliability_alarm_volume
+                    },
+                ),
+                onFix = actions.fixReliability,
+                modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
             )
         }
-        Lists(state, actions)
+        // The empty state brings its own landscape; one is enough.
+        val empty = state.collectionEmpty
+        if (!empty) Header()
+        BrewCards(state, nowElapsedMs, actions)
+        QuickTimerEntry(actions.quickTimer)
+        if (empty) {
+            EmptyState(
+                title = stringResource(R.string.home_empty_title),
+                body = stringResource(R.string.home_empty_body),
+                actionLabel = stringResource(R.string.home_empty_action),
+                onAction = actions.openCatalog,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            // The single nudge slot (SCR-02): the low-stock card takes it before the other nudges.
+            state.lowStock?.let { card ->
+                LowStockNudge(
+                    card = card,
+                    onReorder = actions.reorder,
+                    onHide = actions.hideLowStock,
+                    modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
+                )
+            }
+            Lists(state, actions)
+        }
     }
-}
 
 /**
  * *Aufguss fortsetzen* for the active brew (GEN-06), and *Aufguss starten* while fewer than two timers are

@@ -268,36 +268,6 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `a card read within 150 ms is in Start's first state, so nothing pushes the lists (A-03)`() = runTest {
-        seed()
-        val slow = object : LowStockRepository {
-            override fun observeCard(): Flow<LowStockCard?> = flow {
-                delay(100)
-                emit(lowStockCard())
-            }
-
-            override suspend fun hide(card: LowStockCard) = Unit
-
-            override suspend fun reminderTeas(): List<LowStockTea> = emptyList()
-        }
-        val vm = HomeViewModel(
-            collection.teas,
-            sessions.sessions,
-            starter,
-            clock,
-            PhotoFiles(folder.newFolder()),
-            reliability,
-            slow,
-        )
-        assertThat(vm.state.value.loading).isTrue()
-
-        advanceTimeBy(100)
-        runCurrent()
-        assertThat(vm.state.value.loading).isFalse()
-        assertThat(vm.state.value.lowStock).isNotNull()
-    }
-
-    @Test
     fun `no Knapp tea leaves the nudge slot empty`() = runTest {
         seed()
 

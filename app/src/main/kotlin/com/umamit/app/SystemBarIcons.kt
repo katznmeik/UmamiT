@@ -5,12 +5,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination.Companion.hasRoute
 import com.umamit.core.designsystem.motion.MotionTokens
 import com.umamit.core.designsystem.theme.UmamiTheme
 import kotlinx.coroutines.delay
@@ -57,52 +59,101 @@ internal fun SystemBarIcons(darkIcons: Boolean) {
 }
 
 /**
- * Whether the icons treat the timer as on top (D-117 build note A-16, amends D-069's timing): [timerShown] from the back
- * stack, but a change waits for the midpoint of the route's fade, so the icons flip when the dark timer is half in or
- * half out: 150 ms into `fade` when a route is pushed (setup → timer, or a screen above the timer), 100 ms into
- * `exitFade` when one is popped (timer → shell, or back to the timer); half those fades under reduce motion. The back
- * stack stays the one owner; only the moment changes.
+ * The icons of [darkIcons], with the timer's own transitions flipping them at the fade's midpoint (D-117 build note
+ * A-16, amends D-069's timing): when [timerShown] (from the back stack) changes, the icons keep what they showed until
+ * 150 ms into `fade` on a push (setup → timer, or a screen above the timer) or 100 ms into `exitFade` on a pop (timer →
+ * shell, or back to the timer); half the reduced fade under reduce motion. Every other change applies in its frame,
+ * and the back stack stays the one owner; only the moment changes. Between two timer surfaces (quick timer → timer)
+ * nothing changes to wait for.
  *
  * [immediate] flips at once, in that frame: an alert (`alertEnter`, rule 8), also one that comes while a flip waits,
  * and the timer opened from a notification, whose cover is dark at once.
  *
- * @param topEntryId the id of the back stack's top entry; [backStackIds] the ids of the whole back stack. A top entry
- *   that was in the back stack before the change came back by a pop; a new one was pushed.
+ * @param topEntryId the id of the back stack's top entry: one that was on top before came back by a pop (`exitFade`),
+ *   a new one was pushed (`fade`).
  */
 @Composable
-internal fun timerShownForIcons(
+internal fun timedDarkIcons(
+    darkIcons: Boolean,
     timerShown: Boolean,
     topEntryId: String?,
-    backStackIds: List<String>,
     immediate: Boolean,
 ): Boolean {
-    val motion = UmamiTheme.motion
-    val timing = remember { IconTiming(timerShown, backStackIds) }
-    timing.observe(timerShown, topEntryId, backStackIds, motion.reduceMotion)
-    var shown by remember { mutableStateOf(timerShown) }
-    LaunchedEffect(timerShown, immediate) {
-        if (!immediate && shown != timerShown) delay(timing.delayMs)
-        shown = timerShown
+    val reduceMotion = UmamiTheme.motion.reduceMotion
+    val timing = remember { IconTiming(timerShown, darkIcons) }
+    // Read here, so the end of a wait recomposes; the timing itself is plain state of this composition.
+    var settled by remember { mutableIntStateOf(0) }
+    timing.observe(timerShown, topEntryId, reduceMotion, settled)
+    if (immediate) timing.pending = false
+    val icons = if (timing.pending) timing.held else darkIcons
+    timing.lastIcons = icons
+    LaunchedEffect(timing.changes) {
+        if (timing.pending) {
+            delay(timing.delayMs)
+            timing.pending = false
+            settled++
+        }
     }
-    return if (immediate) timerShown else shown
+    return icons
 }
 
-/** The delay of the last change of the timer's place, from whether that change was a push or a pop. */
-private class IconTiming(private var lastShown: Boolean, private var lastIds: List<String>) {
+/** Whether a flip waits, what it holds meanwhile, and how long: from whether the timer's change was a push or a pop. */
+private class IconTiming(private var lastShown: Boolean, var lastIcons: Boolean) {
+    /** The entries that were on top so far: a pop returns to one of them. */
+    private val seen = mutableSetOf<String>()
+
     var delayMs: Long = 0L
         private set
+    var changes: Int = 0
+        private set
+    var pending: Boolean = false
+    private var lastSettled: Int = 0
+    var held: Boolean = lastIcons
+        private set
 
-    fun observe(timerShown: Boolean, topEntryId: String?, ids: List<String>, reduceMotion: Boolean) {
+    /** [settled] counts the waits that ended; read by the caller so their end recomposes. */
+    fun observe(timerShown: Boolean, topEntryId: String?, reduceMotion: Boolean, settled: Int) {
+        lastSettled = settled
         if (timerShown != lastShown) {
-            val pop = topEntryId != null && topEntryId in lastIds
+            val pop = topEntryId != null && topEntryId in seen
             val fadeMillis = when {
                 reduceMotion -> MotionTokens.REDUCED_FADE_MILLIS
                 pop -> MotionTokens.EXIT_MILLIS
                 else -> MotionTokens.STANDARD_MILLIS
             }
             delayMs = fadeMillis / 2L
+            held = lastIcons
+            pending = true
+            changes++
             lastShown = timerShown
         }
-        lastIds = ids
+        topEntryId?.let(seen::add)
     }
+}
+
+/**
+ * The root's icons for the [entry] on top (D-069, A-16). An [alert] and the notification's dark cover
+ * ([requestPending]) flip them at once.
+ */
+@Composable
+internal fun RootSystemBarIcons(
+    entry: NavBackStackEntry?,
+    timerShown: Boolean,
+    alert: String?,
+    requestPending: Boolean,
+) {
+    SystemBarIcons(
+        timedDarkIcons(
+            darkIcons = systemBarDarkIcons(
+                timerOnTop = timerShown,
+                quickTimerOnTop = entry?.destination?.hasRoute<QuickTimerRoute>() == true,
+                photoViewerOnTop = entry?.destination?.hasRoute<PhotoViewerRoute>() == true,
+                alerting = alert != null,
+                darkTheme = UmamiTheme.isDark,
+            ),
+            timerShown = timerShown,
+            topEntryId = entry?.id,
+            immediate = alert != null || requestPending,
+        ),
+    )
 }

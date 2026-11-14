@@ -107,43 +107,24 @@ fun JournalScreen(
     ) {
         // A list replaced after the route's hold cross-fades once (A-09); the first frame is drawn as it is.
         Box(modifier = Modifier.fillMaxSize().crossfadeOnChange(listChange)) {
-            JournalBody(
-                list, filter, onFilterChange, alerting, teaNameFallback, scrollToTopRequest, thumbnail,
-                onOpenTimer, onOpenSession,
-            )
+            when {
+                list == null -> Unit
+
+                list.isEmpty -> EmptyJournal()
+
+                else -> JournalContent(
+                    list = list,
+                    filter = filter,
+                    onFilterChange = onFilterChange,
+                    alerting = alerting,
+                    teaNameFallback = teaNameFallback,
+                    scrollToTopRequest = scrollToTopRequest,
+                    thumbnail = thumbnail,
+                    onOpenTimer = onOpenTimer,
+                    onOpenSession = onOpenSession,
+                )
+            }
         }
-    }
-}
-
-@Composable
-@Suppress("LongParameterList") // the screen's state and its callbacks, passed through
-private fun JournalBody(
-    list: JournalList?,
-    filter: JournalFilter,
-    onFilterChange: (JournalFilter) -> Unit,
-    alerting: Boolean,
-    teaNameFallback: String?,
-    scrollToTopRequest: Int,
-    thumbnail: @Composable (File) -> Painter?,
-    onOpenTimer: () -> Unit,
-    onOpenSession: (String) -> Unit,
-) {
-    when {
-        list == null -> Unit
-
-        list.isEmpty -> EmptyJournal()
-
-        else -> JournalContent(
-            list = list,
-            filter = filter,
-            onFilterChange = onFilterChange,
-            alerting = alerting,
-            teaNameFallback = teaNameFallback,
-            scrollToTopRequest = scrollToTopRequest,
-            thumbnail = thumbnail,
-            onOpenTimer = onOpenTimer,
-            onOpenSession = onOpenSession,
-        )
     }
 }
 

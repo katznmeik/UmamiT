@@ -535,24 +535,9 @@ internal fun UmamitRoot(
         }
     }
     // The bars' one owner (D-069), from the back stack: it changes when navigation starts, so screens
-    // overlapping in a crossfade never fight over it. Last, so it shifts no saveable key above.
-    // The timer's own transitions flip them at the fade's midpoint; an alert at once (A-16).
-    val backStack by navController.currentBackStack.collectAsStateWithLifecycle()
-    val timerShownForIcons = timerShownForIcons(
-        timerShown = timerShown,
-        topEntryId = entry?.id,
-        backStackIds = backStack.map { it.id },
-        immediate = alert != null || timerFirst.requestPending,
-    )
-    SystemBarIcons(
-        systemBarDarkIcons(
-            timerOnTop = timerShownForIcons,
-            quickTimerOnTop = entry?.destination?.hasRoute<QuickTimerRoute>() == true,
-            photoViewerOnTop = entry?.destination?.hasRoute<PhotoViewerRoute>() == true,
-            alerting = alert != null,
-            darkTheme = UmamiTheme.isDark,
-        ),
-    )
+    // overlapping in a crossfade never fight over it; the timer's own transitions flip them at the fade's midpoint
+    // (A-16). Last, so it shifts no saveable key above.
+    RootSystemBarIcons(entry, timerShown, alert, timerFirst.requestPending)
 }
 
 /**
