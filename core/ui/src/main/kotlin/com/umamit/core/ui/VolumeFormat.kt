@@ -16,16 +16,19 @@ object VolumeFormat {
      * [ml] as „750 ml" or „12,4 l": below 1 l the nearest 10 ml (never 0 for a non-zero volume), from 1 l litres to
      * one decimal, half up. The litre threshold is decided on the rounded value, so 995 ml reads „1,0 l".
      */
-    fun volume(ml: Long): String {
+    fun volume(ml: Long): String = parts(ml).let { "${it.first} ${it.second}" }
+
+    /** [volume] split into the number („12,4") and the unit („l" / „ml"), for a numeral with a smaller unit. */
+    fun parts(ml: Long): Pair<String, String> {
         val tens = (ml + TEN_HALF) / TEN * TEN
         return when {
-            ml <= 0L -> "0 ml"
+            ml <= 0L -> "0" to "ml"
 
-            tens < ML_PER_LITER -> "${maxOf(tens, TEN)} ml"
+            tens < ML_PER_LITER -> maxOf(tens, TEN).toString() to "ml"
 
             else -> {
                 val tenths = (ml + TENTH_LITER_HALF) / TENTH_LITER
-                "${tenths / TENTHS_PER_LITER},${tenths % TENTHS_PER_LITER} l"
+                "${tenths / TENTHS_PER_LITER},${tenths % TENTHS_PER_LITER}" to "l"
             }
         }
     }

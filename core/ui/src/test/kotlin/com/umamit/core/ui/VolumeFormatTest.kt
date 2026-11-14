@@ -25,4 +25,13 @@ class VolumeFormatTest {
         assertThat(VolumeFormat.volume(12_450)).isEqualTo("12,5 l")
         assertThat(VolumeFormat.volume(2_000)).isEqualTo("2,0 l")
     }
+
+    @Test
+    fun `parts splits the number from the unit with the same rounding (D-115 Amendment 2 V8)`() {
+        assertThat(VolumeFormat.parts(12_449)).isEqualTo("12,4" to "l")
+        assertThat(VolumeFormat.parts(746)).isEqualTo("750" to "ml")
+        assertThat(VolumeFormat.parts(5)).isEqualTo("10" to "ml")
+        assertThat(VolumeFormat.parts(995)).isEqualTo("1,0" to "l")
+        assertThat(VolumeFormat.parts(0)).isEqualTo("0" to "ml")
+    }
 }
