@@ -619,6 +619,54 @@ in the rc.2 review).**
   „Alle anzeigen" has no „weniger"; *Monate* bars scroll like *Gesamt*.
   Listed in `docs/design/review/v0.7.0/README.md` for the PO.
 
+**Amendment 2: the PO's review of `v0.7.0-rc.2` (PO, 2026-11-14; grilled
+in the session V1–V7 as options in two rounds; not an approval of rc.2).**
+Every other rc.2 change and the rc.2 defaults 2–8 are **approved** as built;
+default 1 (cups) is replaced below. The PO: „Tassen" are not informative
+because the PO's cups differ in size, so a default cup size does not show
+what was actually drunk.
+
+1. **V1, no „Tasse" as a unit anywhere:** Statistik and the tea detail count
+   **volume** (poured water) instead of cups. The setting *Tassengröße*
+   (SET-34, `cupSizeMl`) is **removed**. Replaces R2, R3 and the cup rule
+   of Amendment 1.
+2. **V2, € pro Liter:** „Ø € pro Tasse" becomes **„Ø 1,80 € pro Liter"**:
+   Σ `cost_cents` ÷ Σ poured litres of the priced sessions (GETRUNKEN and
+   the tea detail's average); the tea detail's estimate reads **„ca. 1,60 €
+   pro Liter (Rezept)"** (recipe leaf × price per gram ÷ recipe water × its
+   non-rinse steps). Cents rounded half up.
+3. **V3, format:** below 1 l in **ml**, rounded to the nearest **10 ml**
+   („750 ml"; a non-zero amount shows at least „10 ml"); from 1 l in
+   **litres with one decimal**, half up („12,4 l"). Bar values and the
+   value label follow the same rule.
+4. **V4, the word:** Verbrauch's chart is **TEE** (was TASSEN); the
+   *Überblick* row reads „Sitzungen · 12,4 l Tee · Tees" (the numeral with
+   its unit and „Tee").
+5. **V5, no water recorded or every infusion skipped:** the session adds
+   **0 ml**; its cost still counts in GETRUNKEN's total and bars but is
+   **left out of „Ø € pro Liter"** (and „aus N Sitzungen mit Preis" counts
+   only the sessions in the average).
+6. **V6, rounding below 1 l:** nearest 10 ml, as V3.
+7. **V7, tea detail:** as V2: „ca. 1,60 € pro Liter (Rezept)", „Ø 1,80 €
+   pro Liter aus 5 Sitzungen"; a recipe without water, or whose steps are
+   all rinses, shows no estimate.
+
+**Details of Amendment 2 (Claude; not asked, open to the PO's correction
+in the rc.3 review).**
+
+- **Volume of a session** = Σ over its poured non-rinse steps (ended, not
+  skipped) of the session's `water_ml` (stored once per session, as rc.2);
+  a whisk-only session counts its `water_ml` once. Sums stay in ml
+  (integers) and are formatted only for display.
+- **Bars:** the TEE chart's bars are ml per period; the axis and the value
+  label format with V3 (a period of 0 ml has an empty bar).
+- **Fold summary** of TEE: „TEE · 12,4 l".
+- **The stored `cupSizeMl`** is no longer read or written; a value stored
+  by rc.2 stays in `settings.json` unused (no migration; the settings
+  file ignores a key nobody reads, 05 §6). The *Einstellungen* row and its dialog go.
+- **Wording kept:** „Deine erste Tasse wartet." (journal empty state) and
+  „Jede Tasse, die du brühst …" stay: they are prose, not a unit.
+
 <a id="d-114"></a>
 ### D-114 — v0.6.1: the PO's feedback on v0.6.0: taste per infusion (also on the timer), folding taste, quick-timer chips, photo viewer, catalog links in ⋮, all kinds without a chip, „N Tees", the *Design* setting; Statistik becomes v0.7.0 (TMR-22, JRN-03, JRN-05, JRN-09, JRN-10, TEA-05, TEA-13, CAT-07, CAT-10, SET-05; SCR-05, SCR-07, SCR-09, SCR-16, SCR-19, SCR-25, SCR-28; amends D-112's taste per session and Q1's numbering, D-103's default kind, D-097's 8:00 chip row) · *Accepted* (PO, 2026-11-12, grilled in the session Q1–Q19 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
 
