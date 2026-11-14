@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
@@ -84,10 +85,25 @@ data class AddSheetActions(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CatalogAddSheet(state: AddSheetState, actions: AddSheetActions, onDismissRequest: () -> Unit) {
+fun CatalogAddSheet(
+    state: AddSheetState,
+    actions: AddSheetActions,
+    onDismissRequest: () -> Unit,
+    leaving: Boolean = false,
+    onLeft: () -> Unit = {},
+) {
     // While it saves, neither a swipe nor back hides it, so the save's outcome shows (D-090).
-    val saving by rememberUpdatedState(state.saving)
-    val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion) { it != SheetValue.Hidden || !saving }
+    val saving by rememberUpdatedState(state.saving && !leaving)
+    val reduceMotion = UmamiTheme.reduceMotion
+    val sheetState = rememberCatalogSheetState(reduceMotion) { it != SheetValue.Hidden || !saving }
+    // Closed by the view model (*Aufnehmen* recorded): it slides out like a drag, then it is removed (A-13).
+    val currentOnLeft by rememberUpdatedState(onLeft)
+    LaunchedEffect(leaving) {
+        if (leaving) {
+            if (!reduceMotion) sheetState.hide()
+            currentOnLeft()
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
