@@ -134,7 +134,8 @@ internal fun rememberShownJournal(
 
 /**
  * The list on screen and how often it was replaced after the hold ([changes]); each increase cross-fades the list
- * area once with `fade` (A-09). A list equal to the shown one is never faded.
+ * area once: the old frame fades out over the new list with `exitFade` (200 ms; 100 ms under reduce motion, D-117,
+ * A-09). A list equal to the shown one is never faded.
  */
 internal data class ShownJournal(val list: JournalList?, val changes: Int = 0) {
     /** The [built] list after this one; while [holding], or with nothing shown yet, it takes the place in place. */
