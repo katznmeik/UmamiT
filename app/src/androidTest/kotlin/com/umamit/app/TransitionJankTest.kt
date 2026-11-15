@@ -2,6 +2,7 @@ package com.umamit.app
 
 import android.Manifest
 import android.app.Application
+import android.app.KeyguardManager
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.lifecycle.Lifecycle
@@ -64,7 +65,7 @@ import com.umamit.feature.journal.R as JournalR
  * and is then discarded: no step runs, so the test never waits on, delays or rings an alert (rule 8).
  *
  * Not covered: a cold start after process death (the test runs in the app's process, so it measures
- * a cold activity start) and the real lock screen (STARTED → RESUMED after stop stands in for it).
+ * a cold activity start) The locked close of the timer is measured report-only ([timerToLockScreen]).
  * A UI step that fails fails a gated test once the gate is on; otherwise (API 35, the gate switched
  * off, or a test with only [JankGate.REPORT_ONLY] transitions) it skips the test with the reason.
  */
@@ -251,6 +252,66 @@ class TransitionJankTest {
             // Not the „Start" text: the waiting timer shows a Start button too.
             awaitStart()
         }
+    }
+
+    /**
+     * The timer over the keyguard, closed with back (#294, NFR-PERF-12, audit A-17 „Measurable"): reported only,
+     * never gated. A waiting session (no alert, rule 8), the swipe keyguard on, `KEYCODE_SLEEP` and `KEYCODE_WAKEUP`
+     * (the timer shows over the keyguard), then back is the locked close. Where the keyguard cannot be reached the
+     * step fails and, being report-only, the test is skipped with the reason. The device is left unlocked.
+     */
+    @Test
+    fun timerToLockScreen() = measured(gated = false) {
+        val keyguard = context.getSystemService(KeyguardManager::class.java)
+        val lockWasDisabled = shell("locksettings get-disabled").trim() == "true"
+        shell("locksettings set-disabled false")
+        try {
+            launchOnStart()
+            repeat(JankGate.runs) {
+                openSetup()
+                await(By.text(context.getString(BrewR.string.brew_setup_start)), "Brühen starten").click()
+                val phase = (controller.state.value as? TimerUiState.Active)?.phase
+                check(phase == TimerPhase.READY) { "the session after Brühen starten is $phase, not waiting (READY)" }
+                Thread.sleep(SETTLE_MS)
+                shell("input keyevent KEYCODE_SLEEP")
+                if (!waitFor {
+                        keyguard.isKeyguardLocked
+                    }
+                ) {
+                    throw AssertionError("no keyguard after sleep on this image")
+                }
+                shell("input keyevent KEYCODE_WAKEUP")
+                device.wait(Until.hasObject(By.pkg(context.packageName)), UI_TIMEOUT_MS)
+                Thread.sleep(SETTLE_MS)
+                if (!keyguard.isKeyguardLocked) throw AssertionError("the keyguard is gone after wake-up")
+                shell("dumpsys gfxinfo com.android.systemui reset")
+                record("timer → lock screen") { device.pressBack() }
+                logSystemUiFrames()
+                UnlockedDevice.unlock()
+                endTimer()
+                awaitStart()
+            }
+        } finally {
+            if (lockWasDisabled) shell("locksettings set-disabled true")
+            runCatching { UnlockedDevice.unlock() }
+        }
+    }
+
+    /** The system UI's own frame summary after the locked close, if the image reports it; logged only. */
+    private fun logSystemUiFrames() {
+        val summary = shell("dumpsys gfxinfo com.android.systemui").lines()
+            .filter { it.trim().startsWith("Total frames rendered") || it.trim().startsWith("Janky frames") }
+            .joinToString(" | ") { it.trim() }
+        Log.i(TAG, "${JankReport.LINE_PREFIX} systemui after timer → lock screen: $summary")
+    }
+
+    private fun waitFor(timeoutMs: Long = UI_TIMEOUT_MS, condition: () -> Boolean): Boolean {
+        val end = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < end) {
+            if (condition()) return true
+            Thread.sleep(POLL_MS)
+        }
+        return condition()
     }
 
     /**
@@ -466,6 +527,7 @@ class TransitionJankTest {
         const val PAUSE_MS = 500L
         const val UI_TIMEOUT_MS = 10_000L
         const val SHORT_TIMEOUT_MS = 1_000L
+        const val POLL_MS = 250L
         const val NANOS_PER_SECOND = 1_000_000_000.0
         const val DEFAULT_BUDGET_NS = 16_666_667L
 
