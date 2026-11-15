@@ -123,7 +123,7 @@ class TransitionJankTest {
     }
 
     @Test
-    fun coldStartToStart() = measured {
+    fun coldStartToStart() = measured(gated = false) {
         repeat(JankGate.runs) {
             scenario?.close()
             scenario = null

@@ -40,7 +40,9 @@ internal object JankGate {
     /**
      * The transitions that are reported but never gate, even with the gate on: the ones that did not pass the
      * relative limit consistently on the CI emulator (PO, 2026-11-15; D-117 build note „Jank gate",
-     * `docs/plans/v0.7.1-motion-audit.md` §7). Every other transition, and a usable reference, gates.
+     * `docs/plans/v0.7.1-motion-audit.md` §7). Every other transition, and a usable reference, gates. Cold start
+     * flipped around the 3.0 limit across runs (3.2, 2.4, 2.3, 3.1), so it is reported only (D-117 build note
+     * „Gate scope").
      */
     val REPORT_ONLY: Set<String> = setOf(
         "tab Start → Journal",
@@ -50,6 +52,7 @@ internal object JankGate {
         "Teeauswahl in",
         "Schritte-Sheet in",
         "tea detail push",
+        "cold start → Start",
     )
 
     private val arguments get() = InstrumentationRegistry.getArguments()
