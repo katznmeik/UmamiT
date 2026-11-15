@@ -323,6 +323,19 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-119"></a>
+### D-119 — v0.7.2: the code cleanup review, its scope, release, models and pacing (amends D-101's tiers; D-116) · *Accepted (PO, 2026-11-15, one grilling round Q1–Q4 as options)*
+
+**Context.** D-116 moved the code cleanup review to v0.7.2; Claude's proposal of 2026-11-13 (`PROJECT_STATE.md` „After v0.7.1") left scope, release number, models and pacing open. Asked after the final `v0.7.1`.
+
+**Decision (the PO's answers).**
+- **Q1, scope: the full four steps.** (1) Mechanical evidence without model reading: R8's usage report from the release build, Lint for unused resources, an unused-dependency check, the largest files. (2) Read-only audits, one fresh session per group (catalog, data, timer path, UI), each writing a findings file (place; delete / simplify / restructure; risk; size; about the top 15 per group, no style points); tests are read only where main code goes or step 1 shows duplicated fixtures. (3) Triage with the PO: the PO picks the findings; each restructuring becomes a decision and an update of `06-architecture.md`, then tickets. (4) Execution by risk via `/implement-spec` on one milestone PR: deletions, local simplifications, restructuring, the timer path last and on its own. **No behaviour change**; proof: unchanged Roborazzi goldens, Room schemas and DataStore keys, the timer tests (04 §12, rule 8) and the accuracy run (09 §4a).
+- **Q2, release: its own release `v0.7.2`**, between v0.7.1 and M5, with an rc for the PO's check.
+- **Q3, models: Fable 5.2** for the timer-path and data audits and the restructuring design; **Opus `medium`** (T3) for the catalog and UI audits and for timer and data edits; **Sonnet** (T1/T2) for deletions and other mechanical edits. This adds Fable 5.2 to D-101's tiers for these named v0.7.2 tasks only. Its effort level was not asked; the v0.7.2 plan proposes it to the PO (`xhigh` still needs the PO's OK, never `max`).
+- **Q4, pacing: the catalog group first.** Audit it, read what it consumed, then decide on the other three groups; one group per session and per 5-hour window; the audits in one week, the execution in a later week with no other milestone work beside it.
+
+**Consequences.** Not yet a spec: the next session writes `docs/plans/v0.7.2.md` and the tickets (a parent issue with sub-issues) for the PO's approval, as for every release; step 1 and the audits start only after that.
+
 <a id="d-118"></a>
 ### D-118 — A release token for publishing (`RELEASE_TOKEN`) · *Accepted (PO, 2026-11-15)*
 
