@@ -398,7 +398,7 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 - [ ] TalkBack reads both ratings on the sheet, the session page, the rows and the tea detail.
 - [ ] **Transitions (NFR-PERF-12), each judged smooth, no stale frame and no jump:** unlocking into the app (with and without a running timer); back from recents; a cold start after the app was swiped away; switching each tab; opening and leaving a tea, a session, a catalog tea, *Einstellungen*; the Gespeichert sheet, Teeauswahl, Schritte-Sheet, a menu and a dialog; setup → timer, timer → Start after *Sitzung beenden*.
 - [ ] An alert still takes the screen at once from every one of these states (rule 8).
-- [ ] The CI run of the rc commit shows `TransitionJankTest` passing on API 36 (≤ 1 janky frame, none over 50 ms per transition).
+- [ ] The CI run of the rc commit shows `TransitionJankTest` passing on API 36 for the gated transitions (relative gate, stall factor 3.0, D-117 build notes „Jank gate" and „Gate scope"); the tab switches, Teeauswahl in, Schritte-Sheet in and tea detail push are reported only and judged in the items above.
 - [ ] Dark theme and font 2.0 spot checks of the new rating rows and the Verlauf legend.
 
 ### M5 — 1.0

@@ -529,6 +529,22 @@ does.
   for the low-stock card. `TransitionJankTest` takes the median of 7 runs (the
   plan's lever for a flaky transition, not a wider limit) and reports where the
   longest frame falls. Runs and numbers: `docs/plans/v0.7.1-motion-audit.md` §7.
+- **Gate scope (PO, 2026-11-15, *Accepted (PO)*):** after two runs on the same
+  code (R6, R7) the PO chose to **gate the stable transitions**: on API 36 the
+  gate (stall factor 3.0, median of 7 runs) is on for cold start, resume, every
+  pop, the Gespeichert sheet, the session page push, both sheets' exit, setup →
+  timer and timer → shell. **Reported only** (their numbers stay in every run;
+  the PO's rc check judges them): the four tab switches, Teeauswahl in,
+  Schritte-Sheet in and tea detail push. Over 3.0 in both runs: Sammlung →
+  Statistik (4.7×, 5.2×), Teeauswahl in (3.7×, 3.2×), Schritte-Sheet in (3.9×,
+  3.7×), each with its longest frame mid-transition and a fast first frame; the
+  others flip around 3.0. A-10 stays reverted (one run with it had all tabs at
+  1.8–2.4×; a candidate for M5 with a measurement on the Galaxy). The PO was
+  told that on the emulator the gate checks stalls only and cannot see a stale
+  or empty frame (unit tests and the rc check cover those).
+- **Motion review (PO, 2026-11-15):** the PO runs `/review-animations`
+  (user-invocable only) on the v0.7.1 changes; its findings come into an rc.2
+  or the final.
 
 <a id="d-116"></a>
 ### D-116 — v0.7.1 (planned): tea and brewing rated separately, a transition smoothness audit; the cleanup review becomes v0.7.2 · *Accepted* in part (PO, 2026-11-13, R1–R3 below; the rest is grilled in the v0.7.1 specify session)
