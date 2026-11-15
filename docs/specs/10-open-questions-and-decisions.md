@@ -620,9 +620,10 @@ does.
   `v0.7.1-rc.2` (the rc.2 items of the on-device checklist 09 §4 „v0.7.1"),
   the PO answered **„all approved"**: every rc.2 item passed. With the
   approval of rc.1 (all items except the lock-screen transitions, now built
-  and approved in rc.2) and the design review
-  (`docs/design/review/v0.7.1/README.md`; Claude's details 1–8 stand as
-  built), the milestone is approved; there is no rc.3. A-19 was accepted
+  and approved in rc.2), the milestone is approved. The design review
+  (`docs/design/review/v0.7.1/README.md`) went to the PO with rc.1, with
+  Claude's details 1–8 open to correction; the PO corrected none of them, so
+  they stand as built; there is no rc.3. A-19 was accepted
   either way, and the PO did not report whether One UI asks for the PIN.
   #289 (the merge and the final release) follows.
 
