@@ -73,6 +73,11 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *
  * @param journalSources the journal tab and the „Gespeichert" sheet, which never shows over an alert (M1-16).
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
+ * @param keyguard whether the phone is locked. Locked, a close of the timer (back, a back swipe, the route's own
+ *   close) reports the timer as gone at once, so the flags clear in that turn, and keeps it drawn, inert, so only
+ *   the system's keyguard animation plays; the pop follows at `ON_STOP` with no transition, and no shell frame is
+ *   drawn over the lock screen. A new alert before that cancels the close and reports the timer again at once
+ *   (rule 8). Unlocked, the close pops with `exitFade` as ever (SCR-05, D-117 build note „Lock screen").
  * @param alertKey the identity of the alert playing now (`TimerUiState.alertKey`), or null.
  * @param timerRequest a new non-zero token for each request to open the timer (a notification's
  *   content or full-screen intent), with the timer it names; token 0 for none.
@@ -123,6 +128,7 @@ internal fun UmamitRoot(
     timerRequest: StateFlow<TimerRequest> = NO_TIMER_REQUEST,
     onConsumeTimerRequest: (Long) -> Unit = {},
     onTimerVisibleChange: (Boolean) -> Unit = {},
+    keyguard: KeyguardLock = KeyguardLock.Unlocked,
     timerScreen: @Composable (
         onClose: () -> Unit,
         onOpenTimerSettings: () -> Unit,
@@ -186,6 +192,8 @@ internal fun UmamitRoot(
     // Only the alert's identity is read here, so the root recomposes per alert, not per second.
     val alert by alertKey.collectAsStateWithLifecycle()
     val currentAlerting by rememberUpdatedState(alert != null)
+    val currentOnTimerVisibleChange by rememberUpdatedState(onTimerVisibleChange)
+    val leaving = rememberLeavingOverKeyguard(navController, keyguard, alert, currentOnTimerVisibleChange)
     val timerFirst = rememberTimerFirst(navController, alert, timerRequest, onConsumeTimerRequest)
     CatalogRefreshTaps(
         navController = navController,
@@ -206,9 +214,10 @@ internal fun UmamitRoot(
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
     val timerShown = timerOnTop || timerFirst.requestPending
-    val currentOnTimerVisibleChange by rememberUpdatedState(onTimerVisibleChange)
-    // From the back stack, not the route's composition: it changes when navigation starts, not after the fade.
-    LaunchedEffect(timerShown) { currentOnTimerVisibleChange(timerShown) }
+    // From the back stack, not the route's composition: it changes when navigation starts, not after the fade. A
+    // close over the keyguard ends it at once, while the timer is still drawn (A-17).
+    val timerVisible = leaving.reported(timerShown)
+    LaunchedEffect(timerVisible) { currentOnTimerVisibleChange(timerVisible) }
     val navigateAbove = timerFirst.navigateAbove
     // *Einrichtung erneut zeigen* (ONB-04): above the shell or the timer, so it gives way to an alert too.
     val rerunSetup: () -> Unit = { navigateAbove(OnboardingRoute) { launchSingleTop = true } }
@@ -220,9 +229,13 @@ internal fun UmamitRoot(
         }
     }
 
-    // No transition at all where an alerting timer enters, leaves or is uncovered (`alertEnter`).
-    fun AnimatedTimer.instant(): Boolean = currentAlerting && (initial.isTimer() || target.isTimer())
-    val closeTimer: () -> Unit = { navController.popBackStack<TimerRoute>(inclusive = true) }
+    // No transition at all where an alerting timer enters, leaves or is uncovered (`alertEnter`), nor where the timer
+    // left over the keyguard is popped at `ON_STOP` (A-17).
+    fun AnimatedTimer.instant(): Boolean = (currentAlerting && touchesTimer()) || leaving.poppedAtStop(initial)
+    // Over the keyguard and with no alert: only the system's animation (A-17). Otherwise as ever.
+    val closeTimer: () -> Unit = {
+        leaving.close(currentAlerting) { navController.popBackStack<TimerRoute>(inclusive = true) }
+    }
     val openTimer: () -> Unit = { navController.navigate(TimerRoute()) { launchSingleTop = true } }
     // A half of the bar with two timers (D-098).
     val openTimerOf: (
@@ -359,22 +372,25 @@ internal fun UmamitRoot(
                 composable<OnboardingRoute> { onboardingScreen(finishSetup) }
                 composable<TimerRoute> { timerEntry ->
                     val route = timerEntry.toRoute<TimerRoute>()
-                    timerScreen(
-                        closeTimer,
-                        { navigateAbove(TimerSettingsRoute) {} },
-                        { sessionId ->
-                            // The setup replaces the timer; *Brühen starten* there opens it again (BRW-11).
-                            navigateAbove(BrewSetupRoute(sessionId = sessionId)) {
-                                popUpTo<TimerRoute> { inclusive = true }
-                            }
-                        },
-                        TimerShown(
-                            slot = route.slot,
-                            // The timer a route opened for none shows, for a later notification's request (04 §8.2).
-                            onPin = { pinned -> timerEntry.pinTimer(pinned) },
-                            onShowOther = { other -> navController.showOtherTimer(timerEntry, route, other) },
-                        ),
-                    )
+                    LeavingTimerGuard(leaving, closeTimer) {
+                        timerScreen(
+                            closeTimer,
+                            { navigateAbove(TimerSettingsRoute) {} },
+                            { sessionId ->
+                                // The setup replaces the timer; *Brühen starten* there opens it again (BRW-11).
+                                navigateAbove(BrewSetupRoute(sessionId = sessionId)) {
+                                    popUpTo<TimerRoute> { inclusive = true }
+                                }
+                            },
+                            TimerShown(
+                                slot = route.slot,
+                                // The timer a route opened for none shows, for a later notification's request
+                                // (04 §8.2).
+                                onPin = { pinned -> timerEntry.pinTimer(pinned) },
+                                onShowOther = { other -> navController.showOtherTimer(timerEntry, route, other) },
+                            ),
+                        )
+                    }
                 }
                 composable<BrewSetupRoute> { entry ->
                     setupScreen(
@@ -810,7 +826,10 @@ private val NO_START_REQUEST: StateFlow<Long> = MutableStateFlow(0L)
 private val NO_TEA_LINK_SHARE: StateFlow<TeaLinkShare?> = MutableStateFlow(null)
 
 /** The two ends of a route transition. */
-private class AnimatedTimer(val initial: NavBackStackEntry, val target: NavBackStackEntry)
+private class AnimatedTimer(val initial: NavBackStackEntry, val target: NavBackStackEntry) {
+    /** The timer enters, leaves or is uncovered. */
+    fun touchesTimer(): Boolean = initial.isTimer() || target.isTimer()
+}
 
 private fun NavBackStackEntry.isTimer(): Boolean = destination.hasRoute<TimerRoute>()
 
