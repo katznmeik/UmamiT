@@ -434,7 +434,13 @@ killed) a screen keeps its last frame until its fresh state is ready, at
 most ≈ 150 ms, then cross-fades with `fade` only if something changed; it
 never shows a stale or empty frame and then jumps, and no layout moves when
 the data arrives. The same holds for tab switches, pushed and popped
-screens, sheets, dialogs and the timer screen's entry and exit. An alert
+screens, sheets, dialogs and the timer screen's entry and exit. A pushed
+screen or a tab root that opens before its data is read (no last frame to
+keep) holds the same way: data within ≈ 150 ms of its first frame is drawn
+at full opacity inside the route's or tab's own enter, and only a later first
+arrival fades in with `fade`; a screen composed with its data is drawn at once
+(D-117 build note „Arrival fade"). The Journal's cross-fade of a late list
+fades the old frame out with `exitFade`, as a leaving element. An alert
 never waits for this (`alertEnter` stays `snap()`, rule 8). The audit's
 findings and fixes are in `docs/plans/v0.7.1-motion-audit.md`; a fix that
 changes a value in the token table above goes to the PO first.

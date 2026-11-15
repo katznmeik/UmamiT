@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-14 (D-117)
+> Status: **Living document** · Last updated: 2026-11-15 (D-117 build note „Arrival fade")
 
 ## Open questions
 
@@ -557,6 +557,26 @@ does.
 - **Motion review (PO, 2026-11-15):** the PO runs `/review-animations`
   (user-invocable only) on the v0.7.1 changes; its findings come into an rc.2
   or the final.
+- **Arrival fade (PO, 2026-11-15, *Accepted (PO)*):** the grilling on the
+  `/review-animations` findings of rc.1 (PR #290 comment). (1) **Pushed
+  screens** (tea detail, setup, tea and recipe editors, Teeware, vessel editor,
+  session editor) follow the hold of 03 §3.6: data that arrives within ≈ 150 ms
+  of the screen's first frame is drawn at full opacity, inside the route's own
+  enter; only a later first arrival fades in with `fade`. (2) **The tab roots**
+  Meine Tees and Statistik follow the same rule (a cold first visit no longer
+  stacks the tab's fade-through, a 300 ms arrival fade and the chart reveal).
+  (3) **The Journal's late-list cross-fade** fades the old frame out with
+  `exitFade` (200 ms; reduce motion `fade`, 100 ms) instead of `fade`: the old
+  list is a leaving element. (4) Built **in v0.7.1, for rc.2** (tickets #291, #292).
+  **Details (Claude; not asked, open to the PO's correction):** the 150 ms
+  count from the composition's first frame, the same constant as the
+  Journal's `JOURNAL_HOLD_MS`; during the hold the body draws nothing new (the
+  tea detail keeps its loading top bar until the content shows); a screen
+  composed with its data already there is unchanged (drawn at once); reduce
+  motion keeps its 100 ms `fade` for a late arrival; the token table of §3.6
+  is unchanged (no new token, no new value). The other `/review-animations`
+  rows (the chart's two morphs) are not part of this and stay with the v0.7.2
+  cleanup.
 
 <a id="d-116"></a>
 ### D-116 — v0.7.1 (planned): tea and brewing rated separately, a transition smoothness audit; the cleanup review becomes v0.7.2 · *Accepted* in part (PO, 2026-11-13, R1–R3 below; the rest is grilled in the v0.7.1 specify session)
