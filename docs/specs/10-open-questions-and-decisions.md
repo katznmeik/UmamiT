@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-15 (D-117 build note „Arrival fade")
+> Status: **Living document** · Last updated: 2026-11-15 (D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -577,6 +577,36 @@ does.
   is unchanged (no new token, no new value). The other `/review-animations`
   rows (the chart's two morphs) are not part of this and stay with the v0.7.2
   cleanup.
+- **Lock screen (PO, 2026-11-15, rc.1 check, *Accepted (PO)*):** the PO found
+  the lock-screen transitions janky (*Abgegossen* → the lock screen; the timer
+  opened over the keyguard, then closed). The read-only audit
+  (`docs/plans/v0.7.1-motion-audit.md` §8, A-17–A-20) found that the app never
+  checks whether the phone is locked: every exit from the timer pops with
+  `exitFade` onto a freshly composed shell and clears `showWhenLocked` about
+  one frame later, so the system's keyguard animation runs on top of the
+  app's fade and the shell shows over the lock screen for up to 200 ms
+  (against D-058/D-064). The PO's answers (one round):
+  - **A-17/A-18, leaving the timer while locked: keyguard only.** When the
+    keyguard is locked, a close of the timer (back, a back swipe, *Sitzung
+    beenden*, *Verwerfen*, the quick timer's end) clears the lock-screen
+    flags in the same turn and keeps the timer drawn, so only the system's
+    keyguard animation plays; the navigation pop follows at `ON_STOP` with no
+    transition, and a back swipe gets no predictive-back preview of the
+    shell. A new alert before `ON_STOP` cancels the pending close and sets
+    the flags again at once (rule 8: never delayed). Unlocked, nothing
+    changes. Amends SCR-05.
+  - **A-20, *Abgegossen* over the keyguard: keep.** The alert still leaves in
+    one frame (03 §3.6 „stays a snap"), and the timer stays over the keyguard
+    for the next *Start* (SCR-05, D-064).
+  - **A-19, a notification tap on the locked phone: keep** (D-064: no
+    manifest `showWhenLocked`). The PO checks on rc.2 whether One UI asks
+    for the PIN first; that is accepted either way.
+  - **Measurement: report-only.** „Timer → lock screen" joins
+    `TransitionJankTest` (API 36) reported only, and the *Abgegossen* tap over
+    the keyguard is measured, reported only, in `TimerAlertOverLockScreenTest`
+    (an alert is never added to `TransitionJankTest`). The PO's rc check
+    judges the feel; a later gate needs stable runs, as before.
+  Tickets #293 (T3) and #294 (T2), built in rc.2.
 
 <a id="d-116"></a>
 ### D-116 — v0.7.1 (planned): tea and brewing rated separately, a transition smoothness audit; the cleanup review becomes v0.7.2 · *Accepted* in part (PO, 2026-11-13, R1–R3 below; the rest is grilled in the v0.7.1 specify session)

@@ -706,6 +706,13 @@ Always dark ("Steeping"), edge-to-edge, keeps the screen on. At the end of a
 step it is brought up by the full-screen intent (TMR-06) and shown **over the
 lock screen** (`setShowWhenLocked(true)`, `setTurnScreenOn(true)`); unlocking
 is only needed to leave the timer.
+Leaving the timer while the phone is locked (back, a back swipe, *Sitzung
+beenden*, *Verwerfen*, the quick timer's end) shows only the system's keyguard
+animation: the app clears its lock-screen flags at once and keeps the timer
+drawn until it is stopped, then pops it with no transition; no shell frame is
+ever drawn over the lock screen, and a back swipe shows no preview of it. A
+new alert before that cancels the close at once (v0.7.1, D-117 build note
+„Lock screen").
 
 The status-bar icons and the gesture handle follow the surface, not the phone's
 theme: light on the dark Steeping surface (also SCR-07), dark on the washi/matcha
