@@ -11,6 +11,11 @@
 
 ## Releases and plans
 
+### v0.7.2: step 1 done (2026-11-15)
+
+- **Approval:** the PO approved plan, spec #296 and tickets #297–#310 with Claude's two proposals (audits in the session itself; unchanged goldens instead of a design review). Tickets relabelled: #299, #303 `ready-for-human`, the other twelve `ready-for-agent`.
+- **Step 1 (#297, Sonnet `medium`):** `docs/plans/v0.7.2-evidence.md` on `main` `f0ffaf1a`: R8 usage (noisy; candidates only), Lint unused resources/ids **0**, Dependency Analysis (61 unused, mostly convention-plugin entries; plugin outside its AGP range, needed build-file lines instead of an init script), 30 largest files, duplicated test fixtures, baseline (1 085 goldens with per-module digests, schemas 1–8 and 1, 36 settings keys, `schemaVersion` 3). Nothing of the tooling committed. Draft PR #312.
+
 ### v0.7.2: specified (2026-11-15)
 
 - **Grilling (one round, Q1–Q4):** D-120: Fable 5.2 at `medium` (Claude had recommended `high`), findings files per group, the Dependency Analysis plugin from a local init script, the tier label T4-F.
@@ -608,6 +613,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-15 | **v0.7.2 step 1:** the PO approved the plan and tickets; relabelled #297–#310; evidence file `docs/plans/v0.7.2-evidence.md` (R8, Lint 0 unused, Dependency Analysis, largest files, fixtures, proof baseline); draft PR #312. Next: catalog audit #298 (Opus `medium`). |
 | 2026-11-15 | **v0.7.2 specified:** one grilling round (D-120: Fable 5.2 `medium`, findings files per group, Dependency Analysis plugin locally, T4-F); plan `docs/plans/v0.7.2.md`, spec #296, tickets #297–#310, 09 §2/§4 „v0.7.2", 12 §2/§3.2; docs PR merged. Waiting for the PO's approval. |
 | 2026-11-15 | **v0.7.1 done:** the PO approved rc.2 („all approved"); 0.7.1 bump, #290 merged (`6192bff5`), CI on `main` green (rerun of the known `ProcessDeathTest` flake), all three accuracy variants PASS, `v0.7.1` released with `RELEASE_TOKEN` (70199, certificate verified); #289, #291–#294 closed. v0.7.2 grilling: D-119. Next: the v0.7.2 specify session. |
 | 2026-11-14 | **v0.7.0 done:** the PO reviewed rc.2 (all but „Tassen") → D-115 Amendment 2 (V1–V9, volume instead of cups), #274/#275/#277, `v0.7.0-rc.3` (70003); the PO approved rc.3 („All changes approved"); 0.7.0 bump, #266 merged (`f3582466`), all three accuracy variants PASS, `v0.7.0` released (70099, certificate verified); #264 closed. Next: the v0.7.1 specify session (D-116). |

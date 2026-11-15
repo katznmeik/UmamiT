@@ -5,13 +5,14 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-15 (v0.7.2 specify session). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The v0.7.2 cleanup review is **specified and waiting for the PO's approval**: plan `docs/plans/v0.7.2.md`, spec #296 with tickets #297–#310, decisions D-119 and **D-120** (the PO's answers on the plan's four open details). **Next:** the PO approves, then session 1 of the plan: step 1, mechanical evidence (#297).
+**Last updated:** 2026-11-15 (v0.7.2 session 1, step 1). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The PO approved the v0.7.2 plan and tickets (`docs/plans/v0.7.2.md`, spec #296, #297–#310; D-119, D-120) with Claude's two proposals (audits run in the session itself; the unchanged goldens stand in for the design review). **Step 1 is done:** `docs/plans/v0.7.2-evidence.md` is pushed and the milestone PR [#312](https://github.com/katznmeik/UmamiT/pull/312) is open as a **draft**. **Next:** session 2, the catalog audit (#298).
 
-## Next: v0.7.2 step 1 (after the PO's approval)
+## Next: v0.7.2 session 2, the catalog audit (#298)
 
-- **Waiting for the PO:** approval of `docs/plans/v0.7.2.md`, spec #296 and tickets #297–#310 (all `needs-triage`), including Claude's proposal that the unchanged goldens stand in for the design review (no renders, no `/review-animations`). Nothing runs before it (rule 1).
-- **D-120 (PO, 2026-11-15):** Fable 5.2 at **`medium`** for the data and timer-path audits and the restructuring design (tier label **T4-F**, 12 §2); findings per group in `docs/plans/v0.7.2-audit-<group>.md`; step 1 in `docs/plans/v0.7.2-evidence.md`; unused dependencies by the **Dependency Analysis plugin** from a throwaway init script, never committed.
-- **Then, session 1 (Sonnet `medium`):** #297: relabel the tickets (`ready-for-agent`; #299, #303 `ready-for-human`), run step 1 and the baseline, write the evidence file, open the milestone PR as a draft on this branch. Stops when the evidence is pushed. Session 2 is the catalog audit (#298, Opus `medium`), which ends with the PO's #299 question. Session table: plan §„Sessions".
+- **Model:** Opus `medium` (T3), the audit in the session itself (no subagents). Branch `claude/wonderful-davinci-fu8tqi`, draft PR #312.
+- **Input:** `docs/plans/v0.7.2-evidence.md` (R8 candidates, dependency advice, largest files, fixtures; every list is a *candidate*, its caveat is in the file) and ticket #298. Output: `docs/plans/v0.7.2-audit-catalog.md` (one table, about the top 15, plan „Step 2"). It stops with the file pushed and asks the PO #299 as options (keep / narrow / drop each of the data, timer-path and UI audits). No code change.
+- **Session 1 facts to know:** Lint `UnusedResources`/`UnusedIds` found **0** (checked across all modules with `checkDependencies`); R8 `-printusage` is noisy (merged interfaces and test-only code show as removed); Dependency Analysis 3.20.3 does **not** work as a pure init script (it found 0 projects) and needs the plugin in the root `build.gradle.kts` plus `subprojects { apply(plugin = … ) }`, uncommitted; it warns that AGP 9.4.1 is outside its tested range. Details in the evidence file §1–§3. D-120's wording „from a throwaway init script" therefore became „from local, reverted build-file lines".
+- **PO input:** the PO's answer on #299 comes at the end of session 2.
 - **Group sizes (main lines, 2026-11-13):** catalog ≈ 8 500; data ≈ 15 100; timer path ≈ 17 800; UI ≈ 27 500; tests ≈ 94 000.
 
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
@@ -34,11 +35,11 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): specified (plan, #296–#310), waiting for the PO's approval. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
+| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): approved by the PO (2026-11-15); step 1 done (evidence file), the catalog audit is next. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `3ecc409f`; again from `main` after the docs PR) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `f0ffaf1a`; evidence commit on top) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none (the v0.7.2 specify docs PR is merged; the milestone PR opens as a draft in step 1) |
+| Open PR | **[#312](https://github.com/katznmeik/UmamiT/pull/312)** (draft): the v0.7.2 milestone PR |
 | Latest APK | [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) (full release, versionCode 70199, from `main` `6192bff5`, certificate verified); rc [`v0.7.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.2) (pre-release, 70102, from `e57861e0`); rc [`v0.7.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.1) (pre-release, 70101, from `3fe102c0`); [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
 | Decision numbers | Up to **D-120** used; the next free is **D-121** |
 
@@ -56,7 +57,7 @@
 
 ## Waiting on the PO
 
-1. **Approve the v0.7.2 plan and tickets** (`docs/plans/v0.7.2.md`, #296–#310), then start session 1 (prompt at the end of the v0.7.2 specify session). Installing `v0.7.1` over rc.2 stays optional.
+1. **Nothing yet.** The PO's next input is the #299 question (keep / narrow / drop the data, timer-path and UI audits) at the end of session 2. Installing `v0.7.1` over rc.2 stays optional.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
