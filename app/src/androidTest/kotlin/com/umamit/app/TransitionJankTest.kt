@@ -270,8 +270,13 @@ class TransitionJankTest {
             repeat(JankGate.runs) {
                 openSetup()
                 await(By.text(context.getString(BrewR.string.brew_setup_start)), "Brühen starten").click()
-                val phase = (controller.state.value as? TimerUiState.Active)?.phase
-                check(phase == TimerPhase.READY) { "the session after Brühen starten is $phase, not waiting (READY)" }
+                // The session appears asynchronously after the click: poll for READY instead of reading once.
+                var phase: TimerPhase? = null
+                val ready = waitFor {
+                    phase = (controller.state.value as? TimerUiState.Active)?.phase
+                    phase == TimerPhase.READY
+                }
+                check(ready) { "the session after Brühen starten is $phase, not waiting (READY)" }
                 Thread.sleep(SETTLE_MS)
                 shell("input keyevent KEYCODE_SLEEP")
                 if (!waitFor {

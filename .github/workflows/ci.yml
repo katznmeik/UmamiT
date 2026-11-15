@@ -356,9 +356,9 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           out="transition-jank-api-${{ matrix.api-level }}.txt"
-          find . -path "*androidTest-results*" -name "logcat-*TransitionJankTest*.txt" -print0 |
+          find . -path "*androidTest-results*" \( -name "logcat-*TransitionJankTest*.txt" -o -name "logcat-*TimerAlertOverLockScreenTest*.txt" \) -print0 |
             xargs -0 -r grep -h "TransitionJank:" | sed 's/^.*TransitionJank:/TransitionJank:/' > "$out" || true
-          [ -s "$out" ] || echo "No TransitionJankTest lines found in the recorded logcat." > "$out"
+          [ -s "$out" ] || echo "No TransitionJank lines found in the recorded logcat." > "$out"
           cat "$out"
           { echo "### Transition jank (API ${{ matrix.api-level }})"; echo '```'; cat "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
