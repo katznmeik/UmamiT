@@ -348,7 +348,10 @@ jobs:
 
       # TransitionJankTest's report (NFR-PERF-12, D-117): one line per
       # transition from the logcat AGP records per test, into the log, the
-      # job summary and an artifact. It gates only once switched on (JankGate).
+      # job summary and an artifact. The relative gate is on by default from
+      # API 36 on (JankGate; `gate=on|report|off` per line), so the API 36 run
+      # fails above on a gated transition; API 35 and JankGate.REPORT_ONLY
+      # only report. `jankGate=false` as an instrumentation argument turns it off.
       - name: Transition jank report
         if: ${{ !cancelled() }}
         run: |

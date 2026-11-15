@@ -50,8 +50,9 @@ import com.umamit.feature.journal.R as JournalR
  * records the frames of every app window ([FrameRecorder]), and one line per transition reports the
  * median run's frames over the budget and its longest frame ([JankReport]). Each test first measures a
  * trivial [ReferenceTransition] in the same window, and each line also gives the transition relative to
- * it (D-117 build note „Jank gate"). It only reports until the gate is switched on ([JankGate]); the
- * gate then fails a test whose transition is over the relative limit, from API 36 on.
+ * it (D-117 build note „Jank gate"). From API 36 on the gate is on by default ([JankGate]): it fails a
+ * test whose reference is not usable or whose gated transition is over the relative limit; the
+ * transitions in [JankGate.REPORT_ONLY], and every transition on API 35, only report.
  *
  * The screens are driven through UiAutomator with real taps and back presses: a Compose test rule
  * would pace every composition with its own test clock and so never show a real frame's cost. The
@@ -64,7 +65,8 @@ import com.umamit.feature.journal.R as JournalR
  *
  * Not covered: a cold start after process death (the test runs in the app's process, so it measures
  * a cold activity start) and the real lock screen (STARTED → RESUMED after stop stands in for it).
- * In report-only mode a UI step that fails skips its test with the reason instead of failing it.
+ * A UI step that fails fails a gated test once the gate is on; otherwise (API 35, the gate switched
+ * off, or a test with only [JankGate.REPORT_ONLY] transitions) it skips the test with the reason.
  */
 @RunWith(AndroidJUnit4::class)
 class TransitionJankTest {
@@ -145,7 +147,7 @@ class TransitionJankTest {
     }
 
     @Test
-    fun tabSwitches() = measured {
+    fun tabSwitches() = measured(gated = false) {
         launchOnStart()
         val tabs = Tab.entries.map { context.getString(it.label) }
         repeat(JankGate.runs) {
@@ -253,17 +255,26 @@ class TransitionJankTest {
 
     /**
      * Measures the reference transition, runs the test's transitions, reports each against the reference, then
-     * applies the relative gate (or skips a failed UI step in report mode).
+     * applies the relative gate: with the gate on, an unusable reference fails every test, and a transition outside
+     * [JankGate.REPORT_ONLY] over the limit fails its test. [gated] is false for a test whose transitions are all in
+     * [JankGate.REPORT_ONLY]: a UI step that fails in it then skips it even with the gate on.
      */
-    private fun measured(block: () -> Unit) {
+    private fun measured(gated: Boolean = true, block: () -> Unit) {
         val referenceFailure = runCatching(::measureReference).exceptionOrNull()
-        val failure = runCatching(block).exceptionOrNull() ?: referenceFailure
+        val failure = runCatching(block).exceptionOrNull()
         val windows = recorder.windowCount
         reference?.let { Log.i(TAG, it.line(budgetNs, windows)) }
         reports.forEach { Log.i(TAG, it.line(budgetNs, windows, reference)) }
-        failure?.let(::uiStepFailed)
-        val over = reports.filterNot { it.passes(reference) }
-        if (JankGate.active && over.isNotEmpty()) {
+        check(gated || reports.all { it.transition in JankGate.REPORT_ONLY }) {
+            "a test with gated = false measured a gated transition"
+        }
+        referenceFailure?.let { uiStepFailed(it, gated = true) }
+        failure?.let { uiStepFailed(it, gated) }
+        if (JankGate.active && reference?.usable != true) {
+            throw AssertionError("NFR-PERF-12: the reference is not usable: ${reference?.line(budgetNs, windows)}")
+        }
+        val over = reports.filter { JankGate.gates(it.transition) && !it.passes(reference) }
+        if (over.isNotEmpty()) {
             throw AssertionError(
                 "NFR-PERF-12: over the relative limit (median longest frame ≤ ${JankGate.STALL_FACTOR}× " +
                     "the reference's typical frame, janky frames ≤ the reference's scaled " +
@@ -293,11 +304,15 @@ class TransitionJankTest {
         Thread.sleep(PAUSE_MS)
     }
 
-    /** A UI step that failed fails the test with the gate on; in report-only mode it skips it, with the reason. */
-    private fun uiStepFailed(failure: Throwable): Nothing {
-        val line = "${JankReport.LINE_PREFIX} UI step failed (gate=${JankGate.describe}): ${failure.message}"
+    /**
+     * A UI step that failed fails the test when the gate is on and the step's test is [gated]; otherwise it skips the
+     * test, with the reason.
+     */
+    private fun uiStepFailed(failure: Throwable, gated: Boolean): Nothing {
+        val gate = if (gated) JankGate.describe else "report"
+        val line = "${JankReport.LINE_PREFIX} UI step failed (gate=$gate): ${failure.message}"
         Log.e(TAG, line, failure)
-        if (JankGate.active) throw failure
+        if (JankGate.active && gated) throw failure
         throw AssumptionViolatedException("report-only: a UI step failed: ${failure.message}")
     }
 

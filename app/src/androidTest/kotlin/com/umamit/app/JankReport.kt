@@ -14,17 +14,18 @@ import java.util.Locale
  * gate goes on. The absolute limit of D-117 Q16 (at most [MAX_JANKY_FRAMES] frames over the display's budget, none
  * over [MAX_FRAME_MS]) is still reported, as `absolute=`, but does not gate.
  *
- * The gate is off until then (#285): the test only reports. It is on when the instrumentation argument `jankGate` is
- * `true` (`-Pandroid.testInstrumentationRunnerArguments.jankGate=true`), or when [GATE_DEFAULT] is flipped to true,
- * and then only from API [GATE_MIN_API] on: API 35 always reports only. `jankRuns` overrides the [DEFAULT_RUNS] runs
- * per transition (7, so the median holds against a flaky run).
+ * The gate is on by default from API [GATE_MIN_API] on (PO, 2026-11-15, #285): API 35 always reports only, and the
+ * instrumentation argument `jankGate=false` (`-Pandroid.testInstrumentationRunnerArguments.jankGate=false`) switches
+ * it off. Even with the gate on, the transitions in [REPORT_ONLY] only report. `jankRuns` overrides the
+ * [DEFAULT_RUNS] runs per transition (7, so the median holds against a flaky run). Each line says `gate=on` (it
+ * gates), `gate=report` (reported only: API 35 or [REPORT_ONLY]) or `gate=off` (switched off).
  *
  * Each line also says where the cost sits (#285): the median first frame, its ratio to the reference's typical frame,
  * the frame count and the 0-based index of the longest frame per run (`longestAt=[0,0,3,…]`), so a first-frame stall
  * reads apart from rendering cost in mid-transition. These are reported only; the verdicts do not use them.
  */
 internal object JankGate {
-    const val GATE_DEFAULT = false
+    const val GATE_DEFAULT = true
     const val GATE_MIN_API = 36
     const val DEFAULT_RUNS = 7
     const val MAX_JANKY_FRAMES = 1
@@ -36,24 +37,49 @@ internal object JankGate {
     /** The janky frames a transition may have beyond the reference's, scaled to its frame count. */
     const val JANKY_ALLOWANCE = 1
 
+    /**
+     * The transitions that are reported but never gate, even with the gate on: the ones that did not pass the
+     * relative limit consistently on the CI emulator (PO, 2026-11-15; D-117 build note „Jank gate",
+     * `docs/plans/v0.7.1-motion-audit.md` §7). Every other transition, and a usable reference, gates.
+     */
+    val REPORT_ONLY: Set<String> = setOf(
+        "tab Start → Journal",
+        "tab Journal → Sammlung",
+        "tab Sammlung → Statistik",
+        "tab Statistik → Start",
+        "Teeauswahl in",
+        "Schritte-Sheet in",
+        "tea detail push",
+    )
+
     private val arguments get() = InstrumentationRegistry.getArguments()
 
-    /** Whether a transition over the limit fails the test on this device. */
+    /** Whether the gate is on on this device: switched on (the default) and from API [GATE_MIN_API] on. */
     val active: Boolean
         get() {
             val switchedOn = arguments.getString("jankGate")?.toBooleanStrictOrNull() ?: GATE_DEFAULT
             return switchedOn && Build.VERSION.SDK_INT >= GATE_MIN_API
         }
 
-    val runs: Int get() = arguments.getString("jankRuns")?.toIntOrNull()?.takeIf { it > 0 } ?: DEFAULT_RUNS
+    /** Whether [transition] over the limit fails its test on this device. */
+    fun gates(transition: String): Boolean = active && transition !in REPORT_ONLY
 
-    /** „on", „off" or why it is off on this device, for the report line. */
+    /** `on`, `report` or `off` for [transition], for its report line. */
+    fun describe(transition: String): String = when {
+        gates(transition) -> "on"
+        Build.VERSION.SDK_INT < GATE_MIN_API || transition in REPORT_ONLY -> "report"
+        else -> "off"
+    }
+
+    /** `on`, `report` (API 35) or `off` for the device, regardless of the transition. */
     val describe: String
         get() = when {
             active -> "on"
-            Build.VERSION.SDK_INT < GATE_MIN_API -> "report-only (API ${Build.VERSION.SDK_INT})"
+            Build.VERSION.SDK_INT < GATE_MIN_API -> "report"
             else -> "off"
         }
+
+    val runs: Int get() = arguments.getString("jankRuns")?.toIntOrNull()?.takeIf { it > 0 } ?: DEFAULT_RUNS
 }
 
 /** One run of a transition: its frames' durations in ns, judged against [budgetNs]. */
@@ -137,7 +163,7 @@ internal data class JankReport(val transition: String, val runs: List<JankRun>) 
             "stall=${stallRatio(reference)?.let(::format) ?: "-"}x(max ${format(JankGate.STALL_FACTOR)}) " +
             "jankyAllowed=${jankyAllowance(reference)?.let(::format) ?: "-"} " +
             "${whereFields(reference)} " +
-            "verdict=${verdict(reference)} gate=${JankGate.describe} windows=$windows perRun=$runs"
+            "verdict=${verdict(reference)} gate=${JankGate.describe(transition)} windows=$windows perRun=$runs"
 
     companion object {
         const val LINE_PREFIX = "TransitionJank:"
@@ -162,7 +188,7 @@ internal data class JankReference(val report: JankReport) {
             "medianJanky=$medianJanky medianFrames=${format(medianFrames)} " +
             "typicalFrame=${format(typicalFrameMs)}ms medianMaxFrame=${format(report.medianMaxFrameMs)}ms " +
             "worstMaxFrame=${format(report.worstMaxFrameMs)}ms ${report.whereFields(this)} " +
-            "usable=$usable windows=$windows perRun=${report.runs}"
+            "usable=$usable gate=${JankGate.describe} windows=$windows perRun=${report.runs}"
 }
 
 private const val NANOS_PER_MS = 1_000_000.0
