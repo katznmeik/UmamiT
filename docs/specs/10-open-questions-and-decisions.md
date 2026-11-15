@@ -547,6 +547,13 @@ does.
   not pass consistently, so by the PO's „gate the stable ones" it moves to the
   reported-only set. Its long frame is the deliberate one-piece first frame
   (A-03/A-04).
+- **Gated set corrected (Claude, applying the PO's rule, 2026-11-15):** the
+  rc commit's second CI run failed on setup → timer (3.1×). Over all runs
+  (R1–R8) it reached 4.6× and session page push 3.0×, so neither ever passed
+  consistently; Claude's earlier list to the PO was wrong for them. Gated now
+  only what never exceeded the limit: resume, every pop, the Gespeichert sheet
+  in and out, both sheets' exit, timer → shell (all ≤ 2.7×). Everything else
+  is reported only and judged in the rc check.
 - **Motion review (PO, 2026-11-15):** the PO runs `/review-animations`
   (user-invocable only) on the v0.7.1 changes; its findings come into an rc.2
   or the final.
