@@ -194,6 +194,26 @@ class TimerOverKeyguardTest {
     }
 
     @Test
+    fun `an alert in the close's own recomposition is never reported as hidden (rule 8, #293)`() {
+        show()
+        openTimer()
+        compose.mainClock.autoAdvance = false
+
+        // No frame between the close and the alert: one recomposition sees both.
+        compose.onNodeWithText("Sitzung beenden").performClick()
+        alert("A")
+        val afterAlert = visible.size
+        compose.mainClock.advanceTimeByFrame()
+        compose.waitForIdle()
+        advanceFrames()
+
+        assertThat(keyguard.closePending.value).isFalse()
+        assertThat(visible.last()).isTrue()
+        assertThat(visible.drop(afterAlert)).doesNotContain(false)
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
     fun `back over the keyguard takes the locked path`() {
         show()
         openTimer()

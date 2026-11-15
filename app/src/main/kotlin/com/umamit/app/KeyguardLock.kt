@@ -45,3 +45,9 @@ internal class KeyguardLock(private val isLocked: () -> Boolean) {
  */
 internal fun timerVisibleForFlags(reported: Boolean, closePending: Boolean, alerting: Boolean): Boolean =
     reported || (closePending && alerting)
+
+/**
+ * Whether the timer counts as visible as the report runs: [shown], unless a close waits now (read from the flow, not a
+ * composition's copy, so a cancel in the same turn is seen, #293).
+ */
+internal fun KeyguardLock.reportedNow(shown: Boolean): Boolean = shown && !closePending.value

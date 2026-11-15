@@ -223,7 +223,10 @@ internal fun UmamitRoot(
     // From the back stack, not the route's composition: it changes when navigation starts, not after the fade. A
     // close over the keyguard ends it at once, while the timer is still drawn (A-17).
     val timerVisible = leaving.reported(timerShown)
-    LaunchedEffect(timerVisible) { currentOnTimerVisibleChange(timerVisible) }
+    val currentTimerShown by rememberUpdatedState(timerShown)
+    // Re-derived when it runs, not this composition's value: a cancel in the same turn (a new alert, rule 8) has
+    // already reported the timer again, and a stale `false` would clear the flags while the alert rings.
+    LaunchedEffect(timerVisible) { currentOnTimerVisibleChange(keyguard.reportedNow(currentTimerShown)) }
     val navigateAbove = timerFirst.navigateAbove
     // *Einrichtung erneut zeigen* (ONB-04): above the shell or the timer, so it gives way to an alert too.
     val rerunSetup: () -> Unit = { navigateAbove(OnboardingRoute) { launchSingleTop = true } }
