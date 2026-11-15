@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-15 (D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
+> Status: **Living document** · Last updated: 2026-11-15 (D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -322,6 +322,19 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-120"></a>
+### D-120 — v0.7.2 plan: Fable 5.2 effort, findings files, the unused-dependency tool, the tier label „T4-F" (D-119) · *Accepted (PO, 2026-11-15, one grilling round Q1–Q4 as options)*
+
+**Context.** D-119 left four details to the v0.7.2 plan, to be proposed to the PO as options.
+
+**Decision (the PO's answers).**
+- **Q1, Fable 5.2 effort: `medium`** for the timer-path and data audits and the restructuring design (Claude had recommended `high`). The catalog audit (Opus `medium`) is the baseline to compare against; a thin result escalates one step by 12 §4 (`high`; `xhigh` only with the PO's OK, never `max`).
+- **Q2, findings: one Markdown file per group,** `docs/plans/v0.7.2-audit-<group>.md` (`catalog`, `data`, `timer`, `ui`), one table: ID (`CAT-A-01`, `DAT-A-01`, `TMR-A-01`, `UI-A-01`), place (file:line), kind (delete / simplify / restructure), risk, size, evidence, and a „pick?" column the PO fills in the triage; as `v0.7.1-motion-audit.md`. Step 1 writes `docs/plans/v0.7.2-evidence.md`.
+- **Q3, unused dependencies: the Dependency Analysis Gradle plugin** (`com.autonomousapps.dependency-analysis`, its `buildHealth` report), applied for step 1 only by a throwaway local Gradle init script, **never committed**.
+- **Q4, tier label: „T4-F" (Fable 5.2, `medium`)** for the three named v0.7.2 tasks only (data audit, timer-path audit, restructuring design). 12 §2 gets a note under the tier table; the table itself is unchanged.
+
+**Consequences.** `docs/plans/v0.7.2.md`, 12 §2 and §3.2 „v0.7.2", 09 §2 and §4 „v0.7.2".
 
 <a id="d-119"></a>
 ### D-119 — v0.7.2: the code cleanup review, its scope, release, models and pacing (amends D-101's tiers; D-116) · *Accepted (PO, 2026-11-15, one grilling round Q1–Q4 as options)*
@@ -8231,6 +8244,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-15 | D-119: the v0.7.2 cleanup review (four steps, own release, Fable 5.2 for the timer and data audits and the restructuring design, catalog first). D-120: its plan details: Fable 5.2 at `medium`, findings files per group, the Dependency Analysis plugin from a local init script, the tier label „T4-F". |
 | 2026-11-15 | D-118: `release.yml` publishes with the PO's fine-grained `RELEASE_TOKEN` (Contents only, this repository) after `GITHUB_TOKEN` got HTTP 403 creating releases. D-117 build notes „Arrival fade" and „Lock screen" (rc.2). |
 | 2026-11-14 | D-117: v0.7.1 grilled with the PO (Q1–Q20): „Tee ★ · Zubereitung ★" in rows, two labelled star rows on the sheet and the session page, Meine Tees on the Tee Ø, the tea detail with a Zubereitung line, a Tee/Zubereitung switch on the Tee-Rangliste, two lines in the Verlauf, Bestes Rezept by Zubereitung, umamit.db v8 (`brewing_rating`, copied); transition audit of all four groups by a motion-skill code audit and a JankStats metric on the CI emulator (≤ 1 janky frame, none over 50 ms), done with the PO's rc check; one rc. |
 | 2026-11-13 | D-115 Amendment 1 (PO review of v0.7.0-rc.1, R1–R16): cups by volume with a cup-size setting (also on the tea detail), a Tee donut, one-row totals, foldable sections, half-height charts, a custom month range, GETRUNKEN on Verbrauch, Bewertungen rebuilt (Tee-Rangliste, Neu entdeckt, Verlauf, Bestes Rezept; taste and descriptors removed), „14 g · knapp" in Meine Tees, B/D/E answered → rc.2. D-116: v0.7.1 planned (Tee and Zubereitung rated separately, old ratings copied to both; transition audit); cleanup review → v0.7.2. |

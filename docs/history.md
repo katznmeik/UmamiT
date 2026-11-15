@@ -11,6 +11,11 @@
 
 ## Releases and plans
 
+### v0.7.2: specified (2026-11-15)
+
+- **Grilling (one round, Q1–Q4):** D-120: Fable 5.2 at `medium` (Claude had recommended `high`), findings files per group, the Dependency Analysis plugin from a local init script, the tier label T4-F.
+- **Written:** `docs/plans/v0.7.2.md`; spec #296 with tickets #297–#310 (`needs-triage`); 09 §2 row and §4 „v0.7.2"; 12 §2 note and §3.2 „v0.7.2". Waiting for the PO's approval; no step 1, audit or code change yet.
+
 ### v0.7.1: released (2026-11-15)
 
 - **PO approval (2026-11-15, in the session prompt; D-117 build note „Approval (PO, 2026-11-15, rc.2 check)"):** asked for the result on `v0.7.1-rc.2`, the PO answered „all approved": every rc.2 item of checklist 09 §4 „v0.7.1" passed. No rc.3. The design review's details 1–8 (with rc.1) were not corrected and stand as built.
@@ -603,6 +608,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-15 | **v0.7.2 specified:** one grilling round (D-120: Fable 5.2 `medium`, findings files per group, Dependency Analysis plugin locally, T4-F); plan `docs/plans/v0.7.2.md`, spec #296, tickets #297–#310, 09 §2/§4 „v0.7.2", 12 §2/§3.2; docs PR merged. Waiting for the PO's approval. |
 | 2026-11-15 | **v0.7.1 done:** the PO approved rc.2 („all approved"); 0.7.1 bump, #290 merged (`6192bff5`), CI on `main` green (rerun of the known `ProcessDeathTest` flake), all three accuracy variants PASS, `v0.7.1` released with `RELEASE_TOKEN` (70199, certificate verified); #289, #291–#294 closed. v0.7.2 grilling: D-119. Next: the v0.7.2 specify session. |
 | 2026-11-14 | **v0.7.0 done:** the PO reviewed rc.2 (all but „Tassen") → D-115 Amendment 2 (V1–V9, volume instead of cups), #274/#275/#277, `v0.7.0-rc.3` (70003); the PO approved rc.3 („All changes approved"); 0.7.0 bump, #266 merged (`f3582466`), all three accuracy variants PASS, `v0.7.0` released (70099, certificate verified); #264 closed. Next: the v0.7.1 specify session (D-116). |
 | 2026-11-13/14 | **v0.7.0 rc.2:** the PO reviewed rc.1 with ten points (no approval); grilled in four rounds (R1–R16) into D-115 Amendment 1 and D-116 (v0.7.1: split rating, transition audit; cleanup → v0.7.2); specs 02/03/05/09/11 updated; tickets #268–#273 built at T2 (one detekt fix at T3), one T3 review (12 findings, all fixed); full local gate PASS and CI green; `v0.7.0-rc.2` (70002) from `ccc57917`. A container restart lost one implementer run (resumed from its worktree); PR CI had not run while #266 conflicted with `main` (merged `main` in). |
