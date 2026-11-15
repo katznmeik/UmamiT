@@ -11,6 +11,16 @@
 
 ## Releases and plans
 
+### v0.7.1: released (2026-11-15)
+
+- **PO approval (2026-11-15, in the session prompt; D-117 build note „Approval (PO, 2026-11-15, rc.2 check)"):** asked for the result on `v0.7.1-rc.2`, the PO answered „all approved": every rc.2 item of checklist 09 §4 „v0.7.1" passed. No rc.3. The design review's details 1–8 (with rc.1) were not corrected and stand as built.
+- **Version:** `umamit.version=0.7.1` (versionCode 70199) in `4b9cfaad`; CI green on the PR head `f2b91cf0` (run 43749314657, both emulator jobs). No local gate on the bump (CI is the full gate).
+- PR #290 merged into `main` with a merge commit (`6192bff5`); CI green on it (run 43751545411, attempt 2; attempt 1 failed in `ProcessDeathTest`'s two-brews test on its single diagnostics-log read, the known flake, D-112 Q19).
+- **Accuracy on `6192bff5` (09 §4a, API 36, 50 steps), all PASS:** standard (run 43751551379), alongside (run 43751554724), two-brews (run 43751557905).
+- **Release:** run 43758738993 with `RELEASE_TOKEN` (D-118), [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) from `main` `6192bff5` (versionCode 70199, APK SHA-256 `0e3b2970…3a85`), certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt` (checked by Claude with `apksigner` on the published APK).
+- #289 and #291–#294 closed. Working branch restarted from `main`.
+- **v0.7.2 grilling (one round, Q1–Q4):** D-119: the full four-step cleanup review, its own release `v0.7.2`, Fable 5.2 for the timer and data audits and the restructuring design (Opus `medium` for the other audits and timer/data edits, Sonnet for mechanical edits), the catalog group first. Next: the v0.7.2 specify session.
+
 ### v0.7.1: the PO's rc.1 check, the lock screen, rc.2 (2026-11-15)
 
 - **PO's rc.1 check:** all approved except the lock-screen transitions (*Abgegossen* → the lock screen, the timer over the keyguard closed: janky). The `/review-animations` tickets #291/#292 approved.
@@ -593,6 +603,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-15 | **v0.7.1 done:** the PO approved rc.2 („all approved"); 0.7.1 bump, #290 merged (`6192bff5`), CI on `main` green (rerun of the known `ProcessDeathTest` flake), all three accuracy variants PASS, `v0.7.1` released with `RELEASE_TOKEN` (70199, certificate verified); #289, #291–#294 closed. v0.7.2 grilling: D-119. Next: the v0.7.2 specify session. |
 | 2026-11-14 | **v0.7.0 done:** the PO reviewed rc.2 (all but „Tassen") → D-115 Amendment 2 (V1–V9, volume instead of cups), #274/#275/#277, `v0.7.0-rc.3` (70003); the PO approved rc.3 („All changes approved"); 0.7.0 bump, #266 merged (`f3582466`), all three accuracy variants PASS, `v0.7.0` released (70099, certificate verified); #264 closed. Next: the v0.7.1 specify session (D-116). |
 | 2026-11-13/14 | **v0.7.0 rc.2:** the PO reviewed rc.1 with ten points (no approval); grilled in four rounds (R1–R16) into D-115 Amendment 1 and D-116 (v0.7.1: split rating, transition audit; cleanup → v0.7.2); specs 02/03/05/09/11 updated; tickets #268–#273 built at T2 (one detekt fix at T3), one T3 review (12 findings, all fixed); full local gate PASS and CI green; `v0.7.0-rc.2` (70002) from `ccc57917`. A container restart lost one implementer run (resumed from its worktree); PR CI had not run while #266 conflicted with `main` (merged `main` in). |
 | 2026-11-13 | **v0.7.0 specified:** the PO answered the Statistik grilling in five rounds of options (Q1–Q20, D-115); 02 §12 INS-01–INS-08, SCR-18, 05 §6, 09, 11, 12 written; spec #255, tickets #256–#264, plan `docs/plans/v0.7.0.md`, waiting for the PO's approval. |
