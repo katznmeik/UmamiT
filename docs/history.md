@@ -16,7 +16,7 @@
 - **PO's rc.1 check:** all approved except the lock-screen transitions (*Abgegossen* → the lock screen, the timer over the keyguard closed: janky). The `/review-animations` tickets #291/#292 approved.
 - **Audit and decision:** lock-screen audit A-17–A-20 (`docs/plans/v0.7.1-motion-audit.md` §8); one grilling round: D-117 build note „Lock screen" (keyguard only when leaving the timer while locked; A-19/A-20 kept; report-only measurement). Tickets #293 (T3), #294 (T2).
 - **Build:** #291, #292, #293, #294; T3 review, T4 timer-path review (B1 and N1–N5 fixed), T4 re-review (one race fixed). Gates: GATE PASS, timer tests, CI green on `e57861e0`, accuracy standard/alongside/two-brews PASS on `3c1bf97b`.
-- **Release:** `v0.7.1-rc.2` (70102) from `e57861e0`. After it: the #294 measurement fix (`d52156d4`, tests and CI only).
+- **Release:** `v0.7.1-rc.2` (70102) from `e57861e0` built, signed and verified (run 43722087355), but publishing failed twice with HTTP 403 („Resource not accessible by integration"); waits for the PO's settings check. After it: the #294 measurement fix (`d52156d4`, tests and CI only).
 
 ### v0.7.0: released (2026-11-14)
 
