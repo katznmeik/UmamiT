@@ -542,6 +542,11 @@ does.
   1.8–2.4×; a candidate for M5 with a measurement on the Galaxy). The PO was
   told that on the emulator the gate checks stalls only and cannot see a stale
   or empty frame (unit tests and the rc check cover those).
+- **Cold start reported only (Claude, applying the PO's rule, 2026-11-15):**
+  on the rc commit's CI run cold start was 3.1× (earlier 3.2, 2.4, 2.3): it does
+  not pass consistently, so by the PO's „gate the stable ones" it moves to the
+  reported-only set. Its long frame is the deliberate one-piece first frame
+  (A-03/A-04).
 - **Motion review (PO, 2026-11-15):** the PO runs `/review-animations`
   (user-invocable only) on the v0.7.1 changes; its findings come into an rc.2
   or the final.

@@ -48,4 +48,4 @@ Motion can't be rendered as stills; check it on the phone (09 §4 „v0.7.1"). W
 
 ## Measured on the CI emulator
 
-`TransitionJankTest` numbers per run: `docs/plans/v0.7.1-motion-audit.md` §7. The gated transitions pass on API 36; the tab switches, Teeauswahl in, Schritte-Sheet in and tea detail push are reported only and are yours to judge on the phone (D-117 build note „Gate scope").
+`TransitionJankTest` numbers per run: `docs/plans/v0.7.1-motion-audit.md` §7. The gated transitions pass on API 36; the tab switches, Teeauswahl in, Schritte-Sheet in, tea detail push and cold start are reported only and are yours to judge on the phone (D-117 build note „Gate scope").
