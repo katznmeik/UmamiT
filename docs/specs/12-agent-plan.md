@@ -1,7 +1,7 @@
 # 12 · Subagent Distribution Plan
 
-> Status: **Draft v0.3** · Last updated: 2026-11-14 (v0.7.1 tiers, D-117; 2026-11-13: v0.7.0 tiers, D-115; 2026-11-12: v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
-> Decisions: [D-026](10-open-questions-and-decisions.md#d-026), [D-101](10-open-questions-and-decisions.md#d-101)
+> Status: **Draft v0.3** · Last updated: 2026-11-15 (v0.7.2 tiers and T4-F, D-119, D-120; 2026-11-14: v0.7.1 tiers, D-117; 2026-11-13: v0.7.0 tiers, D-115; 2026-11-12: v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
+> Decisions: [D-026](10-open-questions-and-decisions.md#d-026), [D-101](10-open-questions-and-decisions.md#d-101), [D-119](10-open-questions-and-decisions.md#d-119), [D-120](10-open-questions-and-decisions.md#d-120)
 
 UmamiT is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
 A main **orchestrating session** plans each milestone, splits it into tasks,
@@ -44,6 +44,9 @@ cheap and fast and complex work gets the depth it needs.
   T3 Opus `high`, T4 Opus `xhigh`; D-026). Plans and PRs from before then
   name the old pairs. Read their T labels with this table (D-101).
 - **The orchestrating session** is set up as in §5.1.
+- **T4-F (Fable 5.2, `medium`)** is used only for three named v0.7.2
+  tasks: the data audit, the timer-path audit and the restructuring design
+  (D-119 Q3, D-120). It is not a general tier.
 
 ### 2.1 How to choose a tier
 
@@ -220,6 +223,22 @@ issue, plan `docs/plans/v0.7.1.md`)
 | Milestone review | T3 |
 | Timer review (`feature:brew` diff) | T4 |
 | `/review-animations` | T2 |
+
+*v0.7.2 — Code cleanup review* (D-119, D-120; tickets in spec #296, plan
+`docs/plans/v0.7.2.md`)
+
+| Task | Tier |
+|---|---|
+| Step 1 mechanical evidence and the proof baseline | T2 |
+| Catalog audit, UI audit (read-only) | T3 |
+| Data audit, timer-path audit (read-only) | T4-F |
+| Restructuring design and the 06 update | T4-F |
+| Deletions | T1 / T2 (T3 in data modules) |
+| Local simplifications | T2 (T3 in data modules) |
+| Restructuring outside the timer path | T3 |
+| Timer path, last and on its own | T3 (escalate to T4 on a failure) |
+| Milestone review | T3 |
+| Timer review | T4 |
 
 **M5 — Data & polish → 1.0**
 
