@@ -11,6 +11,13 @@
 
 ## Releases and plans
 
+### v0.7.1: the PO's rc.1 check, the lock screen, rc.2 (2026-11-15)
+
+- **PO's rc.1 check:** all approved except the lock-screen transitions (*Abgegossen* → the lock screen, the timer over the keyguard closed: janky). The `/review-animations` tickets #291/#292 approved.
+- **Audit and decision:** lock-screen audit A-17–A-20 (`docs/plans/v0.7.1-motion-audit.md` §8); one grilling round: D-117 build note „Lock screen" (keyguard only when leaving the timer while locked; A-19/A-20 kept; report-only measurement). Tickets #293 (T3), #294 (T2).
+- **Build:** #291, #292, #293, #294; T3 review, T4 timer-path review (B1 and N1–N5 fixed), T4 re-review (one race fixed). Gates: GATE PASS, timer tests, CI green on `e57861e0`, accuracy standard/alongside/two-brews PASS on `3c1bf97b`.
+- **Release:** `v0.7.1-rc.2` (70102) from `e57861e0`. After it: the #294 measurement fix (`d52156d4`, tests and CI only).
+
 ### v0.7.0: released (2026-11-14)
 
 - **PO approval (2026-11-14, in the session; D-115 „Approval"):** asked for the result on `v0.7.0-rc.3`, the PO answered „All changes approved": every rc.3 item of checklist 09 §4 „v0.7.0" passed, and Claude's rc.3 defaults 2–5 stand as built. No rc.4.
