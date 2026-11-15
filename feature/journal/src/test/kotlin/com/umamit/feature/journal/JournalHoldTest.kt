@@ -13,6 +13,7 @@ import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeRecipeOffers
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
+import com.umamit.core.ui.ARRIVAL_HOLD_MS
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,7 +24,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * Hold, then show fresh (03 §3.6, A-09) at the route's level: each time the Journal tab comes back (a new composition)
- * the hold starts again, so a changed list ready within [JOURNAL_HOLD_MS] takes the old one's place in place; one
+ * the hold starts again, so a changed list ready within [ARRIVAL_HOLD_MS] takes the old one's place in place; one
  * that changes later, while the tab stays, cross-fades once.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -74,7 +75,7 @@ class JournalHoldTest {
         assertShown("the first list", listFor(a), changes = 0)
 
         // Past the hold, the tab still shown: a new session cross-fades the list once.
-        compose.mainClock.advanceTimeBy(JOURNAL_HOLD_MS + FRAME_MS)
+        compose.mainClock.advanceTimeBy(ARRIVAL_HOLD_MS + FRAME_MS)
         sessions = listOf(a, b)
         Snapshot.sendApplyNotifications()
         compose.mainClock.advanceTimeByFrame()
