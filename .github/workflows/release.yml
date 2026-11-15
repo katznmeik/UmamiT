@@ -320,7 +320,7 @@ jobs:
       - name: Create tag and GitHub Release
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          # The PO's fine-grained token (only this repository, Contents: read and write) when the secret exists:
+          # The PO's fine-grained token (only this repository, Contents + Workflows: read and write) when the secret exists:
           # since 2026-11-15 GITHUB_TOKEN gets HTTP 403 creating releases here (D-118). Used in this step only.
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
         run: |
