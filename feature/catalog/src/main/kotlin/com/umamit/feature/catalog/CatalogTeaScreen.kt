@@ -58,6 +58,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.rememberLeavingSheet
 import com.umamit.core.ui.rememberPhotoPainter
 
 /** The catalog tea detail's scrolling content (SCR-21). */
@@ -100,7 +101,10 @@ fun CatalogTeaRoute(
         modifier = modifier,
         onToggleMark = viewModel::toggleMark,
     )
-    val open = sheet
+    // *Aufnehmen* closes the sheet in the view model; it slides out with its last state (A-13), and is gone at once
+    // when an alert starts (rule 8).
+    val addSheet = rememberLeavingSheet(sheet, removeAtOnce = alerting)
+    val open = addSheet.shown
     if (open != null && !alerting && state.tea != null) {
         CatalogAddSheet(
             state = open,
@@ -111,7 +115,9 @@ fun CatalogTeaRoute(
                 onDateChange = viewModel::pickDate,
                 onSave = viewModel::save,
             ),
-            onDismissRequest = viewModel::dismissSheet,
+            onDismissRequest = if (addSheet.leaving) addSheet.left else viewModel::dismissSheet,
+            leaving = addSheet.leaving,
+            onLeft = addSheet.left,
         )
     }
 }

@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -687,6 +687,8 @@ badge.
 - **v0.4.1 (D-104):** the freshness chip (INV-06) after the stock chip.
 - **v0.6.0 (D-112):** the average rating („★ 4,5") of the tea's rated
   sessions, to one decimal; nothing for a tea without a rating.
+- **v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)):** the Ø of the *Tee* ratings only; *Zubereitung* is not
+  shown in the list.
 
 **TEA-09 — Search** `Must` (v0.4.0)
 Over name, secondary name, vendor, region, cultivar and notes, ignoring case
@@ -708,6 +710,7 @@ last in every order (INV-05).
   v0.4.0.
 - **v0.6.0 (D-112):** *Bewertung*: the highest average first, teas without
   a rating after the rated ones (empty teas last, as in every order).
+- **v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)):** *Bewertung* sorts by the *Tee* Ø.
 
 **TEA-13 — Tea detail** `Must`
 SCR-09: hero photo, names, rating „★ 4,5 (12)", type chip, umami meter,
@@ -735,6 +738,10 @@ reorder link „Beim Tee-Kontor nachbestellen" (INV-09).
   `catalog_key` has a catalog tea (discontinued counts), opening its SCR-21
   above the detail. GESCHMACK's radar averages every infusion (JRN-03). A
   tap on the hero opens the photo viewer (TEA-05).
+- **v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)):** „★ 4,5 (12)" is the Ø and count of the *Tee* ratings;
+  directly below, smaller, „Zubereitung Ø 3,8 (10)" (hidden without a
+  *Zubereitung* rating). LETZTE SITZUNGEN rows read as the journal row
+  (JRN-08).
 
 **TEA-14 — Duplicate** `Could` — **not planned** (D-100)
 
@@ -1324,11 +1331,19 @@ and on the session page.
   shown or asked later.
 - AC2: TalkBack reads „Bewertung, 3,5 von 5 Sternen", adjusts in half steps
   and can remove the rating.
-- **v0.7.1 (planned, [D-116](10-open-questions-and-decisions.md#d-116)):**
-  a session gets two optional ratings, „Tee" and „Zubereitung"; a tea's
-  rating everywhere is the Ø of its *Tee* ratings; existing ratings are
-  copied to both. Details are grilled in the v0.7.1 specify session; until
-  then this requirement stands as written.
+- **v0.7.1 ([D-116](10-open-questions-and-decisions.md#d-116), [D-117](10-open-questions-and-decisions.md#d-117)): two ratings.**
+  A session has two optional ratings, **„Tee"** (how good the tea is) and
+  **„Zubereitung"** (how well it was brewed), each 0,5–5,0 in half steps
+  with the tap rules above. The sheet and the session page show two
+  labelled star rows, „Tee" above „Zubereitung", both always shown, each
+  saved at once. A tea's rating everywhere is the Ø of its *Tee* ratings;
+  nothing marks a session that has only one of the two. The update copies
+  every existing rating to both (umamit.db v8, 05 §9).
+  - AC3: Rating only *Zubereitung* leaves the tea's Ø unchanged.
+  - AC4: After the update every session rated before shows the same value
+    in both rows; changing one leaves the other.
+  - AC5: TalkBack reads „Tee-Bewertung, 3,5 von 5 Sternen" and
+    „Zubereitung, keine", each adjustable and removable on its own.
 
 **JRN-03 — Taste profile** `Should` (v0.6.0)
 Optional 0–5 sliders: Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma;
@@ -1386,6 +1401,8 @@ rating if present. In-progress session pinned on top.
   sessions without notes (planned until D-112). The thumbnail stays the
   tea's cover, also for a session with own photos. The empty journal shows
   asset A6 with „Deine erste Tasse wartet.".
+- **v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)):** the rating line reads „Tee ★ 4,5 · Zubereitung ★ 3,5";
+  only the set one shows when just one is rated.
 
 **JRN-09 — Search & filters** `Should` (v0.6.0)
 - **Search** over the tea's name, the notes (from v0.6.1 also the
@@ -1395,6 +1412,7 @@ rating if present. In-progress session pinned on top.
 - **Filters:** *Tee* (one of the teas that have sessions), *Bewertung*
   (*ab 3 ★*, *ab 4 ★*, *ab 4,5 ★*) and *Mit Notizen* (sessions with note
   text; from v0.6.1 also an infusion note). A date range and a filter by Sorte are not built.
+  From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) *Bewertung* filters on the *Tee* rating.
 - Search and filters are not remembered across app starts. While either is
   active the in-progress session is not pinned.
 - AC1: smooth with 10 000 sessions (05 §10).
@@ -1766,8 +1784,20 @@ distribution and „Am besten bewertet" are gone (replaced by the first part).
   tea qualifies.
 - Without any rating in the range the tab says „In diesem Zeitraum nichts
   bewertet" above *Neu entdeckt*.
-- **v0.7.1 (planned, D-116):** where *Tee* and *Zubereitung* ratings show on
-  Statistik is grilled in the v0.7.1 specify session.
+- **v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)):**
+  - **Tee-Rangliste** gets a switch **Tee · Zubereitung** under its heading
+    and ranks by the chosen Ø („4,6 ★ · 5×" counts the sessions with that
+    rating); Tee the first time, remembered (`statsRankingBy`, 05 §6). With
+    ratings of only the other kind it says „Keine Bewertung dieser Art im
+    Zeitraum".
+  - **Neu entdeckt** shows the *Tee* Ø.
+  - **Bewertung im Verlauf** draws two lines, Tee and Zubereitung (dashed),
+    with a legend; each breaks over periods without its rating; the value
+    label shows both.
+  - **Bestes Rezept** compares the recipes by their *Zubereitung* Ø (each
+    recipe ≥ 2 sessions with a Zubereitung rating in the range), with the
+    sub-line „nach Zubereitung".
+  - „In diesem Zeitraum nichts bewertet" means no rating of either kind.
 
 **INS-04 — Taste (Bewertungen)** — **removed in rc.2 (D-115 A1, R5):**
 *Geschmack* (the radar) and *Beschreibungen* (the top descriptors) are no

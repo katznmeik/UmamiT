@@ -7,6 +7,7 @@ import com.umamit.core.data.ObserveStats
 import com.umamit.core.domain.stats.StatsSession
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StatsTab
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeClock
@@ -19,6 +20,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -202,6 +204,38 @@ class StatsViewModelTest {
         val after = vm.overview.first { it?.stats?.sessionCount == 1 }
         assertThat(after!!.range).isEqualTo(StatsRange.DAYS_30)
     }
+
+    @Test
+    fun `the ranking switch starts on Tee and is written and restored`() = runTest {
+        sessions(session("a", daysAgo = 1))
+        val vm = viewModel()
+        keepAlive(vm)
+        assertThat(vm.rankingBy()).isEqualTo(StatsRankingBy.TEA)
+
+        vm.selectRankingBy(StatsRankingBy.BREWING)
+
+        assertThat(settings.settings.first().statsRankingBy).isEqualTo(StatsRankingBy.BREWING)
+        assertThat(vm.state.first { (it as? StatsUiState.Data)?.rankingBy == StatsRankingBy.BREWING }).isNotNull()
+        val restored = viewModel()
+        keepAlive(restored)
+        assertThat(restored.rankingBy()).isEqualTo(StatsRankingBy.BREWING)
+    }
+
+    @Test
+    fun `a stored Zubereitung arrives with the first data, never a Tee frame before it`() = runTest {
+        sessions(session("a", daysAgo = 1))
+        settings.update { it.copy(statsRankingBy = StatsRankingBy.BREWING) }
+        val vm = viewModel()
+        val seen = mutableListOf<StatsUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { seen += it } }
+        vm.settled()
+
+        val data = seen.filterIsInstance<StatsUiState.Data>()
+        assertThat(data).isNotEmpty()
+        assertThat(data.map { it.rankingBy }.distinct()).containsExactly(StatsRankingBy.BREWING)
+    }
+
+    private suspend fun StatsViewModel.rankingBy() = (settled() as StatsUiState.Data).rankingBy
 
     @Test
     fun `the three tabs share one calculator read`() = runTest {

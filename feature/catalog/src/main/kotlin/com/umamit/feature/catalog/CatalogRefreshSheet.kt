@@ -40,6 +40,7 @@ import com.umamit.core.data.catalog.summary
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.rememberSheetClose
 import kotlinx.coroutines.launch
 
 /** The refresh sheet (SCR-22). */
@@ -59,6 +60,8 @@ const val CATALOG_REFRESH_SUMMARY_TAG = "catalog_refresh_summary"
 @Composable
 fun CatalogRefreshSheet(refresh: CatalogRefreshState, onCancel: () -> Unit, onDismissRequest: () -> Unit) {
     val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion)
+    // *Fertig* and *Schließen* slide the sheet out like a drag, then close it (A-13).
+    val close = rememberSheetClose(sheetState, onDismissRequest)
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -75,7 +78,7 @@ fun CatalogRefreshSheet(refresh: CatalogRefreshState, onCancel: () -> Unit, onDi
         ) {
             when (refresh) {
                 is CatalogRefreshState.Running -> Running(refresh.progress, onCancel)
-                is CatalogRefreshState.Finished -> Result(refresh.outcome, onDismissRequest)
+                is CatalogRefreshState.Finished -> Result(refresh.outcome, close)
                 CatalogRefreshState.Idle -> Unit
             }
         }

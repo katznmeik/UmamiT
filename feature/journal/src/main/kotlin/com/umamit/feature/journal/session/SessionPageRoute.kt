@@ -66,6 +66,7 @@ fun SessionPageRoute(
             edit = { currentHost.onEdit(it) },
             openCatalog = { currentHost.onOpenCatalog(it) },
             setRating = viewModel::setRating,
+            setBrewingRating = viewModel::setBrewingRating,
             setTaste = viewModel.infusionTasting::setTaste,
             clearTaste = viewModel.infusionTasting::clearTaste,
             setInfusionNote = viewModel.infusionTasting::setNote,

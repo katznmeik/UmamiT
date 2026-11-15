@@ -100,9 +100,11 @@ class RoomJournalRepository @Inject constructor(private val db: UmamiDatabase, p
         tasting.observeTeaRating(teaId),
         tasting.observeTasteAverages(teaId),
         tasting.observeDescriptorCounts(teaId),
-    ) { rating, taste, descriptors ->
+        tasting.observeTeaBrewingRating(teaId),
+    ) { rating, taste, descriptors, brewing ->
         TeaTasting(
             rating = rating?.let { TeaRating(it.average, it.count) },
+            brewingRating = brewing?.let { TeaRating(it.average, it.count) },
             tasteAverages = taste.byAxis(),
             descriptorCounts = descriptors.map { DescriptorCount(it.descriptorKey, it.count) },
         )

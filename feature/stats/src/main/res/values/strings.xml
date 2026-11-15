@@ -49,6 +49,21 @@
     <string name="stats_ratings_recipe_unnamed">Rezept</string>
     <!-- ===== end of #261 ===== -->
 
+    <!-- ===== #283: Tee and Zubereitung ratings (INS-02, D-117) ===== -->
+    <string name="stats_ratings_switch_tea">Tee</string>
+    <string name="stats_ratings_switch_brewing">Zubereitung</string>
+    <string name="stats_ratings_switch_tea_description">Rangliste nach Tee</string>
+    <string name="stats_ratings_switch_brewing_description">Rangliste nach Zubereitung</string>
+    <string name="stats_ratings_none_of_kind">Keine Bewertung dieser Art im Zeitraum</string>
+    <string name="stats_ratings_best_recipe_by">nach Zubereitung</string>
+    <string name="stats_chart_legend_tea">Tee</string>
+    <string name="stats_chart_legend_brewing">Zubereitung</string>
+    <string name="stats_chart_rating_tea">Tee %1$s</string>
+    <string name="stats_chart_rating_brewing">Zubereitung %1$s</string>
+    <string name="stats_chart_tooltip_tea">Tee %1$s ★</string>
+    <string name="stats_chart_tooltip_brewing">Zubereitung %1$s ★</string>
+    <!-- ===== end of #283 ===== -->
+
     <!-- ===== #260: Überblick (INS-01, INS-03, INS-06) ===== -->
     <plurals name="stats_overview_sessions_label">
         <item quantity="one">Sitzung</item>

@@ -4,9 +4,11 @@ import android.Manifest
 import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationManager
+import android.hardware.display.DisplayManager
 import android.os.ParcelFileDescriptor
 import android.os.PowerManager
 import android.util.Log
+import android.view.Display
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
@@ -43,6 +45,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.roundToLong
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
@@ -73,6 +76,8 @@ class TimerAlertOverLockScreenTest {
     /** Whether the AVD had its lock screen disabled before the test enabled it; restored in [tearDown]. */
     private var lockScreenWasDisabled = false
 
+    private val recorder = FrameRecorder()
+
     private val controller =
         (context.applicationContext as TimerHost).timerInputs as BrewSessionController
 
@@ -90,6 +95,7 @@ class TimerAlertOverLockScreenTest {
 
     @After
     fun tearDown() {
+        recorder.release()
         endTimer()
         instrumentation.runOnMainSync {
             ActivityLifecycleMonitorRegistry.getInstance().let { monitor ->
@@ -143,10 +149,31 @@ class TimerAlertOverLockScreenTest {
             },
         )
 
-        compose.onNodeWithText(context.getString(BrewR.string.brew_timer_poured)).performClick()
+        // Frame cost of the snap, reported only (NFR-PERF-12, audit A-20 „Measurable"); no assertion on it. The click
+        // happens whatever the measurement does: should it fail before the click, the click follows outside it, so
+        // the rule-8 checks below never depend on measuring.
+        var clicked = false
+        val clickPoured = {
+            compose.onNodeWithText(context.getString(BrewR.string.brew_timer_poured)).performClick()
+            clicked = true
+        }
+        val frames = runCatching { recorder.measure(SETTLE_MS) { clickPoured() } }
+            .onFailure { Log.w(TAG, "Abgegossen frames not measured: ${it.message}") }
+            .getOrNull()
+        if (!clicked) clickPoured()
+        if (frames != null) reportFrames(frames)
         eventually("FINISHED after Abgegossen", TIMEOUT) {
             (controller.state.value as? TimerUiState.Active)?.takeIf { it.phase == TimerPhase.FINISHED }
         }
+    }
+
+    /** One `TransitionJank:` line for the *Abgegossen* click over the lock screen; report-only, never an assertion. */
+    private fun reportFrames(frames: List<Long>) {
+        val refreshRate = context.getSystemService(DisplayManager::class.java)
+            .getDisplay(Display.DEFAULT_DISPLAY)?.refreshRate ?: 0f
+        val budgetNs = if (refreshRate > 0f) (NANOS_PER_SECOND / refreshRate).roundToLong() else DEFAULT_BUDGET_NS
+        val report = JankReport("Abgegossen over lock screen", listOf(JankRun(frames, budgetNs)))
+        Log.i(TAG, report.line(budgetNs, recorder.windowCount, null))
     }
 
     /** Ends a session left by an earlier test, so the start is not refused (TMR-21). */
@@ -219,6 +246,9 @@ class TimerAlertOverLockScreenTest {
         val ALERT_TIMEOUT = 45.seconds
         val LOCK_TIMEOUT = 5.seconds
         const val TAG = "TimerAlertTest"
+        const val SETTLE_MS = 1_200L
+        const val NANOS_PER_SECOND = 1_000_000_000.0
+        const val DEFAULT_BUDGET_NS = 16_666_667L
         const val POLL_INTERVAL_MS = 250L
 
         fun brew() = BrewStart(

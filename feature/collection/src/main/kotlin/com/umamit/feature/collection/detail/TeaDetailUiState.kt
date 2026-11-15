@@ -53,7 +53,9 @@ sealed interface TeaDetailUiState {
  * @property catalogKey ⋮ *Im Katalog ansehen* (D-114 Q10): the tea's catalog key while its catalog tea exists
  *   (discontinued counts), else null: the item is hidden.
  * @property rating the header's „★ 4,5 (12)": the average of the tea's rated sessions and their count (TEA-13,
- *   D-112); null without a rated session.
+ *   D-112); null without a rated session. Only the *Tee* ratings count (D-117 Q3).
+ * @property brewingRating the „Zubereitung Ø 3,8 (10)" line below it: the average of the sessions' *Zubereitung*
+ *   ratings and their count (D-117 Q3); null without one, the line is hidden.
  * @property taste GESCHMACK: the average radar and the top descriptors (TEA-13, D-112).
  * @property recentSessions LETZTE SITZUNGEN: the last [RECENT_SESSIONS] finished sessions, newest first.
  */
@@ -91,6 +93,7 @@ data class TeaDetail(
     val catalogReset: CatalogResetOffer? = null,
     val catalogKey: String? = null,
     val rating: TeaRating? = null,
+    val brewingRating: TeaRating? = null,
     val taste: DetailTasting = DetailTasting(),
     val recentSessions: List<RecentSession> = emptyList(),
 ) {

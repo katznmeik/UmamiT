@@ -45,6 +45,7 @@ import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberPhotoPainter
+import com.umamit.core.ui.rememberStartsAfterStop
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
@@ -82,45 +83,9 @@ fun HomeScreen(
         scrollToTopRequest = scrollToTopRequest,
         verticalArrangement = Arrangement.Top,
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            state.reliabilityProblem?.let { problem ->
-                ReliabilityBanner(
-                    message = stringResource(
-                        when (problem) {
-                            ReliabilityProblem.Unreliable -> R.string.home_reliability
-                            ReliabilityProblem.AlarmVolumeOff -> R.string.home_reliability_alarm_volume
-                        },
-                    ),
-                    onFix = actions.fixReliability,
-                    modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
-                )
-            }
-            // The empty state brings its own landscape; one is enough.
-            val empty = state.collectionEmpty
-            if (!empty) Header()
-            BrewCards(state, nowElapsedMs, actions)
-            QuickTimerEntry(actions.quickTimer)
-            if (empty) {
-                EmptyState(
-                    title = stringResource(R.string.home_empty_title),
-                    body = stringResource(R.string.home_empty_body),
-                    actionLabel = stringResource(R.string.home_empty_action),
-                    onAction = actions.openCatalog,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            } else {
-                // The single nudge slot (SCR-02): the low-stock card takes it before the other nudges.
-                state.lowStock?.let { card ->
-                    LowStockNudge(
-                        card = card,
-                        onReorder = actions.reorder,
-                        onHide = actions.hideLowStock,
-                        modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
-                    )
-                }
-                Lists(state, actions)
-            }
-        }
+        // Start arrives in one piece (A-03, 03 §3.6): nothing below the title until its state is read, then the
+        // whole body at once, so no card pushes the lists down. No fade: its first frame is on the cold start's path.
+        HomeBody(state, nowElapsedMs, actions)
         // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).
         val question = state.question?.takeIf { state.alertKey == null }
         if (question != null) {
@@ -132,6 +97,49 @@ fun HomeScreen(
         }
     }
 }
+
+@Composable
+private fun HomeBody(state: HomeUiState, nowElapsedMs: () -> Long, actions: HomeActions) =
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (state.loading) return@Column
+        state.reliabilityProblem?.let { problem ->
+            ReliabilityBanner(
+                message = stringResource(
+                    when (problem) {
+                        ReliabilityProblem.Unreliable -> R.string.home_reliability
+                        ReliabilityProblem.AlarmVolumeOff -> R.string.home_reliability_alarm_volume
+                    },
+                ),
+                onFix = actions.fixReliability,
+                modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+            )
+        }
+        // The empty state brings its own landscape; one is enough.
+        val empty = state.collectionEmpty
+        if (!empty) Header()
+        BrewCards(state, nowElapsedMs, actions)
+        QuickTimerEntry(actions.quickTimer)
+        if (empty) {
+            EmptyState(
+                title = stringResource(R.string.home_empty_title),
+                body = stringResource(R.string.home_empty_body),
+                actionLabel = stringResource(R.string.home_empty_action),
+                onAction = actions.openCatalog,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            // The single nudge slot (SCR-02): the low-stock card takes it before the other nudges.
+            state.lowStock?.let { card ->
+                LowStockNudge(
+                    card = card,
+                    onReorder = actions.reorder,
+                    onHide = actions.hideLowStock,
+                    modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
+                )
+            }
+            Lists(state, actions)
+        }
+    }
 
 /**
  * *Aufguss fortsetzen* for the active brew (GEN-06), and *Aufguss starten* while fewer than two timers are
@@ -250,14 +258,18 @@ private fun ActiveCard(active: TimerUiState.Active, nowElapsedMs: () -> Long, on
     )
 }
 
-/** The monotonic time, read again at each whole second of the countdown or the overtime while composed. */
+/**
+ * The monotonic time, read again at each whole second of the countdown or the overtime while composed, and in the
+ * `ON_START` after a stop, so the first frame after unlock never shows a second from before the sleep (A-01).
+ */
 @Composable
 private fun rememberTickingNow(active: TimerUiState.Active, nowElapsedMs: () -> Long): Long {
     var now by remember(active) { mutableLongStateOf(nowElapsedMs()) }
     val clock by rememberUpdatedState(nowElapsedMs)
+    val restarts = rememberStartsAfterStop { now = clock() }
     val deadline = active.deadlineElapsedMs
     if (deadline != null && (active.phase == TimerPhase.RUNNING || active.phase == TimerPhase.ALERTING)) {
-        LaunchedEffect(active) {
+        LaunchedEffect(active, restarts) {
             while (true) {
                 now = clock()
                 delay(MS_PER_SECOND - Math.floorMod(now - deadline, MS_PER_SECOND) + 1)

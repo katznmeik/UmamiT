@@ -124,8 +124,14 @@ enum class TastingWrite {
  * again. None touches stock, cost, `active_brew` or a step's timer columns, and none runs inside a timer transition.
  */
 interface SessionTasting {
-    /** The rating, 0,5–5,0 in half steps (JRN-02), or null to remove it. */
+    /** The *Tee* rating, 0,5–5,0 in half steps (JRN-02), or null to remove it; the *Zubereitung* rating stays. */
     suspend fun setRating(sessionId: String, rating: Double?): TastingWrite
+
+    /**
+     * The *Zubereitung* rating (umamit.db v8, JRN-02, D-117), with the rules of [setRating]: 0,5–5,0 in half steps,
+     * or null to remove it; the *Tee* rating stays.
+     */
+    suspend fun setBrewingRating(sessionId: String, rating: Double?): TastingWrite
 
     /** One taste value of the infusion at [position], 0–5 (JRN-03), or null to unset that axis; the other five stay. */
     suspend fun setInfusionTaste(sessionId: String, position: Int, axis: TasteAxis, value: Int?): TastingWrite

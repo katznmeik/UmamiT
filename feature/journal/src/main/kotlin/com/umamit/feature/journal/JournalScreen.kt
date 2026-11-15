@@ -2,6 +2,7 @@ package com.umamit.feature.journal
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,11 +55,11 @@ import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.TeaThumbnail
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
-import com.umamit.core.designsystem.text.ratingText
 import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.SessionRatings
 import java.io.File
 
 private const val TITLE_MAX_LINES = 2
@@ -95,6 +96,7 @@ fun JournalScreen(
     onFilterChange: (JournalFilter) -> Unit = {},
     alerting: Boolean = false,
     teaNameFallback: String? = null,
+    listChange: Int = 0,
 ) {
     ScreenScaffold(
         title = stringResource(R.string.journal_title),
@@ -103,22 +105,25 @@ fun JournalScreen(
         scrollable = false,
         verticalArrangement = Arrangement.Top,
     ) {
-        when {
-            list == null -> Unit
+        // A list replaced after the route's hold cross-fades once (A-09); the first frame is drawn as it is.
+        Box(modifier = Modifier.fillMaxSize().crossfadeOnChange(listChange)) {
+            when {
+                list == null -> Unit
 
-            list.isEmpty -> EmptyJournal()
+                list.isEmpty -> EmptyJournal()
 
-            else -> JournalContent(
-                list = list,
-                filter = filter,
-                onFilterChange = onFilterChange,
-                alerting = alerting,
-                teaNameFallback = teaNameFallback,
-                scrollToTopRequest = scrollToTopRequest,
-                thumbnail = thumbnail,
-                onOpenTimer = onOpenTimer,
-                onOpenSession = onOpenSession,
-            )
+                else -> JournalContent(
+                    list = list,
+                    filter = filter,
+                    onFilterChange = onFilterChange,
+                    alerting = alerting,
+                    teaNameFallback = teaNameFallback,
+                    scrollToTopRequest = scrollToTopRequest,
+                    thumbnail = thumbnail,
+                    onOpenTimer = onOpenTimer,
+                    onOpenSession = onOpenSession,
+                )
+            }
         }
     }
 }
@@ -324,16 +329,7 @@ private fun JournalRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                entry.rating?.let { rating ->
-                    val value = ratingText(rating.toFloat())
-                    val spokenRating = stringResource(R.string.journal_rating_description, value)
-                    Text(
-                        text = stringResource(R.string.journal_rating, value),
-                        modifier = Modifier.semantics { contentDescription = spokenRating },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+                SessionRatings(entry.rating, entry.brewingRating)
             }
         }
         if (showDivider) {

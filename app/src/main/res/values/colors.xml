@@ -2,4 +2,6 @@
 <resources>
     <!-- Washi: the background of the light scheme (03 §3.1). -->
     <color name="ic_launcher_background">#FFF3F0E9</color>
+    <!-- The window and the starting window: washi, as the light scheme's background (A-04). -->
+    <color name="window_background">#FFF3F0E9</color>
 </resources>

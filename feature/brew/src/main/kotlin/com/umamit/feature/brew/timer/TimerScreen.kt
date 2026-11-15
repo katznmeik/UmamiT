@@ -27,6 +27,7 @@ import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.reliability.ReliabilityProblem
+import com.umamit.core.ui.rememberStartsAfterStop
 import kotlinx.coroutines.delay
 
 /** Test tag of the TalkBack announcement node (a polite, while alerting assertive, live region). */
@@ -76,6 +77,8 @@ const val TIMER_RING_TAG = "timer_ring"
  *   below the step strip and its sheet ([TasteButtonSlot], [TimerTasteHost]), its space kept from the first READY;
  *   null: none (the quick timer). The sheet is removed in an alert's first frame like the other overlays (rule 8)
  *   and sends no engine event.
+ * @param closing the timer ended and its route is closing (A-15): the screen stays as it was, under the pop's
+ *   `exitFade`, with nothing over it (no menu, question or sheet); the route makes it inert. Never an alert.
  */
 @Composable
 fun TimerScreen(
@@ -96,6 +99,7 @@ fun TimerScreen(
     onOtherEvent: (TimerEvent) -> Unit = {},
     onOpenOther: () -> Unit = {},
     tasting: TimerTasting? = null,
+    closing: Boolean = false,
 ) {
     SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
         val alerting = state.alerting
@@ -104,6 +108,7 @@ fun TimerScreen(
         val overlays = rememberTimerOverlays()
         // Alerts first (rule 8): whatever was opened before this alert is gone in the same frame.
         overlays.currentAlert = alertKey
+        overlays.closing = closing
         LaunchedEffect(alertKey) { alertKey?.let(overlays::closeAllNotOpenedIn) }
 
         val dimming = rememberScreenDimming(
@@ -160,8 +165,11 @@ fun TimerScreen(
             TimerAnnouncer(state, now)
         }
 
-        TimerStepsSheet(state, overlays, onEvent)
-        TimerTasteHost(state, tasting.takeUnless { state.isQuick }, overlays)
+        // Closing, no sheet stays over the pop: removed in that frame, like on an alert (A-15).
+        if (!closing) {
+            TimerStepsSheet(state, overlays, onEvent)
+            TimerTasteHost(state, tasting.takeUnless { state.isQuick }, overlays)
+        }
         overlays.confirmation?.takeIf { overlays.confirmationShown }?.let { confirmation ->
             DiscardSessionDialog(
                 onConfirm = {
@@ -186,11 +194,19 @@ fun TimerScreen(
  * The clock as the screen shows it: read again at every second boundary of the
  * display (and the pre-alert). A new state reads the clock in its first
  * composition, so the first frame after *Start* or *Weiter* is never stale.
+ *
+ * The ticks' `delay` runs on uptime, which stops in deep sleep: a start after a stop (unlock, the screen turned on
+ * over the timer) reads the clock again in `ON_START`, before the first frame, and restarts the ticks from there, so
+ * that frame never shows a second from before the sleep (A-01, D-117 Q19). The first composition and a new state
+ * (the alert's first frame) read the clock as before.
  */
 @Composable
 internal fun rememberTimerNow(state: TimerUiState.Active, nowElapsedMs: () -> Long): State<Long> {
     val now = remember(state, nowElapsedMs) { mutableLongStateOf(nowElapsedMs()) }
-    LaunchedEffect(now, nowElapsedMs) {
+    val currentNow by rememberUpdatedState(now)
+    val currentClock by rememberUpdatedState(nowElapsedMs)
+    val restarts = rememberStartsAfterStop { currentNow.longValue = currentClock() }
+    LaunchedEffect(now, nowElapsedMs, restarts) {
         while (true) {
             val delayMs = state.nextTickDelayMs(now.longValue) ?: break
             delay(delayMs)

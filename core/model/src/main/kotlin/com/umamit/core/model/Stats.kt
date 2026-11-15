@@ -42,6 +42,15 @@ data class MonthSpan(val from: YearMonth, val to: YearMonth) {
     }
 }
 
+/** Which rating the Tee-Rangliste ranks by (INS-02, D-117), remembered across app starts (05 §6 `statsRankingBy`). */
+enum class StatsRankingBy {
+    /** The *Tee* rating, the default. */
+    TEA,
+
+    /** The *Zubereitung* rating. */
+    BREWING,
+}
+
 /** The tab of the Statistik screen (INS-07, SCR-18), remembered across app starts (05 §6 `statsTab`). */
 enum class StatsTab {
     /** *Überblick*, the default. */

@@ -13,6 +13,7 @@ import com.umamit.core.domain.stats.RatingsStats
 import com.umamit.core.domain.stats.StatsCalculator
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StatsTab
 import com.umamit.core.model.UserSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -59,6 +60,8 @@ sealed interface StatsUiState {
         val months: MonthSpan? = null,
         /** The keys of the folded sections (`statsFolded`, INS-08, R8). */
         val folded: Set<String> = emptySet(),
+        /** The Tee-Rangliste's switch (INS-02, D-117 Q9), stored: it arrives with the rest, never a frame later. */
+        val rankingBy: StatsRankingBy = StatsRankingBy.TEA,
     ) : StatsUiState
 }
 
@@ -95,6 +98,7 @@ class StatsViewModel @Inject constructor(
         val tab: StatsTab,
         val custom: MonthSpan?,
         val folded: Set<String>,
+        val rankingBy: StatsRankingBy,
     )
 
     private val choice: Flow<Choice> = settings.settings
@@ -104,6 +108,7 @@ class StatsViewModel @Inject constructor(
                 it.statsTab,
                 MonthSpan.of(it.statsRangeFrom?.toString(), it.statsRangeTo?.toString()),
                 it.statsFolded,
+                it.statsRankingBy,
             )
         }
         .distinctUntilChanged()
@@ -136,7 +141,7 @@ class StatsViewModel @Inject constructor(
 
     val state: StateFlow<StatsUiState> = combine(choice, months) { choice, months ->
         if (months != null) {
-            StatsUiState.Data(choice.range, choice.tab, choice.custom, months, choice.folded)
+            StatsUiState.Data(choice.range, choice.tab, choice.custom, months, choice.folded, choice.rankingBy)
         } else {
             StatsUiState.Empty
         }
@@ -174,6 +179,9 @@ class StatsViewModel @Inject constructor(
     fun setFolded(key: String, folded: Boolean) = write {
         it.copy(statsFolded = if (folded) it.statsFolded + key else it.statsFolded - key)
     }
+
+    /** The Tee-Rangliste's switch, remembered across app starts (INS-02, D-117 Q9). */
+    fun selectRankingBy(by: StatsRankingBy) = write { it.copy(statsRankingBy = by) }
 
     /** The tab shown, remembered across app starts (INS-07). */
     fun selectTab(tab: StatsTab) = write { it.copy(statsTab = tab) }

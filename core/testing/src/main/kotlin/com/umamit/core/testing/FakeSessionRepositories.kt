@@ -293,7 +293,8 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
             session.stepTastings.values.map { it.taste } + listOfNotNull(rowTastes[session.id])
         }
         TeaTasting(
-            rating = ratingOf(sessions),
+            rating = ratingOf(sessions) { it.rating },
+            brewingRating = ratingOf(sessions) { it.brewingRating },
             tasteAverages = TasteProfile.averages(tastes),
             descriptorCounts = sessions.flatMap { it.descriptorKeys }.groupingBy { it }.eachCount()
                 .map { (key, count) -> DescriptorCount(key, count) }
@@ -303,8 +304,8 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
 
     private fun finished(rows: Map<String, BrewSession>) = rows.values.filter { it.status != SessionStatus.IN_PROGRESS }
 
-    private fun ratingOf(sessions: List<BrewSession>): TeaRating? =
-        sessions.mapNotNull { it.rating }.takeIf { it.isNotEmpty() }?.let { TeaRating(it.average(), it.size) }
+    private fun ratingOf(sessions: List<BrewSession>, of: (BrewSession) -> Double?): TeaRating? =
+        sessions.mapNotNull(of).takeIf { it.isNotEmpty() }?.let { TeaRating(it.average(), it.size) }
 }
 
 /**
@@ -325,6 +326,11 @@ class FakeSessionTasting internal constructor(private val s: FakeSessions) : Ses
 
     override suspend fun setRating(sessionId: String, rating: Double?): TastingWrite =
         write(sessionId, invalid = rating != null && !TastingLimits.isValidRating(rating)) { it.copy(rating = rating) }
+
+    override suspend fun setBrewingRating(sessionId: String, rating: Double?): TastingWrite =
+        write(sessionId, invalid = rating != null && !TastingLimits.isValidRating(rating)) {
+            it.copy(brewingRating = rating)
+        }
 
     override suspend fun setInfusionTaste(
         sessionId: String,

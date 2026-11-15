@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SITZUNGEN, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.1, D-117: two ratings on SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18 and §3.8, transitions without stale frames in §3.6; v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SITZUNGEN, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -428,6 +428,23 @@ instant. The 100 ms fades exist only on the in-app path (`reduceMotion = true`
 at scale 1, which tests force). What depends on the flag on the device is the
 alert and glow rules: no glow, a static alert surface (D-055).
 
+**Transitions without stale frames (v0.7.1, [D-117](10-open-questions-and-decisions.md#d-117), NFR-PERF-12).** When
+the app comes back (unlock, recents, a cold start after the process was
+killed) a screen keeps its last frame until its fresh state is ready, at
+most ≈ 150 ms, then cross-fades with `fade` only if something changed; it
+never shows a stale or empty frame and then jumps, and no layout moves when
+the data arrives. The same holds for tab switches, pushed and popped
+screens, sheets, dialogs and the timer screen's entry and exit. A pushed
+screen or a tab root that opens before its data is read (no last frame to
+keep) holds the same way: data within ≈ 150 ms of its first frame is drawn
+at full opacity inside the route's or tab's own enter, and only a later first
+arrival fades in with `fade`; a screen composed with its data is drawn at once
+(D-117 build note „Arrival fade"). The Journal's cross-fade of a late list
+fades the old frame out with `exitFade`, as a leaving element. An alert
+never waits for this (`alertEnter` stays `snap()`, rule 8). The audit's
+findings and fixes are in `docs/plans/v0.7.1-motion-audit.md`; a fix that
+changes a value in the token table above goes to the PO first.
+
 **TalkBack:** motion never carries information on its own. Every animated
 state has a text or semantics equivalent (remaining time, „Gleich fertig …",
 „Jetzt abgießen!").
@@ -456,7 +473,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `TimerRing` | 3 dp ring, round cap, leaf glyph, digits + caption; pre-alert segment marked as a short tick on the ring |
 | `PillButton` | Cream on dark / green on light; ink with washi text on the alert surface |
 | `KettleHint` | Kettle icon + „Wasserkocher auf 60 °C" |
-| `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named. From v0.6.0 (D-112): `RatingStars` is the one rating input (sheet and session page): five stars, 48 dp targets, a tap sets whole stars, a second tap on the same star takes half off, a third clears; a half star draws half filled; a light tick per change; TalkBack „Bewertung, 3,5 von 5 Sternen" / „Bewertung, keine", adjustable in half steps, action „Bewertung entfernen". Read-only it is the text „★ 4,5". `TasteSlider`: 0–5 in whole steps, „–" while unset. **The slim slider** (from v0.6.0, [D-113](10-open-questions-and-decisions.md#d-113); `TasteSlider` and the settings' *Lautstärke*, one look in `core:designsystem`): a pin handle of 3 × 20 dp, corners 1.5 dp, `primary` (4 × 24 dp while pressed or dragged); a 2 dp line with round caps, `primary` up to the handle and `outlineVariant` beyond it, with a 4 dp gap on each side of the handle; stop dots of 3 dp in `onSurfaceVariant` on the part beyond the handle only; the touch target stays 48 dp high. An unset `TasteSlider` shows a short mark of 1.5 × 10 dp in `onSurfaceVariant` at the left end and no `primary` line, so it differs from a set 0. `TasteRadar`: six axes (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma), drawn from three set axes on, unset axes at the centre; TalkBack reads the values as a list |
+| `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named. From v0.6.0 (D-112): `RatingStars` is the one rating input (sheet and session page): five stars, 48 dp targets, a tap sets whole stars, a second tap on the same star takes half off, a third clears; a half star draws half filled; a light tick per change; TalkBack „Bewertung, 3,5 von 5 Sternen" / „Bewertung, keine", adjustable in half steps, action „Bewertung entfernen". Read-only it is the text „★ 4,5". From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) a session has two: a row takes a label at its left („Tee", „Zubereitung"; body font, `onSurfaceVariant`), TalkBack „Tee-Bewertung, 3,5 von 5 Sternen" / „Zubereitung, keine", actions „Tee-Bewertung entfernen" / „Zubereitung entfernen"; read-only in rows it is „Tee ★ 4,5 · Zubereitung ★ 3,5" (only the set one; wraps after „·" at large font). `TasteSlider`: 0–5 in whole steps, „–" while unset. **The slim slider** (from v0.6.0, [D-113](10-open-questions-and-decisions.md#d-113); `TasteSlider` and the settings' *Lautstärke*, one look in `core:designsystem`): a pin handle of 3 × 20 dp, corners 1.5 dp, `primary` (4 × 24 dp while pressed or dragged); a 2 dp line with round caps, `primary` up to the handle and `outlineVariant` beyond it, with a 4 dp gap on each side of the handle; stop dots of 3 dp in `onSurfaceVariant` on the part beyond the handle only; the touch target stays 48 dp high. An unset `TasteSlider` shows a short mark of 1.5 × 10 dp in `onSurfaceVariant` at the left end and no `primary` line, so it differs from a set 0. `TasteRadar`: six axes (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma), drawn from three set axes on, unset axes at the centre; TalkBack reads the values as a list |
 | `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen". `FreshnessChip` (v0.4.1, `core:designsystem`): *Frisch* on `primaryContainer`, *Bald genießen* on `secondaryContainer` (as *Knapp*), *Über dem Höhepunkt* on `surfaceContainerHigh`; a compact size in SCR-03 |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
 | `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings. **Two brews (v0.5.0, D-108):** two brew sessions take the halves the same way, in the slot order (`BREW`, `BREW_2`), each with its step; a held brew shows „wartet" (TalkBack: „*Kamille*, Aufguss 1 von 2 fertig, wartet auf den anderen Aufguss") |
@@ -689,12 +706,22 @@ Always dark ("Steeping"), edge-to-edge, keeps the screen on. At the end of a
 step it is brought up by the full-screen intent (TMR-06) and shown **over the
 lock screen** (`setShowWhenLocked(true)`, `setTurnScreenOn(true)`); unlocking
 is only needed to leave the timer.
+Leaving the timer while the phone is locked (back, a back swipe, *Sitzung
+beenden*, *Verwerfen*, the quick timer's end) shows only the system's keyguard
+animation: the app clears its lock-screen flags at once and keeps the timer
+drawn until it is stopped, then pops it with no transition; no shell frame is
+ever drawn over the lock screen, and a back swipe shows no preview of it. A
+new alert before that cancels the close at once (v0.7.1, D-117 build note
+„Lock screen").
 
 The status-bar icons and the gesture handle follow the surface, not the phone's
 theme: light on the dark Steeping surface (also SCR-07), dark on the washi/matcha
 alert; the app theme's own on every other screen. The root sets them from the
 route on top, never the screens themselves
-([D-069](10-open-questions-and-decisions.md#d-069)).
+([D-069](10-open-questions-and-decisions.md#d-069)). On the timer's own
+transitions they flip at the fade's midpoint (v0.7.1, D-117 build note A-16):
+150 ms into `fade` on setup → timer, 100 ms into `exitFade` on timer → shell;
+an alert flips them at once (`alertEnter`).
 
 **Ink-wash band and tea seal (v0.2.1, [D-095](10-open-questions-and-decisions.md#d-095)).**
 The top is our own ink-wash picture A13 (`docs/design/assets.md`; a bamboo
@@ -911,6 +938,19 @@ is the way to skip.
   removes the sheet (rule 8); a failed write is logged and changes nothing
   else (D-090).
 
+v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)): the one star row becomes **two labelled rows**, „Tee" above
+„Zubereitung", both always shown, each saved at once (JRN-02); a tap on
+either restarts the 10 s. The sheet grows by one 48 dp row; everything else
+is as above (an alert removes it in the same frame, rule 8).
+
+```
+│ Gespeichert im Journal       │
+│ 3 Aufgüsse · 2:20            │
+│ Tee          ☆ ☆ ☆ ☆ ☆      │
+│ Zubereitung  ☆ ☆ ☆ ☆ ☆      │
+│ Notizen hinzufügen         › │
+```
+
 ### SCR-07 Schnelltimer
 
 Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00 and, from v0.2.2, 8:00 (wrapping onto a second row when needed); from v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)) 1:00 · 2:00 · 3:00 · 5:00 · 8:00 · 10:00 · 15:00, opening at 1:00, with polish 2 and the band rule re-checked at font 2.0; tap time for a duration picker; *Start*;
@@ -1022,7 +1062,8 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   shows their average as „★ 4,5" at the row's end (`TeaListItem`'s trailing
   slot); TalkBack reads „Bewertung 4,5 von 5". The sort chip offers
   *Bewertung* (highest first; unrated teas after the rated ones, empty teas
-  last).
+  last). From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) the average and the sort are the *Tee* ratings'
+  only; *Zubereitung* is not in the list.
 
 ### SCR-09 Tee (my tea detail)
 
@@ -1103,7 +1144,11 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - **Rating, GESCHMACK, LETZTE SITZUNGEN (v0.6.0, TEA-13, D-112):**
   - **Header:** „★ 4,5 (12)" under the names: the average of the tea's
     rated sessions and their count; hidden without a rating. TalkBack:
-    „Bewertung 4,5 von 5, aus 12 Sitzungen".
+    „Bewertung 4,5 von 5, aus 12 Sitzungen". From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) it is the
+    *Tee* Ø; directly below, in `bodySmall`, „Zubereitung Ø 3,8 (10)"
+    (hidden without a Zubereitung rating; TalkBack „Zubereitung im Schnitt
+    3,8 von 5, aus 10 Sitzungen"). LETZTE SITZUNGEN rows read „Tee ★ 4,5 ·
+    Zubereitung ★ 3,5" (§3.8).
   - **GESCHMACK** (after FRISCHE; only with data): the tea's average
     `TasteRadar` (per axis over the sessions that set it; from three axes
     on) and below it up to five `DescriptorChip`s of its most frequent
@@ -1293,7 +1338,8 @@ name and the type leaf in place of the photo.
 v0.6.0 ([D-112](10-open-questions-and-decisions.md#d-112)):
 - **Rows:** „★ 4,5" under the meta line when the session is rated. No dot
   or other mark for sessions without notes. The photo stays the tea's
-  cover.
+  cover. From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)): „Tee ★ 4,5 · Zubereitung ★ 3,5" (only the set
+  one); the *Bewertung* filter uses the Tee rating.
 - **Search** (JRN-09): a field „Tees, Notizen …" under the title, over tea
   name, notes and descriptor labels, ignoring case and accents; it filters
   as you type and keeps the day groups.
@@ -1315,7 +1361,7 @@ v0.6.0 ([D-112](10-open-questions-and-decisions.md#d-112)):
   tab with *Tee* set to that tea.
 - Search and filters are dropped when the app restarts; they survive a tab
   switch and the way to a session page and back.
-- TalkBack: a row adds „Bewertung 4,5 von 5"; the result count is announced
+- TalkBack: a row adds „Bewertung 4,5 von 5" (from v0.7.1 „Tee 4,5 von 5, Zubereitung 3,5 von 5"); the result count is announced
   after a search („12 Sitzungen").
 
 ### SCR-16 Sitzung (detail)
@@ -1382,7 +1428,8 @@ hint that something is missing.
   von 3"). ← and the page's own ⋮ (*Bearbeiten*, *Löschen*) sit over the
   hero on the tea detail's translucent surfaces; a loaded page has no title
   (PO, D-112 Q20).
-- **BEWERTUNG:** `RatingStars` (§3.8, JRN-02), empty until tapped.
+- **BEWERTUNG:** `RatingStars` (§3.8, JRN-02), empty until tapped. From
+  v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) two labelled rows, „Tee" above „Zubereitung", as SCR-06.
 - **NOTIZEN:** a multi-line field with the placeholder „Notizen …", growing
   with its text (≤ 5000 characters, a counter from 4500 on). It saves 1 s
   after the last key and when the field or the page is left; nothing is lost
@@ -1537,6 +1584,15 @@ Deine Tee-Reise                         (displayLarge, Alegreya Sans)
   rows, then „Alle anzeigen (N)"; each row its Ø or „ohne Bewertung"; hidden
   under *Gesamt*), BEWERTUNG IM VERLAUF, BESTES REZEPT. Without a rating in
   the range, „In diesem Zeitraum nichts bewertet" above NEU ENTDECKT.
+- **Bewertungen, v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)):** TEE-RANGLISTE has a small two-segment
+  button „Tee · Zubereitung" under its heading (the range selector's style,
+  smaller; remembered in `statsRankingBy`; Tee the first time) and ranks by
+  that Ø; with only the other kind in the range „Keine Bewertung dieser Art
+  im Zeitraum"; folded, the summary names the top tea of the chosen rating.
+  NEU ENTDECKT shows the Tee Ø. BEWERTUNG IM VERLAUF draws Tee and
+  Zubereitung (below). BESTES REZEPT compares by the Zubereitung Ø, with the
+  sub-line „nach Zubereitung". „In diesem Zeitraum nichts bewertet" means
+  no rating of either kind.
 - **Verbrauch (rc.2, R9, R10):** separate charts GRAMM, TEE (rc.3, D-115 A2: ml/l per period, the value label and the
   fold summary „TEE · 12,4 l" in the same format; was TASSEN), AUSGABEN,
   then GETRUNKEN (bars of the € value of the leaf brewed, the total, „Ø 1,80 €
@@ -1558,7 +1614,12 @@ Deine Tee-Reise                         (displayLarge, Alegreya Sans)
   y-axis labels; x labels „KW 44" (weeks) or „Okt." (months), thinned so
   they never overlap. Gesamt scrolls sideways, opening at the current month.
 - **Rating line:** a 2 dp `primary` line with 4 dp points on periods with a
-  rating, breaking over periods without; y from 1 to 5 ★.
+  rating, breaking over periods without; y from 1 to 5 ★. From v0.7.1
+  ([D-117](10-open-questions-and-decisions.md#d-117)) a second line for Zubereitung in `tertiary`, dashed 6/4 dp, with its
+  own 4 dp points, each line breaking over periods without its rating; a
+  legend „— Tee · - - Zubereitung" above the chart (not by colour alone);
+  the value label and TalkBack give both („KW 44: Tee 4,2, Zubereitung
+  3,8."); the fold summary is the latest Tee Ø.
 - **Rating distribution:** removed in rc.2 (D-115 A1, R4).
 - **Donut:** the five largest Sorten, each in its type colour (§3.1) where
   one exists; a Sorte without one, or one whose colour is taken, gets the
@@ -1908,8 +1969,10 @@ v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)): a section *Darstellu
 („System"); it opens a choice dialog *System · Hell · Dunkel* (a pick
 is stored and recolours the app at once, *Fertig* closes), like
 *Vorrats-Erinnerung*. The app switches without a restart and starts in the
-chosen theme with no flash of the other. The system's own night mode (which
-re-creates the app once) follows only when the dialog closes, so the dialog
+chosen theme with no flash of the other. The system's own night mode follows only when the dialog closes; since
+v0.7.1 it no longer re-creates the app: the app handles the `uiMode` change
+in place and recolours in one frame, also for the phone's own night switch
+under *System* (D-117 build note A-08), so the dialog
 never shows again after a pick (PO, 2026-11-12, motion review M21). The timer, the quick timer and the alert surface stay as they
 are (Steeping, washi/matcha); the status-bar icons follow D-069 on the
 chosen theme.

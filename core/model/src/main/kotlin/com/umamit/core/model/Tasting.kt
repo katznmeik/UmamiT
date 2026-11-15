@@ -116,14 +116,17 @@ data class TeaRating(val average: Double, val count: Int)
 data class DescriptorCount(val key: String, val count: Int)
 
 /**
- * A tea's tasting summary (TEA-13, JRN-03): [rating] null without a rated session; [tasteAverages] per axis over
- * every infusion of its finished sessions that set that axis (D-114; an axis none set is absent); [descriptorCounts]
- * every stored key, most frequent first (then by key), unknown keys included: the UI shows only keys it knows.
+ * A tea's tasting summary (TEA-13, JRN-03): [rating] (the tea's Ø, over the *Tee* rating only) null without a
+ * rated session; [tasteAverages] per axis over every infusion of its finished sessions that set that axis (D-114; an
+ * axis none set is absent); [descriptorCounts] every stored key, most frequent first (then by key), unknown keys
+ * included: the UI shows only keys it knows; [brewingRating] the *Zubereitung* Ø over its finished sessions with a
+ * *Zubereitung* rating (D-117), null without one.
  */
 data class TeaTasting(
     val rating: TeaRating?,
     val tasteAverages: Map<TasteAxis, Double>,
     val descriptorCounts: List<DescriptorCount>,
+    val brewingRating: TeaRating? = null,
 ) {
     companion object {
         val EMPTY = TeaTasting(rating = null, tasteAverages = emptyMap(), descriptorCounts = emptyList())

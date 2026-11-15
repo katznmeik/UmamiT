@@ -22,7 +22,8 @@ import java.time.ZoneId
  * @property temperatureC the first infusion's temperature as brewed (its own, else the session's base; D-102).
  * @property infusions poured infusions: ended steps that are neither a rinse nor skipped.
  * @property plannedInfusions the non-rinse steps of the plan, never-started ones included.
- * @property rating 0,5–5,0 in half steps; null when unrated (JRN-02, JRN-08).
+ * @property rating the *Tee* rating, 0,5–5,0 in half steps; null when unrated (JRN-02, JRN-08); the filter reads it.
+ * @property brewingRating the *Zubereitung* rating; shown in the row, never filtered on (D-117 Q8).
  * @property hasNotes the session has note text, its own or an infusion's (JRN-09's *Mit Notizen*, D-114).
  * @property teaKey the tea filter's key (JRN-09): the tea's id, or `name:` and the recorded name for a deleted tea.
  * @property searchWords the normalized words of the tea name, the notes, the infusion notes (D-114) and the chosen
@@ -40,6 +41,7 @@ data class JournalEntry(
     val plannedInfusions: Int,
     val inProgress: Boolean,
     val rating: Double? = null,
+    val brewingRating: Double? = null,
     val hasNotes: Boolean = false,
     val teaKey: String = teaKeyOf(null, teaName),
     val searchWords: List<String> = emptyList(),
@@ -127,6 +129,7 @@ private fun JournalSession.toEntry(descriptorLabel: (String) -> String?): Journa
         plannedInfusions = maxOf(planned, poured),
         inProgress = inProgress,
         rating = session.rating,
+        brewingRating = session.brewingRating,
         hasNotes = !session.notes.isNullOrBlank() || session.hasInfusionNotes,
         teaKey = teaKeyOf(session.snapshot.teaId, session.snapshot.teaName),
         searchWords = SearchQuery.words(

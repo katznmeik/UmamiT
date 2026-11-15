@@ -1,6 +1,6 @@
 # UmamiT — Specifications
 
-> Status: **Draft v0.2 — for review** · Last updated: 2026-11-13 (v0.7.0 bullet, D-115; 2026-11-12: v0.6.1 bullet, D-114; 2026-11-11: journal bullet, D-112)
+> Status: **Draft v0.2 — for review** · Last updated: 2026-11-14 (v0.7.1 bullet, D-117; 2026-11-13: v0.7.0 bullet, D-115; 2026-11-12: v0.6.1 bullet, D-114; 2026-11-11: journal bullet, D-112)
 
 Product and technical specification of **UmamiT**, a personal Android app
 for brewing tea, focused on umami-rich Japanese green teas. It provides a
@@ -76,6 +76,11 @@ releases are dispatched and verified).
     (average, distribution, top rated, rating over time, best recipe, taste
     radar over every infusion, descriptors), Verbrauch (grams, cups, money
     spent on purchases, cost per cup, running out). No migration. — D-115
+  - v0.7.1 rates each session for *Tee* and *Zubereitung* (old ratings
+    copied to both, umamit.db v8); a tea's Ø is its Tee ratings'; Statistik
+    gets a Tee/Zubereitung switch, two Verlauf lines and Bestes Rezept by
+    Zubereitung; a transition audit with a CI frame metric
+    (NFR-PERF-12). — D-116, D-117
 - **Backup:** Android device backup plus a simple manual export; no in-app
   restore in 1.x. — D-022, D-036
 - **Navigation:** Start · Journal · Sammlung · Statistik. — D-018

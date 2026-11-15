@@ -60,7 +60,8 @@ internal fun topDescriptors(counts: List<DescriptorCount>): List<DetailDescripto
  * @property temperatureC the first infusion's temperature as brewed (its own, else the session's base).
  * @property firstInfusionSeconds the first infusion's planned time.
  * @property infusions the poured infusions; [plannedInfusions] the planned ones (fewer poured: „2 von 3").
- * @property rating 0,5–5,0; null when unrated.
+ * @property rating the *Tee* rating, 0,5–5,0; null when unrated.
+ * @property brewingRating the *Zubereitung* rating; the row reads „Tee ★ 4,5 · Zubereitung ★ 3,5" (D-117 Q1).
  */
 data class RecentSession(
     val id: String,
@@ -70,6 +71,7 @@ data class RecentSession(
     val infusions: Int,
     val plannedInfusions: Int,
     val rating: Double?,
+    val brewingRating: Double? = null,
 ) {
     val finishedEarly: Boolean get() = infusions < plannedInfusions
 }
@@ -89,6 +91,7 @@ internal fun BrewSession.recent(): RecentSession {
         infusions = poured,
         plannedInfusions = maxOf(planned, poured),
         rating = rating,
+        brewingRating = brewingRating,
     )
 }
 

@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Window theme only; the Compose theme follows in M1-04. -->
+    <!-- Window theme: the app's own background from the first window (A-04, 03 §3.1); the Compose theme draws the rest.
+         Washi here, the dark background in values-night, which the handed-over Design selects (D-114). -->
     <style name="Theme.UmamiT" parent="android:Theme.DeviceDefault.DayNight">
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:windowSplashScreenBackground">@color/window_background</item>
     </style>
 </resources>

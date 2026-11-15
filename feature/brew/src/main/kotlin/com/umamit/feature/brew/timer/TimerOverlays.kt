@@ -61,13 +61,17 @@ internal class TimerOverlays {
     /** The taste sheet (SCR-05 v0.6.1, D-114): the step position of the infusion it was opened for; null: closed. */
     var tasteFor by mutableStateOf<Int?>(null)
 
+    /** The timer ended and its route is closing (A-15): nothing shows over the pop; set by the screen. */
+    var closing by mutableStateOf(false)
+
     private val alerting: Boolean get() = currentAlert != null
-    val menuShown: Boolean get() = menuOpen && (!alerting || menuAlert == currentAlert)
-    val confirmationShown: Boolean get() = confirmation != null && (!alerting || confirmationAlert == currentAlert)
+    val menuShown: Boolean get() = !closing && menuOpen && (!alerting || menuAlert == currentAlert)
+    val confirmationShown: Boolean get() =
+        !closing && confirmation != null && (!alerting || confirmationAlert == currentAlert)
     val anyOpen: Boolean get() = menuShown || confirmationShown || ((stepsOpen || tasteFor != null) && !alerting)
 
-    /** Whether the menu may stay composed: not while an alert it was not opened in plays (no exit animation). */
-    val menuComposable: Boolean get() = !alerting || menuShown
+    /** Whether the menu may stay composed: not while an alert it was not opened in plays, nor while closing. */
+    val menuComposable: Boolean get() = !closing && (!alerting || menuShown)
 
     fun openMenu() {
         menuOpen = true

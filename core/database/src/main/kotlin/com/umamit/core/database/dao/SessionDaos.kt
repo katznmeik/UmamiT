@@ -149,6 +149,12 @@ interface TastingDao {
     @Query("UPDATE brew_session SET rating = :rating, updated_at = :now WHERE id = :sessionId AND $COMPLETED")
     suspend fun setRating(sessionId: String, rating: Double?, now: Long): Int
 
+    /** The *Zubereitung* rating (schema v8, JRN-02, D-117); `rating` stays. */
+    @Query(
+        "UPDATE brew_session SET brewing_rating = :rating, updated_at = :now WHERE id = :sessionId AND $COMPLETED",
+    )
+    suspend fun setBrewingRating(sessionId: String, rating: Double?, now: Long): Int
+
     /**
      * The session of [sessionId] and its row at [position], as an infusion write checks them; null without such a
      * session. [InfusionTargetRow.kind] and [InfusionTargetRow.ended] are null without such a row.
@@ -233,6 +239,16 @@ interface TastingDao {
             "WHERE tea_id = :teaId AND rating IS NOT NULL AND $FINISHED GROUP BY tea_id",
     )
     fun observeTeaRating(teaId: String): Flow<TeaRatingRow?>
+
+    /**
+     * [teaId]'s *Zubereitung* average over its finished sessions with a `brewing_rating` and their count (schema v8,
+     * TEA-13, D-117); no row without one. The tea's Ø ([observeTeaRating], [observeTeaRatings]) never reads it.
+     */
+    @Query(
+        "SELECT tea_id, AVG(brewing_rating) AS average, COUNT(brewing_rating) AS count FROM brew_session " +
+            "WHERE tea_id = :teaId AND brewing_rating IS NOT NULL AND $FINISHED GROUP BY tea_id",
+    )
+    fun observeTeaBrewingRating(teaId: String): Flow<TeaRatingRow?>
 
     /**
      * [teaId]'s taste averages over every infusion of its finished sessions (JRN-03, D-114): SQL's AVG skips nulls, so

@@ -78,6 +78,8 @@ class SessionPageActions(
     val openCatalog: (catalogKey: String) -> Unit = {},
     /** A tap on the stars (JRN-02): the new rating, null for none; saved at once. */
     val setRating: (Double?) -> Unit = {},
+    /** A tap on the *Zubereitung* stars (JRN-02, D-117): as [setRating], its own column. */
+    val setBrewingRating: (Double?) -> Unit = {},
     /**
      * A taste slider of the infusion at `position` released on a value (JRN-03, D-114): saved at once; `onRefused`
      * runs if it is not stored (refused or failed), so the page shows the stored value again.

@@ -133,10 +133,14 @@
         <item quantity="one">Bewertung %1$s von 5, aus %2$d Sitzung</item>
         <item quantity="other">Bewertung %1$s von 5, aus %2$d Sitzungen</item>
     </plurals>
+    <!-- The „Zubereitung Ø 3,8 (10)" line under the header's rating (TEA-13, D-117 Q3). -->
+    <string name="collection_tea_brewing_rating">Zubereitung Ø %1$s (%2$d)</string>
+    <plurals name="collection_tea_brewing_rating_description">
+        <item quantity="one">Zubereitung im Schnitt %1$s von 5, aus %2$d Sitzung</item>
+        <item quantity="other">Zubereitung im Schnitt %1$s von 5, aus %2$d Sitzungen</item>
+    </plurals>
     <!-- LETZTE SITZUNGEN rows (TEA-13, D-112): „8. Juni · 55 °C · 1:00 · 3 Aufgüsse" and „★ 4,5"; for TalkBack. -->
     <string name="collection_tea_session_spoken_separator">", "</string>
-    <string name="collection_tea_session_rating">★ %1$s</string>
-    <string name="collection_tea_session_rating_description">Bewertung %1$s von 5</string>
     <!-- „2 von 3 Aufgüssen": fewer infusions poured than planned (TMR-12). The quantity is the planned count. -->
     <plurals name="collection_tea_session_infusions_of">
         <item quantity="one">%1$d von %2$d Aufguss</item>

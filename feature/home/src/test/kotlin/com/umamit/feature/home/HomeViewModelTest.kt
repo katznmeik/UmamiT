@@ -37,6 +37,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -231,7 +232,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `a stock read that hangs or fails never holds back Start or its alert (rule 8)`() = runTest {
+    fun `a stock read that hangs or fails holds back Start's first state at most 150 ms (A-03, rule 8)`() = runTest {
         seed()
         val hanging = object : LowStockRepository {
             override fun observeCard(): Flow<LowStockCard?> = flow { awaitCancellation() }
@@ -258,6 +259,9 @@ class HomeViewModelTest {
                 repository,
             )
 
+            // Start arrives in one piece: its first state waits for the card, at most FIRST_CARD_WAIT_MS.
+            advanceTimeBy(FIRST_CARD_WAIT_MS)
+            runCurrent()
             assertThat(vm.state.value.loading).isFalse()
             assertThat(vm.state.value.lowStock).isNull()
         }

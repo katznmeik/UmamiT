@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window and the starting window in the dark theme: the dark scheme's background (A-04, 03 §3.1). -->
+    <color name="window_background">#FF1C231D</color>
+</resources>

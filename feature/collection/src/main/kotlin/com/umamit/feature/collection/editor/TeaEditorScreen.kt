@@ -67,6 +67,7 @@ import com.umamit.core.model.UmamiLevel
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
 import com.umamit.core.ui.EditorScaffold
+import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.detail.label
@@ -172,30 +173,33 @@ fun TeaEditorScreen(
         alertKey = alertKey,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        when (state) {
-            TeaEditorUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding))
+        // The first arrival of the data fades in instead of popping in part-way through the enter (A-12).
+        Box(Modifier.fillMaxSize().fadeInOnArrival(state != TeaEditorUiState.Loading)) {
+            when (state) {
+                TeaEditorUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding))
 
-            TeaEditorUiState.NotFound -> Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(UmamiSpacing.SideMargin),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(stringResource(R.string.tea_editor_not_found), style = MaterialTheme.typography.bodyLarge)
+                TeaEditorUiState.NotFound -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(UmamiSpacing.SideMargin),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(stringResource(R.string.tea_editor_not_found), style = MaterialTheme.typography.bodyLarge)
+                }
+
+                is TeaEditorUiState.Ready -> EditorFields(
+                    state = state,
+                    update = actions.update,
+                    alertKey = alertKey,
+                    // The padding holds the keyboard too (safeDrawing): no imePadding on top, which hid the fields
+                    // behind it (D-102).
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState()),
+                )
             }
-
-            is TeaEditorUiState.Ready -> EditorFields(
-                state = state,
-                update = actions.update,
-                alertKey = alertKey,
-                // The padding holds the keyboard too (safeDrawing): no imePadding on top, which hid the fields
-                // behind it (D-102).
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState()),
-            )
         }
     }
 }

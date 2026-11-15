@@ -145,6 +145,37 @@ class TimerRouteTest {
         assertThat(closed).isEqualTo(1)
     }
 
+    @Test
+    fun `a closing route keeps its last timer, inert, under the pop (A-15)`() {
+        val timer = FakeBrewTimer(TimerStates.ready(), recovered = true)
+        show(timer)
+
+        timer.show(TimerUiState.Idle)
+        compose.waitForIdle()
+
+        assertThat(closed).isEqualTo(1)
+        // Drawn until the navigation pops the route, never an empty frame; no tap reaches the controller or the host.
+        compose.onNodeWithText("Start").assertExists().performClick()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.waitForIdle()
+        assertThat(timer.sent).isEmpty()
+        assertThat(closed).isEqualTo(1)
+        compose.onNodeWithText("Sitzung verwerfen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a closing route never draws a stale alert (A-15, rule 8)`() {
+        val timer = FakeBrewTimer(TimerStates.quick(TimerPhase.ALERTING), recovered = true)
+        show(timer)
+        compose.onNodeWithText("Fertig").assertExists()
+
+        timer.show(TimerUiState.Idle)
+        compose.waitForIdle()
+
+        assertThat(closed).isEqualTo(1)
+        compose.onNodeWithText("Fertig").assertDoesNotExist()
+    }
+
     // --- Two timers (D-098) ----------------------------------------------------------------
 
     private val brewRunning = TimerStates.running()

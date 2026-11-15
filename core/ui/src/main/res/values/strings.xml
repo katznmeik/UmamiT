@@ -110,6 +110,13 @@
     <string name="ui_rating_value">%1$s von 5 Sternen</string>
     <string name="ui_rating_none">keine</string>
     <string name="ui_rating_remove">Bewertung entfernen</string>
+    <!-- SessionRatings (03 §3.8, JRN-08, D-117 Q1): „Tee ★ 4,5 · Zubereitung ★ 3,5"; TalkBack „Tee 4,5 von 5, Zubereitung 3,5 von 5". -->
+    <string name="ui_session_rating_tea">Tee ★ %1$s</string>
+    <string name="ui_session_rating_brewing">Zubereitung ★ %1$s</string>
+    <string name="ui_session_rating_then">%1$s ·</string>
+    <string name="ui_session_rating_tea_spoken">Tee %1$s von 5</string>
+    <string name="ui_session_rating_brewing_spoken">Zubereitung %1$s von 5</string>
+    <string name="ui_session_rating_spoken_separator">", "</string>
     <!-- TasteSlider and TasteRadar (03 §3.8, JRN-03). -->
     <string name="ui_taste_umami">Umami</string>
     <string name="ui_taste_sweetness">Süße</string>

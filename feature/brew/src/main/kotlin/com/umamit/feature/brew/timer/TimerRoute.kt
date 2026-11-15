@@ -1,5 +1,8 @@
 package com.umamit.feature.brew.timer
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -10,13 +13,17 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.lastRinging
+import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.reliability.startFirstIntent
 import com.umamit.core.ui.rememberPhotoPainter
 
@@ -65,8 +72,14 @@ fun BrewTimerRoute(
         onPauseOrDispose {}
     }
     val view = timerRouteView(pinned, brew, quick, front, brew2)
-    when (val active = view.shown) {
-        null -> if (recovered) {
+    // The last timer this route showed, never an alert: drawn, inert, while the route closes, so the pop's `exitFade`
+    // fades the timer out instead of an empty frame (A-15). Not saved: a restored route has none.
+    var last by remember { mutableStateOf<TimerUiState.Active?>(null) }
+    val closing = view.shown == null
+    // Under everything, the Steeping background: before recovery and while closing the route is never the light
+    // window background under the dark timer (A-05, A-15). It draws no content and delays nothing (rule 8).
+    Box(modifier.fillMaxSize().background(SteepingColorScheme.background)) {
+        if (closing && recovered) {
             // Restored after process death (from recents, or a notification of a session the new process has not
             // read yet), the route sees Idle before recovery: it waits for it and closes only on a known end
             // (GEN-07, D-068). The current values decide, not the collected ones, which may lag by a frame.
@@ -81,12 +94,16 @@ fun BrewTimerRoute(
                 if (now.shown == null) currentOnClose()
             }
         }
-
-        else -> {
-            if (pinned == null) {
-                SideEffect {
-                    pinned = active.slot
-                    onPin(active.slot)
+        // One call site, so the closing frame recomposes the same screen instead of composing a new one.
+        val active = view.shown ?: last?.takeUnless { it.alerting }
+        if (active != null) {
+            if (!closing) {
+                SideEffect { last = active }
+                if (pinned == null) {
+                    SideEffect {
+                        pinned = active.slot
+                        onPin(active.slot)
+                    }
                 }
             }
             val other = view.other
@@ -102,14 +119,16 @@ fun BrewTimerRoute(
                 state = active,
                 nowElapsedMs = remember(viewModel) { viewModel::nowElapsedMs },
                 // Every tap acts on the timer the screen shows (04 §3.3, D-098).
-                onEvent = { event -> viewModel.send(active.slot, event) },
-                onBack = onClose,
-                onAdjustBrew = { active.sessionId?.let(onAdjustBrew) },
-                onOpenTimerSettings = onOpenTimerSettings,
-                modifier = modifier,
+                onEvent = inertWhile(closing) { event: TimerEvent -> viewModel.send(active.slot, event) },
+                onBack = inertWhile(closing, onClose),
+                onAdjustBrew = inertWhile(closing) { active.sessionId?.let(onAdjustBrew) },
+                onOpenTimerSettings = inertWhile(closing, onOpenTimerSettings),
+                // Closing, the screen is inert: no tap reaches it, nothing opens over it.
+                modifier = if (closing) Modifier.consumeAllPointers() else Modifier,
+                closing = closing,
                 settings = settings,
                 reliabilityProblem = problem,
-                onFixReliability = { context.startFirstIntent(viewModel.fixReliability()) },
+                onFixReliability = inertWhile(closing) { context.startFirstIntent(viewModel.fixReliability()) },
                 // The seal shows the tea's cover photo, the type-coloured leaf until it is read or without one;
                 // its space is fixed, so nothing moves when the photo arrives (D-058, D-095).
                 teaPhoto = seal?.photoPath?.let { rememberPhotoPainter(it, rememberSealLeafPainter(seal?.styleKey)) },
@@ -117,7 +136,8 @@ fun BrewTimerRoute(
                 // Read beside the timer, never on its path: it comes when it comes, in space kept for it (D-098).
                 stock = stock,
                 other = other,
-                // The row's button and tap name the other timer's slot, never this one's (D-098).
+                // The row's button and tap name the other timer's slot, never this one's (D-098). Closing, there is
+                // no row: the other timer is only ever beside a shown one.
                 onOtherEvent = { event -> other?.let { viewModel.send(it.slot, event) } },
                 onOpenOther = { other?.let { onShowOther(it.slot) } },
                 // The shown session's taste (D-114): read and written beside the timer, never as an engine event; a
@@ -134,6 +154,23 @@ fun BrewTimerRoute(
                     )
                 },
             )
+        }
+    }
+}
+
+/** [action], or nothing while the route is [closing]: the closing timer is inert (A-15). */
+private fun inertWhile(closing: Boolean, action: () -> Unit): () -> Unit = if (closing) NoAction else action
+
+/** [action], or nothing while the route is [closing] (A-15). */
+private fun <T> inertWhile(closing: Boolean, action: (T) -> Unit): (T) -> Unit = if (closing) ({ _ -> }) else action
+
+private val NoAction: () -> Unit = {}
+
+/** Swallows every touch before the content sees it: the closing timer is inert (A-15). */
+private fun Modifier.consumeAllPointers(): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
         }
     }
 }

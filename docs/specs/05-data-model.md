@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.0-rc.3, D-115 A2: `cupSizeMl` retired, no longer read, no migration; 2026-11-13: v0.7.0-rc.2, D-115 A1: `cupSizeMl`, `statsRange` custom months, `statsFolded`, no Room change; v0.7.0: settings `statsRange` values and `statsTab`, no schema change, D-115; 2026-11-12: v0.6.1: taste and a note per infusion in `session_step`, umamit.db v7, D-114; 2026-11-11: v0.6.0: tasting writes, `EditSession`, the recipe offer's flags, `session_descriptor` and umamit.db v6, session photos, no `custom_descriptor` and no `session_fts`, `offerRecipeUpdate` retired, D-112; 2026-10-22: session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
+> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.1, D-117: `brew_session.brewing_rating` and umamit.db v8, `statsRankingBy`, `brewingRating` in the backup's sessions; v0.7.0-rc.3, D-115 A2: `cupSizeMl` retired, no longer read, no migration; 2026-11-13: v0.7.0-rc.2, D-115 A1: `cupSizeMl`, `statsRange` custom months, `statsFolded`, no Room change; v0.7.0: settings `statsRange` values and `statsTab`, no schema change, D-115; 2026-11-12: v0.6.1: taste and a note per infusion in `session_step`, umamit.db v7, D-114; 2026-11-11: v0.6.0: tasting writes, `EditSession`, the recipe offer's flags, `session_descriptor` and umamit.db v6, session photos, no `custom_descriptor` and no `session_fts`, `offerRecipeUpdate` retired, D-112; 2026-10-22: session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -176,7 +176,8 @@ Table `brew_session`
 | `started_at` | INTEGER | ✓ | |
 | `ended_at` | INTEGER | | at completion: the end of the last ended step (the time of the completion if none has one) |
 | `zone_id` | TEXT | ✓ | |
-| `rating` | REAL | | 0.5–5.0 step 0.5 |
+| `rating` | REAL | | 0.5–5.0 step 0.5. From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) the **Tee** rating (JRN-02); a tea's Ø everywhere reads only this column |
+| `brewing_rating` | REAL | | **From v8 (v0.7.1, [D-117](10-open-questions-and-decisions.md#d-117)):** the **Zubereitung** rating, 0.5–5.0 step 0.5; the v8 migration copied `rating` into it (§9). Added as the table's last column |
 | `taste_umami`, `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma` | INTEGER | | 0–5 each. **From v7 (v0.6.1, D-114) never written:** taste lives per infusion in `session_step` (§3.7); the v7 migration moved the values there and nulled these. Only a session without any step row keeps its values here (§9 v7); the tea's average still counts them, nothing else reads them |
 | `notes` | TEXT | | ≤ 5000 |
 | `auto_finished` | INTEGER | ✓ | 1 when the app completed the session on its own: the midnight timeout (TMR-14; `CompleteSession.autoFinished`, D-054), or recovery after a device restore that found it in progress without its `active_brew` row (E11, D-063); 0 when the user finished it, also by *Beenden & neu starten* (TMR-21). |
@@ -246,7 +247,8 @@ effect of the timer engine, 04 §4; D-052):
 - **Tasting writes** (v0.6.0, JRN-02–JRN-05, D-112; `SessionTasting` in
   `core:data`): one small write per input of the session page and the
   sheet, each its own transaction on a `COMPLETED` session only: `rating`
-  (0.5–5.0 in 0.5 steps, or null), `notes` (trimmed; empty stored as null;
+  (0.5–5.0 in 0.5 steps, or null; from v0.7.1 likewise `brewing_rating`,
+  [D-117](10-open-questions-and-decisions.md#d-117)), `notes` (trimmed; empty stored as null;
   ≤ 5000), and a descriptor ticked or unticked (§3.8; a tick is refused
   beyond 20 and for a key the vocabulary does not have; unticking a stored
   key always works). Each sets `updated_at`. None touches steps, stock,
@@ -663,6 +665,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `statsFolded` | Set<String> | ∅ | INS-08 (v0.7.0-rc.2, D-115 A1, R8): the keys of the folded Statistik sections (all three tabs); open sections are not stored |
 | `cupSizeMl` | Int | 150 | **Retired in v0.7.0-rc.3 (D-115 A2, V1):** no longer read or written; SET-34 is removed. A value stored by rc.2 stays in `settings.json` unused (the settings file ignores a key nobody reads, §6); no migration, no Room change. Until rc.2 (D-115 A1, R2): the cup size, 50–500 in steps of 10, read by Statistik and the tea detail |
 | `statsTab` | OVERVIEW/RATINGS/CONSUMPTION | OVERVIEW | INS-07 (v0.7.0, D-115): the Statistik tab used last |
+| `statsRankingBy` | TEA/BREWING | TEA | INS-02 (v0.7.1, [D-117](10-open-questions-and-decisions.md#d-117)): the Tee-Rangliste's switch *Tee · Zubereitung*, last choice; an unknown name reads TEA |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
 | `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again. While false after the setup, every app start retries the seed (D-075) |
@@ -712,7 +715,9 @@ Time rounding for derived recipes: nearest 5 s (half up).
   sessions, sessionSteps, customDescriptors (empty while custom descriptors
   are not built, D-112), sessionDescriptors,
   inventoryEvents, photos, and from v0.2.2 catalogBookmarks (camelCase
-  fields mirroring §3).
+  fields mirroring §3). From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) sessions carry `rating` (Tee) and
+  `brewingRating` (Zubereitung); `formatVersion` stays 1, since no export
+  file exists before BAK-01 (M5).
 - **Restore (post-1.0, BAK-02 `Won't` for 1.x, D-036):** if built later,
   restore validation covers ZIP limits and zip-slip protection,
   manifest/version check, checksums, types/enums, constraints, referential
@@ -916,6 +921,24 @@ infusion, `MIGRATION_6_7` in `UMAMI_MIGRATIONS`:
   `SchemaVersionsTest` opens v1–v7; the v1–v6 JSON keep their version and
   identity hash (`check-frozen-schemas.sh`). The v0.6.1 rc checklist
   installs it over v0.6.0 (09 §4).
+
+**umamit.db v8 (v0.7.1, [D-117](10-open-questions-and-decisions.md#d-117)).** One schema step for the second rating,
+`MIGRATION_7_8` in `UMAMI_MIGRATIONS`:
+- `ALTER TABLE brew_session ADD COLUMN brewing_rating REAL` (nullable, the
+  last column), then `UPDATE brew_session SET brewing_rating = rating WHERE
+  rating IS NOT NULL`: every existing rating is the Tee and the Zubereitung
+  rating (D-116 R3, a plain copy without a marker, D-117 Q10).
+- No other change: `rating` keeps its values and meaning (Tee); running
+  timers keep their `active_brew` rows and alert on time (rule 8).
+- One transaction, never destructive. Tests: `Migration7To8Test` from a
+  populated v7 database (a rated finished session, an unrated one, a half
+  star, a session of a deleted tea, a session in progress with its
+  `active_brew` row and a quick timer); every row and value checked, then
+  opened with the production builder. `SchemaVersionsTest` opens v1–v8; the
+  v1–v7 JSON keep their version and identity hash
+  (`check-frozen-schemas.sh`). A device backup of a v7 database is migrated
+  on open like any other (§8). The v0.7.1 rc checklist installs it over
+  v0.7.0 (09 §4).
 
 **catalog.db and the black teas (v0.5.0, D-108, #203).** No schema change:
 a black tea is a `catalog_tea` row told apart by its style key (one of the

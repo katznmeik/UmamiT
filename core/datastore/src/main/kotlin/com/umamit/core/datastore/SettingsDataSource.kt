@@ -10,6 +10,7 @@ import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StatsTab
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
@@ -82,6 +83,8 @@ data class StoredSettings(
     val statsTab: String = StatsTab.OVERVIEW.name,
     /** The folded Statistik sections (INS-08, D-115 Amendment 1, R8); a file of v0.7.0-rc.1 has no key and reads ∅. */
     val statsFolded: Set<String> = emptySet(),
+    /** The Tee-Rangliste's switch (INS-02, D-117); a file of v0.7.0 has no key and reads TEA, no migration. */
+    val statsRankingBy: String = StatsRankingBy.TEA.name,
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
@@ -244,6 +247,7 @@ private fun StoredSettings.toModel() = UserSettings(
     statsRangeTo = MonthSpan.parse(statsRangeTo),
     statsTab = enumOrDefault(statsTab, StatsTab.OVERVIEW),
     statsFolded = statsFolded,
+    statsRankingBy = enumOrDefault(statsRankingBy, StatsRankingBy.TEA),
 )
 
 private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
@@ -278,6 +282,7 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     statsRangeTo = statsRangeTo?.toString(),
     statsTab = statsTab.name,
     statsFolded = statsFolded,
+    statsRankingBy = statsRankingBy.name,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
     seedTeaLinksDone = markersOf.seedTeaLinksDone,

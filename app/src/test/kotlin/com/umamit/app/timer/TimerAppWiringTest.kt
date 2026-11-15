@@ -1,5 +1,8 @@
 package com.umamit.app.timer
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.MonotonicClock
@@ -210,5 +213,48 @@ class TimerAppWiringTest {
         assertThat(source.activeBrew.value?.title).isEqualTo("Kamille")
         assertThat(source.alongside.value).isNull()
         assertThat(source.barSlots.value).containsExactly(TimerSlot.BREW_2)
+    }
+
+    private class Owner : LifecycleOwner {
+        override val lifecycle = LifecycleRegistry.createUnsafe(this)
+    }
+
+    @Test
+    fun `back after a stop the bar is fresh at ON_START, before any tick (A-02, NFR-PERF-12)`() = runTest {
+        val timer = FakeTimer(active(TimerPhase.RUNNING, deadline = 60_000))
+        val resources = ApplicationProvider.getApplicationContext<android.content.Context>().resources
+        val owner = Owner()
+        owner.lifecycle.currentState = Lifecycle.State.STARTED
+        val source = TimerActiveBrewSource(timer, clock(), resources, backgroundScope, owner.lifecycle)
+        backgroundScope.launch { source.activeBrew.collect {} }
+        runCurrent()
+        assertThat(source.activeBrew.value?.remainingSeconds).isEqualTo(60)
+
+        // The screen goes off: the source stops; the phone sleeps 10 s; then it comes back.
+        owner.lifecycle.currentState = Lifecycle.State.CREATED
+        testScheduler.advanceTimeBy(10_000)
+        assertThat(source.activeBrew.value?.remainingSeconds).isEqualTo(60)
+        owner.lifecycle.currentState = Lifecycle.State.STARTED
+
+        // Synchronously, without running the test dispatcher: the first frame is fresh.
+        assertThat(source.activeBrew.value?.remainingSeconds).isEqualTo(50)
+        assertThat(source.progress()).isWithin(1e-3f).of(10f / 60)
+    }
+
+    @Test
+    fun `a brew that ended while stopped has no bar at ON_START (A-02)`() = runTest {
+        val timer = FakeTimer(active(TimerPhase.RUNNING, deadline = 60_000))
+        val resources = ApplicationProvider.getApplicationContext<android.content.Context>().resources
+        val owner = Owner()
+        owner.lifecycle.currentState = Lifecycle.State.STARTED
+        val source = TimerActiveBrewSource(timer, clock(), resources, backgroundScope, owner.lifecycle)
+        runCurrent()
+
+        owner.lifecycle.currentState = Lifecycle.State.CREATED
+        timer.show(TimerUiState.Idle)
+        owner.lifecycle.currentState = Lifecycle.State.STARTED
+
+        assertThat(source.activeBrew.value).isNull()
+        assertThat(source.barSlots.value).isEmpty()
     }
 }

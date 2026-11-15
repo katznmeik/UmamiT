@@ -109,6 +109,32 @@ class TeaDetailTastingViewModelTest {
     }
 
     @Test
+    fun `a session with only a Zubereitung rating leaves the tea's average alone`() = runTest {
+        TeaDetailFixture.seed(collection)
+        brewed("s1", daysAgo = 2)
+        brewed("s2", daysAgo = 1)
+        sessions.tasting.setRating("s1", 4.0)
+        sessions.tasting.setBrewingRating("s2", 3.5)
+        sessions.tasting.setBrewingRating("s1", 4.5)
+
+        val tea = viewModel().tea
+        assertThat(tea.rating).isEqualTo(TeaRating(average = 4.0, count = 1))
+        assertThat(tea.brewingRating).isEqualTo(TeaRating(average = 4.0, count = 2))
+        val row = tea.recentSessions.first { it.id == "s2" }
+        assertThat(row.rating).isNull()
+        assertThat(row.brewingRating).isEqualTo(3.5)
+    }
+
+    @Test
+    fun `without a Zubereitung rating the line has nothing to show`() = runTest {
+        TeaDetailFixture.seed(collection)
+        brewed("s1")
+        sessions.tasting.setRating("s1", 4.0)
+
+        assertThat(viewModel().tea.brewingRating).isNull()
+    }
+
+    @Test
     fun `the detail follows a rating that changes at once`() = runTest {
         TeaDetailFixture.seed(collection)
         brewed("s1")

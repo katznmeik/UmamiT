@@ -56,6 +56,7 @@ internal fun SessionStart.toEntity(now: Long) = BrewSessionEntity(
     timesApplied = false,
     createdAt = now,
     updatedAt = now,
+    brewingRating = null,
 )
 
 /** This row as a session with [steps] and the keys of [descriptors] in the order ticked (05 §3.8). */
@@ -90,6 +91,7 @@ internal fun BrewSessionEntity.toModel(
     autoFinished = autoFinished,
     steps = steps.map { it.toRow() },
     rating = rating,
+    brewingRating = brewingRating,
     notes = notes,
     descriptorKeys = descriptors.sortedWith(compareBy({ it.createdAt }, { it.descriptorKey })).map { it.descriptorKey },
     stepTastings = steps.mapNotNull { step -> step.tasting().takeUnless { it.isEmpty }?.let { step.position to it } }

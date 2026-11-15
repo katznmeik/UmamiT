@@ -13,6 +13,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -25,7 +26,11 @@ import kotlin.coroutines.CoroutineContext
  *   thread. Tests pass `EmptyCoroutineContext`, so the list is built in the effect's own context: a Compose UI test
  *   runs effects on an unconfined test dispatcher, which would resume after a hop to `Default` on the worker thread
  *   and send the snapshot's apply notifications, and so touch the view, from there (#233).
+ *
+ * One for the app ([Singleton], A-06, NFR-PERF-12): its last read outlives an activity re-creation (a font-scale or
+ * locale change) and a stopped activity, so the Journal's first frame after one is the list, not an empty body.
  */
+@Singleton
 class JournalSources(
     val journal: JournalRepository,
     val sessions: SessionRepository,
@@ -56,6 +61,9 @@ class JournalSources(
     /** The list built from [lastSessions], shown in the same first frame. */
     internal var lastList: JournalList? = null
 
+    /** What [lastList] was built from, so the same read is not built again when a tab comes back (A-09). */
+    internal var lastListBuiltFor: JournalListInput? = null
+
     /** The phone's date now, for „Heute" and „Gestern". */
     fun today(): LocalDate = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
 
@@ -65,4 +73,10 @@ class JournalSources(
         val midnight = today().plusDays(1).atStartOfDay(clock.zone()).toInstant()
         return Duration.between(now, midnight).toMillis().coerceAtLeast(1)
     }
+}
+
+/** The inputs a [JournalList] is built from; [sessions] by identity, the read the repository emitted. */
+internal class JournalListInput(val sessions: List<JournalSession>, val today: LocalDate, val locale: String) {
+    fun isFor(sessions: List<JournalSession>, today: LocalDate, locale: String): Boolean =
+        this.sessions === sessions && this.today == today && this.locale == locale
 }

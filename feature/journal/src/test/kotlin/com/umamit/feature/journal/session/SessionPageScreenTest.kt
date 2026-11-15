@@ -36,7 +36,9 @@ import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
+import com.umamit.core.ui.BREWING_RATING_STARS_TAG
 import com.umamit.core.ui.RATING_STARS_TAG
+import com.umamit.core.ui.brewingRatingStarTag
 import com.umamit.core.ui.ratingStarTag
 import com.umamit.feature.journal.JournalSessions
 import kotlinx.coroutines.runBlocking
@@ -144,7 +146,11 @@ class SessionPageScreenTest {
 
     private fun star(n: Int) = compose.onNodeWithTag(ratingStarTag(n), useUnmergedTree = true)
 
+    private fun brewingStar(n: Int) = compose.onNodeWithTag(brewingRatingStarTag(n), useUnmergedTree = true)
+
     private fun stars() = compose.onNodeWithTag(RATING_STARS_TAG)
+
+    private fun brewingStars() = compose.onNodeWithTag(BREWING_RATING_STARS_TAG)
 
     private fun stepRow(description: String) = compose.onNode(hasContentDescription(description))
 
@@ -337,6 +343,50 @@ class SessionPageScreenTest {
     }
 
     @Test
+    fun `each row writes only its column and the third tap clears only that one (D-117)`() {
+        show()
+
+        star(4).performClick()
+        brewingStar(3).performClick()
+        compose.waitForIdle()
+        assertThat(session().rating).isEqualTo(4.0)
+        assertThat(session().brewingRating).isEqualTo(3.0)
+
+        brewingStar(3).performClick()
+        brewingStar(3).performClick()
+        compose.waitForIdle()
+        assertThat(session().brewingRating).isNull()
+        assertThat(session().rating).isEqualTo(4.0)
+
+        star(4).performClick()
+        star(4).performClick()
+        compose.waitForIdle()
+        assertThat(session().rating).isNull()
+        brewingStar(2).performClick()
+        compose.waitForIdle()
+        assertThat(session().brewingRating).isEqualTo(2.0)
+    }
+
+    @Test
+    fun `the Zubereitung row reads, adjusts and removes with its own words (D-117)`() {
+        show()
+        brewingStars().assert(hasContentDescription("Zubereitung"))
+        brewingStars().assert(hasStateDescription("keine"))
+
+        brewingStars().performSemanticsAction(SemanticsActions.SetProgress) { it(3.5f) }
+        compose.waitForIdle()
+        assertThat(session().brewingRating).isEqualTo(3.5)
+        assertThat(session().rating).isNull()
+        brewingStars().assert(hasStateDescription("3,5 von 5 Sternen"))
+
+        val remove = brewingStars().fetchSemanticsNode().config[SemanticsActions.CustomActions]
+            .single { it.label == "Zubereitung entfernen" }
+        compose.runOnUiThread { remove.action() }
+        compose.waitForIdle()
+        assertThat(session().brewingRating).isNull()
+    }
+
+    @Test
     fun `TalkBack reads the rating, adjusts in half steps and removes it`() {
         show()
         stars().assert(hasStateDescription("keine"))
@@ -345,14 +395,14 @@ class SessionPageScreenTest {
         compose.waitForIdle()
         assertThat(session().rating).isEqualTo(3.5)
         stars().assert(hasStateDescription("3,5 von 5 Sternen"))
-        stars().assert(hasContentDescription("Bewertung"))
+        stars().assert(hasContentDescription("Tee-Bewertung"))
 
         stars().performSemanticsAction(SemanticsActions.SetProgress) { it(4f) }
         compose.waitForIdle()
         assertThat(session().rating).isEqualTo(4.0)
 
         val remove = stars().fetchSemanticsNode().config[SemanticsActions.CustomActions]
-            .single { it.label == "Bewertung entfernen" }
+            .single { it.label == "Tee-Bewertung entfernen" }
         compose.runOnUiThread { remove.action() }
         compose.waitForIdle()
         assertThat(session().rating).isNull()

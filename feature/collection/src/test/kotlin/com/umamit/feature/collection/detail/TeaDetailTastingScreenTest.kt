@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -80,6 +81,30 @@ class TeaDetailTastingScreenTest {
     }
 
     @Test
+    fun `the Zubereitung line sits below the header and TalkBack reads it`() {
+        show(RATED.copy(brewingRating = TeaRating(3.8, 10)))
+
+        compose.onNodeWithTag(TEA_DETAIL_BREWING_RATING_TAG).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Zubereitung Ø 3,8 (10)", useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag(TEA_DETAIL_BREWING_RATING_TAG).assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf("Zubereitung im Schnitt 3,8 von 5, aus 10 Sitzungen"),
+            ),
+        )
+        val header = compose.onNodeWithTag(TEA_DETAIL_RATING_TAG).fetchSemanticsNode().boundsInRoot
+        val line = compose.onNodeWithTag(TEA_DETAIL_BREWING_RATING_TAG).fetchSemanticsNode().boundsInRoot
+        assertThat(line.top).isAtLeast(header.bottom)
+    }
+
+    @Test
+    fun `without a Zubereitung rating the line is hidden`() {
+        show(RATED)
+
+        compose.onNodeWithTag(TEA_DETAIL_BREWING_RATING_TAG).assertDoesNotExist()
+    }
+
+    @Test
     fun `a single rated session reads in the singular`() {
         show(RATED.copy(rating = TeaRating(4.0, 1)))
 
@@ -130,12 +155,14 @@ class TeaDetailTastingScreenTest {
         show(TASTED)
 
         compose.onNodeWithText("8. Juni · 55 °C · 1:00 · 3 Aufgüsse").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("★ 4,5").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Tee ★ 4,5 ·").performScrollTo()
+        compose.onNodeWithText("Tee ★ 4,5 ·").assertIsDisplayed()
+        compose.onAllNodesWithText("Zubereitung ★ 3,5")[0].assertIsDisplayed()
         compose.onNodeWithText("21. Oktober · 70 °C · 0:45 · 2 von 3 Aufgüssen").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(teaDetailSessionTag("s1")).assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
-                listOf("8. Juni, 55 °C, 1 Minute, 3 Aufgüsse, Bewertung 4,5 von 5"),
+                listOf("8. Juni, 55 °C, 1 Minute, 3 Aufgüsse, Tee 4,5 von 5, Zubereitung 3,5 von 5"),
             ),
         )
     }
@@ -195,6 +222,7 @@ class TeaDetailTastingScreenTest {
         /** Rated, with a radar, descriptors and four finished sessions (three listed). */
         val TASTED = RATED.copy(
             sessionCount = 4,
+            brewingRating = TeaRating(3.8, 10),
             taste = DetailTasting(
                 averages = mapOf(
                     TasteAxis.UMAMI to 4.5,
@@ -208,8 +236,8 @@ class TeaDetailTastingScreenTest {
                 ),
             ),
             recentSessions = listOf(
-                RecentSession("s1", LocalDate.of(2026, 6, 8), 55, 60, 3, 3, 4.5),
-                RecentSession("s2", LocalDate.of(2026, 10, 21), 70, 45, 2, 3, null),
+                RecentSession("s1", LocalDate.of(2026, 6, 8), 55, 60, 3, 3, 4.5, 3.5),
+                RecentSession("s2", LocalDate.of(2026, 10, 21), 70, 45, 2, 3, null, 3.5),
                 RecentSession("s3", LocalDate.of(2026, 10, 19), 70, 45, 3, 3, 4.0),
             ),
         )

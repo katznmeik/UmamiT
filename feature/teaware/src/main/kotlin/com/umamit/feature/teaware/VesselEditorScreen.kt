@@ -76,6 +76,7 @@ import com.umamit.core.ui.AlertGatedExposedDropdownMenu
 import com.umamit.core.ui.EditorScaffold
 import com.umamit.core.ui.PhotoPicker
 import com.umamit.core.ui.SystemPhotoPicker
+import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.core.ui.rememberPhotoPicker
@@ -209,31 +210,34 @@ fun VesselEditorScreen(
         alertKey = alertKey,
         menu = { if (ready != null && !ready.isNew) EditorMenu(ready, actions, alertKey) },
     ) { padding ->
-        when (state) {
-            VesselEditorUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding))
+        // The first arrival of the data fades in instead of popping in part-way through the enter (A-12).
+        Box(Modifier.fillMaxSize().fadeInOnArrival(state != VesselEditorUiState.Loading)) {
+            when (state) {
+                VesselEditorUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding))
 
-            VesselEditorUiState.NotFound -> Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(UmamiSpacing.SideMargin),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(stringResource(R.string.vessel_editor_not_found), style = MaterialTheme.typography.bodyLarge)
+                VesselEditorUiState.NotFound -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(UmamiSpacing.SideMargin),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(stringResource(R.string.vessel_editor_not_found), style = MaterialTheme.typography.bodyLarge)
+                }
+
+                is VesselEditorUiState.Ready -> EditorFields(
+                    state = state,
+                    actions = actions,
+                    alertKey = alertKey,
+                    photo = photo,
+                    // The padding holds the keyboard too (safeDrawing): no imePadding on top, which hid the fields
+                    // behind it (D-102).
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState()),
+                )
             }
-
-            is VesselEditorUiState.Ready -> EditorFields(
-                state = state,
-                actions = actions,
-                alertKey = alertKey,
-                photo = photo,
-                // The padding holds the keyboard too (safeDrawing): no imePadding on top, which hid the fields
-                // behind it (D-102).
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState()),
-            )
         }
     }
 }

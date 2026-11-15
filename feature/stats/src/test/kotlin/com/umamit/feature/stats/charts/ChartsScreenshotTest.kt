@@ -92,9 +92,10 @@ class ChartsScreenshotTest(private val dark: Boolean, private val fontScale: Flo
     @Test
     fun ratingLineWithGap() = shot("line") {
         val ratings = listOf(3.5, 4.0, null, null, 4.5, 4.0, 5.0, null, 3.0, 4.5, 4.0, 4.5, 5.0)
+        val brewing = listOf(3.0, 3.5, 3.0, null, 4.0, 3.5, 4.0, 4.5, null, 3.5, 3.0, null, 4.0)
         RatingLineChart(
             ratings.mapIndexed { index, rating ->
-                RatingPoint("KW ${32 + index}", rating)
+                RatingPoint("KW ${32 + index}", rating, brewingRating = brewing[index])
             },
             "Bewertung im Verlauf",
         )

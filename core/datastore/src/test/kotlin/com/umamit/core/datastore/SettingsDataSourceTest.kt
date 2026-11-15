@@ -6,6 +6,7 @@ import com.umamit.core.model.CollectionSegment
 import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StatsTab
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
@@ -61,6 +62,7 @@ class SettingsDataSourceTest {
         assertThat(settings.collectionSegment).isEqualTo(CollectionSegment.MY_TEAS)
         assertThat(settings.statsRange).isEqualTo(StatsRange.DAYS_90)
         assertThat(settings.statsTab).isEqualTo(StatsTab.OVERVIEW)
+        assertThat(settings.statsRankingBy).isEqualTo(StatsRankingBy.TEA)
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
         assertThat(source.seedVesselsV2Added.first()).isFalse()
@@ -112,6 +114,7 @@ class SettingsDataSourceTest {
             statsRange = StatsRange.MONTHS_12,
             statsTab = StatsTab.CONSUMPTION,
             statsFolded = setOf("overview.sessions", "ratings.ranking"),
+            statsRankingBy = StatsRankingBy.BREWING,
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())
@@ -321,6 +324,19 @@ class SettingsDataSourceTest {
                 assertThat(settings.statsTab).isEqualTo(tab)
             }
         }
+    }
+
+    @Test
+    fun theRankingSwitchIsStoredAndReadBackAndAnUnknownNameReadsTea() = runTest {
+        // INS-02 (v0.7.1, D-117): `statsRankingBy` TEA/BREWING, default TEA, an unknown name reads TEA (05 §6).
+        val source = dataSource()
+        for (by in StatsRankingBy.entries) {
+            source.update { it.copy(statsRankingBy = by) }
+
+            assertThat(source.settings.first().statsRankingBy).isEqualTo(by)
+        }
+        val odd = File(folder.root, "odd-ranking.json").apply { writeText("""{"statsRankingBy":"TASTE"}""") }
+        assertThat(dataSource(odd).settings.first().statsRankingBy).isEqualTo(StatsRankingBy.TEA)
     }
 
     @Test

@@ -7,6 +7,7 @@ import com.umamit.core.domain.stats.StatsFixtures.session
 import com.umamit.core.domain.stats.StatsFixtures.tea
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
+import com.umamit.core.model.StatsRankingBy
 import org.junit.Test
 import java.time.LocalDate
 import java.time.YearMonth
@@ -164,7 +165,7 @@ class RatingsStatsTest {
             profileName = profile?.let {
                 "Rezept $it"
             },
-            rating = it,
+            brewingRating = it,
         )
     }
 
@@ -220,5 +221,93 @@ class RatingsStatsTest {
         assertThat(top.getValue(null).styleKey).isEqualTo("gyokuro")
         assertThat(ratings.bestRecipes.single().coverPhoto).isEqualTo(photo)
         assertThat(ratings.bestRecipes.single().styleKey).isEqualTo("sencha")
+    }
+
+    @Test
+    fun `the Zubereitung ranking uses only Zubereitung ratings, ties as for Tee`() {
+        val sessions = listOf(
+            session(teaId = "a", teaName = "Zeta", rating = 5.0, brewingRating = 4.0),
+            session(teaId = "b", teaName = "Alpha", rating = 1.0, brewingRating = 4.0),
+            session(teaId = "c", teaName = "Mu", brewingRating = 4.0),
+            session(teaId = "c", teaName = "Mu", brewingRating = 4.0),
+            session(teaId = "d", teaName = "Eins", rating = 5.0),
+        )
+
+        val ratings = calculator(sessions).ratings(StatsRange.ALL)
+
+        assertThat(ratings.ranking(StatsRankingBy.BREWING).map { it.teaName })
+            .containsExactly("Mu", "Alpha", "Zeta").inOrder()
+        assertThat(ratings.ranking(StatsRankingBy.BREWING).first().ratingCount).isEqualTo(2)
+        assertThat(ratings.ranking(StatsRankingBy.TEA).map { it.teaName })
+            .containsExactly("Eins", "Zeta", "Alpha").inOrder()
+    }
+
+    @Test
+    fun `nothing is rated only without a rating of either kind`() {
+        val onlyBrewing = calculator(listOf(session(brewingRating = 3.5))).ratings(StatsRange.DAYS_30)
+        val none = calculator(listOf(session())).ratings(StatsRange.DAYS_30)
+
+        assertThat(onlyBrewing.ratedCount).isEqualTo(1)
+        assertThat(onlyBrewing.teaRanking).isEmpty()
+        assertThat(onlyBrewing.brewingRanking).hasSize(1)
+        assertThat(none.ratedCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `the two Verlauf series have their own gaps`() {
+        // 30 T has weeks KW 42-46: Tee in KW 42 and 46, Zubereitung in KW 42, 44 and 46.
+        val sessions = listOf(
+            session(TODAY.minusDays(28), rating = 3.0, brewingRating = 2.0),
+            session(TODAY.minusDays(28), rating = 4.0, brewingRating = 3.0),
+            session(TODAY.minusDays(14), brewingRating = 4.5),
+            session(TODAY, rating = 5.0, brewingRating = 3.5),
+        )
+
+        val ratings = calculator(sessions).ratings(StatsRange.DAYS_30)
+
+        assertThat(ratings.ratingPerPeriod.map { it.value }).containsExactly(3.5, null, null, null, 5.0).inOrder()
+        assertThat(ratings.brewingRatingPerPeriod.map { it.value })
+            .containsExactly(2.5, null, 4.5, null, 3.5).inOrder()
+        assertThat(ratings.brewingRatingPerPeriod.map { it.period })
+            .containsExactlyElementsIn(ratings.ratingPerPeriod.map { it.period }).inOrder()
+    }
+
+    @Test
+    fun `best recipe compares Zubereitung, not Tee`() {
+        val sessions =
+            // Tee ratings say Kalt is worse, Zubereitung says better: the Zubereitung order counts.
+            (1..2).map {
+                session(teaId = "a", profileId = "kalt", profileName = "Kalt", rating = 2.0, brewingRating = 5.0)
+            } +
+                (1..2).map {
+                    session(teaId = "a", profileId = "heiss", profileName = "Heiss", rating = 5.0, brewingRating = 3.0)
+                } +
+                // Tea b: recipes rated on Tee only: nothing qualifies.
+                (1..2).map { session(teaId = "b", profileId = "x", rating = 4.0) } +
+                (1..2).map { session(teaId = "b", profileId = "y", rating = 3.0) } +
+                // Tea c: second recipe has just one Zubereitung rating.
+                (1..2).map { session(teaId = "c", profileId = "x", brewingRating = 4.0) } +
+                session(teaId = "c", profileId = "y", brewingRating = 3.0)
+
+        val best = calculator(sessions).ratings(StatsRange.DAYS_30).bestRecipes
+
+        assertThat(best.map { it.teaId }).containsExactly("a")
+        assertThat(best.single().recipes.map { it.profileId }).containsExactly("kalt", "heiss").inOrder()
+        assertThat(best.single().gap).isWithin(1e-9).of(2.0)
+    }
+
+    @Test
+    fun `Neu entdeckt averages the Tee rating, not Zubereitung`() {
+        val sessions = listOf(
+            session(TODAY.minusDays(5), teaId = "n", teaName = "Neu", rating = 4.0, brewingRating = 2.0),
+            session(TODAY.minusDays(4), teaId = "n", teaName = "Neu", rating = 5.0),
+            session(TODAY.minusDays(3), teaId = "m", teaName = "Nur Zubereitung", brewingRating = 5.0),
+        )
+
+        val found = calculator(sessions).ratings(StatsRange.DAYS_30).newlyDiscovered.associateBy { it.teaName }
+
+        assertThat(found.getValue("Neu").average).isEqualTo(4.5)
+        assertThat(found.getValue("Neu").ratingCount).isEqualTo(2)
+        assertThat(found.getValue("Nur Zubereitung").average).isNull()
     }
 }

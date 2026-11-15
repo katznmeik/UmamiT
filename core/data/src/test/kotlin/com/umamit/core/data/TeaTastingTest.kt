@@ -83,6 +83,34 @@ class TeaTastingTest {
     }
 
     @Test
+    fun `a tea's average ignores the Zubereitung rating, which has its own average (D-117)`() = runTest {
+        brewed()
+        tasting.setBrewingRating("a", 1.0)
+        tasting.setBrewingRating("c", 2.0)
+        tasting.setBrewingRating("other", 0.5)
+        val running = checkNotNull(data.db.sessionDao().get("running"))
+        data.db.sessionDao().update(running.copy(brewingRating = 5.0))
+
+        val summary = journal.observeTeaTasting("t1").first()
+        assertThat(summary.rating).isEqualTo(TeaRating(average = 3.75, count = 2))
+        assertThat(summary.brewingRating).isEqualTo(TeaRating(average = 1.5, count = 2))
+        // The lists' per-tea ratings (TEA-08, TEA-11) read the Tee rating only as well.
+        assertThat(data.db.tastingDao().observeTeaRatings().first().associate { it.teaId to it.average })
+            .containsExactly("t1", 3.75, "t2", 5.0)
+    }
+
+    @Test
+    fun `a tea with only Zubereitung ratings has no Tee average`() = runTest {
+        completed("z", teaId = "t2")
+        tasting.setBrewingRating("z", 4.5)
+
+        val summary = journal.observeTeaTasting("t2").first()
+        assertThat(summary.rating).isNull()
+        assertThat(summary.brewingRating).isEqualTo(TeaRating(4.5, 1))
+        assertThat(data.db.tastingDao().observeTeaRatings().first()).isEmpty()
+    }
+
+    @Test
     fun `taste averages are per axis over the infusions that set that axis`() = runTest {
         brewed()
 
@@ -113,9 +141,12 @@ class TeaTastingTest {
     fun `the journal row and the session carry the tasting inputs and the descriptor keys`() = runTest {
         brewed()
         tasting.setNotes("b", "Notiz")
+        tasting.setBrewingRating("b", 2.5)
 
         val row = journal.observeSessions().first().single { it.session.id == "b" }.session
         assertThat(row.rating).isEqualTo(3.5)
+        assertThat(row.brewingRating).isEqualTo(2.5)
+        assertThat(journal.observeSession("b").first()?.session).isEqualTo(row)
         assertThat(row.infusions.single().taste).isEqualTo(TasteProfile(umami = 2, sweetness = 3))
         assertThat(row.notes).isEqualTo("Notiz")
         assertThat(row.descriptorKeys).containsExactly("marine.nori", "unknown.later")

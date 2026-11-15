@@ -43,8 +43,11 @@
         android:theme="@style/Theme.UmamiT">
         <!-- adjustResize: the keyboard is reported as an inset the screens pad for themselves (edge-to-edge);
              never a pan of the whole window (D-102). -->
+        <!-- configChanges uiMode: a night switch (the Design hand-over, D-114, or the phone's own under System)
+             recolours the app in place, in one frame, with no re-creation (D-117 build note A-08). -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="uiMode"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

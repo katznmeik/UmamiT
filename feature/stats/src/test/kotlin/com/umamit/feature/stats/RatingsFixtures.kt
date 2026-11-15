@@ -25,6 +25,9 @@ internal object RatingsFixtures {
 
     private val ratings = listOf(3.5, 4.0, null, 4.5, 4.0, 5.0, null, 4.5)
 
+    /** Zubereitung has its own gaps: none in the third week, none in the last, one more in the seventh. */
+    private val brewingRatings = listOf(3.0, 3.5, 3.0, 4.0, null, 3.5, 4.0, null)
+
     val withData = RatingsStats(
         ratedCount = 18,
         sessionCount = 25,
@@ -33,12 +36,18 @@ internal object RatingsFixtures {
             TeaRatingRow("tea-2", "Sencha Asahi", 4.2, 4, styleKey = "sencha"),
             TeaRatingRow(null, "Gelöschter Tee", 4.0, 3),
         ) + (1..9).map { TeaRatingRow("extra-$it", "Testtee $it", 3.9 - it * 0.1, 2) },
+        brewingRanking = listOf(
+            TeaRatingRow("tea-2", "Sencha Asahi", 4.4, 3, styleKey = "sencha"),
+            TeaRatingRow("tea-1", "Gyokuro Hisui", 3.8, 5, styleKey = "gyokuro"),
+            TeaRatingRow(null, "Gelöschter Tee", 3.0, 2),
+        ),
         newlyDiscovered = listOf(
             NewTea("tea-1", "Gyokuro Hisui", LocalDate.of(2026, 11, 2), 4.6, 5, styleKey = "gyokuro"),
             NewTea("new-2", "Neuling ohne Wertung", LocalDate.of(2026, 10, 20), null, 0),
             NewTea(null, "Gelöschter Neuling", LocalDate.of(2026, 10, 14), 3.0, 1),
         ) + (4..7).map { NewTea("new-$it", "Neuer Tee $it", LocalDate.of(2026, 10, 1), 4.0, 1) },
         ratingPerPeriod = weeks.mapIndexed { index, period -> PeriodValue(period, ratings[index]) },
+        brewingRatingPerPeriod = weeks.mapIndexed { index, period -> PeriodValue(period, brewingRatings[index]) },
         bestRecipes = listOf(
             BestRecipeTea(
                 "tea-1",
@@ -53,8 +62,16 @@ internal object RatingsFixtures {
     val withoutRatings = withData.copy(
         ratedCount = 0,
         teaRanking = emptyList(),
+        brewingRanking = emptyList(),
         ratingPerPeriod = weeks.map { PeriodValue(it, null) },
+        brewingRatingPerPeriod = weeks.map { PeriodValue(it, null) },
         bestRecipes = emptyList(),
+    )
+
+    /** Only Zubereitung ratings in the range: the Tee ranking and line are empty. */
+    val onlyBrewing = withData.copy(
+        teaRanking = emptyList(),
+        ratingPerPeriod = weeks.map { PeriodValue(it, null) },
     )
 
     /** Sessions in the range, none rated, but a tea discovered. */

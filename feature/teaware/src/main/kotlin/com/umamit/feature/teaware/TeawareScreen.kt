@@ -56,6 +56,7 @@ import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberPhotoPainter
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -139,24 +140,27 @@ fun TeawareScreen(
             WindowInsetsSides.Top + WindowInsetsSides.End + WindowInsetsSides.Bottom,
         ),
     ) { padding ->
-        when (state) {
-            TeawareUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding))
+        // The first arrival of the data fades in instead of popping in part-way through the enter (A-12).
+        Box(Modifier.fillMaxSize().fadeInOnArrival(state != TeawareUiState.Loading)) {
+            when (state) {
+                TeawareUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding))
 
-            is TeawareUiState.Ready -> if (state.isEmpty) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .verticalScroll(rememberScrollState()),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    EmptyState(
-                        title = stringResource(R.string.teaware_empty_title),
-                        body = stringResource(R.string.teaware_empty_body),
-                    )
+                is TeawareUiState.Ready -> if (state.isEmpty) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .verticalScroll(rememberScrollState()),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        EmptyState(
+                            title = stringResource(R.string.teaware_empty_title),
+                            body = stringResource(R.string.teaware_empty_body),
+                        )
+                    }
+                } else {
+                    VesselList(state, padding, onOpenVessel, onRestore, photo)
                 }
-            } else {
-                VesselList(state, padding, onOpenVessel, onRestore, photo)
             }
         }
     }

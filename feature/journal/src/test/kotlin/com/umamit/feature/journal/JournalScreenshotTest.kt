@@ -86,6 +86,7 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             at(TODAY, 9, 12),
             photo = PLACEHOLDER_PHOTO,
             rating = 4.5,
+            brewingRating = 3.5,
             notes = "Sehr frisch, grasig im Abgang",
         ),
         session(
@@ -104,7 +105,7 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             teaName = "Hojicha Kaga",
             styleKey = "hojicha",
             baseTempC = 95,
-            rating = 3.0,
+            brewingRating = 3.5,
         ),
         session("older", at(LocalDate.of(2026, 10, 12), 6, 48), steps = listOf(step(0, 90))),
     )

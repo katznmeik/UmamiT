@@ -36,6 +36,7 @@ import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.rememberSheetClose
 
 /** The sheet of a tea from a shop link (SCR-19, CAT-17). */
 const val TEA_LINK_SHEET_TAG = "tea_link_sheet"
@@ -92,9 +93,12 @@ fun TeaLinkSheet(
     onLoad: () -> Unit,
     onDismissRequest: () -> Unit,
 ) {
+    val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion)
+    // *Schließen* slides the sheet out like a drag, then closes it (A-13).
+    val close = rememberSheetClose(sheetState, onDismissRequest)
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion),
+        sheetState = sheetState,
         modifier = Modifier.testTag(TEA_LINK_SHEET_TAG),
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
@@ -112,7 +116,7 @@ fun TeaLinkSheet(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.semantics { heading() },
             )
-            if (state.shared) Shared(state, onDismissRequest) else Paste(state, onTextChange, onLoad)
+            if (state.shared) Shared(state, close) else Paste(state, onTextChange, onLoad)
         }
     }
 }

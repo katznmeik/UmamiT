@@ -104,13 +104,14 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
     @Test
     fun available() = capture("available", SessionPageUiState.Ready(page))
 
-    /** Rated 3,5 (a half star) with a long note that wraps (JRN-02, JRN-05). */
+    /** Tee rated 3,5 (a half star), Zubereitung 4 (D-117), with a long note that wraps (JRN-02, JRN-05). */
     @Test
     fun ratedWithLongNote() = capture(
         "ratedWithLongNote",
         SessionPageUiState.Ready(
             page.copy(
                 rating = 3.5,
+                brewingRating = 4.0,
                 notes = "Mild und cremig, kaum Bitterkeit. Beim zweiten Aufguss kommt eine leichte Süße dazu, " +
                     "beim dritten wird er grasiger. Nächstes Mal etwas kühler und kürzer ziehen lassen, " +
                     "dann bleibt der Umami-Körper länger erhalten.",

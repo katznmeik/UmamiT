@@ -28,7 +28,7 @@ class JournalFilterTest {
             notes = "Sehr frisch, grasig im Abgang",
             descriptorKeys = listOf("marine.nori"),
         ),
-        session("ueber", at(TODAY, 8), teaName = "Kabusecha Überraschung", rating = 3.0),
+        session("ueber", at(TODAY, 8), teaName = "Kabusecha Überraschung", rating = 3.0, brewingRating = 5.0),
         session("yesterday", at(TODAY.minusDays(1), 18), teaName = "Gyokuro Asahi", rating = 4.0, notes = "mild"),
         session(
             "older",
@@ -149,6 +149,14 @@ class JournalFilterTest {
         assertThat(ids(JournalFilter(minRating = 3.0))).containsExactly("hisui", "ueber", "yesterday")
         assertThat(ids(JournalFilter(minRating = 4.0))).containsExactly("hisui", "yesterday")
         assertThat(ids(JournalFilter(minRating = 4.5))).containsExactly("hisui")
+    }
+
+    @Test
+    fun `the rating filter reads the Tee rating, never the Zubereitung`() {
+        // „ueber" is Tee 3,0 / Zubereitung 5,0: it fails ab 4,5; a session with only a Zubereitung never passes.
+        assertThat(ids(JournalFilter(minRating = 4.5))).doesNotContain("ueber")
+        val brewOnly = journalList(listOf(session("brewonly", at(TODAY, 7), brewingRating = 5.0)), TODAY)
+        assertThat(brewOnly.filtered(JournalFilter(minRating = 3.0)).days).isEmpty()
     }
 
     @Test

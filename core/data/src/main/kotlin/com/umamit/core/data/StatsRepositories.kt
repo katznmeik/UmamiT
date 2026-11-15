@@ -63,6 +63,7 @@ private fun StatsSessionRow.toStatsSession() = StatsSession(
     startedAtMs = session.startedAt,
     zoneId = session.zoneId,
     rating = session.rating,
+    brewingRating = session.brewingRating,
     leafGrams = session.leafGrams,
     waterMl = session.waterMl,
     costCents = session.costCents,

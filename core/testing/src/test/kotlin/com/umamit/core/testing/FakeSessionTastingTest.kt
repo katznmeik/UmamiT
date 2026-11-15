@@ -12,6 +12,7 @@ import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TeaCategory
+import com.umamit.core.model.TeaRating
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.flow.first
@@ -102,6 +103,31 @@ class FakeSessionTastingTest {
         val summary = fakes.journal.observeTeaTasting("t1").first()
 
         assertThat(summary.tasteAverages).containsExactly(TasteAxis.UMAMI, 3.0, TasteAxis.AROMA, 4.0)
+    }
+
+    @Test
+    fun `the Zubereitung rating is written apart from the Tee rating, and the tea's average ignores it`() = runTest {
+        fakes.sessions.startSession(start("done"))
+        fakes.sessions.recordStep("done", 0, poured)
+        fakes.sessions.completeSession("done", autoFinished = false)
+        fakes.sessions.startSession(start("running"))
+        val tasting = fakes.tasting
+
+        assertThat(tasting.setBrewingRating("running", 4.0)).isEqualTo(TastingWrite.NOT_COMPLETED)
+        assertThat(tasting.setBrewingRating("done", 4.2)).isEqualTo(TastingWrite.INVALID)
+        assertThat(tasting.setRating("done", 4.5)).isEqualTo(TastingWrite.SAVED)
+        assertThat(tasting.setBrewingRating("done", 2.0)).isEqualTo(TastingWrite.SAVED)
+
+        val session = fakes.sessions.getSession("done")!!
+        assertThat(session.rating).isEqualTo(4.5)
+        assertThat(session.brewingRating).isEqualTo(2.0)
+        val summary = fakes.journal.observeTeaTasting("t1").first()
+        assertThat(summary.rating).isEqualTo(TeaRating(4.5, 1))
+        assertThat(summary.brewingRating).isEqualTo(TeaRating(2.0, 1))
+
+        assertThat(tasting.setRating("done", null)).isEqualTo(TastingWrite.SAVED)
+        assertThat(fakes.sessions.getSession("done")!!.brewingRating).isEqualTo(2.0)
+        assertThat(fakes.journal.observeTeaTasting("t1").first().rating).isNull()
     }
 
     @Test

@@ -1,8 +1,14 @@
 package com.umamit.app
 
+import android.app.KeyguardManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
+import android.os.SystemClock
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -75,6 +81,16 @@ class MainActivity : ComponentActivity() {
 
     private val timerVisible = MutableStateFlow(false)
 
+    /** Whether the phone is locked, for the close of the timer over the keyguard (SCR-05, A-17/A-18). */
+    private val keyguard = KeyguardLock { getSystemService(KeyguardManager::class.java).isKeyguardLocked }
+
+    /** Unlocked while the app is shown (over the keyguard): the root's back stops taking the locked path. */
+    private val userPresent = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            keyguard.read()
+        }
+    }
+
     /** The notifications' requests to open the timer; a pending one survives a recreation. */
     private val timerRequests = TimerScreenRequests()
 
@@ -102,14 +118,23 @@ class MainActivity : ComponentActivity() {
             catalogRefreshRequests.restore(savedInstanceState)
             startRequests.restore(savedInstanceState)
         }
-        val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
+        // Exported: `ACTION_USER_PRESENT` is a protected broadcast that only the system (SystemUI) can send, so no app
+        // can spoof it; a not-exported receiver is not guaranteed to get a broadcast sent from another process.
+        registerReceiver(userPresent, IntentFilter(Intent.ACTION_USER_PRESENT), RECEIVER_EXPORTED)
+        val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope, lifecycle)
         val collectionSegments = SettingsCollectionSegments(settings, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         val themeMode = themeModeState(settings)
-        val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
+        // Seeded with the controller's current alert, so a re-created activity's first frame already knows it (A-07).
+        val alertKey = brewTimer.state.map { it.alertKey() }
+            .stateIn(lifecycleScope, SharingStarted.Eagerly, brewTimer.state.value.alertKey())
         lifecycleScope.launch {
-            combine(brewTimer.state, timerVisible, ::lockScreenFlags).distinctUntilChanged().collect {
+            // A close waiting over the keyguard counts as visible once an alert rings, in the alert's turn (rule 8).
+            combine(brewTimer.state, timerVisible, keyguard.closePending) { state, visible, closePending ->
+                val shown = timerVisibleForFlags(visible, closePending, alerting = state.alertKey() != null)
+                lockScreenFlags(state, timerVisible = shown)
+            }.distinctUntilChanged().collect {
                 setShowWhenLocked(it.showWhenLocked)
                 setTurnScreenOn(it.turnScreenOn)
             }
@@ -125,7 +150,8 @@ class MainActivity : ComponentActivity() {
                     onboardingCompleted = onboardingCompleted,
                     timerRequest = timerRequests.request,
                     onConsumeTimerRequest = timerRequests::handled,
-                    onTimerVisibleChange = { timerVisible.value = it },
+                    onTimerVisibleChange = ::onTimerVisibleChange,
+                    keyguard = keyguard,
                     teaLinkShare = teaLinkShares.share,
                     onTakeTeaLinkShare = teaLinkShares::taken,
                     catalogRefreshRequest = catalogRefreshRequests.token,
@@ -140,6 +166,39 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+        holdFirstDrawUntil(ready = { onboardingCompleted.value != null }, never = { alertKey.value != null })
+    }
+
+    /**
+     * A cold start draws its first frame only once the root has something to show (A-04, 03 §3.6): at most
+     * [FIRST_DRAW_HOLD_MS], so the starting window goes straight to the app, not through an empty frame. Never while
+     * the timer opens or an alert plays ([never], `timerVisible`): the full-screen intent's first frame is never
+     * delayed (rule 8, D-064).
+     */
+    private fun holdFirstDrawUntil(ready: () -> Boolean, never: () -> Boolean) {
+        val content = findViewById<View>(android.R.id.content)
+        val start = SystemClock.uptimeMillis()
+        content.viewTreeObserver.addOnPreDrawListener(
+            object : ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    val draw = ready() || never() || timerVisible.value ||
+                        SystemClock.uptimeMillis() - start >= FIRST_DRAW_HOLD_MS
+                    if (draw) content.viewTreeObserver.removeOnPreDrawListener(this)
+                    return draw
+                }
+            },
+        )
+    }
+
+    /** Back in front (the keyguard went away, or the bouncer closed): the phone is read again (A-17). */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) keyguard.read()
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(userPresent)
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -161,11 +220,19 @@ class MainActivity : ComponentActivity() {
 
     private fun openTimerIfAsked(intent: Intent?) {
         if (intent == null || !TimerScreenIntents.isOpenTimer(intent)) return
+        // A close waiting over the keyguard gives way to the request, as to a new alert: no pop at `ON_STOP` leaves
+        // `showWhenLocked` set over the shell. Reported first, so the flags are never cleared in between (rule 8).
         showTimerOverLockScreen()
+        keyguard.setClosePending(false)
         timerRequests.request(intent)
     }
 
-    /** The window behind the app takes the theme's background, so nothing of the phone's theme shows through. */
+    /**
+     * The window behind the app takes the theme's background, so nothing of the phone's theme shows through. It
+     * follows a night switch in place (A-08): the themes.xml window background is resolved only when the window is
+     * made, so this replaces it on every change of the scheme. The system-bar scrims need nothing: `enableEdgeToEdge`
+     * runs once and leaves them transparent (the system keeps the contrast), and [SystemBarIcons] owns the icons.
+     */
     @Composable
     private fun WindowBackground() {
         val view = LocalView.current
@@ -174,14 +241,25 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The timer is about to show: over the lock screen at once, before any frame (D-058, D-064). */
-    private fun showTimerOverLockScreen() {
-        timerVisible.value = true
-        val flags = lockScreenFlags(brewTimer.state.value, timerVisible = true)
+    private fun showTimerOverLockScreen() = onTimerVisibleChange(true)
+
+    /**
+     * The root's report, applied to the window flags in the same turn (the collector above follows the timer's state):
+     * a close over the keyguard clears them before the next frame, a new alert sets them again at once (A-17, rule 8).
+     */
+    private fun onTimerVisibleChange(visible: Boolean) {
+        timerVisible.value = visible
+        val state = brewTimer.state.value
+        val shown = timerVisibleForFlags(visible, keyguard.closePending.value, alerting = state.alertKey() != null)
+        val flags = lockScreenFlags(state, timerVisible = shown)
         setShowWhenLocked(flags.showWhenLocked)
         setTurnScreenOn(flags.turnScreenOn)
     }
 
     companion object {
+        /** The longest a cold start holds its first frame for the root's content (03 §3.6: ≈ 150 ms, A-04). */
+        private const val FIRST_DRAW_HOLD_MS = 150L
+
         /**
          * Opens the app's own task with the shared [text] (CAT-17), as the timer's notifications
          * open it (`NEW_TASK | SINGLE_TOP`): a running activity gets it in [onNewIntent].
@@ -211,7 +289,8 @@ internal fun SettingsRepository.themeMode(): Flow<ThemeMode> =
  * the theme, and those surfaces are always [com.umamit.core.designsystem.theme.SteepingTheme]). No flash of the
  * other theme still: the settings hand the stored choice to the system too (`UiModeManager.setApplicationNightMode`,
  * SET-05, D-114) when the *Design* dialog closes and whenever they show with no alert, so the starting window and the
- * configuration *System* reads are already in the chosen theme.
+ * configuration *System* reads are already in the chosen theme. The activity handles the night switch in place
+ * (`configChanges="uiMode"`, D-117 build note A-08): Compose reads the new configuration and recolours in one frame.
  */
 internal fun ComponentActivity.themeModeState(settings: SettingsRepository): StateFlow<ThemeMode?> =
     settings.themeMode().stateIn(lifecycleScope, SharingStarted.Eagerly, null)

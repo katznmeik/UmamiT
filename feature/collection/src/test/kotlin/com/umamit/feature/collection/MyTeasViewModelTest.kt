@@ -315,6 +315,26 @@ class MyTeasViewModelTest {
     }
 
     @Test
+    fun `a Zubereitung rating leaves the row's average and the Bewertung order unchanged`() = runTest {
+        save(tea("a", "Asamushi"))
+        save(tea("b", "Bancha"))
+        rated("a", "s1", 3.0)
+        rated("b", "s2", 4.0)
+        // „a" has the better Zubereitung, and „c" only a Zubereitung: neither moves the Tee Ø or the order (D-117 Q2).
+        save(tea("c", "Cha"))
+        rated("c", "s3", null)
+        sessions.tasting.setBrewingRating("s1", 5.0)
+        sessions.tasting.setBrewingRating("s3", 5.0)
+        val vm = viewModel()
+
+        vm.setSort(CollectionSort.RATING)
+
+        assertThat(vm.state.value.rows.associate { it.id to it.rating })
+            .containsExactly("a", 3.0, "b", 4.0, "c", null)
+        assertThat(vm.ids).containsExactly("b", "a", "c").inOrder()
+    }
+
+    @Test
     fun `Bewertung is remembered like the other orders`() = runTest {
         save(tea("a", "Asamushi"))
         save(tea("b", "Bancha"))

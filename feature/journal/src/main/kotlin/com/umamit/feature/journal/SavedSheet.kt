@@ -80,7 +80,6 @@ import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.controller.SavedSheetRequests
-import com.umamit.core.ui.RatingStars
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -132,8 +131,9 @@ private data class SavedSheetContent(
  * fine. It leaves after 10 s, on a swipe down, or at once when an alert
  * starts. While [alerting] it is not composed at all, so no exit animation
  * runs over the alert, and a sheet due then is dropped (rule 8, D-061).
- * From v0.6.0 (D-112) it also holds the rating stars (JRN-02: a tap rates at once and restarts the 10 s) and
- * *Notizen hinzufügen*, which closes the sheet and opens the session's page. Everything on it is optional.
+ * From v0.6.0 (D-112) it also holds the two rating star rows, „Tee" and „Zubereitung" (JRN-02, D-117: a tap on either
+ * rates at once and restarts the 10 s) and *Notizen hinzufügen*, which closes the sheet and opens the session's page.
+ * Everything on it is optional.
  *
  * For a session of a tea flagged „Rezept prüfen" it offers *Rezept passt*,
  * which clears that tea's flag and nothing else (CAT-05, D-073); it leaves
@@ -217,9 +217,15 @@ fun SavedSheetHost(
                         released = true
                         restarts++
                         writes.launch {
-                            guarded("Rating not written", Unit) {
-                                val result = ratingLock.withLock { tasting.setRating(shown.sessionId, rating) }
-                                if (result != TastingWrite.SAVED) Log.w(TAG, "Rating not written: $result")
+                            writeRating(ratingLock, "Rating") { tasting.setRating(shown.sessionId, rating) }
+                        }
+                    },
+                    onRateBrewing = { rating ->
+                        released = true
+                        restarts++
+                        writes.launch {
+                            writeRating(ratingLock, "Brewing rating") {
+                                tasting.setBrewingRating(shown.sessionId, rating)
                             }
                         }
                     },
@@ -291,6 +297,14 @@ private suspend fun <T> guarded(what: String, fallback: T, block: suspend () -> 
     fallback
 }
 
+/** One rating write of the sheet, after any earlier one ([lock]); a refused one is logged, a failed one too. */
+private suspend fun writeRating(lock: Mutex, what: String, write: suspend () -> TastingWrite) {
+    guarded("$what not written", Unit) {
+        val result = lock.withLock { write() }
+        if (result != TastingWrite.SAVED) Log.w(TAG, "$what not written: $result")
+    }
+}
+
 private const val TAG = "SavedSheet"
 
 @Composable
@@ -299,6 +313,7 @@ private fun SavedSheet(
     onRecipeOk: (teaId: String) -> Unit,
     onUndoOpening: (OpenedDateChange) -> Unit,
     onRate: (Double?) -> Unit,
+    onRateBrewing: (Double?) -> Unit,
     onAcceptOffer: (onRefused: () -> Unit) -> Unit,
     onNotes: () -> Unit,
     onDismiss: () -> Unit,
@@ -326,8 +341,9 @@ private fun SavedSheet(
         spokenDuration(content.summary.steepSeconds),
     )
     val dismissLabel = stringResource(R.string.journal_saved_dismiss)
-    // What the stars show: this sheet's own taps; the session starts unrated.
+    // What the two star rows show: this sheet's own taps; the session starts unrated.
     var rating by remember(content.sessionId) { mutableStateOf<Double?>(null) }
+    var brewingRating by remember(content.sessionId) { mutableStateOf<Double?>(null) }
 
     Surface(
         modifier = Modifier
@@ -420,16 +436,20 @@ private fun SavedSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    // Its own merged node, so the sheet's merge does not swallow the stars' TalkBack adjust action.
-                    Box(modifier = Modifier.padding(top = UmamiSpacing.XSmall).semantics(mergeDescendants = true) {}) {
-                        RatingStars(
-                            value = rating,
-                            onChange = {
-                                rating = it
-                                onRate(it)
-                            },
-                        )
-                    }
+                    RatingRows(
+                        tea = rating,
+                        brewing = brewingRating,
+                        onTea = {
+                            rating = it
+                            onRate(it)
+                        },
+                        onBrewing = {
+                            brewingRating = it
+                            onRateBrewing(it)
+                        },
+                        modifier = Modifier.padding(top = UmamiSpacing.XSmall),
+                        ownNode = true,
+                    )
                     NotesAction(onNotes)
                     if (content.recipeOffer) SheetRecipeOffer(content.sessionId, onAcceptOffer)
                     content.openedDate?.let { change -> OpenedUndo(content.sessionId) { onUndoOpening(change) } }

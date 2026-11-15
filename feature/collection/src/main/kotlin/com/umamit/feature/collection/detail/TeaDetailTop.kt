@@ -50,6 +50,7 @@ internal fun Header(tea: TeaDetail) {
             )
         }
         tea.rating?.let { RatingLine(it, Modifier.padding(top = UmamiSpacing.XXSmall)) }
+        tea.brewingRating?.let { BrewingRatingLine(it) }
         val tags = listOfNotNull(
             tea.teaType,
             stringResource(R.string.collection_tea_organic).takeIf { tea.details.isOrganic },
