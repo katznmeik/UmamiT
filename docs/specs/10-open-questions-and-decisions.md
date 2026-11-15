@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-15 (D-117 build notes „Arrival fade", „Lock screen")
+> Status: **Living document** · Last updated: 2026-11-15 (D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -322,6 +322,15 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-118"></a>
+### D-118 — A release token for publishing (`RELEASE_TOKEN`) · *Accepted (PO, 2026-11-15)*
+
+**Context.** From 2026-11-15 14:21 UTC every `release.yml` run failed at „Create tag and GitHub Release" with HTTP 403 „Resource not accessible by integration" (runs 43722087355 ×3, 43726608377, 43734941736, 43739447174 started by the PO, 43741891550 started from `main`), while `v0.7.1-rc.1` had published at 09:42 the same way. The build, signing and certificate checks passed every time. The PO's settings were checked and fine (Actions: read and write, all actions allowed; no rulesets, no protected tags, release immutability off); the PO had recently enabled 2FA and re-confirmed Claude's access. The cause on GitHub's or the account's side is unknown.
+
+**Decision (the PO's choice of options).** The PO creates a fine-grained personal access token limited to `katznmeik/UmamiT` with *Contents: read and write* and saves it as the repository secret `RELEASE_TOKEN`. Only the step „Create tag and GitHub Release" of `release.yml` uses it (`secrets.RELEASE_TOKEN || github.token`); every other step keeps `GITHUB_TOKEN`. All checks before publishing (CI on the commit, version, certificate twice) are unchanged. The token expires; when it does, the PO renews it (a release then fails at the same step with 401/403, which names this decision).
+
+**Consequences.** Amends 06 §6 (release process) and D-039 only in which token creates the tag and the release. Never committed (CLAUDE.md rule 3). The final `v0.7.1` needs `release.yml` on `main` with this change, which arrives with the merge of #290.
 
 <a id="d-117"></a>
 ### D-117 — v0.7.1: where *Tee* and *Zubereitung* show, umamit.db v8, and the transition audit (JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02, NFR-PERF-12; SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18; 05 §3.6, §6 `statsRankingBy`, §8, §9 v8) · *Proposed*: the PO's answers Q1–Q20 below are *Accepted (PO, 2026-11-14)*; the spec, tickets and plan wait for the PO's approval
@@ -8199,6 +8208,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-15 | D-118: `release.yml` publishes with the PO's fine-grained `RELEASE_TOKEN` (Contents only, this repository) after `GITHUB_TOKEN` got HTTP 403 creating releases. D-117 build notes „Arrival fade" and „Lock screen" (rc.2). |
 | 2026-11-14 | D-117: v0.7.1 grilled with the PO (Q1–Q20): „Tee ★ · Zubereitung ★" in rows, two labelled star rows on the sheet and the session page, Meine Tees on the Tee Ø, the tea detail with a Zubereitung line, a Tee/Zubereitung switch on the Tee-Rangliste, two lines in the Verlauf, Bestes Rezept by Zubereitung, umamit.db v8 (`brewing_rating`, copied); transition audit of all four groups by a motion-skill code audit and a JankStats metric on the CI emulator (≤ 1 janky frame, none over 50 ms), done with the PO's rc check; one rc. |
 | 2026-11-13 | D-115 Amendment 1 (PO review of v0.7.0-rc.1, R1–R16): cups by volume with a cup-size setting (also on the tea detail), a Tee donut, one-row totals, foldable sections, half-height charts, a custom month range, GETRUNKEN on Verbrauch, Bewertungen rebuilt (Tee-Rangliste, Neu entdeckt, Verlauf, Bestes Rezept; taste and descriptors removed), „14 g · knapp" in Meine Tees, B/D/E answered → rc.2. D-116: v0.7.1 planned (Tee and Zubereitung rated separately, old ratings copied to both; transition audit); cleanup review → v0.7.2. |
 | 2026-11-13 | D-115: Statistik (v0.7.0) grilled with the PO (Q1–Q20): three tabs, a remembered rolling range 30 T · 90 T · 12 M · Gesamt with weekly or monthly bars, a neutral all-time streak, the Sorten donut, brewing habits, ratings with distribution, top rated, rating over time and best recipe, taste over every infusion, top descriptors, money spent as purchases, cost per cup, running out; A9 only without any session; TalkBack lists. No migration, no timer code. |
