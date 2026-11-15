@@ -193,7 +193,13 @@ internal fun UmamitRoot(
     val alert by alertKey.collectAsStateWithLifecycle()
     val currentAlerting by rememberUpdatedState(alert != null)
     val currentOnTimerVisibleChange by rememberUpdatedState(onTimerVisibleChange)
-    val leaving = rememberLeavingOverKeyguard(navController, keyguard, alert, currentOnTimerVisibleChange)
+    val leaving = rememberLeavingOverKeyguard(
+        navController = navController,
+        keyguard = keyguard,
+        alertKey = alertKey,
+        timerRequest = timerRequest,
+        onTimerVisibleChange = currentOnTimerVisibleChange,
+    )
     val timerFirst = rememberTimerFirst(navController, alert, timerRequest, onConsumeTimerRequest)
     CatalogRefreshTaps(
         navController = navController,
