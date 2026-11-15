@@ -1,7 +1,10 @@
 package com.umamit.app
 
+import android.app.KeyguardManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.View
@@ -78,6 +81,16 @@ class MainActivity : ComponentActivity() {
 
     private val timerVisible = MutableStateFlow(false)
 
+    /** Whether the phone is locked, for the close of the timer over the keyguard (SCR-05, A-17/A-18). */
+    private val keyguard = KeyguardLock { getSystemService(KeyguardManager::class.java).isKeyguardLocked }
+
+    /** Unlocked while the app is shown (over the keyguard): the root's back stops taking the locked path. */
+    private val userPresent = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            keyguard.read()
+        }
+    }
+
     /** The notifications' requests to open the timer; a pending one survives a recreation. */
     private val timerRequests = TimerScreenRequests()
 
@@ -105,6 +118,7 @@ class MainActivity : ComponentActivity() {
             catalogRefreshRequests.restore(savedInstanceState)
             startRequests.restore(savedInstanceState)
         }
+        registerReceiver(userPresent, IntentFilter(Intent.ACTION_USER_PRESENT), RECEIVER_NOT_EXPORTED)
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope, lifecycle)
         val collectionSegments = SettingsCollectionSegments(settings, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
@@ -130,7 +144,8 @@ class MainActivity : ComponentActivity() {
                     onboardingCompleted = onboardingCompleted,
                     timerRequest = timerRequests.request,
                     onConsumeTimerRequest = timerRequests::handled,
-                    onTimerVisibleChange = { timerVisible.value = it },
+                    onTimerVisibleChange = ::onTimerVisibleChange,
+                    keyguard = keyguard,
                     teaLinkShare = teaLinkShares.share,
                     onTakeTeaLinkShare = teaLinkShares::taken,
                     catalogRefreshRequest = catalogRefreshRequests.token,
@@ -167,6 +182,11 @@ class MainActivity : ComponentActivity() {
                 }
             },
         )
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(userPresent)
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -206,9 +226,15 @@ class MainActivity : ComponentActivity() {
     }
 
     /** The timer is about to show: over the lock screen at once, before any frame (D-058, D-064). */
-    private fun showTimerOverLockScreen() {
-        timerVisible.value = true
-        val flags = lockScreenFlags(brewTimer.state.value, timerVisible = true)
+    private fun showTimerOverLockScreen() = onTimerVisibleChange(true)
+
+    /**
+     * The root's report, applied to the window flags in the same turn (the collector above follows the timer's state):
+     * a close over the keyguard clears them before the next frame, a new alert sets them again at once (A-17, rule 8).
+     */
+    private fun onTimerVisibleChange(visible: Boolean) {
+        timerVisible.value = visible
+        val flags = lockScreenFlags(brewTimer.state.value, timerVisible = visible)
         setShowWhenLocked(flags.showWhenLocked)
         setTurnScreenOn(flags.turnScreenOn)
     }
