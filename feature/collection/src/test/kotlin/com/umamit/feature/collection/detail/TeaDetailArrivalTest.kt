@@ -3,12 +3,14 @@ package com.umamit.feature.collection.detail
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.designsystem.motion.MotionTokens
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.ARRIVAL_HOLD_MS
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -16,8 +18,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * A tea that arrives during the push (A-12, NFR-PERF-12): the top bar with its back arrow stays at full opacity under
- * the arriving content until that has faded in, so the back arrow exists in every frame and never blinks out.
+ * A tea that arrives during the push (A-12, NFR-PERF-12, D-117 "Arrival fade"): the back arrow exists in every frame
+ * and never blinks out. Within the hold ([ARRIVAL_HOLD_MS]) the content is drawn at once and the loading top bar is
+ * gone as soon as it shows; a later arrival fades in with `fade` while the loading bar stays at full opacity under it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -28,16 +31,26 @@ class TeaDetailArrivalTest {
     private var state by mutableStateOf<TeaDetailUiState>(TeaDetailUiState.Loading)
 
     @Test
-    fun `from Loading to Ready the back arrow is there in every frame`() {
-        arrive(TeaDetailUiState.Ready(TeaDetailScreenTest.sample()))
+    fun `a tea ready within the hold shows at once and the loading bar is gone`() {
+        arriveInHold(TeaDetailUiState.Ready(TeaDetailScreenTest.sample()))
     }
 
     @Test
-    fun `from Loading to Gone the back arrow is there in every frame`() {
-        arrive(TeaDetailUiState.Gone)
+    fun `a gone tea within the hold shows at once and the loading bar is gone`() {
+        arriveInHold(TeaDetailUiState.Gone)
     }
 
-    private fun arrive(next: TeaDetailUiState) {
+    @Test
+    fun `from Loading to Ready after the hold the back arrow is there in every frame`() {
+        arriveLate(TeaDetailUiState.Ready(TeaDetailScreenTest.sample()))
+    }
+
+    @Test
+    fun `from Loading to Gone after the hold the back arrow is there in every frame`() {
+        arriveLate(TeaDetailUiState.Gone)
+    }
+
+    private fun showLoading() {
         compose.mainClock.autoAdvance = false
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = false) {
@@ -46,8 +59,29 @@ class TeaDetailArrivalTest {
         }
         compose.mainClock.advanceTimeByFrame()
         assertFrame("loading", bar = true)
+    }
+
+    private fun arriveInHold(next: TeaDetailUiState) {
+        showLoading()
+        state = next
+        Snapshot.sendApplyNotifications()
+        // The frame that shows the content runs onFadeEnd; the next one draws it without the loading bar.
+        repeat(2) {
+            compose.mainClock.advanceTimeByFrame()
+            assertFrame("frame ${it + 1} of the arrival", bar = false)
+        }
+        assertWithMessage("the loading bar once the content shows")
+            .that(compose.onAllNodesWithTag(TEA_DETAIL_LOADING_BAR_TAG).fetchSemanticsNodes())
+            .isEmpty()
+    }
+
+    private fun arriveLate(next: TeaDetailUiState) {
+        showLoading()
+        compose.mainClock.advanceTimeBy(ARRIVAL_HOLD_MS + FRAME_MS)
+        assertFrame("still loading after the hold", bar = true)
 
         state = next
+        Snapshot.sendApplyNotifications()
         var elapsed = 0L
         while (elapsed < MotionTokens.STANDARD_MILLIS) {
             compose.mainClock.advanceTimeByFrame()

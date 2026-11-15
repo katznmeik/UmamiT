@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.data.JournalSession
 import com.umamit.core.model.TasteDescriptor
+import com.umamit.core.ui.ARRIVAL_HOLD_MS
 import com.umamit.core.ui.labelRes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -104,7 +105,7 @@ fun JournalRoute(
  * The list the Journal shows for [sessions] (JRN-09, A-09). Grouping and the search words are built off the main thread
  * ([JournalSources.listContext]); the last list stays in the first frame of a tab that comes back, and while a new
  * read is built, so nothing flashes. Hold, then show fresh (03 §3.6): a changed list that is ready within
- * [JOURNAL_HOLD_MS] of this composition's first frame takes the old one's place in place (the tab is still fading
+ * [ARRIVAL_HOLD_MS] of this composition's first frame takes the old one's place in place (the tab is still fading
  * in); a later one cross-fades once.
  */
 @Composable
@@ -117,7 +118,7 @@ internal fun rememberShownJournal(
 ): ShownJournal {
     var holding by remember(sources) { mutableStateOf(true) }
     LaunchedEffect(sources) {
-        delay(JOURNAL_HOLD_MS)
+        delay(ARRIVAL_HOLD_MS)
         holding = false
     }
     val shown by produceState(ShownJournal(sources.lastList), sessions, today, locale) {
@@ -130,9 +131,6 @@ internal fun rememberShownJournal(
     }
     return shown
 }
-
-/** How long a tab that comes back holds its last list for a fresh one (03 §3.6: at most ≈ 150 ms, A-09). */
-internal const val JOURNAL_HOLD_MS = 150L
 
 /**
  * The list on screen and how often it was replaced after the hold ([changes]); each increase cross-fades the list
