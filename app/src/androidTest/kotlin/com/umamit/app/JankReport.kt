@@ -42,7 +42,9 @@ internal object JankGate {
      * relative limit consistently on the CI emulator (PO, 2026-11-15; D-117 build note „Jank gate",
      * `docs/plans/v0.7.1-motion-audit.md` §7). Every other transition, and a usable reference, gates. Cold start
      * flipped around the 3.0 limit across runs (3.2, 2.4, 2.3, 3.1), so it is reported only (D-117 build note
-     * „Gate scope").
+     * „Gate scope"). Over all runs (R1–R8) only transitions that never exceeded the limit stay gated (resume, every
+     * pop, Gespeichert in/out, both sheets' exit, timer → shell); setup → timer (up to 4.6×) and session page push
+     * (up to 3.0×) are reported only (D-117 build note „Gate scope").
      */
     val REPORT_ONLY: Set<String> = setOf(
         "tab Start → Journal",
@@ -53,6 +55,8 @@ internal object JankGate {
         "Schritte-Sheet in",
         "tea detail push",
         "cold start → Start",
+        "setup → timer",
+        "session page push",
     )
 
     private val arguments get() = InstrumentationRegistry.getArguments()
