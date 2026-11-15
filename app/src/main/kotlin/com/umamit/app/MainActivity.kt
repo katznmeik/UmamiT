@@ -118,7 +118,9 @@ class MainActivity : ComponentActivity() {
             catalogRefreshRequests.restore(savedInstanceState)
             startRequests.restore(savedInstanceState)
         }
-        registerReceiver(userPresent, IntentFilter(Intent.ACTION_USER_PRESENT), RECEIVER_NOT_EXPORTED)
+        // Exported: `ACTION_USER_PRESENT` is a protected broadcast that only the system (SystemUI) can send, so no app
+        // can spoof it; a not-exported receiver is not guaranteed to get a broadcast sent from another process.
+        registerReceiver(userPresent, IntentFilter(Intent.ACTION_USER_PRESENT), RECEIVER_EXPORTED)
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope, lifecycle)
         val collectionSegments = SettingsCollectionSegments(settings, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
@@ -128,7 +130,11 @@ class MainActivity : ComponentActivity() {
         val alertKey = brewTimer.state.map { it.alertKey() }
             .stateIn(lifecycleScope, SharingStarted.Eagerly, brewTimer.state.value.alertKey())
         lifecycleScope.launch {
-            combine(brewTimer.state, timerVisible, ::lockScreenFlags).distinctUntilChanged().collect {
+            // A close waiting over the keyguard counts as visible once an alert rings, in the alert's turn (rule 8).
+            combine(brewTimer.state, timerVisible, keyguard.closePending) { state, visible, closePending ->
+                val shown = timerVisibleForFlags(visible, closePending, alerting = state.alertKey() != null)
+                lockScreenFlags(state, timerVisible = shown)
+            }.distinctUntilChanged().collect {
                 setShowWhenLocked(it.showWhenLocked)
                 setTurnScreenOn(it.turnScreenOn)
             }
@@ -184,6 +190,12 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    /** Back in front (the keyguard went away, or the bouncer closed): the phone is read again (A-17). */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) keyguard.read()
+    }
+
     override fun onDestroy() {
         unregisterReceiver(userPresent)
         super.onDestroy()
@@ -208,6 +220,9 @@ class MainActivity : ComponentActivity() {
 
     private fun openTimerIfAsked(intent: Intent?) {
         if (intent == null || !TimerScreenIntents.isOpenTimer(intent)) return
+        // A close waiting over the keyguard gives way to the request, as to a new alert: no pop at `ON_STOP` leaves
+        // `showWhenLocked` set over the shell.
+        keyguard.setClosePending(false)
         showTimerOverLockScreen()
         timerRequests.request(intent)
     }
@@ -234,7 +249,9 @@ class MainActivity : ComponentActivity() {
      */
     private fun onTimerVisibleChange(visible: Boolean) {
         timerVisible.value = visible
-        val flags = lockScreenFlags(brewTimer.state.value, timerVisible = visible)
+        val state = brewTimer.state.value
+        val shown = timerVisibleForFlags(visible, keyguard.closePending.value, alerting = state.alertKey() != null)
+        val flags = lockScreenFlags(state, timerVisible = shown)
         setShowWhenLocked(flags.showWhenLocked)
         setTurnScreenOn(flags.turnScreenOn)
     }

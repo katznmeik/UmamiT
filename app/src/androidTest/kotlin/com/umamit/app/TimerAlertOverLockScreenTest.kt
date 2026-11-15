@@ -149,12 +149,18 @@ class TimerAlertOverLockScreenTest {
             },
         )
 
-        // Frame cost of the snap, reported only (NFR-PERF-12, audit A-20 „Measurable"); no assertion on it.
-        val frames = runCatching {
-            recorder.measure(SETTLE_MS) {
-                compose.onNodeWithText(context.getString(BrewR.string.brew_timer_poured)).performClick()
-            }
-        }.onFailure { Log.w(TAG, "Abgegossen frames not measured: ${it.message}") }.getOrNull()
+        // Frame cost of the snap, reported only (NFR-PERF-12, audit A-20 „Measurable"); no assertion on it. The click
+        // happens whatever the measurement does: should it fail before the click, the click follows outside it, so
+        // the rule-8 checks below never depend on measuring.
+        var clicked = false
+        val clickPoured = {
+            compose.onNodeWithText(context.getString(BrewR.string.brew_timer_poured)).performClick()
+            clicked = true
+        }
+        val frames = runCatching { recorder.measure(SETTLE_MS) { clickPoured() } }
+            .onFailure { Log.w(TAG, "Abgegossen frames not measured: ${it.message}") }
+            .getOrNull()
+        if (!clicked) clickPoured()
         if (frames != null) reportFrames(frames)
         eventually("FINISHED after Abgegossen", TIMEOUT) {
             (controller.state.value as? TimerUiState.Active)?.takeIf { it.phase == TimerPhase.FINISHED }
