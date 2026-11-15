@@ -12,8 +12,9 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import com.umamit.core.designsystem.theme.UmamiTheme
 
 /**
- * Cross-fades the content once with `fade` (03 §3.6) each time [changes] increases: the frame drawn before the change
- * stays on top and fades out over the new content (A-09, NFR-PERF-12). Only the drawing is faded: the content is
+ * Cross-fades the content once each time [changes] increases (03 §3.6, D-117): the frame drawn before the change
+ * stays on top and fades out over the new content with `exitFade` (200 ms CalmEaseOut; 100 ms under reduce motion),
+ * the new content already fully in place underneath (A-09, NFR-PERF-12). Only the drawing is faded: the content is
  * composed once, so a list keeps its scroll position and its focus, and nothing moves. A first composition, and every
  * frame without a change, draws the content as it is.
  */
@@ -24,7 +25,7 @@ internal fun Modifier.crossfadeOnChange(changes: Int): Modifier {
     val layers = remember(first, second) { Layers(first, second, changes) }
     // A new change starts with the old frame fully on top, in the change's own first frame.
     val ghost = remember(changes) { Animatable(if (changes == layers.drawnChanges) 0f else 1f) }
-    val spec = UmamiTheme.motion.fade<Float>()
+    val spec = UmamiTheme.motion.exitFade<Float>()
     LaunchedEffect(ghost) { if (ghost.value > 0f) ghost.animateTo(0f, spec) }
     return drawWithContent {
         if (changes != layers.drawnChanges) layers.swap(changes)
