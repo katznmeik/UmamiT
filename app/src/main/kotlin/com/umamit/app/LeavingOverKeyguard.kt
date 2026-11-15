@@ -165,8 +165,9 @@ private class LockedClose(
     /** The close no longer waits; the timer still on top is reported again (a new alert, rule 8). */
     fun cancel() {
         if (!pending) return
-        keyguard.setClosePending(false)
+        // Reported first, so the flags are never cleared between the two steps (rule 8).
         if (navController.currentDestination?.hasRoute<TimerRoute>() == true) onTimerVisibleChange(true)
+        keyguard.setClosePending(false)
     }
 
     /** A notification's request ([token]) newer than the close cancels it, as a new alert does. */

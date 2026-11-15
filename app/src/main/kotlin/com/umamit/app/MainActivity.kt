@@ -221,9 +221,9 @@ class MainActivity : ComponentActivity() {
     private fun openTimerIfAsked(intent: Intent?) {
         if (intent == null || !TimerScreenIntents.isOpenTimer(intent)) return
         // A close waiting over the keyguard gives way to the request, as to a new alert: no pop at `ON_STOP` leaves
-        // `showWhenLocked` set over the shell.
-        keyguard.setClosePending(false)
+        // `showWhenLocked` set over the shell. Reported first, so the flags are never cleared in between (rule 8).
         showTimerOverLockScreen()
+        keyguard.setClosePending(false)
         timerRequests.request(intent)
     }
 
