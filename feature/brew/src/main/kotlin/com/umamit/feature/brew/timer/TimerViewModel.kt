@@ -13,6 +13,7 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TastingWrite
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepTasting
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TasteAxis
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -109,28 +111,48 @@ class TimerViewModel @Inject constructor(
      */
     fun stepTastings(slot: TimerSlot): StateFlow<TimerSessionTastings?> = tastings[slot] ?: NO_TASTINGS
 
+    // Each brew slot's session, read once per session for its seal and its stock.
+    private val slotSessions = BREW_SLOTS.associateWith { slot -> slotSession(slot, sessions) }
+
     // Read from the start for both brew slots, so a screen opened on either has them as soon as they are read.
-    private val seals = BREW_SLOTS.associateWith { slot -> slotSeal(slot, sessions, teas, photos) }
-    private val stocks = BREW_SLOTS.associateWith { slot -> slotStock(slot, sessions, teas, stock, settings) }
+    private val seals = BREW_SLOTS.associateWith { slot -> slotSeal(slotSessions.getValue(slot), teas, photos) }
+    private val stocks = BREW_SLOTS.associateWith { slot ->
+        slotStock(slotSessions.getValue(slot), teas, stock, settings)
+    }
 
     // Read only while the route shows the slot (MIN-3): each taste write invalidates the step table.
     private val tastings = BREW_SLOTS.associateWith { slot ->
-        slotTastings(timer.state(slot), journal).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+        slotTastings(sessionIdOf(timer.state(slot)), journal)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     }
 
     /** The taste sheet's writes (JRN-03, JRN-05, D-114), beside the timer: never an engine event. */
     val tasteWrites = TimerTasteWrites(tasting, viewModelScope)
 
+    /**
+     * [slot]'s session, when its session id changes: its snapshot, read once for the seal and the stock; null
+     * without a brew session. A failed read is passed on, and each of the two handles it as before (the seal
+     * silently, the stock logged).
+     */
+    private fun slotSession(slot: TimerSlot, sessions: SessionRepository): Flow<SlotSession?> =
+        sessionIdOf(timer.state(slot))
+            .flatMapLatest { id ->
+                if (id == null) {
+                    flowOf(null)
+                } else {
+                    flow<SlotSession?> { emit(SlotSession(Result.success(sessions.getSession(id)?.snapshot))) }
+                        .catch { emit(SlotSession(Result.failure(it))) }
+                }
+            }
+            .shareIn(viewModelScope, SharingStarted.Eagerly, replay = 1)
+
     private fun slotSeal(
-        slot: TimerSlot,
-        sessions: SessionRepository,
+        session: Flow<SlotSession?>,
         teas: TeaRepository,
         photos: PhotoFiles,
-    ): StateFlow<TimerTeaSeal?> = timer.state(slot)
-        .map { (it as? TimerUiState.Active)?.sessionId }
-        .distinctUntilChanged()
-        .flatMapLatest { id ->
-            val snapshot = id?.let { sessions.getSession(it)?.snapshot }
+    ): StateFlow<TimerTeaSeal?> = session
+        .flatMapLatest { slotSession ->
+            val snapshot = slotSession?.snapshot?.getOrThrow()
             val teaId = snapshot?.teaId
             when {
                 snapshot == null -> flowOf(null)
@@ -147,20 +169,17 @@ class TimerViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private fun slotStock(
-        slot: TimerSlot,
-        sessions: SessionRepository,
+        session: Flow<SlotSession?>,
         teas: TeaRepository,
         stock: StockRepository,
         settings: SettingsRepository,
-    ): StateFlow<TimerStock?> = timer.state(slot)
-        .map { (it as? TimerUiState.Active)?.sessionId }
-        .distinctUntilChanged()
-        .flatMapLatest { id ->
-            if (id == null) {
+    ): StateFlow<TimerStock?> = session
+        .flatMapLatest { slotSession ->
+            if (slotSession == null) {
                 flowOf(null)
             } else {
                 flow {
-                    val teaId = sessions.getSession(id)?.snapshot?.teaId
+                    val teaId = slotSession.snapshot.getOrThrow()?.teaId
                     emitAll(if (teaId == null) flowOf(null) else stockOf(teaId, teas, stock, settings))
                 }.catch { e ->
                     // This session shows no line; the next one reads again (BRW-11).
@@ -222,6 +241,14 @@ private fun stockOf(
     tea?.let { TimerStock(grams, StockLevel.of(grams, it.lowStockGrams ?: global)) }
 }
 
+/** A brew slot's session: its [snapshot] as read once, or the read's failure; see `slotSession`. */
+private data class SlotSession(val snapshot: Result<SessionSnapshot?>)
+
+/** The session id of the timer in [state]'s slot, when it changes; null without a brew session. */
+private fun sessionIdOf(state: Flow<TimerUiState>): Flow<String?> = state
+    .map { (it as? TimerUiState.Active)?.sessionId }
+    .distinctUntilChanged()
+
 private const val TAG = "UmamiTTimerScreen"
 
 private val BREW_SLOTS = listOf(TimerSlot.BREW, TimerSlot.BREW_2)
@@ -233,13 +260,12 @@ private val NO_TASTINGS: StateFlow<TimerSessionTastings?> = MutableStateFlow<Tim
 data class TimerSessionTastings(val sessionId: String, val byPosition: Map<Int, StepTasting>)
 
 /**
- * The taste and note per step of the session in [state]'s slot, as the journal reads them (D-114): the step rows'
- * taste columns only. Null without a session and after a failed read (logged), until the slot's next session.
+ * The taste and note per step of the slot's session, by its [ids] as they change (null: none), as the journal reads
+ * them (D-114): the step rows' taste columns only. Null without a session and after a failed read (logged), until
+ * the slot's next session.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-internal fun slotTastings(state: Flow<TimerUiState>, journal: JournalRepository): Flow<TimerSessionTastings?> = state
-    .map { (it as? TimerUiState.Active)?.sessionId }
-    .distinctUntilChanged()
+internal fun slotTastings(ids: Flow<String?>, journal: JournalRepository): Flow<TimerSessionTastings?> = ids
     .flatMapLatest { id ->
         if (id == null) {
             flowOf(null)
