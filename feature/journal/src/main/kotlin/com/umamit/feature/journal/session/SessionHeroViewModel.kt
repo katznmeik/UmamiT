@@ -3,11 +3,11 @@ package com.umamit.feature.journal.session
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.umamit.core.data.AddPhotoResult
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.PhotoFileContext
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionPhotos
+import com.umamit.core.data.problem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -83,12 +83,13 @@ class SessionHeroViewModel @Inject constructor(
     /** *+ Foto*: adds the image the photo picker returned (JRN-07); a refusal or failure is said once. */
     fun addPhoto(uri: String) {
         viewModelScope.launch {
-            when (photos.add(sessionId, uri)) {
-                is AddPhotoResult.Added -> Unit
-                AddPhotoResult.LimitReached -> _events.send(SessionHeroEvent.PHOTO_LIMIT_REACHED)
-                AddPhotoResult.Unreadable -> _events.send(SessionHeroEvent.PHOTO_UNREADABLE)
-                AddPhotoResult.Failed -> _events.send(SessionHeroEvent.PHOTO_FAILED)
-            }
+            photos.add(sessionId, uri)
+                .problem(
+                    SessionHeroEvent.PHOTO_LIMIT_REACHED,
+                    SessionHeroEvent.PHOTO_UNREADABLE,
+                    SessionHeroEvent.PHOTO_FAILED,
+                )
+                ?.let { _events.send(it) }
         }
     }
 

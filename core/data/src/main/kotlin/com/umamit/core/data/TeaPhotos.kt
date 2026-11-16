@@ -49,6 +49,17 @@ sealed interface AddPhotoResult {
 }
 
 /**
+ * The screen's own event for an add that wrote nothing ([limitReached], [unreadable], [failed]); null when the photo
+ * was added. The tea page and the session page say the same three things with their own event types.
+ */
+fun <E : Any> AddPhotoResult.problem(limitReached: E, unreadable: E, failed: E): E? = when (this) {
+    is AddPhotoResult.Added -> null
+    AddPhotoResult.LimitReached -> limitReached
+    AddPhotoResult.Unreadable -> unreadable
+    AddPhotoResult.Failed -> failed
+}
+
+/**
  * A tea's photos (TEA-05, SCR-28, 05 §3.9, D-104): the user's own and a catalog tea's shop copy, which is just
  * its first photo.
  */

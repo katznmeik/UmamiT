@@ -7,7 +7,6 @@ import com.umamit.core.common.SystemWallClock
 import com.umamit.core.common.WallClock
 import com.umamit.core.common.sessionZone
 import com.umamit.core.common.today
-import com.umamit.core.data.AddPhotoResult
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.DeleteResult
 import com.umamit.core.data.JournalRepository
@@ -26,6 +25,7 @@ import com.umamit.core.data.catalog.CatalogReset
 import com.umamit.core.data.catalog.CatalogResetPlan
 import com.umamit.core.data.catalog.CatalogResetResult
 import com.umamit.core.data.catalog.ShopLink
+import com.umamit.core.data.problem
 import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.domain.collection.FreshnessRule
 import com.umamit.core.model.BrewSession
@@ -275,12 +275,9 @@ class TeaDetailViewModel @Inject constructor(
     /** *+ Foto*: adds the image the photo picker returned (TEA-05); a refusal or failure is said once. */
     fun addPhoto(uri: String) {
         viewModelScope.launch {
-            when (teaPhotos.add(teaId, uri)) {
-                is AddPhotoResult.Added -> Unit
-                AddPhotoResult.LimitReached -> events.send(TeaDetailEvent.PhotoLimitReached)
-                AddPhotoResult.Unreadable -> events.send(TeaDetailEvent.PhotoUnreadable)
-                AddPhotoResult.Failed -> events.send(TeaDetailEvent.PhotoFailed)
-            }
+            teaPhotos.add(teaId, uri)
+                .problem(TeaDetailEvent.PhotoLimitReached, TeaDetailEvent.PhotoUnreadable, TeaDetailEvent.PhotoFailed)
+                ?.let { events.send(it) }
         }
     }
 
