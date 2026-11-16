@@ -481,54 +481,24 @@ internal fun UmamitRoot(
                         },
                     )
                 }
-                composable<TimerSettingsRoute> {
-                    settings.screen(
-                        SettingsHost(
-                            onBack = dropUnlessResumed { navController.popBackStack() },
-                            onOpenAbout = { navigateAbove(AboutRoute) {} },
-                            alertKey = alert,
-                            onOpenTeaware = dropUnlessResumed { navigateAbove(TeawareRoute) {} },
-                        ),
-                    )
-                }
-                // Teegeschirr above the timer (from *Timer-Einstellungen*), and the vessel editor above it or above
-                // the setup (*Neues Gefäß …*, WARE-02); both give way to a new alert like every route above the
-                // shell (rule 8).
-                composable<TeawareRoute> { entry ->
-                    settings.teaware(
-                        TeawareHost(
-                            onBack = dropUnlessResumed { navController.popBackStack() },
-                            onOpenVessel = { id -> navigateAbove(VesselEditorRoute(id)) { launchSingleTop = true } },
-                            onAddVessel = dropUnlessResumed {
-                                navigateAbove(VesselEditorRoute()) { launchSingleTop = true }
-                            },
-                            archived = entry.archivedVessel(),
-                            onArchivedSnackbarEnd = entry::forgetArchivedVessel,
-                        ),
-                    )
-                }
-                composable<VesselEditorRoute> {
-                    settings.vesselEditor(
-                        VesselEditorHost(
-                            onClose = dropUnlessResumed { navController.popBackStack() },
-                            onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
-                            onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
-                            alertKey = alert,
-                        ),
-                    )
-                }
-                composable<AboutRoute> {
-                    settings.about(
-                        AboutHost(
-                            onBack = dropUnlessResumed { navController.popBackStack() },
-                            onRerunSetup = rerunSetup,
-                            onOpenDiagnostics = { navigateAbove(DiagnosticsRoute) {} },
-                        ),
-                    )
-                }
-                composable<DiagnosticsRoute> {
-                    settings.diagnostics(dropUnlessResumed { navController.popBackStack() })
-                }
+                // Timer-Einstellungen and what it opens (Über, Diagnose, Teegeschirr), and the vessel editor above
+                // Teegeschirr or above the setup (*Neues Gefäß …*, WARE-02): all give way to a new alert like every
+                // route above the shell (rule 8), since navigateAbove records the alert.
+                settingsRoutes<TimerSettingsRoute>(
+                    settings,
+                    SettingsNav(
+                        back = { navController.popBackStack() },
+                        open = { route -> navigateAbove(route) {} },
+                        openVessel = { id -> navigateAbove(VesselEditorRoute(id)) { launchSingleTop = true } },
+                        openVesselResumedOnly = false,
+                        addVessel = { navigateAbove(VesselEditorRoute()) { launchSingleTop = true } },
+                        closeVesselEditor = { id, archived ->
+                            navController.closeVesselEditor(savedVesselId = id, archived = archived)
+                        },
+                        alertKey = alert,
+                        rerunSetup = rerunSetup,
+                    ),
+                )
                 // The photo viewer (SCR-28): fades in and out with the root's transitions; back closes it on the photo
                 // last shown, which the hero follows.
                 composable<PhotoViewerRoute> { viewerEntry ->
