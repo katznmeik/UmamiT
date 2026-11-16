@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.SystemWallClock
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.sessionZone
 import com.umamit.core.common.today
 import com.umamit.core.data.AddPhotoResult
 import com.umamit.core.data.ArchiveResult
@@ -418,10 +419,7 @@ class TeaDetailViewModel @Inject constructor(
 }
 
 /** The session's day in its own time zone (the device's for one it doesn't know). */
-private fun BrewSession.day(): LocalDate {
-    val zone = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
-    return Instant.ofEpochMilli(startedAtMs).atZone(zone).toLocalDate()
-}
+private fun BrewSession.day(): LocalDate = Instant.ofEpochMilli(startedAtMs).atZone(sessionZone(zoneId)).toLocalDate()
 
 /** A recipe row of REZEPTE: its key values, the vessel by name. */
 private fun Recipe.summary(vesselNames: Map<String, String>) = RecipeSummary(

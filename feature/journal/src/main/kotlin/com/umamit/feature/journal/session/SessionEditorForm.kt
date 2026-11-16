@@ -1,5 +1,6 @@
 package com.umamit.feature.journal.session
 
+import com.umamit.core.common.sessionZone
 import com.umamit.core.data.SessionEdit
 import com.umamit.core.data.SessionEditLimits
 import com.umamit.core.data.StepEdit
@@ -11,7 +12,6 @@ import com.umamit.core.model.SessionStepRow
 import com.umamit.core.ui.GermanFormat
 import java.io.Serializable
 import java.math.RoundingMode
-import java.time.DateTimeException
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -207,10 +207,3 @@ internal class SessionEditorCheck(private val session: BrewSession, private val 
 /** |[a] − [b]| to 0,1 g, exact („2", „0,5"). */
 internal fun gramsDifference(a: Double, b: Double): Double =
     (a.toBigDecimal() - b.toBigDecimal()).abs().setScale(1, RoundingMode.HALF_UP).toDouble()
-
-/** The session's zone; one this device doesn't know counts as the device's (as on the page, D-054). */
-internal fun sessionZone(id: String): ZoneId = try {
-    ZoneId.of(id)
-} catch (_: DateTimeException) {
-    ZoneId.systemDefault()
-}

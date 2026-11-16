@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.catalog.AddFromCatalog
 import com.umamit.core.data.catalog.AddFromCatalogResult
@@ -131,7 +132,7 @@ class CatalogTeaViewModel @Inject constructor(
         val current = state.value
         val tea = current.tea ?: return
         if (sheetState.value != null || savingClosed != null) return
-        val today = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
+        val today = clock.today()
         prices = exactPrices.session()
         sheetState.value = AddSheetState.open(
             teaName = tea.name,

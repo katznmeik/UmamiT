@@ -1,6 +1,7 @@
 package com.umamit.feature.journal
 
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.JournalSession
 import com.umamit.core.data.RecipeOffers
@@ -65,7 +66,7 @@ class JournalSources(
     internal var lastListBuiltFor: JournalListInput? = null
 
     /** The phone's date now, for „Heute" and „Gestern". */
-    fun today(): LocalDate = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
+    fun today(): LocalDate = clock.today()
 
     /** Milliseconds until the phone's next midnight, when „Heute" becomes „Gestern". */
     fun millisUntilTomorrow(): Long {

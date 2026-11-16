@@ -1,5 +1,6 @@
 package com.umamit.feature.journal
 
+import com.umamit.core.common.sessionZone
 import com.umamit.core.data.JournalSession
 import com.umamit.core.domain.search.SearchQuery
 import com.umamit.core.model.BrewSession
@@ -7,7 +8,6 @@ import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
 import java.io.File
-import java.time.DateTimeException
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -119,7 +119,7 @@ private fun JournalSession.toEntry(descriptorLabel: (String) -> String?): Journa
         teaName = session.snapshot.teaName,
         styleKey = session.snapshot.styleKey,
         photo = coverPhoto,
-        startedAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(session.startedAtMs), zoneOf(session.zoneId)),
+        startedAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(session.startedAtMs), sessionZone(session.zoneId)),
         // The first infusion as brewed: a step warmer or cooler than the base (Schritte-Sheet) shows its own
         // temperature, not the recipe's base (D-102).
         temperatureC = infusionRows.firstOrNull()?.let { it.tempC ?: session.snapshot.baseTempC }
@@ -153,10 +153,3 @@ fun savedSummary(session: BrewSession): SavedSummary {
 }
 
 private val SessionStepRow.poured: Boolean get() = actualSeconds != null && !skipped
-
-/** The session's zone; one this device doesn't know counts as the device's (as in the repository, D-054). */
-private fun zoneOf(id: String): ZoneId = try {
-    ZoneId.of(id)
-} catch (_: DateTimeException) {
-    ZoneId.systemDefault()
-}

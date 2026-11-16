@@ -1,5 +1,6 @@
 package com.umamit.feature.journal.session
 
+import com.umamit.core.common.sessionZone
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionStatus
@@ -8,7 +9,6 @@ import com.umamit.core.model.TasteProfile
 import com.umamit.feature.journal.RecipeOfferState
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.time.DateTimeException
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -149,7 +149,7 @@ fun sessionPage(session: BrewSession, tea: SessionTea, catalogKey: String? = nul
         teaSecondaryName = snapshot.teaSecondaryName,
         styleKey = snapshot.styleKey,
         tea = tea,
-        startedAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(session.startedAtMs), zoneOf(session.zoneId)),
+        startedAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(session.startedAtMs), sessionZone(session.zoneId)),
         method = snapshot.method,
         vesselName = snapshot.vesselName,
         leafGrams = snapshot.leafGrams,
@@ -173,11 +173,4 @@ private fun infusionsOf(session: BrewSession): List<SessionInfusion> {
         SessionInfusion(infusion.position, infusion.number, row.kind, infusion.taste, infusion.note)
             .takeIf { !row.skipped || it.hasData }
     }
-}
-
-/** The session's zone; one this device doesn't know counts as the device's (as in the journal, D-054). */
-private fun zoneOf(id: String): ZoneId = try {
-    ZoneId.of(id)
-} catch (_: DateTimeException) {
-    ZoneId.systemDefault()
 }
