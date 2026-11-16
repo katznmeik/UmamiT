@@ -1,7 +1,7 @@
 package com.umamit.core.data.catalog
 
+import com.umamit.core.data.writeAtomically
 import java.io.File
-import java.io.IOException
 
 /**
  * The catalog's photo files (CAT-08, 05 §4.1, D-076): `<key>.webp` (≤ 1200 px) and the list
@@ -25,9 +25,8 @@ class CatalogPhotoFiles(val dir: File) {
 
     /** Writes tea [key]'s [photo] and [thumbnail], each atomically (a temporary file renamed into place). */
     fun write(key: String, photo: ByteArray, thumbnail: ByteArray) {
-        if (!dir.isDirectory && !dir.mkdirs()) throw IOException("cannot create $dir")
-        writeAtomically(thumbnail(key), thumbnail)
-        writeAtomically(photo(key), photo)
+        thumbnail(key).writeAtomically(thumbnail)
+        photo(key).writeAtomically(photo)
     }
 
     /** Deletes tea [key]'s photo and thumbnail, if any. */
@@ -47,15 +46,6 @@ class CatalogPhotoFiles(val dir: File) {
                 else -> return@forEach
             }
             if (key == null || key !in keys) file.delete()
-        }
-    }
-
-    private fun writeAtomically(target: File, bytes: ByteArray) {
-        val temp = File(dir, target.name + TEMP_SUFFIX)
-        temp.writeBytes(bytes)
-        if (!temp.renameTo(target)) {
-            temp.delete()
-            throw IOException("cannot move $temp to $target")
         }
     }
 

@@ -1,7 +1,7 @@
 package com.umamit.core.data.catalog
 
+import com.umamit.core.data.writeAtomically
 import java.io.File
-import java.io.IOException
 import java.security.MessageDigest
 
 /**
@@ -24,14 +24,7 @@ class GuideImageFiles(val dir: File) {
 
     /** Writes the image [name] atomically (a temporary file renamed into place). */
     fun write(name: String, bytes: ByteArray) {
-        if (!dir.isDirectory && !dir.mkdirs()) throw IOException("cannot create $dir")
-        val target = file(name)
-        val temp = File(dir, target.name + TEMP_SUFFIX)
-        temp.writeBytes(bytes)
-        if (!temp.renameTo(target)) {
-            temp.delete()
-            throw IOException("cannot move $temp to $target")
-        }
+        file(name).writeAtomically(bytes)
     }
 
     /** Deletes every image (and leftover temporary file) not in [names]. */
@@ -48,7 +41,6 @@ class GuideImageFiles(val dir: File) {
 
         private const val PREFIX = "g_"
         private const val SUFFIX = ".webp"
-        private const val TEMP_SUFFIX = ".tmp"
         private const val HASH_BYTES = 16
         private val NAME = Regex("""g_[0-9a-f]{32}\.webp""")
 
