@@ -38,26 +38,8 @@ internal object GreenTeaScope {
     )
     private val SHINCHA_OF_A_YEAR = Regex("""shincha-\d{4}""")
 
-    /**
-     * The green types a name names and their *Sorte* as the shop titles its type pages, the more
-     * specific first („Gyokuro Karigane" is a Kukicha, „Genmaicha mit Matcha" a Genmaicha).
-     */
-    private val NAMED_TYPES: List<Pair<Regex, String?>> = listOf(
-        "genmaicha" to "Genmaicha",
-        "houjicha|hojicha|hōjicha" to "Houjicha",
-        "kukicha|karigane|shiraore" to "Kukicha",
-        "kabuse" to "Kabusecha",
-        "gyokuro" to "Gyokuro",
-        "fukamushi" to "Sencha",
-        "shincha" to "Shincha",
-        "bancha" to "Bancha",
-        "kamairicha" to "Kamairicha",
-        "tamaryokucha" to "Tamaryokucha",
-        "matcha" to "Matcha",
-        "sencha" to "Sencha",
-        // Green, but no type page of its own.
-        "tencha|aracha|konacha|mizudashi|mizucha|grüntee|grüner\\s+tee|green\\s+tea" to null,
-    ).map { (pattern, type) -> Regex(pattern, RegexOption.IGNORE_CASE) to type }
+    /** The green types a name names and their *Sorte* ([GREEN_TYPES_BY_NAME]). */
+    private val NAMED_TYPES = GREEN_TYPES_BY_NAME.filter { it.inScope }
 
     /** Teaware in a name, as the Japan rule reads it (D-089). */
     private const val TEAWARE = """kyusu|kanne|chawan|teeschale|becher|tasse|chasen"""
@@ -181,13 +163,13 @@ internal object GreenTeaScope {
 
     private fun saysGreen(name: String?, greenBadge: Boolean): Boolean {
         if (name != null && OTHER_IN_NAME.containsMatchIn(name)) return false
-        return greenBadge || (name != null && NAMED_TYPES.any { (pattern, _) -> pattern.containsMatchIn(name) })
+        return greenBadge || (name != null && NAMED_TYPES.any { it.pattern.containsMatchIn(name) })
     }
 
     private fun namedType(name: String): String? = if (OTHER_IN_NAME.containsMatchIn(name)) {
         null
     } else {
-        NAMED_TYPES.firstOrNull { (pattern, _) -> pattern.containsMatchIn(name) }?.second
+        NAMED_TYPES.firstOrNull { it.pattern.containsMatchIn(name) }?.sorte
     }
 
     private fun isType(segment: String?) =
