@@ -3,6 +3,7 @@ package com.umamit.core.data
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

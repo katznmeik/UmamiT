@@ -14,7 +14,9 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
@@ -154,10 +156,7 @@ class SessionEditorTest {
         completedSession()
         val clockSetBack = RoomSessionEditor(
             data.db,
-            object : WallClock {
-                override fun nowMs(): Long = START
-                override fun zone(): ZoneId = ZoneOffset.UTC
-            },
+            FakeClock(wall = START, zone = ZoneOffset.UTC),
         )
 
         assertThat(clockSetBack.editSession("done", SessionEdit(waterMl = 300))).isEqualTo(SessionEditResult.SAVED)

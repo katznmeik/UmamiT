@@ -11,6 +11,9 @@ import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.infusion
+import com.umamit.core.testing.rinse
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
@@ -40,12 +43,7 @@ class InfusionTastingTest {
     val folder = TemporaryFolder()
 
     private val data = TestDatabase()
-    private var now = WRITE_AT
-    private val clock = object : WallClock {
-        override fun nowMs(): Long = now
-
-        override fun zone(): ZoneId = ZoneOffset.UTC
-    }
+    private val clock = FakeClock(wall = WRITE_AT, zone = ZoneOffset.UTC)
     private val tasting = RoomSessionTasting(data.db, clock)
     private val journal by lazy { RoomJournalRepository(data.db, PhotoFiles(folder.newFolder("photos"))) }
     private val driver = TimerDriver(data)
@@ -274,7 +272,7 @@ class InfusionTastingTest {
         runningAtSecondInfusion()
         driver.send(TimerEvent.FinishSession)
         val before = checkNotNull(dao.get(SESSION_ID))
-        now = WRITE_AT + 1
+        clock.wall = WRITE_AT + 1
 
         assertThat(tasting.setInfusionTaste(SESSION_ID, 1, TasteAxis.UMAMI, 4)).isEqualTo(TastingWrite.SAVED)
         assertThat(tasting.setInfusionNote(SESSION_ID, 1, "Später")).isEqualTo(TastingWrite.SAVED)

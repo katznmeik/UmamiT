@@ -13,6 +13,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -26,11 +27,7 @@ class TestDatabase(
         .build(),
     val settings: SettingsRepository = FakeSettingsRepository(),
 ) {
-    val time = object : WallClock {
-        override fun nowMs(): Long = now
-
-        override fun zone(): ZoneId = ZoneOffset.UTC
-    }
+    val time = FakeClock(wall = now, zone = ZoneOffset.UTC)
     val teas = RoomTeaRepository(db.teaDao(), time)
     val recipes = RoomRecipeRepository(db.recipeDao(), time)
     val vessels = RoomVesselRepository(db.vesselDao(), time)

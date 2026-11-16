@@ -5,6 +5,7 @@ import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

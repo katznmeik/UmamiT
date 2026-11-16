@@ -6,6 +6,8 @@ import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.testing.infusion
+import com.umamit.core.testing.rinse
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.PreAlertSettings

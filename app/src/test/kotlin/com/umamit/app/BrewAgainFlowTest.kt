@@ -19,6 +19,7 @@ import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeBrewStarter
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSessions
@@ -60,11 +61,7 @@ class BrewAgainFlowTest {
     private val sessions = FakeSessions(collection)
     private val starter = FakeBrewStarter()
     private val events = mutableListOf<TimerEvent>()
-    private val clock = object : MonotonicClock {
-        override fun elapsedMs() = 0L
-
-        override fun bootCount() = 1
-    }
+    private val clock = FakeClock(elapsed = 0L)
 
     private fun seed() = runBlocking {
         SeedData.teas.forEach { collection.teas.saveTea(it) }

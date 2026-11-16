@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.WallClock
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
+import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -22,12 +24,7 @@ import java.time.ZoneOffset
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class RecipeOffersTest {
-    private var now = START
-    private val clock = object : WallClock {
-        override fun nowMs(): Long = now
-
-        override fun zone(): ZoneId = ZoneOffset.UTC
-    }
+    private val clock = FakeClock(wall = START, zone = ZoneOffset.UTC)
     private val data = TestDatabase()
     private val sessions = RoomSessionRepository(data.db, data.settings, clock)
     private val recipes = RoomRecipeRepository(data.db.recipeDao(), clock)
@@ -42,10 +39,10 @@ class RecipeOffersTest {
      * „s1" of that recipe, its first infusion ended at 0:48, its second poured as planned, completed at [ENDED].
      */
     private suspend fun earlyEndedSession(firstActual: Int = 48, steps: List<RecipeStep> = RECIPE_STEPS) {
-        now = START - DAY_MS
+        clock.wall = START - DAY_MS
         teas.saveTea(tea("t1"))
         recipes.saveRecipe(recipe("r1", "t1", isDefault = true, steps = steps))
-        now = START
+        clock.wall = START
         sessions.startSession(
             SessionStart(
                 "s1",
@@ -59,9 +56,9 @@ class RecipeOffersTest {
         val firstEnd = START + firstActual * SECOND_MS
         sessions.recordStep("s1", 0, StepRecord(60, firstActual, 0, 0, START, firstEnd, false, false))
         sessions.recordStep("s1", 1, StepRecord(30, 30, 0, 0, firstEnd, ENDED, false, false))
-        now = ENDED
+        clock.wall = ENDED
         sessions.completeSession("s1", autoFinished = false)
-        now = ENDED + MINUTE_MS
+        clock.wall = ENDED + MINUTE_MS
     }
 
     private suspend fun recipeSteps(): List<RecipeStep> = checkNotNull(recipes.getRecipe("r1")).steps
@@ -129,7 +126,7 @@ class RecipeOffersTest {
         offers.accept("s1")
         val afterFirst = data.db.recipeDao().get("r1")
         val sessionAfterFirst = data.db.sessionDao().get("s1")
-        now += MINUTE_MS
+        clock.wall += MINUTE_MS
 
         assertThat(offers.accept("s1")).isEqualTo(RecipeOfferAccept.NOT_APPLICABLE)
 
@@ -154,9 +151,9 @@ class RecipeOffersTest {
     @Test
     fun `a recipe saved during the session still offers`() = runTest {
         earlyEndedSession()
-        now = START + 10 * SECOND_MS
+        clock.wall = START + 10 * SECOND_MS
         recipes.replaceSteps("r1", listOf(RecipeStep(StepKind.INFUSION, 60), RecipeStep(StepKind.INFUSION, 40)))
-        now = ENDED + MINUTE_MS
+        clock.wall = ENDED + MINUTE_MS
 
         assertThat(offers.proposal("s1")).isNotNull()
     }
@@ -173,12 +170,12 @@ class RecipeOffersTest {
     @Test
     fun `an archived tea, a deleted recipe or a deleted tea offer nothing`() = runTest {
         earlyEndedSession()
-        data.db.teaDao().setArchived("t1", true, now)
+        data.db.teaDao().setArchived("t1", true, clock.wall)
         assertThat(offers.proposal("s1")).isNull()
         assertThat(offers.accept("s1")).isEqualTo(RecipeOfferAccept.NOT_APPLICABLE)
         assertThat(timesApplied()).isFalse()
 
-        data.db.teaDao().setArchived("t1", false, now)
+        data.db.teaDao().setArchived("t1", false, clock.wall)
         assertThat(offers.proposal("s1")).isNotNull()
 
         teas.deleteTea("t1")

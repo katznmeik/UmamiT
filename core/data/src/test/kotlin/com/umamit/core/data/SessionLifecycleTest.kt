@@ -13,6 +13,8 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.infusion
+import com.umamit.core.testing.rinse
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerSnapshot

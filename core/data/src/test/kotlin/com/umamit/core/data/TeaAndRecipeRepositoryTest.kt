@@ -11,6 +11,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.UmamiLevel
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
+import com.umamit.core.testing.infusion
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After

@@ -16,6 +16,7 @@ import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -261,11 +262,7 @@ class StatsRepositoryTest {
     fun `the use case computes the tabs from the input with the clock's day`() = runTest {
         data.teas.saveTea(tea("t1"))
         session("s1")
-        val clock = object : WallClock {
-            override fun nowMs(): Long = 1_000L
-
-            override fun zone(): ZoneId = ZoneOffset.UTC
-        }
+        val clock = FakeClock(wall = 1_000L, zone = ZoneOffset.UTC)
         val observe = ObserveStats(stats, clock, Dispatchers.Default)
 
         val calculator = observe.calculator().first()

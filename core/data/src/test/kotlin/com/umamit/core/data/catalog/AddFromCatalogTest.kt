@@ -22,7 +22,6 @@ import com.umamit.core.data.TestClocks
 import com.umamit.core.data.TestDatabase
 import com.umamit.core.data.TimerDriver
 import com.umamit.core.data.decodedSize
-import com.umamit.core.data.infusion
 import com.umamit.core.data.sessionStart
 import com.umamit.core.data.snapshotOf
 import com.umamit.core.data.startEvent
@@ -47,6 +46,7 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

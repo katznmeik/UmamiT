@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

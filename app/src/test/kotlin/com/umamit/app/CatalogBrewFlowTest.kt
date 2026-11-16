@@ -108,11 +108,7 @@ class CatalogBrewFlowTest {
     private val add = FakeAddFromCatalog(collection)
     private val prices = FakeExactPrices()
     private val alertKey = MutableStateFlow<String?>(null)
-    private val clock = object : MonotonicClock {
-        override fun elapsedMs() = 0L
-
-        override fun bootCount() = 1
-    }
+    private val clock = FakeClock(elapsed = 0L)
 
     @Before
     fun seed() = runBlocking {
