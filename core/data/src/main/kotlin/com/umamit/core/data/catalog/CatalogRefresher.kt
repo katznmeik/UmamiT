@@ -11,7 +11,6 @@ import com.umamit.core.catalog.parser.ProductPage
 import com.umamit.core.catalog.parser.ProductParse
 import com.umamit.core.catalog.parser.ProductUrls
 import com.umamit.core.catalog.parser.SanityCheck
-import com.umamit.core.catalog.parser.ShopPackage
 import com.umamit.core.catalog.parser.Sitemap
 import com.umamit.core.catalog.parser.SitemapReader
 import com.umamit.core.catalog.parser.TeeKontorParser
@@ -21,12 +20,10 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.dao.CatalogTeaState
-import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogSkipEntity
 import com.umamit.core.database.entity.CatalogSkipReason
-import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
 import com.umamit.core.network.NetworkRetry
@@ -996,80 +993,9 @@ private data class Summary(val newTeas: Int, val changedTeas: Int, val discontin
 /** Ends a refresh early with [outcome] (a stop or a structural failure); caught in [CatalogRefresher.refresh]. */
 private class RunStopped(val outcome: CatalogRefreshOutcome.Failure) : Exception(outcome.details)
 
-/**
- * A green tea's page as a catalog row first and last seen at [seenAt] (05 §4.1), with its style
- * and derived recipes (CAT-04 – CAT-06), without its photo file yet.
- */
-internal fun ProductPage.toEntity(base: String, seenAt: Long) = toEntity(base, seenAt, CatalogRecipes.derive(this))
-
-private fun ProductPage.toEntity(base: String, seenAt: Long, recipes: CatalogRecipes) = CatalogTeaEntity(
-    key = key ?: base,
-    name = name,
-    secondaryName = secondaryName,
-    productUrl = productUrl,
-    shopCategory = shopCategory,
-    teaType = teaType,
-    styleKey = recipes.styleKey,
-    derivedRecipesJson = DerivedRecipesColumn.json(recipes.recipes),
-    recipeCheckReason = recipes.checkReason,
-    originCountry = originCountry,
-    originRegion = originRegion,
-    cultivar = cultivar,
-    harvest = harvest,
-    shading = shading,
-    steaming = steaming,
-    isOrganic = isOrganic,
-    isFlavored = isFlavored,
-    coldBrewSuitable = coldBrewSuitable,
-    aroma = aroma,
-    tasteNotes = tasteNotes,
-    manufacturer = manufacturer,
-    season = season,
-    matchaGrade = matchaGrade,
-    tasteScalesJson = CatalogColumns.tasteScalesJson(tasteScales),
-    // The path the style was mapped from, so a collection copy maps the same (#206, user story 36).
-    breadcrumb = stylePath,
-    ingredients = ingredients,
-    descriptionHtml = descriptionHtml,
-    descriptionText = descriptionText,
-    brewTableRaw = CatalogColumns.brewTableJson(brewTable),
-    brewTextRaw = brewText,
-    basePriceCentsPer100g = basePriceCentsPer100g,
-    available = available,
-    photoUrl = photoUrl,
-    firstSeenAt = seenAt,
-    lastSeenAt = seenAt,
-)
-
-/** A tea row with its [CatalogContentHash] and its package rows (05 §4.1–4.2). */
-internal data class CatalogRows(val tea: CatalogTeaEntity, val packages: List<CatalogPackageEntity>)
-
-/**
- * This entry as its catalog rows, first and last seen at [seenAt]: the refresh and the shop link build them the same
- * way, so a tea's [CatalogContentHash] is the same from both.
- */
-internal fun CatalogEntry.rows(seenAt: Long): CatalogRows {
-    val packages = this.packages.map { it.toEntity(key) }
-    val page = this.page.toEntity(key, seenAt)
-    return CatalogRows(page.copy(contentHash = CatalogContentHash.of(page, packages)), packages)
-}
-
 /** A product page at [url] parsed on [dispatcher] (08 §2.3). */
 internal suspend fun parseProduct(dispatcher: CoroutineDispatcher, body: ByteArray, url: String): ProductParse =
     withContext(dispatcher) { TeeKontorParser.parseProduct(body, url) }
-
-/** A package size of the tea [key] as a catalog row (05 §4.2). */
-internal fun ShopPackage.toEntity(key: String) = CatalogPackageEntity(
-    catalogKey = key,
-    articleNumber = articleNumber,
-    label = CatalogColumns.packageLabel(grams, savingsPercent),
-    grams = grams,
-    priceCents = priceCents,
-    priceIsEstimate = priceIsEstimate,
-    savingsPercent = savingsPercent,
-    variantUrl = variantUrl,
-    available = available,
-)
 
 /** The diagnostics line of an answer over the client's size limit at [url] (D-090). */
 internal fun ShopFetch.TooLarge.line(url: HttpUrl): String =
