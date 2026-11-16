@@ -11,6 +11,16 @@ android {
     }
 }
 
+// UnlockedDevice.kt, one copy for the device tests of this module and of :app (TMR-A-15, #308):
+// src/sharedAndroidTest is a source folder of both androidTest source sets, not a module. Detekt's
+// sources are src/{main,test} and src/androidTest only, so the folder is added to them here.
+extensions.configure<com.android.build.api.dsl.LibraryExtension> {
+    sourceSets.getByName("androidTest").kotlin.directories.add("$projectDir/src/sharedAndroidTest/kotlin")
+}
+detekt {
+    source.from("src/sharedAndroidTest/kotlin")
+}
+
 dependencies {
     // The BrewSessionController runs the engine and writes the session rows and the
     // active brew through the repositories (04 §4, §7.1); its API uses the engine's

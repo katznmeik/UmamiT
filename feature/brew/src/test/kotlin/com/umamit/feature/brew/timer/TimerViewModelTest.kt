@@ -1,7 +1,6 @@
 package com.umamit.feature.brew.timer
 
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
@@ -22,6 +21,7 @@ import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
@@ -66,11 +66,7 @@ import java.io.IOException
 @Config(sdk = [36])
 class TimerViewModelTest {
 
-    private val clock = object : MonotonicClock {
-        override fun elapsedMs() = 42L
-
-        override fun bootCount() = 1
-    }
+    private val clock = FakeClock(elapsed = 42L)
     private val timer = FakeBrewTimer(TimerStates.running())
     private val reliability = FakeTimerReliability()
     private val settings = FakeSettingsRepository(UserSettings(keepScreenOn = false, dimWhileSteeping = false))

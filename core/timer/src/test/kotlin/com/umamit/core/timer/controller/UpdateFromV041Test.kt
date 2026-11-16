@@ -7,6 +7,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.alarm.AndroidTimerAlarms
 import com.umamit.core.timer.alarm.TimerAlarmReceiver
 import com.umamit.core.timer.engine.SessionKind

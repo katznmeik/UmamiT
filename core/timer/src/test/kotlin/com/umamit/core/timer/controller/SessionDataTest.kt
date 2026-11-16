@@ -2,6 +2,8 @@ package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.testing.infusion
+import com.umamit.core.testing.rinse
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import kotlinx.coroutines.flow.first

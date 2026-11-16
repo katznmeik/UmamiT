@@ -6,6 +6,7 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.AlertStarted
 import com.umamit.core.testing.AlertStopped
 import com.umamit.core.testing.ServiceStopped
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerState

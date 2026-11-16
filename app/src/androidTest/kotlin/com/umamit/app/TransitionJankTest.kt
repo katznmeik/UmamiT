@@ -21,6 +21,8 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.timer.UnlockedDevice
+import com.umamit.core.timer.UnlockedDeviceRule
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.controller.TimerUiState

@@ -3,6 +3,7 @@ package com.umamit.core.timer.controller
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.TimerDisplay

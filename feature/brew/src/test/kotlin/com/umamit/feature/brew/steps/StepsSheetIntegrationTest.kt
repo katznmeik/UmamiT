@@ -12,7 +12,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.ClockReading
-import com.umamit.core.common.WallClock
 import com.umamit.core.data.RoomRecipeRepository
 import com.umamit.core.data.RoomTeaRepository
 import com.umamit.core.database.UmamiDatabase
@@ -24,6 +23,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.PlannedStep
@@ -40,7 +40,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.ZoneId
 import java.time.ZoneOffset
 
 /**
@@ -59,11 +58,7 @@ class StepsSheetIntegrationTest {
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), UmamiDatabase::class.java)
         .allowMainThreadQueries()
         .build()
-    private val wallClock = object : WallClock {
-        override fun nowMs(): Long = START_WALL_MS
-
-        override fun zone(): ZoneId = ZoneOffset.UTC
-    }
+    private val wallClock = FakeClock(wall = START_WALL_MS, zone = ZoneOffset.UTC)
     private val teas = RoomTeaRepository(db.teaDao(), wallClock)
     private val recipes = RoomRecipeRepository(db.recipeDao(), wallClock)
 

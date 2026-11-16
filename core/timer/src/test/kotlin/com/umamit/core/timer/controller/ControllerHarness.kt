@@ -16,7 +16,6 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionSnapshot
-import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
@@ -200,12 +199,6 @@ fun brewStart(
     steps = steps.toList(),
     recipePreAlertSeconds = recipePreAlertSeconds,
 )
-
-/** An infusion with its own [preAlert]: null *Automatisch*, 0 *Aus*, else the lead in seconds (TMR-23, D-093). */
-fun infusion(seconds: Int, tempC: Int = 60, preAlert: Int? = null) =
-    PlannedStep(StepKind.INFUSION, seconds, tempC, preAlert)
-
-fun rinse(seconds: Int) = PlannedStep(StepKind.RINSE, seconds, tempC = 70)
 
 /** The persist of [phase] (null: the row was cleared) in the shared port log. */
 data class Persisted(val phase: TimerPhase?) : PortCall

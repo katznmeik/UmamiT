@@ -8,6 +8,7 @@ import com.umamit.core.testing.NotificationShown
 import com.umamit.core.testing.ServiceStarted
 import com.umamit.core.testing.ServiceStopped
 import com.umamit.core.testing.SessionSavedNotified
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.test.runTest
 import org.junit.After

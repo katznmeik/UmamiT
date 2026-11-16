@@ -7,11 +7,11 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.controller.ControllerHarness
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.brewStart
-import com.umamit.core.timer.controller.infusion
 import com.umamit.core.timer.controller.send
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.Dispatchers
