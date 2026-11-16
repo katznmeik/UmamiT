@@ -11,6 +11,10 @@
 
 ## Releases and plans
 
+### v0.7.2: catalog audit done (2026-11-16)
+
+- **Catalog audit (#298, Opus `medium`, in the session):** `docs/plans/v0.7.2-audit-catalog.md`, 14 findings (CAT-A-01 … CAT-A-14: duplicated refresh strings and mappings, the image job three times, the allow-list URL check four times, page-to-row mapping twice, `CatalogRefresher.kt` split, cover copy twice, the refresh tests' fake shop eight times, three cross-feature UI helpers, five small ones). Scope 13 668 main lines (the three modules plus the catalog parts of `core:data`/`core:database`). R8 found no dead code in the group. No code change. Then the #299 question to the PO.
+
 ### v0.7.2: step 1 done (2026-11-15)
 
 - **Approval:** the PO approved plan, spec #296 and tickets #297–#310 with Claude's two proposals (audits in the session itself; unchanged goldens instead of a design review). Tickets relabelled: #299, #303 `ready-for-human`, the other twelve `ready-for-agent`.
@@ -613,6 +617,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-16 | **v0.7.2 session 2:** catalog audit #298, `docs/plans/v0.7.2-audit-catalog.md` (14 findings, no code change), pushed to draft PR #312; #299 asked. Next: session 3 as the PO answers (default: data audit #300, Fable 5.2 `medium`). |
 | 2026-11-15 | **v0.7.2 step 1:** the PO approved the plan and tickets; relabelled #297–#310; evidence file `docs/plans/v0.7.2-evidence.md` (R8, Lint 0 unused, Dependency Analysis, largest files, fixtures, proof baseline); draft PR #312. Next: catalog audit #298 (Opus `medium`). |
 | 2026-11-15 | **v0.7.2 specified:** one grilling round (D-120: Fable 5.2 `medium`, findings files per group, Dependency Analysis plugin locally, T4-F); plan `docs/plans/v0.7.2.md`, spec #296, tickets #297–#310, 09 §2/§4 „v0.7.2", 12 §2/§3.2; docs PR merged. Waiting for the PO's approval. |
 | 2026-11-15 | **v0.7.1 done:** the PO approved rc.2 („all approved"); 0.7.1 bump, #290 merged (`6192bff5`), CI on `main` green (rerun of the known `ProcessDeathTest` flake), all three accuracy variants PASS, `v0.7.1` released with `RELEASE_TOKEN` (70199, certificate verified); #289, #291–#294 closed. v0.7.2 grilling: D-119. Next: the v0.7.2 specify session. |
