@@ -260,8 +260,7 @@ abstract class RecipeDao {
 
     /** Whether [profileId] is the recipe of the active brew session (`active_brew`, READY to FINISHED; E15). */
     @Query(
-        "SELECT EXISTS(SELECT 1 FROM active_brew JOIN brew_session ON brew_session.id = active_brew.session_id " +
-            "WHERE brew_session.profile_id = :profileId)",
+        "SELECT EXISTS(SELECT 1 $ACTIVE_SESSIONS WHERE brew_session.profile_id = :profileId)",
     )
     protected abstract suspend fun inActiveSession(profileId: String): Boolean
 
@@ -457,8 +456,7 @@ private const val TEA_PHOTOS = "SELECT * FROM photo WHERE tea_id = :teaId ORDER 
 
 private const val TEA_RECIPES = "SELECT * FROM brew_profile WHERE tea_id = :teaId ORDER BY position, name"
 
-private const val ACTIVE_RECIPE_ID = "SELECT brew_session.profile_id FROM active_brew " +
-    "JOIN brew_session ON brew_session.id = active_brew.session_id " +
-    "WHERE brew_session.profile_id IS NOT NULL LIMIT 1"
+private const val ACTIVE_RECIPE_ID =
+    "SELECT brew_session.profile_id $ACTIVE_SESSIONS WHERE brew_session.profile_id IS NOT NULL LIMIT 1"
 
 private const val TEA_EVENTS = "SELECT * FROM inventory_event WHERE tea_id = :teaId ORDER BY occurred_at, created_at"
