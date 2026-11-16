@@ -141,22 +141,22 @@ fun CatalogRoute(
         showing = viewModel::refreshShowing,
     ) { sheetOpen = it }
     // A tea from a shop link (CAT-17). Its sheet takes the refresh sheet's place; the refresh goes on.
-    val link by viewModel.link.collectAsStateWithLifecycle()
+    val link by viewModel.linkSheet.state.collectAsStateWithLifecycle()
     val clipboard = LocalClipboard.current
     var handledPaste by remember { mutableIntStateOf(pasteLinkRequest) }
     LaunchedEffect(pasteLinkRequest) {
         if (pasteLinkRequest > handledPaste) {
             handledPaste = pasteLinkRequest
             sheetOpen = false
-            viewModel.openLinkSheet()
-            viewModel.fillLinkFromClipboard(clipboard.plainText())
+            viewModel.linkSheet.open()
+            viewModel.linkSheet.fillFromClipboard(clipboard.plainText())
         }
     }
     val currentOnTakeSharedLink by rememberUpdatedState(onTakeSharedLink)
     LaunchedEffect(sharedLink) {
         val share = sharedLink ?: return@LaunchedEffect
         sheetOpen = false
-        viewModel.loadSharedLink(share)
+        viewModel.linkSheet.loadShared(share)
         currentOnTakeSharedLink(share.token)
     }
     // Shown once this screen is resumed: a tea that came while the timer was on top is never lost.
@@ -171,7 +171,7 @@ fun CatalogRoute(
             lifecycle.withResumed {
                 currentOnOpenTea(opened)
                 notice?.let { Toast.makeText(context, it.messageRes(), Toast.LENGTH_LONG).show() }
-                viewModel.teaOpened()
+                viewModel.linkSheet.teaOpened()
             }
         }
     }
@@ -205,9 +205,9 @@ fun CatalogRoute(
     if (linkSheet != null && !alerting) {
         TeaLinkSheet(
             state = linkSheet,
-            onTextChange = viewModel::changeLinkText,
-            onLoad = viewModel::loadLink,
-            onDismissRequest = viewModel::dismissLink,
+            onTextChange = viewModel.linkSheet::changeText,
+            onLoad = viewModel.linkSheet::load,
+            onDismissRequest = viewModel.linkSheet::dismiss,
         )
     }
 }
