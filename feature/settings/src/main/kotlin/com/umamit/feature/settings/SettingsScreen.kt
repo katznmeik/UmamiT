@@ -57,7 +57,7 @@ import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
 import com.umamit.core.timer.reliability.ReliabilityStatus
 import com.umamit.core.timer.reliability.startFirstIntent
-import com.umamit.core.ui.rememberNotificationPermissionAction
+import com.umamit.core.ui.rememberReliabilityFixAction
 import kotlin.math.roundToInt
 
 /** Test tags of SCR-25. */
@@ -174,9 +174,10 @@ fun SettingsRoute(
             viewModel.stopPreview()
         }
     }
-    val requestNotifications = rememberNotificationPermissionAction(
+    val fix = rememberReliabilityFixAction(
+        notifications = ReliabilityCheck.Notifications,
+        openPage = { check: ReliabilityCheck -> context.startFirstIntent(viewModel.open(check)) },
         onResult = viewModel::refresh,
-        openSettings = { context.startFirstIntent(viewModel.open(ReliabilityCheck.Notifications)) },
     )
     SettingsScreen(
         settings = settings ?: UserSettings(),
@@ -185,13 +186,7 @@ fun SettingsRoute(
         saveFailed = saveFailed,
         onBack = onBack,
         actions = SettingsActions(
-            fix = {
-                if (it == ReliabilityCheck.Notifications) {
-                    requestNotifications()
-                } else {
-                    context.startFirstIntent(viewModel.open(it))
-                }
-            },
+            fix = fix,
             setTone = { key -> viewModel.change { it.copy(alertSound = key) } },
             previewTone = { viewModel.previewTone((settings ?: UserSettings()).alertSound) },
             stopPreview = viewModel::stopPreview,

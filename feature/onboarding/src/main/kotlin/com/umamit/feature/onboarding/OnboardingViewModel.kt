@@ -10,6 +10,7 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.timer.reliability.ReliabilityCheck
+import com.umamit.core.timer.reliability.ReliabilityChecks
 import com.umamit.core.timer.reliability.ReliabilityStatus
 import com.umamit.core.timer.reliability.TimerReliability
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,7 +32,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    private val reliability: TimerReliability,
+    reliability: TimerReliability,
     private val firstStart: FirstStartRunner,
     private val settings: SettingsRepository,
     private val catalog: CatalogRefreshRunner,
@@ -41,10 +42,10 @@ class OnboardingViewModel @Inject constructor(
         firstStart.start()
     }
 
-    private val checks = MutableStateFlow(reliability.status())
+    private val checks = ReliabilityChecks(reliability)
 
     /** The checks as last read; [refresh] reads them again on every resume. */
-    val status: StateFlow<ReliabilityStatus> = checks.asStateFlow()
+    val status: StateFlow<ReliabilityStatus> = checks.status
 
     /** The seed photos are loading: the line „Teefotos werden geladen …" with *Überspringen*. */
     val photosLoading: StateFlow<Boolean> = firstStart.photoProgress
@@ -53,12 +54,10 @@ class OnboardingViewModel @Inject constructor(
 
     private var finishing = false
 
-    fun refresh() {
-        checks.value = reliability.status()
-    }
+    fun refresh() = checks.refresh()
 
     /** A row's action: the check's system pages, for the screen to start. */
-    fun open(check: ReliabilityCheck): List<Intent> = reliability.settingsIntents(check)
+    fun open(check: ReliabilityCheck): List<Intent> = checks.open(check)
 
     fun skipPhotos() = firstStart.skipPhotos()
 
