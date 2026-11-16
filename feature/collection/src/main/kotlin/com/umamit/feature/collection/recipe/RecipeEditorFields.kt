@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Vessel
+import com.umamit.core.ui.AmountField
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.then
 import com.umamit.feature.collection.R
@@ -35,7 +36,6 @@ import com.umamit.feature.collection.editor.ChoiceField
 import com.umamit.feature.collection.editor.FieldModifier
 import com.umamit.feature.collection.editor.Section
 import com.umamit.feature.collection.editor.TextInput
-import com.umamit.feature.collection.editor.decimalInput
 
 /** SCR-12's sections: *Rezept*, *Schritte* and *Notizen*. */
 @Composable
@@ -214,41 +214,4 @@ private fun DefaultSwitch(state: RecipeEditorUiState.Ready, update: ((RecipeForm
     )
 }
 
-@Suppress("LongParameterList") // an amount field's parts
-@Composable
-private fun AmountField(
-    value: String,
-    label: Int,
-    unit: Int,
-    error: Int?,
-    decimal: Boolean,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = { typed ->
-            val cleaned = if (decimal) {
-                typed.decimalInput(
-                    LEAF_CHARS,
-                )
-            } else {
-                typed.filter(Char::isDigit).take(WATER_DIGITS)
-            }
-            onValueChange(cleaned)
-        },
-        modifier = modifier,
-        label = { Text(stringResource(label)) },
-        suffix = { Text(stringResource(unit)) },
-        singleLine = true,
-        isError = error != null,
-        supportingText = error?.let { { Text(stringResource(it)) } },
-        keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
-    )
-}
-
 private const val NOTES_MIN_LINES = 3
-
-/** „100,0" has five characters; „3000" four digits. */
-private const val LEAF_CHARS = 5
-private const val WATER_DIGITS = 4
