@@ -69,9 +69,6 @@ enum class BodyLimit(val maxBytes: Long) {
     IMAGE(IMAGE_BYTES),
 }
 
-/** A page's limit, the default of every request. */
-internal val MAX_BODY_BYTES = BodyLimit.PAGE.maxBytes
-
 /** Markers of a Cloudflare challenge page in a refusal's body (08 §2.8). */
 private val CHALLENGE_MARKERS = listOf(
     "cdn-cgi/challenge-platform",

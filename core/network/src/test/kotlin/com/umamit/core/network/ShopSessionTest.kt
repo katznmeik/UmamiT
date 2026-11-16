@@ -319,13 +319,13 @@ class ShopSessionTest {
     @Test
     fun anOversizedAnswerLeavesOnlyThatUrlOutAndIsNeverRetried() = runTest {
         // A photo over the body limit is no stop (D-090): the job goes on with the next URL.
-        val tooBig = Buffer().write(ByteArray(MAX_BODY_BYTES.toInt() + 1))
+        val tooBig = Buffer().write(ByteArray(BodyLimit.PAGE.maxBytes.toInt() + 1))
         routes[PAGE] = { MockResponse.Builder().body(tooBig.copy()).build() }
         routes[IMAGE] = { MockResponse.Builder().chunkedBody(tooBig.copy(), CHUNK_BYTES).build() }
         routes[OTHER] = { ok("other") }
         val session = ShopSession.open(client(), NetworkRetry.REFRESH)
 
-        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.TooLarge(MAX_BODY_BYTES + 1))
+        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.TooLarge(BodyLimit.PAGE.maxBytes + 1))
         assertThat(session.fetch(session.resolve(IMAGE))).isEqualTo(ShopFetch.TooLarge(declaredBytes = null))
         assertThat(session.stopCause).isNull()
         assertThat(session.fetch(session.resolve(OTHER))).isInstanceOf(ShopFetch.Fetched::class.java)
@@ -335,7 +335,7 @@ class ShopSessionTest {
     @Test
     fun anImageMayBeLargerThanAPageUpToItsOwnLimit() = runTest {
         // Full live run 1 (sizes only, D-091): PNG photos and guide images of 5–12 MB; pages stay at 5 MB.
-        val overPage = ByteArray(MAX_BODY_BYTES.toInt() + 1)
+        val overPage = ByteArray(BodyLimit.PAGE.maxBytes.toInt() + 1)
         routes[PAGE] = { MockResponse.Builder().body(Buffer().write(overPage)).build() }
         routes[IMAGE] = { MockResponse.Builder().body(Buffer().write(overPage)).build() }
         routes[OTHER] = {
@@ -343,13 +343,13 @@ class ShopSessionTest {
         }
         val session = openSession()
 
-        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.TooLarge(MAX_BODY_BYTES + 1))
+        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.TooLarge(BodyLimit.PAGE.maxBytes + 1))
         val image = session.fetch(session.resolve(IMAGE), BodyLimit.IMAGE)
         assertThat((image as ShopFetch.Fetched).body.size).isEqualTo(overPage.size)
         // Over the image limit: still only this URL left out.
         assertThat(session.fetch(session.resolve(OTHER), BodyLimit.IMAGE)).isEqualTo(ShopFetch.TooLarge(null))
         assertThat(session.stopCause).isNull()
-        assertThat(BodyLimit.PAGE.maxBytes).isEqualTo(MAX_BODY_BYTES)
+        assertThat(BodyLimit.PAGE.maxBytes).isEqualTo(5L * 1024 * 1024)
         assertThat(BodyLimit.IMAGE.maxBytes).isEqualTo(IMAGE_LIMIT)
     }
 
@@ -357,7 +357,9 @@ class ShopSessionTest {
     fun anOversizedRefusalStillStops() = runTest {
         // A 503 too large to look for challenge markers is still the shop refusing (08 §2.8).
         routes[PAGE] = {
-            MockResponse.Builder().code(503).body(Buffer().write(ByteArray(MAX_BODY_BYTES.toInt() + 1))).build()
+            MockResponse.Builder().code(
+                503,
+            ).body(Buffer().write(ByteArray(BodyLimit.PAGE.maxBytes.toInt() + 1))).build()
         }
         val session = openSession()
 
