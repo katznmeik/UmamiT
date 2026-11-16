@@ -5,25 +5,22 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-16 (v0.7.2 session 11, execution part 4). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The v0.7.2 plan, audits, triage and restructuring design (D-121 – D-127) are done and approved. **Execution is done: #305, #306, #307 and all of #308** on the draft milestone PR [#312](https://github.com/katznmeik/UmamiT/pull/312); the proof holds and CI is green on the code head `c0116fc7`. **Next:** the T3 milestone review and the T4 timer review of #308's whole diff (plan §„Sessions" row 8+ stops at „the timer path done and reviewed"), then #309 (review, proof, rc.1).
+**Last updated:** 2026-11-16 (v0.7.2 session 12, the milestone review and timer review). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The v0.7.2 plan, audits, triage and restructuring design (D-121 – D-127) are done and approved. **Execution (#305 – #308) and both reviews are done** on the draft milestone PR [#312](https://github.com/katznmeik/UmamiT/pull/312): the T3 milestone review and the T4 timer review found no Block, their fixes are in (code head `1da1e5fb`, CI green, run 43953846325). **Next:** #309 without its review (the proof, accuracy all three variants, rc.1).
 
-## Next: v0.7.2 milestone review and timer review, then #309
+## Next: v0.7.2 #309 (the proof, accuracy, rc.1)
 
-- **Model:** Opus `medium` orchestrator (12 §5.1). Branch `claude/wonderful-davinci-fu8tqi`, draft PR #312. One T3 reviewer (Opus `medium`) for standards and spec over the milestone's code diff (`git diff main`), and one T4 reviewer (Opus `high`) for the timer path over #308's whole diff (`git diff d9e79cbe..c0116fc7`, #308's commits, plus D-125's follow-up `d2eee004` for `SettingsNav.alertKey`). Fix findings by tier (timer never below T3) or answer them in #308; a Block stops #309. `/review-animations` is not run (plan „Release": no screen changes). **Stops** when the timer path is reviewed with no open Block. Then #309 (plan §„Sessions", next row): the full local gate on the rc commit, accuracy (09 §4a) all three variants, `v0.7.2-rc.1` (70201) for the PO.
-- **For the T4 timer review (also in #308):**
-  - the D-125 `SettingsNav.alertKey` path, which no test covers;
-  - TMR-A-07's `slotSession`: no test fails `getSession`, so the seal's silent fallback and the stock's logged retry hold by construction;
-  - TMR-A-04's „any alert closes the question" (`openedIn` was null at every site);
-  - group 3's deviations, below.
-- **Group 3 (session 11) deviations, no behaviour change:**
-  - TMR-A-14's four non-null `settle` asserts compare `SlotEvent(QUICK, …)`: the same events, plus the slot the old filter checked.
-  - TMR-A-11 grew the file (+44/−28; ktlint puts each argument on its own line).
-  - TMR-A-12 converted 7 of 8 sites; `PersistedTimer.guarded` returns `Read<T>?` and stays a try/catch.
-  - TMR-A-13's helper is `internal fun BroadcastReceiver.handOver` in `core/timer/.../ReceiverHandOver.kt`, on one shared `SupervisorJob() + Dispatchers.Default` scope.
-- **Stale prose for the review's doc pass:**
-  - `docs/specs/10-open-questions-and-decisions.md` (≈ l. 6898, 7154) and `docs/plans/v0.7.2-evidence.md:356` still say `ControllerBrewTimer` implements both seams;
-  - `10` l. 6593 names `startQuickTimer(finishActive = true)`, which TMR-A-14 removed (now `ending = TimerSlot.QUICK`).
-  - ADR history and evidence snapshots that name removed code stay as they were.
+- **Model:** Opus `medium` orchestrator (12 §5.1). Branch `claude/wonderful-davinci-fu8tqi`, draft PR #312. #309's first bullet, the T3 milestone review, is **done** (session 12, below); do not run it again. `/review-animations` is not run (plan „Release").
+- **Steps (#309, plan §„Proof", §„Verification" 4, §„Release"):**
+  1. the proof on the rc commit, each item recorded in #312 with its result: goldens and `core/database/schemas` against `main` (empty), the DataStore key list against the #297 baseline (`docs/plans/v0.7.2-evidence.md`), `verifyRoborazziDebug`, `scripts/check-frozen-schemas.sh`, `SchemaVersionsTest`, `checkManifestPermissions`, the full local gate (`gate.sh`, v0.4.0-resume.md §3), the 04 §12 timer tests (263 / 512 / 707, 1 skipped);
+  2. `umamit.version=0.7.2-rc.1` in `gradle.properties` (versionCode 70201), commit, CI green;
+  3. accuracy (09 §4a) on that commit, all three variants (standard, alongside, two-brews; #308 changed code), `accuracy.yml` with the full 40-character SHA;
+  4. dispatch `release.yml` (`ref` = the branch's rc commit, `version` = `0.7.2-rc.1`), verify the certificate, the checklist 09 §4 „v0.7.2" to the PO (push notification).
+- **Stops** when `v0.7.2-rc.1` is published and the PO has the checklist. Then #310 (the PO's check, merge, `v0.7.2` 70299 from `main`) in a later session (Sonnet, plan §„Sessions").
+- **Reviews (session 12), no Block:**
+  - **T3 (standards and spec, `git diff main`):** all 60 picked findings have a commit, nothing unpicked done, no behaviour change, proof items clean. Fixed: R-1 – R-4 dead imports (`8ac24588`, `06f3173e`, `5d073668`, `e4ab6cb6`), R-5 and R-6 formatting (`d5bd17e8`, `1da1e5fb`). Notes left: R-7 (`deleteVessel`'s test went with DAT-A-04; it was the only test of `brew_profile.vessel_id` set-null; optional to bring back with a raw `DELETE`), R-8 (`StatsDao` no longer re-emits on a descriptor-only change; same output).
+  - **T4 (timer path, `d9e79cbe..c0116fc7` and `d2eee004`):** all seven items hold (D-125 `alertKey`, TMR-A-07 `slotSession`, TMR-A-04, TMR-A-14, TMR-A-12, TMR-A-13, D-126); the orchestrator reread the two untested ones (`alertKey`, `slotSession`). Fixed: T-4 stale `AlertPlayer` KDoc (`5d294a02`). Notes left: T-1 (the old session's seal and stock flows now run until the new read returns; one failed read blanks both), T-2 (pre-existing: after one failed read the seal stays null for the view model's life; a ticket only if the PO wants it), T-3 (no test pins `handOver`'s finish-on-failure or a live alert over open settings).
+  - **Doc pass:** `f167499d` (10 ≈ l. 6593, 6710, 6898, 7154; evidence l. 356). The l. 6710 note was not in the brief's list: the same stale `ControllerBrewTimer` claim.
+- **Done in session 12, with usage:** `docs/history.md` „v0.7.2: milestone and timer review done".
 - **Done in sessions 10 and 11, with usage:** `docs/history.md` „v0.7.2: #308 done". #313 (`needs-triage`, found in session 10) stays out of v0.7.2.
 - **#307's deviations from the design** (both no behaviour change; `SettingsNav.openVesselResumedOnly`, `SettingsNav` in `SettingsScreens.kt`, the kept `TooManyFunctions`, `MAX_LISTED` in `CatalogRefreshRun`, D-122's `FakeShop.kt`) and session 9's usage: `docs/history.md` „Execution part 2". The milestone review reads them as decided, not as defects.
 - **Session facts still true:**
@@ -51,9 +48,9 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): approved by the PO (2026-11-15); step 1, the four audits, the triage (#303, D-121 – D-127) and the restructuring design (#304) done; execution: **#305 – #308 done** (2026-11-16); the milestone review and timer review next, then #309. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
+| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): approved by the PO (2026-11-15); step 1, the four audits, the triage (#303, D-121 – D-127) and the restructuring design (#304) done; execution: **#305 – #308 done** (2026-11-16); the milestone and timer reviews **done** (no Block); #309 without its review next. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `f0ffaf1a`; the v0.7.2 docs, #305 – #308 on top, code head `c0116fc7`) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `f0ffaf1a`; the v0.7.2 docs, #305 – #308 and the review fixes on top, code head `1da1e5fb`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | **[#312](https://github.com/katznmeik/UmamiT/pull/312)** (draft): the v0.7.2 milestone PR |
 | Latest APK | [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) (full release, versionCode 70199, from `main` `6192bff5`, certificate verified); rc [`v0.7.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.2) (pre-release, 70102, from `e57861e0`); rc [`v0.7.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.1) (pre-release, 70101, from `3fe102c0`); [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |

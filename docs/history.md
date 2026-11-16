@@ -11,6 +11,14 @@
 
 ## Releases and plans
 
+### v0.7.2: milestone and timer review done (2026-11-16)
+
+- **Session 12 (Opus `medium` orchestrator):** the T3 milestone review (Opus `medium`, `git diff main`) and the T4 timer review (Opus `high`, `d9e79cbe..c0116fc7` plus `d2eee004`) found **no Block**. The orchestrator reread the two untested paths (D-125 `SettingsNav.alertKey`, TMR-A-07 `slotSession` on a failed read) and both hold.
+  - **Fixes, one commit each:** R-1 – R-4 dead imports (T1, Sonnet `low`), R-5/R-6 formatting (T1), T-4 stale `AlertPlayer` KDoc in `core:timer`/`core:timer-engine` (T3, Opus `medium`, comments only). The doc pass `f167499d` covers the stale `ControllerBrewTimer`/`finishActive` prose (10, evidence).
+  - **Verified:** the diffs read (imports and comments only, besides R-5/R-6), `spotlessCheck detekt :app:assembleDebug :app:assembleDebugAndroidTest` and the touched modules' test compiles, the 04 §12 timer tests 263 / 512 / 707 (1 skipped) on `f167499d` and `1da1e5fb`, no golden/schema diff, no assert line removed. CI green on `f167499d` (43946236160) and on `1da1e5fb` (43953846325, both emulator jobs).
+  - **Notes left open (no change):** R-7, R-8, T-1, T-2, T-3 (PROJECT_STATE „Reviews").
+  - **Usage (from the transcripts, before the final handover turn):** orchestrator 59 requests, 8.4 M cache read, 0.11 M cache write, 25 k output; T3 reviewer 71 requests, 15.0 M / 0.30 M / 31 k; T4 reviewer 64 requests, 10.0 M / 0.22 M / 31 k; two fix implementers 37 requests, 2.8 M / 0.41 M / 19 k.
+
 ### v0.7.2: #308 done (2026-11-16)
 
 - **Execution part 4, session 11 (Opus `medium` orchestrator, `/implement-spec #296`):**
