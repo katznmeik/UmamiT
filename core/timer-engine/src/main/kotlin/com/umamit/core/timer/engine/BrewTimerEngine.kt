@@ -229,4 +229,13 @@ object BrewTimerEngine {
         is TimerState.Alerting -> TimerDisplay(0, floorSeconds(now.elapsedMs - state.deadlineElapsedMs))
         is TimerState.Finished -> TimerDisplay(0, 0)
     }
+
+    /**
+     * Display rounding of a remaining time [ms]: up, so „0:01" never means done (04 §5); a negative time is 0. The
+     * timer's UI state shows its countdown with it, so the rule exists once.
+     */
+    fun ceilSeconds(ms: Long): Long = (ms.coerceAtLeast(0) + MS_PER_SECOND - 1) / MS_PER_SECOND
+
+    /** Display rounding of overtime [ms]: down (04 §5); a negative time is 0. */
+    fun floorSeconds(ms: Long): Long = ms.coerceAtLeast(0) / MS_PER_SECOND
 }

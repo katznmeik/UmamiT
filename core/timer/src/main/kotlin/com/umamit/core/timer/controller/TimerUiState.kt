@@ -7,6 +7,8 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.BrewTimerEngine
+import com.umamit.core.timer.engine.BrewTimerEngine.ceilSeconds
+import com.umamit.core.timer.engine.BrewTimerEngine.floorSeconds
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerDisplay
@@ -145,12 +147,6 @@ fun TimerUiState.alertKey(): String? = (this as? TimerUiState.Active)?.takeIf { 
  */
 fun List<TimerUiState.Active>.lastRinging(): TimerUiState.Active? =
     filter { it.ringing }.maxByOrNull { it.ringingSinceElapsedMs ?: Long.MIN_VALUE }
-
-private const val MS_PER_SECOND = 1_000L
-
-private fun ceilSeconds(ms: Long): Long = (ms.coerceAtLeast(0) + MS_PER_SECOND - 1) / MS_PER_SECOND
-
-private fun floorSeconds(ms: Long): Long = ms.coerceAtLeast(0) / MS_PER_SECOND
 
 /**
  * What the timer shows of a brew session's row besides its timing (the session's snapshot, never the engine's
