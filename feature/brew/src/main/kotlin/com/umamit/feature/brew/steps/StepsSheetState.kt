@@ -16,6 +16,7 @@ import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerSession
+import com.umamit.core.ui.DurationSteps
 
 /**
  * One step of the session plan as the Schritte-Sheet shows it (SCR-31): its
@@ -189,7 +190,7 @@ class StepsSheetState(input: StepsSheetInput) {
      */
     fun setDuration(index: Int, seconds: Int) {
         if (isEditable(index)) {
-            val duration = roundedDuration(seconds)
+            val duration = DurationSteps.rounded(seconds)
             steps = steps.mapIndexed { i, old -> if (i == index) old.copy(plannedSeconds = duration) else old }
         }
     }
@@ -268,40 +269,18 @@ private fun StepsSheetStep.edited(edit: StepEdit, shownTempC: Int?): StepsSheetS
 }
 
 // Editing rules (PRF-04, GEN-12): durations 5 s – 24 h in 5 s steps below 10 min and
-// 1 min steps from 10 min on; temperatures 5–100 °C in 5 °C steps (05 §3.2). The 10-min
-// boundary is the duration rounding only: whether a step is a long step (no Vorwarnung,
+// 1 min steps from 10 min on ([DurationSteps]); temperatures 5–100 °C in 5 °C steps (05 §3.2).
+// The 10-min boundary is the duration rounding only: whether a step is a long step (no Vorwarnung,
 // TMR-18) is the engine's `BrewTimerEngine.isLongStep`, from 60 min since v0.3.0 (D-098).
-private const val MIN_SECONDS = 5
-private const val MAX_SECONDS = 86_400
-private const val MINUTE_STEPS_FROM_SECONDS = 600
-private const val SECONDS_UNIT = 5
-private const val MINUTES_UNIT = 60
 
-/** The next longer duration: the next multiple of 5 s below 10 min, of 1 min from 10 min on. */
-internal fun longer(seconds: Int): Int {
-    val unit = if (seconds < MINUTE_STEPS_FROM_SECONDS) SECONDS_UNIT else MINUTES_UNIT
-    return nextMultiple(seconds, unit).coerceIn(MIN_SECONDS, MAX_SECONDS).coerceAtLeast(seconds)
-}
+/** The next longer duration ([DurationSteps.stepped]); a stored duration over 24 h is never shortened. */
+internal fun longer(seconds: Int): Int = DurationSteps.stepped(seconds, up = true).coerceAtLeast(seconds)
 
-/** The next shorter duration: the previous multiple of 1 min above 10 min, of 5 s from 10 min down. */
-internal fun shorter(seconds: Int): Int {
-    val unit = if (seconds > MINUTE_STEPS_FROM_SECONDS) MINUTES_UNIT else SECONDS_UNIT
-    return previousMultiple(seconds, unit).coerceIn(MIN_SECONDS, MAX_SECONDS).coerceAtMost(seconds)
-}
-
-/** [seconds] within 5 s – 24 h, rounded down to the PRF-04 increment. */
-internal fun roundedDuration(seconds: Int): Int {
-    val bounded = seconds.coerceIn(MIN_SECONDS, MAX_SECONDS)
-    val unit = if (bounded < MINUTE_STEPS_FROM_SECONDS) SECONDS_UNIT else MINUTES_UNIT
-    return (bounded / unit * unit).coerceAtLeast(MIN_SECONDS)
-}
+/** The next shorter duration ([DurationSteps.stepped]); a stored duration under 5 s is never lengthened. */
+internal fun shorter(seconds: Int): Int = DurationSteps.stepped(seconds, up = false).coerceAtMost(seconds)
 
 /** One 5 °C step up ([BrewScaling.tempStepped]); a temperature above 100 °C is never lowered. */
 internal fun warmer(tempC: Int): Int = BrewScaling.tempStepped(tempC, up = true).coerceAtLeast(tempC)
 
 /** One 5 °C step down ([BrewScaling.tempStepped]); a temperature below 5 °C is never raised. */
 internal fun cooler(tempC: Int): Int = BrewScaling.tempStepped(tempC, up = false).coerceAtMost(tempC)
-
-private fun nextMultiple(value: Int, unit: Int): Int = Math.floorDiv(value, unit) * unit + unit
-
-private fun previousMultiple(value: Int, unit: Int): Int = Math.floorDiv(value - 1, unit) * unit
