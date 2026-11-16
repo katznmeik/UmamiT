@@ -184,24 +184,22 @@ class BrewSessionController @Inject constructor(
      * is active and `Rejected(InvalidQuickTimer)` for a duration outside
      * 5 s – 24 h or a choice other than 0 or 5–30 s, and `Rejected(TwoTimersActive)` naming the brew slots while
      * two brew sessions are active (GEN-03, D-108: „Welchen Timer beenden?"). With [run], its step starts
-     * in the same turn (SCR-07's *Start*). With [finishActive] it is „Schnelltimer
-     * beenden und neu starten?" (D-054, D-065, D-098): in the same turn the
-     * active quick timer first ends (*Abbrechen*, or *Fertig* while alerting);
-     * the brew is never touched. With [ending] the timer of that slot ends first instead, a brew session as by
-     * *Sitzung beenden* (the answer to „Welchen Timer beenden?", D-108), and only while it is [endingSession] when
-     * that is given (#194).
+     * in the same turn (SCR-07's *Start*). With [ending] the timer of that slot ends first, in the same
+     * turn: [TimerSlot.QUICK] for „Schnelltimer beenden und neu starten?" (D-054, D-065, D-098), the active
+     * quick timer ending (*Abbrechen*, or *Fertig* while alerting) and the brew never touched; a brew session as
+     * by *Sitzung beenden* (the answer to „Welchen Timer beenden?", D-108), and only while it is [endingSession]
+     * when that is given (#194).
      */
     suspend fun startQuickTimer(
         durationSeconds: Int,
         preAlertSeconds: Int? = null,
         run: Boolean = false,
-        finishActive: Boolean = false,
         ending: TimerSlot? = null,
         endingSession: String? = null,
     ): TransitionOutcome {
         val event = TimerEvent.StartQuickTimer(durationSeconds, settings.current().preAlertSeconds, preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
-            (ending ?: TimerSlot.QUICK.takeIf { finishActive })?.let { sideBySide.endActive(it, endingSession) }
+            ending?.let { sideBySide.endActive(it, endingSession) }
             if (!sideBySide.quickStartAdmitted()) {
                 return@inTurn TransitionOutcome.Rejected(RejectionReason.TwoTimersActive(sideBySide.activeSlots()))
             }

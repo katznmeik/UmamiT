@@ -15,20 +15,40 @@ class AlertArbitrationTest {
 
     @Test
     fun `while the brew alerts, the quick deadline holds and its recovery recovers held`() {
-        assertThat(AlertArbitration.quickEvent(TimerEvent.DeadlineReached, brewAlerting))
+        assertThat(
+            AlertArbitration.eventFor(
+                TimerSlot.QUICK,
+                TimerEvent.DeadlineReached,
+                mapOf(TimerSlot.BREW to brewAlerting),
+            ),
+        )
             .isEqualTo(TimerEvent.AlertHold)
-        assertThat(AlertArbitration.quickEvent(TimerEvent.Recover, brewAlerting)).isEqualTo(TimerEvent.RecoverHeld)
-        assertThat(AlertArbitration.quickEvent(TimerEvent.Pause, brewAlerting)).isEqualTo(TimerEvent.Pause)
-        assertThat(AlertArbitration.quickEvent(TimerEvent.PreAlertReached, brewAlerting))
+        assertThat(
+            AlertArbitration.eventFor(TimerSlot.QUICK, TimerEvent.Recover, mapOf(TimerSlot.BREW to brewAlerting)),
+        ).isEqualTo(TimerEvent.RecoverHeld)
+        assertThat(
+            AlertArbitration.eventFor(TimerSlot.QUICK, TimerEvent.Pause, mapOf(TimerSlot.BREW to brewAlerting)),
+        ).isEqualTo(TimerEvent.Pause)
+        assertThat(
+            AlertArbitration.eventFor(
+                TimerSlot.QUICK,
+                TimerEvent.PreAlertReached,
+                mapOf(TimerSlot.BREW to brewAlerting),
+            ),
+        )
             .isEqualTo(TimerEvent.PreAlertReached)
     }
 
     @Test
     fun `while the brew does not alert, the quick slot gets its events as they are`() {
         listOf(TimerState.Idle, brewRunning).forEach { brew ->
-            assertThat(AlertArbitration.quickEvent(TimerEvent.DeadlineReached, brew))
+            assertThat(
+                AlertArbitration.eventFor(TimerSlot.QUICK, TimerEvent.DeadlineReached, mapOf(TimerSlot.BREW to brew)),
+            )
                 .isEqualTo(TimerEvent.DeadlineReached)
-            assertThat(AlertArbitration.quickEvent(TimerEvent.Recover, brew)).isEqualTo(TimerEvent.Recover)
+            assertThat(
+                AlertArbitration.eventFor(TimerSlot.QUICK, TimerEvent.Recover, mapOf(TimerSlot.BREW to brew)),
+            ).isEqualTo(TimerEvent.Recover)
         }
     }
 
@@ -37,12 +57,17 @@ class AlertArbitrationTest {
         val ringing = quickAt(held = false)
         val held = quickAt(held = true)
 
-        assertThat(AlertArbitration.settle(brewAlerting, ringing)).isEqualTo(TimerEvent.AlertHold)
-        assertThat(AlertArbitration.settle(brewAlerting, held)).isNull()
-        assertThat(AlertArbitration.settle(brewRunning, held)).isEqualTo(TimerEvent.AlertRingStart)
-        assertThat(AlertArbitration.settle(TimerState.Idle, held)).isEqualTo(TimerEvent.AlertRingStart)
-        assertThat(AlertArbitration.settle(brewRunning, ringing)).isNull()
-        assertThat(AlertArbitration.settle(brewAlerting, TimerState.Idle)).isNull()
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewAlerting, TimerSlot.QUICK to ringing)))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.QUICK, TimerEvent.AlertHold))
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewAlerting, TimerSlot.QUICK to held))).isNull()
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewRunning, TimerSlot.QUICK to held)))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.QUICK, TimerEvent.AlertRingStart))
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to TimerState.Idle, TimerSlot.QUICK to held)))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.QUICK, TimerEvent.AlertRingStart))
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewRunning, TimerSlot.QUICK to ringing))).isNull()
+        assertThat(
+            AlertArbitration.settle(mapOf(TimerSlot.BREW to brewAlerting, TimerSlot.QUICK to TimerState.Idle)),
+        ).isNull()
     }
 
     @Test
@@ -214,18 +239,25 @@ class AlertArbitrationTest {
             assertThat(AlertArbitration.eventFor(slot, TimerEvent.Recover, mapOf(TimerSlot.BREW to brewPlayed)))
                 .isEqualTo(TimerEvent.Recover)
         }
-        assertThat(AlertArbitration.quickEvent(TimerEvent.DeadlineReached, brewPlayed))
+        assertThat(
+            AlertArbitration.eventFor(TimerSlot.QUICK, TimerEvent.DeadlineReached, mapOf(TimerSlot.BREW to brewPlayed)),
+        )
             .isEqualTo(TimerEvent.DeadlineReached)
         // The keeper's sound ended: the held alert is released, the keeper stays alerting as it is.
         assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewPlayed, TimerSlot.BREW_2 to held(90))))
             .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.BREW_2, TimerEvent.AlertRingStart))
-        assertThat(AlertArbitration.settle(brewPlayed, quickAt(held = true))).isEqualTo(TimerEvent.AlertRingStart)
+        assertThat(
+            AlertArbitration.settle(mapOf(TimerSlot.BREW to brewPlayed, TimerSlot.QUICK to quickAt(held = true))),
+        )
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.QUICK, TimerEvent.AlertRingStart))
         // One sounds, one has sounded: nothing to hold.
         assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewPlayed, TimerSlot.BREW_2 to brewAt(90, false))))
             .isNull()
         assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewAt(90, false), TimerSlot.QUICK to quickPlayed)))
             .isNull()
-        assertThat(AlertArbitration.settle(brewPlayed, quickPlayed)).isNull()
+        assertThat(
+            AlertArbitration.settle(mapOf(TimerSlot.BREW to brewPlayed, TimerSlot.QUICK to quickPlayed)),
+        ).isNull()
     }
 
     @Test
