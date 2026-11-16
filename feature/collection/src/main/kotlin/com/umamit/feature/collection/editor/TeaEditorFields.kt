@@ -68,6 +68,7 @@ import com.umamit.core.model.UmamiLevel
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
 import com.umamit.core.ui.rememberAlertGate
+import com.umamit.core.ui.then
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.countryName
 import com.umamit.feature.collection.detail.label
@@ -410,8 +411,6 @@ private val UmamiLevel.editorLabel: Int
 
 /** The countries tea usually comes from (ISO 3166-1 alpha-2, 05 §3.1); a stored other one is offered too. */
 private val TEA_COUNTRIES = listOf("JP", "CN", "TW", "KR", "IN", "LK", "NP", "VN", "TH", "ID", "KE", "ZA", "DE")
-
-private fun Boolean.then(value: Int): Int? = if (this) value else null
 
 private const val NOTES_MIN_LINES = 3
 

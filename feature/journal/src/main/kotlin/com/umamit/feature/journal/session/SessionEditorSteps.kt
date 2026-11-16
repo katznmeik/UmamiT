@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.tabular
 import com.umamit.core.model.StepKind
 import com.umamit.core.ui.RepeatingIconButton
 import com.umamit.feature.journal.R

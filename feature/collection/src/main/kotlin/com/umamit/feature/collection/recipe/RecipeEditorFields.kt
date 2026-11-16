@@ -29,6 +29,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Vessel
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.then
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.editor.ChoiceField
 import com.umamit.feature.collection.editor.FieldModifier
@@ -245,8 +246,6 @@ private fun AmountField(
         keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
     )
 }
-
-private fun Boolean.then(value: Int): Int? = if (this) value else null
 
 private const val NOTES_MIN_LINES = 3
 

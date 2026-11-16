@@ -18,12 +18,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.tabular
 import com.umamit.core.model.StepKind
 import com.umamit.feature.journal.R
 
@@ -210,9 +210,6 @@ private fun stepDescription(step: SessionPageStep): String {
     )
     return stringResource(R.string.session_step_description, stepLabel(step), parts.joinToString(", "))
 }
-
-/** Tabular lining figures, so the times line up (03 §3.2). */
-internal fun TextStyle.tabular() = copy(fontFeatureSettings = "lnum, tnum")
 
 private const val STEP_WEIGHT = 1.3f
 private const val TIME_WEIGHT = 1f

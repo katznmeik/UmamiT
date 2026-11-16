@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.tabular
 import com.umamit.core.model.Vessel
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
