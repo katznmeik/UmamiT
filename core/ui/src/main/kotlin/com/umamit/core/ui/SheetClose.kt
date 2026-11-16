@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -89,23 +90,46 @@ private class LeavingSheetHolder<T : Any> {
 
 /**
  * A sheet that is always fully expanded; under reduce motion it starts expanded, so it appears without the slide
- * (03 §3.6). [confirmValueChange] may refuse a state, as the add sheet does while it saves.
+ * (03 §3.6). [confirmValueChange] may refuse a state, as the add sheet does while it saves. With [saveable] the state
+ * survives a configuration change ([SheetState.Saver]), as the Schritte-Sheet's does.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun rememberExpandedSheetState(
     reduceMotion: Boolean,
+    saveable: Boolean = false,
     confirmValueChange: (SheetValue) -> Boolean = { true },
 ): SheetState {
     val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { POSITIONAL_THRESHOLD.toPx() } },
-            velocityThreshold = { with(density) { VELOCITY_THRESHOLD.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-            confirmValueChange = confirmValueChange,
-        )
+    return if (saveable) {
+        rememberSaveable(
+            reduceMotion,
+            saver = SheetState.Saver(
+                skipPartiallyExpanded = true,
+                positionalThreshold = { with(density) { POSITIONAL_THRESHOLD.toPx() } },
+                velocityThreshold = { with(density) { VELOCITY_THRESHOLD.toPx() } },
+                confirmValueChange = confirmValueChange,
+                skipHiddenState = false,
+            ),
+        ) {
+            SheetState(
+                skipPartiallyExpanded = true,
+                positionalThreshold = { with(density) { POSITIONAL_THRESHOLD.toPx() } },
+                velocityThreshold = { with(density) { VELOCITY_THRESHOLD.toPx() } },
+                initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
+                confirmValueChange = confirmValueChange,
+            )
+        }
+    } else {
+        remember(reduceMotion) {
+            SheetState(
+                skipPartiallyExpanded = true,
+                positionalThreshold = { with(density) { POSITIONAL_THRESHOLD.toPx() } },
+                velocityThreshold = { with(density) { VELOCITY_THRESHOLD.toPx() } },
+                initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
+                confirmValueChange = confirmValueChange,
+            )
+        }
     }
 }
 

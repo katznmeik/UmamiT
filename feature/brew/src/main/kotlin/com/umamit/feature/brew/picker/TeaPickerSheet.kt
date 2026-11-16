@@ -20,8 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -35,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalAccessibilityManager
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -55,6 +52,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.AlertGate
 import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.core.ui.showUndo
 import com.umamit.feature.brew.R
@@ -133,7 +131,7 @@ fun TeaPickerSheet(
     onRemovedDismiss: () -> Unit = {},
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
-    val sheetState = rememberPickerSheetState(reduceMotion)
+    val sheetState = rememberExpandedSheetState(reduceMotion)
     val snackbarHostState = remember { SnackbarHostState() }
     RemovedSnackbar(state.removed, snackbarHostState, onUndoRemove, onRemovedDismiss)
     ModalBottomSheet(
@@ -371,22 +369,3 @@ private fun Hint(text: String) {
         ),
     )
 }
-
-/** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun rememberPickerSheetState(reduceMotion: Boolean): SheetState {
-    val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-        )
-    }
-}
-
-// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp
