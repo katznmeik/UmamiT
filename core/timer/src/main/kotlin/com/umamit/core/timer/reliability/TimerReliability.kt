@@ -111,9 +111,6 @@ interface TimerReliability {
     fun settingsIntents(check: ReliabilityCheck): List<Intent>
 }
 
-/** Whether a check is missing now. */
-fun TimerReliability.hasProblem(): Boolean = status().hasProblem
-
 /** The banner's message now (TMR-31); null: every check passes. */
 fun TimerReliability.problem(): ReliabilityProblem? = status().problem
 
