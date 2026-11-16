@@ -7,7 +7,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.testing.FakeBrewStarter

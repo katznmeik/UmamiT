@@ -1,7 +1,6 @@
 package com.umamit.core.data
 
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.WallClock
 import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.TasteDescriptor
@@ -15,7 +14,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.ZoneId
 import java.time.ZoneOffset
 
 /**

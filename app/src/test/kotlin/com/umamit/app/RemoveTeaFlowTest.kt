@@ -15,7 +15,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart

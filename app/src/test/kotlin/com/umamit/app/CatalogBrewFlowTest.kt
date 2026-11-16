@@ -21,7 +21,6 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.designsystem.theme.UmamiTheme

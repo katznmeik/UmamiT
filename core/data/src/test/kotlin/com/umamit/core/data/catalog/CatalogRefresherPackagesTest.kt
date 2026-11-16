@@ -17,7 +17,6 @@ import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import mockwebserver3.MockResponse
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
