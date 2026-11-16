@@ -28,9 +28,6 @@ object DatabaseModule {
     @Provides
     fun inventoryDao(db: UmamiDatabase) = db.inventoryDao()
 
-    @Provides
-    fun sessionDao(db: UmamiDatabase) = db.sessionDao()
-
     /** The tasting reads (05 §3.8): per-tea ratings for the lists, TEA-08. */
     @Provides
     fun tastingDao(db: UmamiDatabase) = db.tastingDao()
@@ -38,9 +35,6 @@ object DatabaseModule {
     /** The statistics' reads (INS-01–INS-07, D-115). */
     @Provides
     fun statsDao(db: UmamiDatabase) = db.statsDao()
-
-    @Provides
-    fun activeBrewDao(db: UmamiDatabase) = db.activeBrewDao()
 
     /** The Merkliste (05 §3.13, CAT-18): personal data in `umamit.db`, not in the rebuilt catalog. */
     @Provides
