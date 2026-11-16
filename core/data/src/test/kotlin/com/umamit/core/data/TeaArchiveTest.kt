@@ -72,11 +72,11 @@ class TeaArchiveTest {
     fun `the tea of the active brew session can't be removed until the session ends`() = runTest {
         data.teas.saveTea(tea("t1"))
         data.teas.saveTea(tea("t2"))
-        assertThat(archive.observeActiveTeaId().first()).isNull()
+        assertThat(archive.observeActiveTeaIds().first()).isEmpty()
         val driver = TimerDriver(data)
         driver.send(startEvent(infusion(60)))
 
-        assertThat(archive.observeActiveTeaId().first()).isEqualTo("t1")
+        assertThat(archive.observeActiveTeaIds().first()).containsExactly("t1")
         assertThat(archive.archive("t1")).isEqualTo(ArchiveResult.InActiveSession)
         assertThat(data.teas.getTea("t1")!!.isArchived).isFalse()
         // Another tea can go meanwhile.
@@ -84,7 +84,7 @@ class TeaArchiveTest {
 
         driver.brewOneAndFinish()
 
-        assertThat(archive.observeActiveTeaId().first()).isNull()
+        assertThat(archive.observeActiveTeaIds().first()).isEmpty()
         assertThat(archive.archive("t1")).isEqualTo(ArchiveResult.Archived)
     }
 
@@ -110,7 +110,7 @@ class TeaArchiveTest {
         data.teas.saveTea(tea("t1"))
         TimerDriver(data).send(TimerEvent.StartQuickTimer(durationSeconds = 120, globalPreAlertSeconds = 10))
 
-        assertThat(archive.observeActiveTeaId().first()).isNull()
+        assertThat(archive.observeActiveTeaIds().first()).isEmpty()
         assertThat(archive.archive("t1")).isEqualTo(ArchiveResult.Archived)
     }
 

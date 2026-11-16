@@ -47,12 +47,6 @@ sealed interface DeleteResult {
  * can be neither archived nor deleted (E15).
  */
 interface TeaArchive {
-    /**
-     * The tea of the active brew session, or null (no session, the quick timer, or a session
-     * without a tea): that tea can't be archived or deleted (E15).
-     */
-    fun observeActiveTeaId(): Flow<String?>
-
     /** The teas of every active brew session, in either brew slot (E15, D-108): none can be archived or deleted. */
     fun observeActiveTeaIds(): Flow<Set<String>>
 
@@ -80,8 +74,6 @@ class RoomTeaArchive @Inject constructor(
     private val time: WallClock,
     private val photoFiles: PhotoFiles,
 ) : TeaArchive {
-    override fun observeActiveTeaId(): Flow<String?> = db.activeBrewDao().observeActiveTeaId().distinctUntilChanged()
-
     override fun observeActiveTeaIds(): Flow<Set<String>> =
         db.activeBrewDao().observeActiveTeaIds().map { it.toSet() }.distinctUntilChanged()
 
