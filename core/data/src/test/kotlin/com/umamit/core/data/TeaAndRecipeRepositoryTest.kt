@@ -226,7 +226,7 @@ class TeaAndRecipeRepositoryTest {
         data.stock.addEvent(initial("e1", "t1", 100.0, 850))
         data.stock.addEvent(initial("e2", "t2", 50.0, 900))
 
-        data.teas.deleteTea("t1")
+        data.db.teaDao().delete("t1")
 
         assertThat(data.teas.getTea("t1")).isNull()
         assertThat(data.recipes.getRecipe("r1")).isNull()

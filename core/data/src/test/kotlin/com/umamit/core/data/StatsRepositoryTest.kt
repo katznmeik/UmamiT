@@ -163,7 +163,7 @@ class StatsRepositoryTest {
         data.teas.saveTea(tea("t2", "Gyokuro Alt").copy(isArchived = true))
         session("s1", teaId = "t1")
         session("s2", teaId = "t2")
-        data.teas.deleteTea("t1")
+        data.db.teaDao().delete("t1")
 
         val input = input()
 

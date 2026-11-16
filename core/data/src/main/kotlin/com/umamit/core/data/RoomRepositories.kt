@@ -39,8 +39,6 @@ class RoomTeaRepository @Inject constructor(private val dao: TeaDao, private val
         dao.upsert(tea.toEntity(createdAt = dao.get(tea.id)?.createdAt ?: now, updatedAt = now))
     }
 
-    override suspend fun deleteTea(id: String) = dao.delete(id)
-
     override suspend fun savePhoto(photo: Photo) {
         val now = time.nowMs()
         dao.upsertPhoto(photo.toEntity(createdAt = dao.photo(photo.id)?.createdAt ?: now, updatedAt = now))

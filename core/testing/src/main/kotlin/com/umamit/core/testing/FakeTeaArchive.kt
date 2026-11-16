@@ -59,7 +59,7 @@ class FakeTeaArchive(private val s: FakeSessions) : TeaArchive {
                     )
                 }
             }
-            s.collection.teas.deleteTea(teaId)
+            s.collection.deleteTeaRows(teaId)
             deleted += teaId
             DeleteResult.Deleted
         }

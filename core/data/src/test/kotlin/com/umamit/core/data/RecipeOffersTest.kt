@@ -178,7 +178,7 @@ class RecipeOffersTest {
         data.db.teaDao().setArchived("t1", false, clock.wall)
         assertThat(offers.proposal("s1")).isNotNull()
 
-        teas.deleteTea("t1")
+        data.db.teaDao().delete("t1")
         assertThat(offers.proposal("s1")).isNull()
         assertThat(offers.accept("s1")).isEqualTo(RecipeOfferAccept.NOT_APPLICABLE)
     }

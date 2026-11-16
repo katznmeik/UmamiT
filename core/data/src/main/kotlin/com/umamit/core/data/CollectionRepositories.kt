@@ -26,12 +26,6 @@ interface TeaRepository {
     /** Inserts the tea, or updates it when its id exists (keeping its creation time). */
     suspend fun saveTea(tea: Tea)
 
-    /**
-     * Deletes the tea row; its recipes, stock events and photo rows go with it (05 §3). The user's *Löschen*
-     * is [TeaArchive.delete], which also guards the active brew and removes the photo files (D-100).
-     */
-    suspend fun deleteTea(id: String)
-
     /** Stores a photo row (05 §3.9); the image file itself is written by the caller. */
     suspend fun savePhoto(photo: Photo)
 

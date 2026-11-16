@@ -215,7 +215,7 @@ class SessionEditorTest {
     @Test
     fun `for a tea that is gone the cost scales with the leaf and no stock event is made`() = runTest {
         completedSession()
-        data.teas.deleteTea("t1")
+        data.db.teaDao().delete("t1")
         assertThat(session().snapshot.teaId).isNull()
 
         assertThat(editor.editSession("done", SessionEdit(leafGrams = 5.0))).isEqualTo(SessionEditResult.SAVED)
