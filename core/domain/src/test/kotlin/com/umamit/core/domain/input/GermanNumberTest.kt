@@ -13,6 +13,7 @@ class GermanNumberTest {
         assertThat(GermanNumber.parseCents("12.4")).isEqualTo(1240)
         assertThat(GermanNumber.parseCents("1.23")).isEqualTo(123)
         assertThat(GermanNumber.parseCents("1234,5")).isEqualTo(123_450)
+        assertThat(GermanNumber.parseCents("12")).isEqualTo(1200)
     }
 
     @Test
@@ -26,6 +27,7 @@ class GermanNumberTest {
     fun `cents ignore the euro sign and surrounding space`() {
         assertThat(GermanNumber.parseCents("€ 12,90")).isEqualTo(1290)
         assertThat(GermanNumber.parseCents(" 1.234,50 € ")).isEqualTo(123_450)
+        assertThat(GermanNumber.parseCents("1.234,50 €")).isEqualTo(123_450)
     }
 
     @Test
@@ -39,6 +41,7 @@ class GermanNumberTest {
     fun `grams read decimals and thousands groups up to 10000`() {
         assertThat(GermanNumber.parseGrams("4")).isEqualTo(4.0)
         assertThat(GermanNumber.parseGrams("4,5")).isEqualTo(4.5)
+        assertThat(GermanNumber.parseGrams("37,5")).isEqualTo(37.5)
         assertThat(GermanNumber.parseGrams("37.5")).isEqualTo(37.5)
         assertThat(GermanNumber.parseGrams("1234,5")).isEqualTo(1234.5)
         assertThat(GermanNumber.parseGrams("1.000")).isEqualTo(1000.0)
