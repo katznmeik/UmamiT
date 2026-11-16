@@ -495,7 +495,7 @@ internal fun UmamitRoot(
                         closeVesselEditor = { id, archived ->
                             navController.closeVesselEditor(savedVesselId = id, archived = archived)
                         },
-                        alertKey = alert,
+                        alertKey = { alert },
                         rerunSetup = rerunSetup,
                     ),
                 )

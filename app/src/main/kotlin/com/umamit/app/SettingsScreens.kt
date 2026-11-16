@@ -59,7 +59,8 @@ internal class VesselEditorHost(
  *   [openVesselResumedOnly] (D-090).
  * @property addVessel *Neues Gefäß* on *Teegeschirr*; acts only while the list is resumed.
  * @property closeVesselEditor closes the vessel editor with its result (`NavController.closeVesselEditor`).
- * @property alertKey the alert playing now, or null: no dialog of these screens stays over it (rule 8).
+ * @property alertKey the alert playing now, or null: no dialog of these screens stays over it (rule 8). It is read in
+ *   each screen's content, so a new alert reaches the screen whatever the graph's lifetime.
  * @property scrollToTopRequest the tab's re-select request for the settings (03 §2.2); 0 above the timer.
  * @property rerunSetup *Einrichtung erneut zeigen* on *Über* (ONB-04).
  */
@@ -70,7 +71,7 @@ internal class SettingsNav(
     val openVesselResumedOnly: Boolean,
     val addVessel: () -> Unit,
     val closeVesselEditor: (savedVesselId: String?, archived: ArchivedVessel?) -> Unit,
-    val alertKey: String?,
+    val alertKey: () -> String?,
     val scrollToTopRequest: Int = 0,
     val rerunSetup: () -> Unit,
 )

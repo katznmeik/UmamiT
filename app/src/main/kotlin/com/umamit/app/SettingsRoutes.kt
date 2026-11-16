@@ -14,7 +14,7 @@ internal inline fun <reified S : Any> NavGraphBuilder.settingsRoutes(settings: S
             SettingsHost(
                 onBack = dropUnlessResumed(block = nav.back),
                 onOpenAbout = { nav.open(AboutRoute) },
-                alertKey = nav.alertKey,
+                alertKey = nav.alertKey(),
                 scrollToTopRequest = nav.scrollToTopRequest,
                 onOpenTeaware = dropUnlessResumed { nav.open(TeawareRoute) },
             ),
@@ -47,7 +47,7 @@ internal inline fun <reified S : Any> NavGraphBuilder.settingsRoutes(settings: S
                 onClose = dropUnlessResumed(block = nav.back),
                 onSave = { id -> nav.closeVesselEditor(id, null) },
                 onArchive = { archived -> nav.closeVesselEditor(null, archived) },
-                alertKey = nav.alertKey,
+                alertKey = nav.alertKey(),
             ),
         )
     }

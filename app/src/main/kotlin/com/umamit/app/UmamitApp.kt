@@ -819,7 +819,7 @@ private fun TabHost(
                 closeVesselEditor = { id, archived ->
                     navController.closeVesselEditor(savedVesselId = id, archived = archived)
                 },
-                alertKey = alertKey,
+                alertKey = { alertKey },
                 scrollToTopRequest = scrollToTopRequest,
                 rerunSetup = settings.onRerunSetup,
             ),
