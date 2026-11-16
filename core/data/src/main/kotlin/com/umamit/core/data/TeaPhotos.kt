@@ -116,15 +116,7 @@ class RoomTeaPhotos @Inject constructor(
         val dao = db.teaDao()
         val now = time.nowMs()
         val position = dao.maxPhotoPosition(teaId)?.plus(1) ?: 0
-        val row = Photo(
-            id = id,
-            owner = PhotoOwner.OfTea(teaId),
-            origin = PhotoOrigin.OWN,
-            widthPx = photo.width,
-            heightPx = photo.height,
-            byteSize = photo.bytes.size.toLong(),
-            position = position,
-        )
+        val row = photo.toPhoto(id, PhotoOwner.OfTea(teaId), PhotoOrigin.OWN, position)
         dao.upsertPhoto(row.toEntity(createdAt = now, updatedAt = now))
         if (dao.get(teaId)?.coverPhotoId == null) dao.setCoverPhoto(teaId, id, now)
         return AddPhotoResult.Added(id)

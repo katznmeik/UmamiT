@@ -83,15 +83,8 @@ class RoomSessionPhotos internal constructor(
     private suspend fun insert(sessionId: String, id: String, photo: EncodedPhoto): AddPhotoResult {
         val dao = db.sessionPhotoDao()
         val now = time.nowMs()
-        val row = Photo(
-            id = id,
-            owner = PhotoOwner.OfSession(sessionId),
-            origin = PhotoOrigin.OWN,
-            widthPx = photo.width,
-            heightPx = photo.height,
-            byteSize = photo.bytes.size.toLong(),
-            position = dao.maxPosition(sessionId)?.plus(1) ?: 0,
-        )
+        val position = dao.maxPosition(sessionId)?.plus(1) ?: 0
+        val row = photo.toPhoto(id, PhotoOwner.OfSession(sessionId), PhotoOrigin.OWN, position)
         dao.insert(row.toEntity(createdAt = now, updatedAt = now))
         return AddPhotoResult.Added(id)
     }

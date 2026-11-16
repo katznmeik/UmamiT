@@ -6,20 +6,20 @@ import com.umamit.core.catalog.parser.CollectionFields
 import com.umamit.core.catalog.parser.ShopScale
 import com.umamit.core.catalog.parser.StyleMapper
 import com.umamit.core.common.WallClock
+import com.umamit.core.data.CoverFile
 import com.umamit.core.data.PhotoFiles
-import com.umamit.core.data.PhotoTranscoder
 import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.data.coverCopy
 import com.umamit.core.data.purchaseEvent
+import com.umamit.core.data.saveCover
+import com.umamit.core.data.withCoverFile
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
-import com.umamit.core.model.Photo
-import com.umamit.core.model.PhotoOrigin
-import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.Tea
 import dagger.Binds
 import dagger.Module
@@ -120,44 +120,24 @@ class RoomAddFromCatalog @Inject constructor(
     }
 
     /** The catalog photo as the collection's JPEG (D-076), or null without a usable photo. */
-    private suspend fun cover(entry: CatalogTeaEntity): CoverCopy? {
-        val bytes = entry.photoFile?.let {
-            withContext(Dispatchers.IO) {
-                try {
-                    catalogPhotos.photo(entry.key).takeIf { it.isFile }?.readBytes()
-                } catch (_: IOException) {
-                    null
-                }
-            }
-        }
-        val photo = bytes?.let { withContext(Dispatchers.Default) { PhotoTranscoder.transcodeCatalogCopy(it) } }
-        return photo?.let { CoverCopy(UUID.randomUUID().toString(), it.bytes, it.width, it.height) }
-    }
+    private suspend fun cover(entry: CatalogTeaEntity): CoverFile? = catalogPhotos.coverCopy(entry)?.let(::CoverFile)
 
     private suspend fun write(
         entry: CatalogTeaEntity,
         purchase: CatalogPurchase,
-        cover: CoverCopy?,
-    ): AddFromCatalogResult {
-        cover?.let { photoFiles.write(it.id, it.bytes) }
-        var result: AddFromCatalogResult = AddFromCatalogResult.Failed
-        try {
-            result = db.withTransaction {
-                // The tea leaves the Merkliste with the add, in its transaction: a failed add keeps the mark (CAT-18).
-                db.catalogBookmarkDao().delete(entry.key)
-                // Read again inside the transaction: a tea added meanwhile turns this into a repurchase.
-                val owner = db.teaDao().idByCatalogKey(entry.key)
-                if (owner != null) {
-                    repurchase(owner, purchase)
-                } else {
-                    AddFromCatalogResult.Added(copy(entry, purchase, cover))
-                }
+        cover: CoverFile?,
+    ): AddFromCatalogResult = photoFiles.withCoverFile(cover, kept = { it is AddFromCatalogResult.Added }) {
+        db.withTransaction {
+            // The tea leaves the Merkliste with the add, in its transaction: a failed add keeps the mark (CAT-18).
+            db.catalogBookmarkDao().delete(entry.key)
+            // Read again inside the transaction: a tea added meanwhile turns this into a repurchase.
+            val owner = db.teaDao().idByCatalogKey(entry.key)
+            if (owner != null) {
+                repurchase(owner, purchase)
+            } else {
+                AddFromCatalogResult.Added(copy(entry, purchase, cover))
             }
-        } finally {
-            val coverStored = result is AddFromCatalogResult.Added && cover != null
-            if (cover != null && !coverStored) photoFiles.delete(cover.id)
         }
-        return result
     }
 
     private suspend fun repurchase(teaId: String, purchase: CatalogPurchase): AddFromCatalogResult {
@@ -168,7 +148,7 @@ class RoomAddFromCatalog @Inject constructor(
     }
 
     /** Writes the collection copy of [entry] and returns its id. */
-    private suspend fun copy(entry: CatalogTeaEntity, purchase: CatalogPurchase, cover: CoverCopy?): String {
+    private suspend fun copy(entry: CatalogTeaEntity, purchase: CatalogPurchase, cover: CoverFile?): String {
         val teaId = UUID.randomUUID().toString()
         val tea = entry.toTea(teaId)
         // Saving a recipe clears „Rezept prüfen" (TEA-17), so the tea's reason is written after its recipes.
@@ -178,19 +158,7 @@ class RoomAddFromCatalog @Inject constructor(
         }
         if (tea.recipeCheckReason != null) teas.saveTea(tea)
         stock.addEvent(event(teaId, InventoryEventType.INITIAL, purchase))
-        if (cover != null) {
-            teas.savePhoto(
-                Photo(
-                    id = cover.id,
-                    owner = PhotoOwner.OfTea(teaId),
-                    origin = PhotoOrigin.CATALOG_COPY,
-                    widthPx = cover.width,
-                    heightPx = cover.height,
-                    byteSize = cover.bytes.size.toLong(),
-                ),
-            )
-            teas.setCoverPhoto(teaId, cover.id)
-        }
+        if (cover != null) teas.saveCover(teaId, cover)
         return teaId
     }
 
@@ -233,9 +201,6 @@ class RoomAddFromCatalog @Inject constructor(
     /** The stock event of [purchase] ([purchaseEvent]: bought today, now; on another day, that day at noon). */
     private fun event(teaId: String, type: InventoryEventType, purchase: CatalogPurchase): InventoryEvent =
         purchaseEvent(teaId, type, purchase.grams, purchase.priceCents, purchase.purchasedOn, time)
-
-    /** A catalog photo re-encoded for the collection, written as `photos/<id>.jpg`. */
-    private class CoverCopy(val id: String, val bytes: ByteArray, val width: Int, val height: Int)
 
     private companion object {
         /** The default vendor of catalog teas (TEA-02). */

@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.withTransaction
 import com.umamit.core.common.WallClock
 import com.umamit.core.database.UmamiDatabase
-import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import dagger.Binds
@@ -82,14 +81,7 @@ class RoomVesselPhotos @Inject constructor(
         check(dao.get(vesselId) != null) { "vessel $vesselId is gone" }
         val now = time.nowMs()
         val former = dao.photoIds(vesselId)
-        val row = Photo(
-            id = id,
-            owner = PhotoOwner.OfVessel(vesselId),
-            origin = PhotoOrigin.OWN,
-            widthPx = photo.width,
-            heightPx = photo.height,
-            byteSize = photo.bytes.size.toLong(),
-        )
+        val row = photo.toPhoto(id, PhotoOwner.OfVessel(vesselId), PhotoOrigin.OWN)
         dao.upsertPhoto(row.toEntity(createdAt = now, updatedAt = now))
         dao.setCoverPhoto(vesselId, id, now)
         dao.deletePhotosExcept(vesselId, keepId = id)
