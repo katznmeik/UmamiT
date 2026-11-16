@@ -11,7 +11,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
-import kotlin.math.roundToLong
 
 /**
  * The figures of the Statistik screen (02 §12, INS-01–INS-07, D-115 and its Amendment 1), one function per tab.
@@ -114,10 +113,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
 
     private fun costPerLiter(inRange: List<DatedSession>): LiterAverage? {
         val priced = inRange.filter { it.session.costCents != null && it.volumeMl > 0 }
-        if (priced.isEmpty()) return null
-        val cents = priced.sumOf { it.session.costCents ?: 0L }
-        val ml = priced.sumOf { it.volumeMl }
-        return LiterAverage(literCents = (cents * ML_PER_LITER / ml).roundToLong(), sessionCount = priced.size)
+        return LiterAverage.of(priced.sumOf { it.session.costCents ?: 0L }, priced.sumOf { it.volumeMl }, priced.size)
     }
 
     private fun runningOut(): List<RunningOutTea> = input.teas
@@ -130,10 +126,6 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
         .map { RunningOutTea(it.id, it.name, it.remainingGrams, it.stockLevel, it.coverPhoto, it.styleKey) }
 
     private class DatedPrice(val day: LocalDate, val cents: Long)
-
-    private companion object {
-        const val ML_PER_LITER = 1000.0
-    }
 }
 
 /** A session with its day and local start time in its own zone, and its volume in ml. */
