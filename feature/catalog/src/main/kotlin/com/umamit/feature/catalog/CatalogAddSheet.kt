@@ -15,8 +15,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -24,11 +22,8 @@ import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,10 +44,9 @@ import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.PastDatePickerDialog
 import com.umamit.core.ui.rememberExpandedSheetState
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 /** The add sheet (SCR-23). */
 const val CATALOG_ADD_SHEET_TAG = "catalog_add_sheet"
@@ -272,7 +266,6 @@ private fun Price(state: AddSheetState, onPriceChange: (String) -> Unit) {
 }
 
 /** *Kaufdatum* with Material's date picker; never after today. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ColumnScope.PurchaseDate(state: AddSheetState, onDateChange: (LocalDate) -> Unit) {
     var picking by rememberSaveable { mutableStateOf(false) }
@@ -286,35 +279,13 @@ private fun ColumnScope.PurchaseDate(state: AddSheetState, onDateChange: (LocalD
         Text(GermanFormat.day(state.date))
     }
     if (picking) {
-        val todayMillis = state.today.utcMillis()
-        val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = state.date.utcMillis(),
-            selectableDates = object : SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis <= todayMillis
-
-                override fun isSelectableYear(year: Int): Boolean = year <= state.today.year
-            },
+        PastDatePickerDialog(
+            initial = state.date,
+            latest = state.today,
+            confirmLabel = stringResource(R.string.catalog_add_date_ok),
+            cancelLabel = stringResource(R.string.catalog_add_date_cancel),
+            onPick = onDateChange,
+            onDismiss = { picking = false },
         )
-        DatePickerDialog(
-            onDismissRequest = { picking = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        pickerState.selectedDateMillis?.let { onDateChange(it.utcDate()) }
-                        picking = false
-                    },
-                ) { Text(stringResource(R.string.catalog_add_date_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { picking = false }) { Text(stringResource(R.string.catalog_add_date_cancel)) }
-            },
-        ) {
-            DatePicker(state = pickerState)
-        }
     }
 }
-
-/** Material's date picker counts days as UTC midnights. */
-private fun LocalDate.utcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-
-private fun Long.utcDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
