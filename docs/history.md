@@ -11,6 +11,10 @@
 
 ## Releases and plans
 
+### v0.7.2: #307 done (2026-11-16)
+
+- **Execution part 2 (Opus `medium` orchestrator, `/implement-spec #296`):** #307's 12 steps on #312, head `fb3ab5e8`, by seven T3 implementers (Opus `medium`, at most two at a time; D-123 beside D-125 step 4, since D-123 and D-124 share `CatalogScreen.kt`). D-123 `teaTypePlaceholderColor`, `openInBrowser`, `PastDatePickerDialog` in `core:ui`; D-124 `TeaLinkHolder` (`TooManyFunctions` suppression kept: 12 functions); D-125 `NavOnTop.kt` (eight sites, `UmamitApp.kt:588` untouched), `settingsRoutes<S>` with `SettingsNav` (two deviations from the design: an `openVesselResumedOnly` flag, because `resumedOnly` is composable and needs the destination's lifecycle; `SettingsNav` sits in `SettingsScreens.kt` for Detekt's `MatchingDeclarationName`), tab then root graph; D-121 `CatalogRowMappers.kt`, `CatalogRefreshFailureText.kt`, `CatalogRefreshRun.kt` (`MAX_LISTED` moved with the run; moved blocks diffed against the old file); D-122 `FakeShop.kt` and `catalogRefresher(…)`, 13 of 14 classes moved (`CatalogRefreshRunnerTest` keeps its latch dispatcher), `:core:data` 656 tests before and after, no assertion line changed. Proof: fence and fenced `app`/data files untouched, no golden, schema, string, DataStore key or 06 change. CI runs on the PR are cancelled by each new push, so only the head is gated. Usage: orchestrator 79 requests, 14.6 M cache read, 0.18 M cache write, 35 k output; seven implementers 191 requests, 19.3 M cache read, 1.15 M cache write, 114 k output (summed from the transcripts).
+
 ### v0.7.2: #305 and #306 done (2026-11-16)
 
 - **Execution part 1 (Opus `medium` orchestrator, `/implement-spec #296`):** #305 (5 deletions; DAT-A-03 moved to #308, DAT-A-05's DAO query too) and #306 (all 26 simplifications, in three batches: low data/catalog T3, UI T2, medium/high data/catalog T3) on #312, head `2cab854f`. Fenced remainders of DAT-A-09, -11, -15 routed to #308. Proof after each batch: fence empty, golden digest `cbe41c94…` unchanged, schemas frozen, DataStore unchanged, `strings.xml` lost only the 19 unused refresh copies (checked byte-identical), no test weakened. Usage: 112 orchestrator requests, 22.0 M cache read, 65 k output; implementers about 0.89 M tokens.
@@ -634,6 +638,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-16 | **v0.7.2 session 9 (execution part 2):** #307's 12 steps (D-121 – D-125) by seven T3 implementers, verified per step (diff, fence, proof), CI green on `fb3ab5e8`. Next: #308 on its own (Opus `medium` orchestrator). |
 | 2026-11-16 | **v0.7.2 session 7:** restructuring design #304 (Fable 5.2 `medium`): `docs/plans/v0.7.2-restructuring.md`, the PO approved variant A of all seven designs (recorded in D-121 – D-127), 06 unchanged, steps in #307 and #308, pushed to draft PR #312. Next: the execution, #305 first (Opus `medium` orchestrator). |
 | 2026-11-16 | **v0.7.2 session 6:** triage #303 with the PO (Opus `medium`): all 60 findings picked, D-121 – D-127 for the seven restructurings, #304–#308 bodies updated, pushed to draft PR #312. Next: restructuring design #304 (Fable 5.2 `medium`). |
 | 2026-11-16 | **v0.7.2 session 5:** UI audit #302 (Opus `medium`, full scope), `docs/plans/v0.7.2-audit-ui.md` (15 findings UI-A-01 … 15: settings routes twice, request holders, undo snackbar and date picker three times each, the editors' input rules, the session-zone fallback six times; brew parts marked for #308; no code change), pushed to draft PR #312. Next: triage #303 with the PO (Opus `medium`). |
