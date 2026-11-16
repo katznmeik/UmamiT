@@ -21,7 +21,6 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.dao.CatalogTeaState
-import com.umamit.core.database.entity.CatalogImageFailureReason
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
@@ -30,7 +29,6 @@ import com.umamit.core.database.entity.CatalogSkipReason
 import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
-import com.umamit.core.network.BodyLimit
 import com.umamit.core.network.NetworkRetry
 import com.umamit.core.network.ShopClient
 import com.umamit.core.network.ShopFetch
@@ -776,11 +774,7 @@ class CatalogRefresher(
                 }
             }
             // The next photo is fetched while this one is re-encoded and written (D-091).
-            fetchOverlapped(
-                items = toFetch,
-                fetch = { (_, photoUrl) -> client.allowedUrl(photoUrl)?.let { session.fetch(it, BodyLimit.IMAGE) } },
-                isLast = { it is ShopFetch.Stopped },
-            ) { (key, photoUrl), answer ->
+            fetchImagesOverlapped(session, client, toFetch, url = { it.second }) { (key, photoUrl), answer ->
                 if (storePhoto(key, photoUrl, answer)) {
                     run.photosWritten += key
                     run.photosStored++
@@ -810,31 +804,18 @@ class CatalogRefresher(
          * never fetched); false when there is none to store. A photo too large or unreadable
          * failed for good (D-091).
          */
-        private suspend fun storePhoto(key: String, photoUrl: String, answer: ShopFetch?): Boolean = when (answer) {
-            null -> false
-
-            is ShopFetch.Fetched -> {
-                val photo = withContext(parseDispatcher) { PhotoTranscoder.transcodeForCatalog(answer.body) }
-                if (photo != null) {
-                    withContext(fileDispatcher) { photos.write(key, photo.full.bytes, photo.thumbnail.bytes) }
-                } else {
-                    run.imageFailures.failed(photoUrl, CatalogImageFailureReason.UNREADABLE)
-                }
-                photo != null
-            }
-
-            is ShopFetch.Stopped -> run.stop(answer.cause, requireNotNull(client.allowedUrl(photoUrl)).encodedPath)
-
-            // Never sent (robots.txt) or gone: only this tea is left without a new photo.
-            ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
-
-            // Over the image limit: only this tea is left without a new photo, no stop (D-090, D-091).
-            is ShopFetch.TooLarge -> {
-                log("catalog refresh: ${answer.line(requireNotNull(client.allowedUrl(photoUrl)))}")
-                run.imageFailures.failed(photoUrl, CatalogImageFailureReason.TOO_LARGE)
-                false
-            }
-        }
+        private suspend fun storePhoto(key: String, photoUrl: String, answer: ShopFetch?): Boolean =
+            answer.storeImageAnswer(
+                url = { requireNotNull(client.allowedUrl(photoUrl)) },
+                store = { body ->
+                    val photo = withContext(parseDispatcher) { PhotoTranscoder.transcodeForCatalog(body) }
+                    photo?.let { withContext(fileDispatcher) { photos.write(key, it.full.bytes, it.thumbnail.bytes) } }
+                    photo != null
+                },
+                failed = { run.imageFailures.failed(photoUrl, it) },
+                stop = { cause, where -> run.stop(cause, where) },
+                log = { log(it) },
+            )
 
         /** The guides (CAT-09, D-087): staged for the swap; read after the photos, each counted in the progress. */
         private suspend fun storeGuides(session: ShopSession, urls: List<String>) {
