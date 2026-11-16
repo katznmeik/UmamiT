@@ -4,25 +4,23 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticGuide
 import com.umamit.core.catalog.parser.SyntheticShop
+import com.umamit.core.data.catalog.FakeShop.Companion.ROBOTS
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP
+import com.umamit.core.data.catalog.FakeShop.Companion.text
 import com.umamit.core.data.decodedSize
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.data.syntheticJpeg
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.model.GuideBlock
 import com.umamit.core.model.GuideInline
-import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
-import mockwebserver3.MockWebServer
-import mockwebserver3.RecordedRequest
 import okio.Buffer
 import org.junit.After
 import org.junit.Before
@@ -33,7 +31,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * The refresh's *Tee-Info* guides against a simulated shop (#76; CAT-09, 08 §2.7, D-087):
@@ -51,7 +48,7 @@ class CatalogRefresherGuidesTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private val server = MockWebServer()
+    private val shop = FakeShop()
     private val db = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CatalogDatabase::class.java)
         .allowMainThreadQueries()
@@ -61,22 +58,16 @@ class CatalogRefresherGuidesTest {
     private val settings = FakeSettingsRepository()
     private lateinit var photos: CatalogPhotoFiles
 
-    private val routes = mutableMapOf<String, () -> MockResponse>()
-    private val requests = CopyOnWriteArrayList<RecordedRequest>()
+    private val routes get() = shop.routes
+    private val requests get() = shop.requests
     private val listed = mutableListOf(SENCHA, SENCHA_GUIDE, MATCHA_GUIDE, BLACK_TEA_GUIDE)
-    private val base get() = server.url("/").toString().removeSuffix("/")
+    private val base get() = shop.base
 
     @Before
     fun setUp() {
         photos = CatalogPhotoFiles(folder.newFolder("catalog"))
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                requests += request
-                return routes[request.url.encodedPath]?.invoke() ?: MockResponse.Builder().code(404).build()
-            }
-        }
-        server.start()
-        routes[ROBOTS] = { text(SyntheticShop.robotsTxt()) }
+        shop.start()
+        // This shop's sitemap is the url set itself, not an index.
         routes[SITEMAP] = { text(SyntheticShop.urlSet(listed.map { "$base$it" })) }
         routes[SENCHA] = {
             text(
@@ -107,7 +98,7 @@ class CatalogRefresherGuidesTest {
 
     @After
     fun tearDown() {
-        server.close()
+        shop.close()
         db.close()
     }
 
@@ -122,14 +113,13 @@ class CatalogRefresherGuidesTest {
         bodyBlock = bodyBlock,
     )
 
-    private fun refresher(limits: GuideLimits = GuideLimits.DEFAULT) = CatalogRefresher(
-        client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+    private fun refresher(limits: GuideLimits = GuideLimits.DEFAULT) = catalogRefresher(
+        shop = shop,
         dao = dao,
         clock = clock,
         diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
         settings = settings,
         photos = photos,
-        sanity = SanityCheck(firstImportMinimum = 1),
         guideLimits = limits,
     )
 
@@ -138,7 +128,7 @@ class CatalogRefresherGuidesTest {
 
     private fun repository() = RoomGuideRepository(dao, photos)
 
-    private fun paths() = requests.map { it.url.encodedPath }
+    private fun paths() = shop.paths()
 
     @Test
     fun theSelectedGuidesAreStoredWithTheirImagesAndInAppLinks() = runTest {
@@ -338,15 +328,10 @@ class CatalogRefresherGuidesTest {
 
     private fun imageRoute(name: String) = SyntheticGuide.imagePath(name).substringBefore('?')
 
-    private fun text(body: String) =
-        MockResponse.Builder().addHeader("Content-Type", "text/html; charset=utf-8").body(body).build()
-
     private fun jpeg(bytes: ByteArray) =
         MockResponse.Builder().addHeader("Content-Type", "image/jpeg").body(Buffer().write(bytes)).build()
 
     private companion object {
-        const val ROBOTS = "/robots.txt"
-        const val SITEMAP = "/sitemap.xml"
         const val SENCHA = "/morgennebel-sencha/XY0100"
         const val SENCHA_GUIDE = "/tee-info/ein-guide-fuer-sencha"
         const val MATCHA_GUIDE = "/tee-info/matcha-erklaert"

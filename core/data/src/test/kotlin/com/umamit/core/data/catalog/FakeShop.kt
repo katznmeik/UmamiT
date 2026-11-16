@@ -8,6 +8,8 @@ import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeSettingsRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
@@ -72,7 +74,7 @@ class FakeShop {
 /**
  * A [CatalogRefresher] against [shop] with the refresh tests' defaults: no request gap (the rate
  * limit has its own tests; [requestIntervalMillis] `null` is the real one), the first import's
- * minimum of one tea, and the main constructor's defaults for what a class does not vary.
+ * minimum of one tea ([sanity]), and the main constructor's defaults for what a class does not vary.
  */
 @Suppress("LongParameterList")
 fun catalogRefresher(
@@ -87,6 +89,10 @@ fun catalogRefresher(
     bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE,
     socketFactory: SocketFactory = SocketFactory.getDefault(),
     requestIntervalMillis: Long? = 0,
+    sanity: SanityCheck = SanityCheck(firstImportMinimum = 1),
+    parseDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    guideLimits: GuideLimits = GuideLimits.DEFAULT,
+    jobs: CatalogJobs = CatalogJobs(),
 ) = CatalogRefresher(
     client = ShopClient.forTesting(
         baseUrl = shop.url,
@@ -98,8 +104,11 @@ fun catalogRefresher(
     diagnostics = diagnostics,
     settings = settings,
     photos = photos,
-    sanity = SanityCheck(firstImportMinimum = 1),
+    sanity = sanity,
+    parseDispatcher = parseDispatcher,
     owned = owned,
     seedTeas = seedTeas,
+    guideLimits = guideLimits,
+    jobs = jobs,
     bookmarks = bookmarks,
 )
