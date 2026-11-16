@@ -35,13 +35,13 @@ import com.umamit.core.testing.FakeTimerService
 import com.umamit.core.testing.FakeTimerWakeUp
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.BrewStart
+import com.umamit.core.timer.controller.ControllerBrewStarter
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerPorts
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.send
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TimerEvent
-import com.umamit.feature.brew.timer.ControllerBrewTimer
 import com.umamit.feature.home.HomeEvent
 import com.umamit.feature.home.HomeViewModel
 import kotlinx.coroutines.Job
@@ -61,7 +61,7 @@ import java.io.File
 /**
  * Start on the real controller (#47 hand-off, #48; BRW-11, TMR-01): *Nochmal brühen* on Start
  * starts the tea's last session again through the app's `BrewStarter` binding (the controller
- * behind `ControllerBrewTimer`), and the brew waits in READY. Real engine, controller, Room
+ * behind `ControllerBrewStarter`), and the brew waits in READY. Real engine, controller, Room
  * repositories and Start's view model; fakes only at the controller's ports.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -146,7 +146,7 @@ class BrewAgainOnControllerTest {
                 HomeViewModel(
                     teas,
                     sessions,
-                    ControllerBrewTimer(controller),
+                    ControllerBrewStarter(controller),
                     clock,
                     PhotoFiles(File(context.cacheDir, "photos")),
                     FakeTimerReliability(),

@@ -32,6 +32,7 @@ import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.testing.FakeTimerService
 import com.umamit.core.testing.FakeTimerWakeUp
 import com.umamit.core.timer.controller.BrewSessionController
+import com.umamit.core.timer.controller.ControllerBrewStarter
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerPorts
 import com.umamit.core.timer.controller.TimerUiState
@@ -54,10 +55,11 @@ import org.robolectric.annotation.Config
 /**
  * SCR-07's *Start* through the app's seams to the timer screen (TMR-22, SCR-05, D-097 point 5, #109): the real
  * [QuickTimerViewModel] starts the quick timer on the real controller (Room, fakes at its ports) behind
- * [ControllerBrewTimer], and the timer route shows it. With the global *Vorwarnung* 10 s, a 2:00 quick timer has
- * its mark at 0:10 on the ring, its tick at 0:10 left and the caption „Gleich fertig …". On the code of v0.2.1
- * this passes: it did not reproduce the PO's silent pre-alert. From v0.2.2 SCR-07's *Vorwarnung* choice reaches the
- * timer the same way (#116). From v0.6.1 the 10:00 and 15:00 chips keep their pre-alert too (D-114, #241).
+ * [ControllerBrewStarter], and the timer route shows it behind [ControllerBrewTimer]. With the global *Vorwarnung*
+ * 10 s, a 2:00 quick timer has its mark at 0:10 on the ring, its tick at 0:10 left and the caption „Gleich fertig
+ * …". On the code of v0.2.1 this passes: it did not reproduce the PO's silent pre-alert. From v0.2.2 SCR-07's
+ * *Vorwarnung* choice reaches the timer the same way (#116). From v0.6.1 the 10:00 and 15:00 chips keep their
+ * pre-alert too (D-114, #241).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -92,13 +94,14 @@ class QuickTimerPreAlertFlowTest {
         ),
     )
     private val timer = ControllerBrewTimer(controller)
+    private val starter = ControllerBrewStarter(controller)
 
     @After
     fun tearDown() = db.close()
 
     @Test
     fun `a 2_00 quick timer started on SCR-07 shows its mark and warns at 0_10 on the timer screen`() {
-        val quick = QuickTimerViewModel(SavedStateHandle(), timer, settings)
+        val quick = QuickTimerViewModel(SavedStateHandle(), starter, settings)
         quick.select(120)
         quick.start()
         awaitActive()
@@ -119,7 +122,7 @@ class QuickTimerPreAlertFlowTest {
 
     @Test
     fun `a 2_00 quick timer with Vorwarnung 20 s on SCR-07 shows its mark and warns at 0_20 (D-097)`() {
-        val quick = QuickTimerViewModel(SavedStateHandle(), timer, settings)
+        val quick = QuickTimerViewModel(SavedStateHandle(), starter, settings)
         quick.select(120)
         quick.selectPreAlert(PreAlertChoice.Seconds(20))
         quick.start()
@@ -144,7 +147,7 @@ class QuickTimerPreAlertFlowTest {
     @Test
     fun `a 10_00 quick timer from its chip shows its mark and warns at 0_10, not before (TMR-18, D-114)`() {
         assertThat(QuickDuration.CHIPS).contains(600)
-        val quick = QuickTimerViewModel(SavedStateHandle(), timer, settings)
+        val quick = QuickTimerViewModel(SavedStateHandle(), starter, settings)
         quick.select(600)
         quick.start()
         awaitActive()
@@ -170,7 +173,7 @@ class QuickTimerPreAlertFlowTest {
     @Test
     fun `a 15_00 quick timer from its chip with Vorwarnung 20 s warns at 0_20 (TMR-18, D-114)`() {
         assertThat(QuickDuration.CHIPS).contains(900)
-        val quick = QuickTimerViewModel(SavedStateHandle(), timer, settings)
+        val quick = QuickTimerViewModel(SavedStateHandle(), starter, settings)
         quick.select(900)
         quick.selectPreAlert(PreAlertChoice.Seconds(20))
         quick.start()

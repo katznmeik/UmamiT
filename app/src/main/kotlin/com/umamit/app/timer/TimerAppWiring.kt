@@ -13,6 +13,7 @@ import com.umamit.core.designsystem.theme.DefaultExtendedColors
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
+import com.umamit.core.timer.controller.ControllerBrewStarter
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -52,12 +53,11 @@ object TimerAppModule {
     fun brewTimer(impl: ControllerBrewTimer): BrewTimer = impl
 
     /**
-     * Start and the setup (M1-13) start brews through the same object as the timer, so this follows the
-     * `brewTimer` binding: the controller ([ControllerBrewTimer]) since #47.
+     * Start, the setup and the quick timer (M1-13) start brews on the same controller as the timer:
+     * [ControllerBrewStarter], like [ControllerBrewTimer] a stateless front of the one controller.
      */
     @Provides
-    fun brewStarter(timer: BrewTimer): BrewStarter =
-        checkNotNull(timer as? BrewStarter) { "the bound BrewTimer must also start brews (BrewStarter)" }
+    fun brewStarter(impl: ControllerBrewStarter): BrewStarter = impl
 }
 
 /** The window flags of the timer (SCR-05, TMR-06). */
