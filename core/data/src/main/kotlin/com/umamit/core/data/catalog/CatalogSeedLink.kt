@@ -114,7 +114,7 @@ class RoomCatalogSeedLinker @Inject constructor(
     /** Gives [tea] what [todo] asks for and the catalog has; returns its catalog key when it wrote. */
     private suspend fun link(tea: Tea, todo: Set<Part>): String? {
         val entry = tea.catalogKey?.let { catalog.tea(it) } ?: return null
-        val description = entry.descriptionText?.takeIf { it.isNotBlank() }?.take(DESCRIPTION_MAX)
+        val description = entry.descriptionText?.takeIf { it.isNotBlank() }?.take(CatalogDerivation.DESCRIPTION_MAX)
             ?.takeIf { Part.DESCRIPTION in todo && tea.description.isNullOrBlank() }
         val cover = if (Part.COVER in todo && tea.coverPhotoId == null) cover(entry) else null
         // Once the photo is re-encoded, file and rows are written without interruption.
@@ -191,8 +191,5 @@ class RoomCatalogSeedLinker @Inject constructor(
 
     private companion object {
         val SEED_TEA_IDS = listOf(SeedData.TANABATA_TEA_ID, SeedData.HISUI_TEA_ID)
-
-        /** 05 §3.1's limit of `tea.description`. */
-        const val DESCRIPTION_MAX = 10_000
     }
 }
