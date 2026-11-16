@@ -5,19 +5,19 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-16 (v0.7.2 session 3, the data audit). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The PO approved the v0.7.2 plan and tickets (`docs/plans/v0.7.2.md`, spec #296, #297–#310; D-119, D-120). **Step 1 is done** (`docs/plans/v0.7.2-evidence.md`). **The catalog audit (#298) and the data audit (#300) are done:** `docs/plans/v0.7.2-audit-catalog.md` (CAT-A-01 … CAT-A-15) and `docs/plans/v0.7.2-audit-data.md` (DAT-A-01 … DAT-A-15), no code change, both on the draft milestone PR [#312](https://github.com/katznmeik/UmamiT/pull/312). **#299 answered (2026-11-16):** the PO keeps all three remaining audits as planned (D-119 build note „Remaining audits"). **Next:** session 4, the timer-path audit (#301).
+**Last updated:** 2026-11-16 (v0.7.2 session 4, the timer-path audit). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The PO approved the v0.7.2 plan and tickets (`docs/plans/v0.7.2.md`, spec #296, #297–#310; D-119, D-120). **Step 1 is done** (`docs/plans/v0.7.2-evidence.md`). **The catalog (#298), data (#300) and timer-path (#301) audits are done:** `docs/plans/v0.7.2-audit-catalog.md` (CAT-A-01 … 15), `v0.7.2-audit-data.md` (DAT-A-01 … 15) and `v0.7.2-audit-timer.md` (TMR-A-01 … 15), no code change, all on the draft milestone PR [#312](https://github.com/katznmeik/UmamiT/pull/312). **#299 answered (2026-11-16):** the PO keeps all three remaining audits as planned (D-119 build note „Remaining audits"). **Next:** session 5, the UI audit (#302).
 
-## Next: v0.7.2 session 4, the timer-path audit (#301)
+## Next: v0.7.2 session 5, the UI audit (#302)
 
-- **Model:** Fable 5.2 `medium` (T4-F), the audit in the session itself (no subagents). Branch `claude/wonderful-davinci-fu8tqi`, draft PR #312.
-- **Order (#299, PO 2026-11-16):** session 4 timer path (#301, Fable 5.2 `medium`), session 5 UI (#302, Opus `medium`), then the triage (#303); one group per session and per 5-hour window.
-- **Input:** `docs/plans/v0.7.2-evidence.md` (candidates only), ticket #301, and the two audit files for their format, scope tables and overlaps. Output: `docs/plans/v0.7.2-audit-timer.md` (one table, about the top 15, plan „Step 2"), IDs `TMR-A-01` …; the session's usage noted at the end. No code change; stops with the file pushed.
-- **Session 3 facts to know:**
-  - The data audit read about 9 800 of the group's 16 296 main lines in full (its scope table says which files; KDoc was skipped). Not read in full by any audit: seven `core:data` `catalog/` files (≈ 620 lines), the guide reader and the data tables of `core:domain`, most of `core:model`, the entities and migrations.
-  - R8 found four members with no caller in the app (DAT-A-03, 04, 05, 12); the evidence lists stay candidates only.
-  - **Overlaps with the timer path:** DAT-A-14 (splitting `RoomSessionRepositories.kt`, which holds `RoomActiveBrewStore` and the session lifecycle) is the timer's persistence and belongs with #308; the `PlannedStep` builders (`core/data/src/test/.../TimerTestSupport.kt:103–107` and `core:timer-engine`'s copy, evidence §5) and `ActiveBrewDao.clear` (only `ControllerHarness:156`) were left to #301.
-  - **Other overlaps:** DAT-A-02 widens CAT-A-06 (one ticket); the spelled-out `WallClock.today()` in four view models is for the UI audit (#302).
-  - **Usage:** this session has no `explain-usage` command; the usage was summed from the transcript's per-request records (the audit file's last section says how).
+- **Model:** Opus `medium` (T3), the audit in the session itself (no subagents). Branch `claude/wonderful-davinci-fu8tqi`, draft PR #312.
+- **Order (#299, PO 2026-11-16):** session 5 UI (#302, Opus `medium`), then the triage (#303); one group per session and per 5-hour window.
+- **Input:** `docs/plans/v0.7.2-evidence.md` (candidates only), ticket #302, and the three audit files for their format, scope tables and overlaps. Output: `docs/plans/v0.7.2-audit-ui.md` (one table, about the top 15, plan „Step 2"), IDs `UI-A-01` …; the session's usage noted at the end. No code change; stops with the file pushed.
+- **Session 4 facts to know:**
+  - The timer-path audit read about 15 900 of the group's 17 915 main lines in full (all of `core:timer-engine` and `core:timer`, `feature:brew`'s logic and timer screen; KDoc was skipped). Read by structure only: six `feature:brew` screen files (`BrewSetupScreen`, `BrewSetupParts`, `QuickTimerScreen`, `StepsSheet`, `StepPreAlertSelector`, `TeaPickerSheet`, 2 040 lines). They are layout and no other audit has read them: the UI audit should.
+  - **The #308 fence** is named in the audit file („The app's timer wiring, for the #308 fence"): eight `app` files, the timer's persistence and model files in `core:data`, `core:database`, `core:model`, `core:common`, and `FakeBrewStarter`. Every timer finding runs in #308.
+  - **Overlaps with the UI group:** TMR-A-03 (the same `SheetState` and two constants in eight sheets; five are UI-group files: `core:ui` `StockSheet`, `CatalogRefreshSheet`, `TeaDetailPurchaseSheet`, `JournalFilterSheet`, `MonthsSheet`; one ticket) and TMR-A-04 (`HomeViewModel` holds the third copy of the start question). From the data audit: the spelled-out `WallClock.today()` in four view models.
+  - **Other overlaps:** TMR-A-06 goes with DAT-A-14 (the timer's store, #308); DAT-A-02 widens CAT-A-06 (one ticket).
+  - **Usage:** this environment has no `explain-usage` command; sessions 3 and 4 summed the transcript's per-request `usage` records (the audit files' last sections say how). Reading goes fastest with one script that strips comments and writes batches of about 40 KB, read several per turn.
 - **Group sizes (main lines):** catalog 13 668 as audited; data 16 296 as audited; timer path ≈ 17 800; UI ≈ 27 500; tests ≈ 94 000.
 
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
@@ -40,9 +40,9 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): approved by the PO (2026-11-15); step 1 done (evidence file), catalog and data audits done (2026-11-16; #299: all three remaining audits kept); the timer-path audit is next. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
+| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): approved by the PO (2026-11-15); step 1 done (evidence file), catalog, data and timer-path audits done (2026-11-16; #299: all three remaining audits kept); the UI audit is next. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `f0ffaf1a`; evidence and the catalog and data audit commits on top) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `f0ffaf1a`; evidence and the three audit commits on top) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | **[#312](https://github.com/katznmeik/UmamiT/pull/312)** (draft): the v0.7.2 milestone PR |
 | Latest APK | [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) (full release, versionCode 70199, from `main` `6192bff5`, certificate verified); rc [`v0.7.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.2) (pre-release, 70102, from `e57861e0`); rc [`v0.7.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.1) (pre-release, 70101, from `3fe102c0`); [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
@@ -62,7 +62,7 @@
 
 ## Waiting on the PO
 
-1. **Nothing until the triage (#303)** after the two remaining audits. Installing `v0.7.1` over rc.2 stays optional.
+1. **Nothing until the triage (#303)** after the UI audit. Installing `v0.7.1` over rc.2 stays optional.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.

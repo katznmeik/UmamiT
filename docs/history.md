@@ -618,6 +618,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-16 | **v0.7.2 session 4:** timer-path audit #301 (Fable 5.2 `medium`, full scope), `docs/plans/v0.7.2-audit-timer.md` (15 findings TMR-A-01 … 15: the dead `AlertPlayer` interface and factory, the pass-through `TimerSlotStore`, the start question in three view models, the sheet state eight times, the accuracy report in main sources; the app's timer wiring files named for the #308 fence; no code change), pushed to draft PR #312. Next: UI audit #302 (Opus `medium`). |
 | 2026-11-16 | **v0.7.2 session 3:** data audit #300 (Fable 5.2 `medium`, full scope), `docs/plans/v0.7.2-audit-data.md` (15 findings DAT-A-01 … 15, four of them deletions found through R8, no code change), pushed to draft PR #312. Next: timer-path audit #301 (Fable 5.2 `medium`). |
 | 2026-11-16 | **v0.7.2 session 2:** catalog audit #298, `docs/plans/v0.7.2-audit-catalog.md` (15 findings, no code change), pushed to draft PR #312; #299: the PO keeps all three remaining audits. Next: data audit #300 (Fable 5.2 `medium`). |
 | 2026-11-15 | **v0.7.2 step 1:** the PO approved the plan and tickets; relabelled #297–#310; evidence file `docs/plans/v0.7.2-evidence.md` (R8, Lint 0 unused, Dependency Analysis, largest files, fixtures, proof baseline); draft PR #312. Next: catalog audit #298 (Opus `medium`). |
