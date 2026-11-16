@@ -216,7 +216,7 @@ internal class CatalogGuides(
         // The next image is fetched while this one is re-encoded and written (D-091).
         fetchOverlapped(
             items = toFetch,
-            fetch = { (source, _) -> source.shopUrl()?.let { session.fetch(it, BodyLimit.IMAGE) } },
+            fetch = { (source, _) -> client.allowedUrl(source)?.let { session.fetch(it, BodyLimit.IMAGE) } },
             isLast = { it is ShopFetch.Stopped },
         ) { (source, name), answer ->
             if (storeImage(source, name, answer, download.failures, stop)) {
@@ -228,9 +228,6 @@ internal class CatalogGuides(
         }
         return files
     }
-
-    /** Only the shop's own host: an image elsewhere is never fetched (rule 7). */
-    private fun String.shopUrl() = toHttpUrlOrNull()?.takeIf { client.isAllowed(it) }
 
     /**
      * Re-encodes and writes one image from its [answer] (null: not on the shop's host, never
@@ -256,13 +253,13 @@ internal class CatalogGuides(
             photo != null
         }
 
-        is ShopFetch.Stopped -> stop(answer.cause, requireNotNull(source.shopUrl()).encodedPath)
+        is ShopFetch.Stopped -> stop(answer.cause, requireNotNull(client.allowedUrl(source)).encodedPath)
 
         ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
 
         // Over the image limit: only this image is left out, no stop (D-090, D-091).
         is ShopFetch.TooLarge -> {
-            log("catalog refresh: ${answer.line(requireNotNull(source.shopUrl()))}")
+            log("catalog refresh: ${answer.line(requireNotNull(client.allowedUrl(source)))}")
             failures.failed(source, CatalogImageFailureReason.TOO_LARGE)
             false
         }

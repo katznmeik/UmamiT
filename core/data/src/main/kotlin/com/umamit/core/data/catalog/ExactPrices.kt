@@ -19,7 +19,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import javax.inject.Inject
 import kotlin.math.abs
 
@@ -81,7 +80,7 @@ class ShopExactPrices internal constructor(
         }
 
         private suspend fun exactPrice(variantUrl: String, grams: Double): Long? {
-            val url = variantUrl.toHttpUrlOrNull()?.takeIf(client::isAllowed) ?: return null
+            val url = client.allowedUrl(variantUrl) ?: return null
             val answer = fetch(url)
             val page = (answer as? ShopFetch.Fetched)?.let { fetched ->
                 withContext(Dispatchers.Default) { (parse(fetched.body, url.toString()) as? ProductParse.Parsed)?.page }

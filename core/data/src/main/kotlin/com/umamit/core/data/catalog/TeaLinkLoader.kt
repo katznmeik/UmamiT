@@ -37,7 +37,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.IOException
 import javax.inject.Inject
 
@@ -315,7 +314,7 @@ class ShopTeaLinkLoader internal constructor(
          */
         private suspend fun photo(session: ShopSession, fresh: CatalogTeaEntity, before: CatalogTeaEntity?): Photo {
             val photoUrl = fresh.photoUrl
-            val shopUrl = photoUrl?.toHttpUrlOrNull()?.takeIf(client::isAllowed)
+            val shopUrl = photoUrl?.let(client::allowedUrl)
             return if (photoUrl != null && shopUrl != null && wanted(photoUrl, fresh.key, before)) {
                 photo(photoUrl, session.fetch(shopUrl, BodyLimit.IMAGE))
             } else {

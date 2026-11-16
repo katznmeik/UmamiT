@@ -778,7 +778,7 @@ class CatalogRefresher(
             // The next photo is fetched while this one is re-encoded and written (D-091).
             fetchOverlapped(
                 items = toFetch,
-                fetch = { (_, photoUrl) -> photoUrl.shopUrl()?.let { session.fetch(it, BodyLimit.IMAGE) } },
+                fetch = { (_, photoUrl) -> client.allowedUrl(photoUrl)?.let { session.fetch(it, BodyLimit.IMAGE) } },
                 isLast = { it is ShopFetch.Stopped },
             ) { (key, photoUrl), answer ->
                 if (storePhoto(key, photoUrl, answer)) {
@@ -805,9 +805,6 @@ class CatalogRefresher(
                 withContext(fileDispatcher) { photos.exists(key) }
         }
 
-        /** Only the shop's own host: a photo elsewhere is never fetched (rule 7). */
-        private fun String.shopUrl() = toHttpUrlOrNull()?.takeIf { client.isAllowed(it) }
-
         /**
          * Re-encodes and writes one tea's photo from its [answer] (null: not on the shop's host,
          * never fetched); false when there is none to store. A photo too large or unreadable
@@ -826,14 +823,14 @@ class CatalogRefresher(
                 photo != null
             }
 
-            is ShopFetch.Stopped -> run.stop(answer.cause, requireNotNull(photoUrl.shopUrl()).encodedPath)
+            is ShopFetch.Stopped -> run.stop(answer.cause, requireNotNull(client.allowedUrl(photoUrl)).encodedPath)
 
             // Never sent (robots.txt) or gone: only this tea is left without a new photo.
             ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
 
             // Over the image limit: only this tea is left without a new photo, no stop (D-090, D-091).
             is ShopFetch.TooLarge -> {
-                log("catalog refresh: ${answer.line(requireNotNull(photoUrl.shopUrl()))}")
+                log("catalog refresh: ${answer.line(requireNotNull(client.allowedUrl(photoUrl)))}")
                 run.imageFailures.failed(photoUrl, CatalogImageFailureReason.TOO_LARGE)
                 false
             }
