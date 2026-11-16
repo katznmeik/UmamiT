@@ -633,7 +633,7 @@ private fun NavGraphBuilder.setupEditorRoutes(
     alert: String?,
 ) {
     composable<SetupTeaEditorRoute> { entry ->
-        val onTop = { navController.currentBackStackEntry?.id == entry.id }
+        val onTop = { navController.isOnTop(entry) }
         collectionScreens.teaEditor(
             TeaEditorHost(
                 onClose = dropUnlessResumed { navController.popBackStack() },
@@ -643,7 +643,7 @@ private fun NavGraphBuilder.setupEditorRoutes(
         )
     }
     composable<SetupRecipeEditorRoute> { entry ->
-        val closeIfOnTop = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+        val closeIfOnTop = { navController.popIfOnTop(entry) }
         collectionScreens.recipeEditor(
             RecipeEditorHost(
                 onClose = dropUnlessResumed { navController.popBackStack() },
@@ -671,7 +671,7 @@ private fun setupTeaHost(
     onArchived: (ArchivedTea) -> Unit,
 ): TeaDetailHost {
     val teaId = entry.toRoute<SetupTeaRoute>().teaId
-    val onTop = { navController.currentBackStackEntry?.id == entry.id }
+    val onTop = { navController.isOnTop(entry) }
     val resumed = { entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
     val closeWithSetup = { if (onTop()) navController.popBackStack<BrewSetupRoute>(inclusive = true) }
     return TeaDetailHost(
