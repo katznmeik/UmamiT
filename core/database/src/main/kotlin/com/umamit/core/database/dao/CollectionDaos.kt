@@ -126,11 +126,11 @@ interface TeaDao {
     suspend fun photo(id: String): PhotoEntity?
 
     /** The tea's photos in their order (SCR-28): by `position`, then by when they were added. */
-    @Query("SELECT * FROM photo WHERE tea_id = :teaId ORDER BY position, created_at, id")
+    @Query(TEA_PHOTOS)
     fun observeTeaPhotos(teaId: String): Flow<List<PhotoEntity>>
 
     /** The tea's photos in their order now (TEA-05, *Löschen*). */
-    @Query("SELECT * FROM photo WHERE tea_id = :teaId ORDER BY position, created_at, id")
+    @Query(TEA_PHOTOS)
     suspend fun teaPhotos(teaId: String): List<PhotoEntity>
 
     /** Deletes photo [id]'s row; a cover pointing at it is cleared by the foreign key (TEA-05). */
@@ -172,7 +172,7 @@ interface TeaDao {
 @Suppress("TooManyFunctions") // the recipe rules of PRF-01 and TEA-17 each need their query
 abstract class RecipeDao {
     @Transaction
-    @Query("SELECT * FROM brew_profile WHERE tea_id = :teaId ORDER BY position, name")
+    @Query(TEA_RECIPES)
     abstract fun observeForTea(teaId: String): Flow<List<ProfileWithSteps>>
 
     @Transaction
@@ -181,7 +181,7 @@ abstract class RecipeDao {
 
     /** The tea's recipes now, in their position order (for writes that read them in their transaction). */
     @Transaction
-    @Query("SELECT * FROM brew_profile WHERE tea_id = :teaId ORDER BY position, name")
+    @Query(TEA_RECIPES)
     abstract suspend fun forTea(teaId: String): List<ProfileWithSteps>
 
     @Query("SELECT COUNT(*) FROM brew_step WHERE profile_id = :profileId")
@@ -266,19 +266,11 @@ abstract class RecipeDao {
     protected abstract suspend fun inActiveSession(profileId: String): Boolean
 
     /** The recipe of the active brew session; null without one or for a session without a recipe (E15). */
-    @Query(
-        "SELECT brew_session.profile_id FROM active_brew " +
-            "JOIN brew_session ON brew_session.id = active_brew.session_id " +
-            "WHERE brew_session.profile_id IS NOT NULL LIMIT 1",
-    )
+    @Query(ACTIVE_RECIPE_ID)
     abstract fun observeActiveRecipeId(): Flow<String?>
 
     /** [observeActiveRecipeId] now. */
-    @Query(
-        "SELECT brew_session.profile_id FROM active_brew " +
-            "JOIN brew_session ON brew_session.id = active_brew.session_id " +
-            "WHERE brew_session.profile_id IS NOT NULL LIMIT 1",
-    )
+    @Query(ACTIVE_RECIPE_ID)
     abstract suspend fun activeRecipeId(): String?
 
     /**
@@ -387,10 +379,10 @@ abstract class InventoryDao {
     )
     abstract fun observeStockLevels(): Flow<List<TeaStockLevel>>
 
-    @Query("SELECT * FROM inventory_event WHERE tea_id = :teaId ORDER BY occurred_at, created_at")
+    @Query(TEA_EVENTS)
     abstract fun observeForTea(teaId: String): Flow<List<InventoryEventEntity>>
 
-    @Query("SELECT * FROM inventory_event WHERE tea_id = :teaId ORDER BY occurred_at, created_at")
+    @Query(TEA_EVENTS)
     abstract suspend fun eventsForTea(teaId: String): List<InventoryEventEntity>
 
     @Query("SELECT * FROM inventory_event WHERE id = :id")
@@ -458,3 +450,15 @@ abstract class InventoryDao {
         const val UNCHANGED_GRAMS = 1e-6
     }
 }
+
+// The texts an „observe" query and its „read once" twin share: Room gets the same SQL for both.
+
+private const val TEA_PHOTOS = "SELECT * FROM photo WHERE tea_id = :teaId ORDER BY position, created_at, id"
+
+private const val TEA_RECIPES = "SELECT * FROM brew_profile WHERE tea_id = :teaId ORDER BY position, name"
+
+private const val ACTIVE_RECIPE_ID = "SELECT brew_session.profile_id FROM active_brew " +
+    "JOIN brew_session ON brew_session.id = active_brew.session_id " +
+    "WHERE brew_session.profile_id IS NOT NULL LIMIT 1"
+
+private const val TEA_EVENTS = "SELECT * FROM inventory_event WHERE tea_id = :teaId ORDER BY occurred_at, created_at"
