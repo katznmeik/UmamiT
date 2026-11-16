@@ -6591,7 +6591,8 @@ building it:
   flight is ignored. *Beenden & neu starten* into the quick timer is one
   turn too (`finishActiveAndStartQuickTimer`, through the controller's
   `startQuickTimer(finishActive = true)`, the quick-timer variant of D-063's
-  operation): the active timer ends, the finish's sheet becomes
+  operation; since v0.7.2 the flag is gone, TMR-A-14: `startQuickTimer`'s
+  `ending` names the slot to end, D-108, `TimerSlot.QUICK` for the old flag): the active timer ends, the finish's sheet becomes
   „Sitzung gespeichert" (D-054), and the quick timer starts and runs. Opening SCR-07
   starts nothing, so it never blocks another session (TMR-21).
 - **On the timer.** The quick timer has its title and no step label, dots or
@@ -6708,7 +6709,7 @@ Decided while building them:
   binds `ControllerBrewTimer` instead of `NoBrewTimer` (removed), and
   `UmamitApplication` is the `TimerHost` with the injected controller (`Lazy`,
   built on first use; D-056, D-057). `ControllerBrewTimer` is also the
-  `BrewStarter` (D-062), so Start, *Nochmal brühen* and the setup start real
+  `BrewStarter` (D-062; `ControllerBrewStarter` alone since v0.7.2, TMR-A-05), so Start, *Nochmal brühen* and the setup start real
   brews. *Beenden & neu starten* still runs as two turns (`finishSession`,
   then `startSession`); the one-turn form of 04 §7.2 (D-054) is #46's.
   *Amended by D-063:* it is one turn since #46.
@@ -6895,7 +6896,9 @@ over (R2-1, R2-2, R2-3). Decided while building it:
   (06 §3), so Start (`feature:home`) and the setup (`feature:brew`) start a
   brew through `BrewStarter` (`state`, `startSession`,
   `finishActiveAndStart`); `ControllerBrewStarter` is the controller behind
-  it, and `ControllerBrewTimer` implements both seams. The app binds
+  it, and `ControllerBrewTimer` implements both seams (*since v0.7.2,
+  TMR-A-05*: `ControllerBrewTimer` implements only `BrewTimer`, and the app
+  binds `BrewStarter` to `ControllerBrewStarter` directly). The app binds
   `BrewStarter` to whatever `BrewTimer` is bound to, so it follows the
   controller when #47 binds it; until then `NoBrewTimer` ignores starts and
   the screen stays. *Beenden & neu starten* runs as two controller turns
@@ -7152,7 +7155,7 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
 
 - **One seam to the controller.** `BrewTimer` (`state`, `send`) is all the
   screen, its view model and the active brew bar use; `ControllerBrewTimer`
-  is the controller behind it. Until #42 binds the remaining ports the
+  is the controller behind it (only `BrewTimer` since v0.7.2, TMR-A-05). Until #42 binds the remaining ports the
   controller cannot be injected (D-056), so the app binds `NoBrewTimer`
   (always idle, events ignored): nothing runs, the bar stays hidden and the
   timer route closes at once. Switching is one `@Binds` line in
