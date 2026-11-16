@@ -25,9 +25,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -35,14 +34,15 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.data.catalog.CatalogRefreshOutcome
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
-import com.umamit.core.data.catalog.SummaryPart
-import com.umamit.core.data.catalog.summary
+import com.umamit.core.data.catalog.reasonRes
+import com.umamit.core.data.catalog.summaryText
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.core.ui.rememberSheetClose
 import kotlinx.coroutines.launch
+import com.umamit.core.data.R as DataR
 
 /** The refresh sheet (SCR-22). */
 const val CATALOG_REFRESH_SHEET_TAG = "catalog_refresh_sheet"
@@ -88,10 +88,10 @@ fun CatalogRefreshSheet(refresh: CatalogRefreshState, onCancel: () -> Unit, onDi
 
 @Composable
 private fun ColumnScope.Running(progress: CatalogRefreshProgress, onCancel: () -> Unit) {
-    Title(stringResource(R.string.catalog_refresh_running_title))
+    Title(stringResource(DataR.string.data_catalog_progress_title))
     if (progress.pagesTotal == 0) {
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        Body(stringResource(R.string.catalog_refresh_starting))
+        Body(stringResource(DataR.string.data_catalog_progress_starting))
     } else {
         LinearProgressIndicator(
             progress = { progress.pagesDone.toFloat() / progress.pagesTotal },
@@ -99,7 +99,7 @@ private fun ColumnScope.Running(progress: CatalogRefreshProgress, onCancel: () -
         )
         Body(
             stringResource(
-                R.string.catalog_refresh_progress,
+                DataR.string.data_catalog_progress,
                 progress.pagesDone,
                 progress.pagesTotal,
                 progress.products,
@@ -113,7 +113,7 @@ private fun ColumnScope.Running(progress: CatalogRefreshProgress, onCancel: () -
     Body(stringResource(R.string.catalog_refresh_running_hint))
     Spacer(Modifier.height(UmamiSpacing.XSmall))
     OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.catalog_refresh_cancel))
+        Text(stringResource(DataR.string.data_catalog_cancel))
     }
 }
 
@@ -121,59 +121,31 @@ private fun ColumnScope.Running(progress: CatalogRefreshProgress, onCancel: () -
 private fun ColumnScope.Result(outcome: CatalogRefreshOutcome, onClose: () -> Unit) {
     when (outcome) {
         is CatalogRefreshOutcome.Success -> {
-            Title(stringResource(R.string.catalog_refresh_success_title))
-            val separator = stringResource(R.string.catalog_refresh_summary_separator)
-            Body(
-                outcome.summary().map { summaryPart(it) }.joinToString(separator),
-                Modifier.testTag(CATALOG_REFRESH_SUMMARY_TAG),
-            )
+            Title(stringResource(DataR.string.data_catalog_result_success_title))
+            Body(outcome.summaryText(LocalResources.current), Modifier.testTag(CATALOG_REFRESH_SUMMARY_TAG))
             Close(stringResource(R.string.catalog_refresh_done), onClose)
         }
 
         CatalogRefreshOutcome.Cancelled -> {
             Title(stringResource(R.string.catalog_refresh_cancelled_title))
-            Body(stringResource(R.string.catalog_refresh_kept))
+            Body(stringResource(DataR.string.data_catalog_result_kept))
             Close(stringResource(R.string.catalog_refresh_close), onClose)
         }
 
         is CatalogRefreshOutcome.Failure -> {
-            Title(stringResource(R.string.catalog_refresh_failed_title))
-            Body(stringResource(outcome.message()))
+            Title(stringResource(DataR.string.data_catalog_result_failed_title))
+            Body(stringResource(outcome.reasonRes()))
             // The shop-changed copy (03 §5) says it itself.
-            if (outcome !is CatalogRefreshOutcome.ShopChanged) Body(stringResource(R.string.catalog_refresh_kept))
+            if (outcome !is CatalogRefreshOutcome.ShopChanged) {
+                Body(
+                    stringResource(DataR.string.data_catalog_result_kept),
+                )
+            }
             Spacer(Modifier.height(UmamiSpacing.XSmall))
             CopyDetails(outcome.details)
             Close(stringResource(R.string.catalog_refresh_close), onClose)
         }
     }
-}
-
-/** One part of the summary line (CAT-07 AC3): „274 Tees", „12 neu", „3 Rezepte prüfen", … */
-@Composable
-private fun summaryPart(part: SummaryPart): String = when (part) {
-    is SummaryPart.Teas -> pluralStringResource(R.plurals.catalog_refresh_tea_count, part.count, part.count)
-
-    is SummaryPart.New -> stringResource(R.string.catalog_refresh_summary_new, part.count)
-
-    is SummaryPart.Changed -> stringResource(R.string.catalog_refresh_summary_changed, part.count)
-
-    is SummaryPart.Discontinued -> stringResource(R.string.catalog_refresh_summary_discontinued, part.count)
-
-    is SummaryPart.RecipesToCheck -> pluralStringResource(
-        R.plurals.catalog_refresh_summary_recipes,
-        part.count,
-        part.count,
-    )
-
-    SummaryPart.NoChanges -> stringResource(R.string.catalog_refresh_summary_unchanged)
-}
-
-private fun CatalogRefreshOutcome.Failure.message(): Int = when (this) {
-    is CatalogRefreshOutcome.Blocked -> R.string.catalog_refresh_blocked
-    is CatalogRefreshOutcome.Offline -> R.string.catalog_refresh_offline
-    is CatalogRefreshOutcome.ShopUnavailable -> R.string.catalog_refresh_unavailable
-    is CatalogRefreshOutcome.ShopChanged -> R.string.catalog_refresh_shop_changed
-    is CatalogRefreshOutcome.StorageFailed -> R.string.catalog_refresh_storage
 }
 
 /** *Details kopieren*: the technical details on the clipboard; Android confirms the copy itself (13+). */

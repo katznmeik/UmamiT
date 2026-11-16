@@ -36,6 +36,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import com.umamit.core.data.R as DataR
 import com.umamit.core.designsystem.R as DesignR
 
 /**
@@ -124,10 +125,10 @@ class CatalogScreenTest {
         compose.onNodeWithText(str(R.string.catalog_load)).performClick()
         set(CatalogRefreshState.Running(CatalogRefreshProgress.STARTING))
         assertThat(runner.starts).isEqualTo(1)
-        compose.onNodeWithText(str(R.string.catalog_refresh_starting)).assertIsDisplayed()
+        compose.onNodeWithText(str(DataR.string.data_catalog_progress_starting)).assertIsDisplayed()
 
         set(CatalogRefreshState.Running(CatalogRefreshProgress(pagesDone = 2, pagesTotal = 4, products = 1)))
-        compose.onNodeWithText(str(R.string.catalog_refresh_progress, 2, 4, 1)).assertIsDisplayed()
+        compose.onNodeWithText(str(DataR.string.data_catalog_progress, 2, 4, 1)).assertIsDisplayed()
 
         repository.catalog.value = CatalogOverview(
             teas = listOf(
@@ -137,7 +138,7 @@ class CatalogScreenTest {
             lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS,
         )
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 2, newTeas = 2)))
-        compose.onNodeWithText(str(R.string.catalog_refresh_success_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(DataR.string.data_catalog_result_success_title)).assertIsDisplayed()
         // The first load: every tea is new, so the summary only counts them (CAT-07 AC3, #70).
         compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals("2\u00A0Tees")
         compose.onNodeWithText(str(R.string.catalog_refresh_done)).performClick()
@@ -180,32 +181,32 @@ class CatalogScreenTest {
         compose.onNodeWithText(str(R.string.catalog_load)).performClick()
         set(CatalogRefreshState.Running(CatalogRefreshProgress(pagesDone = 1, pagesTotal = 3, products = 0)))
 
-        compose.onNodeWithText(str(R.string.catalog_refresh_cancel)).performScrollTo().performClick()
+        compose.onNodeWithText(str(DataR.string.data_catalog_cancel)).performScrollTo().performClick()
 
         assertThat(runner.cancels).isEqualTo(1)
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Cancelled))
         compose.onNodeWithText(str(R.string.catalog_refresh_cancelled_title)).assertIsDisplayed()
-        compose.onNodeWithText(str(R.string.catalog_refresh_kept)).assertIsDisplayed()
+        compose.onNodeWithText(str(DataR.string.data_catalog_result_kept)).assertIsDisplayed()
     }
 
     @Test
     fun eachFailureShowsItsMessageAndCopiesItsDetails() {
         val failures = mapOf(
             CatalogRefreshOutcome.Blocked(BlockCause.CHALLENGE, "details: challenge") to
-                R.string.catalog_refresh_blocked,
+                DataR.string.data_catalog_result_blocked,
             CatalogRefreshOutcome.Blocked(BlockCause.TOO_MANY_REQUESTS, "details: 429") to
-                R.string.catalog_refresh_blocked,
-            CatalogRefreshOutcome.Offline("details: offline") to R.string.catalog_refresh_offline,
-            CatalogRefreshOutcome.ShopUnavailable("details: 503") to R.string.catalog_refresh_unavailable,
-            CatalogRefreshOutcome.ShopChanged("details: shop changed") to R.string.catalog_refresh_shop_changed,
-            CatalogRefreshOutcome.StorageFailed("details: storage") to R.string.catalog_refresh_storage,
+                DataR.string.data_catalog_result_blocked,
+            CatalogRefreshOutcome.Offline("details: offline") to DataR.string.data_catalog_result_offline,
+            CatalogRefreshOutcome.ShopUnavailable("details: 503") to DataR.string.data_catalog_result_unavailable,
+            CatalogRefreshOutcome.ShopChanged("details: shop changed") to DataR.string.data_catalog_result_shop_changed,
+            CatalogRefreshOutcome.StorageFailed("details: storage") to DataR.string.data_catalog_result_storage,
         )
         show()
         for ((failure, message) in failures) {
             compose.onNodeWithText(str(R.string.catalog_load)).performClick()
             set(CatalogRefreshState.Finished(failure))
 
-            compose.onNodeWithText(str(R.string.catalog_refresh_failed_title)).assertIsDisplayed()
+            compose.onNodeWithText(str(DataR.string.data_catalog_result_failed_title)).assertIsDisplayed()
             compose.onNodeWithText(str(message)).assertIsDisplayed()
             compose.onNodeWithText(str(R.string.catalog_refresh_copy_details)).performScrollTo().performClick()
             compose.waitForIdle()
@@ -263,7 +264,7 @@ class CatalogScreenTest {
 
         assertThat(runner.starts).isEqualTo(1)
         sheet().assertIsDisplayed()
-        compose.onNodeWithText(str(R.string.catalog_refresh_starting)).assertIsDisplayed()
+        compose.onNodeWithText(str(DataR.string.data_catalog_progress_starting)).assertIsDisplayed()
     }
 
     @Test

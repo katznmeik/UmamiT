@@ -35,6 +35,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
+import com.umamit.core.data.R as DataR
 
 /**
  * A tea from a shop link in the catalog (v0.2.1, #98; CAT-17, SCR-19, D-094; spec #81 seam 5):
@@ -108,7 +109,7 @@ class TeaLinkSheetTest {
     fun aTeaInTheCatalogThatItsPageCouldNotRefreshOpensWithTheMessage() {
         // CAT-17 AC6 (D-096): offline, no tea page or an unreadable page: the detail opens anyway, with the reason.
         val reasons = mapOf(
-            TeaLinkOutcome.Offline to str(R.string.catalog_refresh_offline),
+            TeaLinkOutcome.Offline to str(DataR.string.data_catalog_result_offline),
             TeaLinkOutcome.NoTeaPage to str(R.string.tea_link_no_tea_page),
             TeaLinkOutcome.Unreadable to str(R.string.tea_link_unreadable),
         )
@@ -168,10 +169,10 @@ class TeaLinkSheetTest {
             TeaLinkOutcome.RefreshRunning to str(R.string.tea_link_refresh_running),
             TeaLinkOutcome.NoTeaPage to str(R.string.tea_link_no_tea_page),
             TeaLinkOutcome.Unreadable to str(R.string.tea_link_unreadable),
-            TeaLinkOutcome.Offline to str(R.string.catalog_refresh_offline),
-            TeaLinkOutcome.Blocked to str(R.string.catalog_refresh_blocked),
-            TeaLinkOutcome.ShopUnavailable to str(R.string.catalog_refresh_unavailable),
-            TeaLinkOutcome.StorageFailed to str(R.string.catalog_refresh_storage),
+            TeaLinkOutcome.Offline to str(DataR.string.data_catalog_result_offline),
+            TeaLinkOutcome.Blocked to str(DataR.string.data_catalog_result_blocked),
+            TeaLinkOutcome.ShopUnavailable to str(DataR.string.data_catalog_result_unavailable),
+            TeaLinkOutcome.StorageFailed to str(DataR.string.data_catalog_result_storage),
         )
         openPasteSheet()
         field().performTextInput(LINK)
@@ -301,7 +302,7 @@ class TeaLinkSheetTest {
         compose.waitForIdle()
         sheet().assertIsDisplayed()
         field().assertTextContains(LINK)
-        compose.onNodeWithText(str(R.string.catalog_refresh_offline)).assertIsDisplayed()
+        compose.onNodeWithText(str(DataR.string.data_catalog_result_offline)).assertIsDisplayed()
     }
 
     @Test
