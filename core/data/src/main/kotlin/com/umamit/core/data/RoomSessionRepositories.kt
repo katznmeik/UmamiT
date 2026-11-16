@@ -321,7 +321,7 @@ private suspend fun UmamiDatabase.updateOpenedDate(
     val zone = zoneOf(session.zoneId)
     val opened = tea.openedDate
     val newPackage = opened != null && events
-        .filter { it.type in PACKAGE_TYPES }
+        .filter { it.type.isPackage }
         .maxByOrNull { it.occurredAtMillis }
         ?.let { purchase ->
             val stockBefore = events.filter { it.occurredAtMillis < purchase.occurredAtMillis }
@@ -340,15 +340,13 @@ private suspend fun UmamiDatabase.updateOpenedDate(
 /** The local date of this wall time in [zone]. */
 private fun Long.localDate(zone: ZoneId): LocalDate = Instant.ofEpochMilli(this).atZone(zone).toLocalDate()
 
-private val PACKAGE_TYPES = setOf(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
-
 /**
  * Leaf × Σ price ÷ Σ grams of the priced INITIAL/PURCHASE events (INV-08), in exact decimals
  * and rounded half up once, so an exact half is never a cent low (D-054); null without leaf
  * or priced stock. The session editor's leaf change uses it too (05 §3.7 „Edit").
  */
 internal fun costCents(leafGrams: Double?, events: List<InventoryEvent>?): Long? {
-    val priced = events.orEmpty().filter { it.type in PACKAGE_TYPES && it.priceCents != null }
+    val priced = events.orEmpty().filter { it.type.isPackage && it.priceCents != null }
     val grams = priced.fold(BigDecimal.ZERO) { sum, event -> sum + event.deltaGrams.toBigDecimal() }
     if (leafGrams == null || grams.signum() <= 0) return null
     val price = priced.sumOf { checkNotNull(it.priceCents) }.toBigDecimal()
