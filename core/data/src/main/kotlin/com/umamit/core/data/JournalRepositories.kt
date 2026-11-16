@@ -9,7 +9,6 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
-import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
 import kotlinx.coroutines.Dispatchers
@@ -121,14 +120,12 @@ private fun TasteAveragesRow.byAxis(): Map<TasteAxis, Double> = buildMap {
     aroma?.let { put(TasteAxis.AROMA, it) }
 }
 
-private fun StepTastingRow.tasting() = StepTasting(
-    taste = TasteProfile(
-        umami = tasteUmami,
-        sweetness = tasteSweetness,
-        bitterness = tasteBitterness,
-        astringency = tasteAstringency,
-        body = tasteBody,
-        aroma = tasteAroma,
-    ),
+private fun StepTastingRow.tasting() = stepTasting(
+    umami = tasteUmami,
+    sweetness = tasteSweetness,
+    bitterness = tasteBitterness,
+    astringency = tasteAstringency,
+    body = tasteBody,
+    aroma = tasteAroma,
     note = tastingNote,
 )
