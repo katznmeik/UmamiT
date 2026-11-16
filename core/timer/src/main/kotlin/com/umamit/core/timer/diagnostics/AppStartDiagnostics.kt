@@ -15,8 +15,8 @@ import androidx.core.content.ContextCompat
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerDiagnosticsPort
+import com.umamit.core.timer.controller.attempt
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 /**
@@ -125,14 +125,9 @@ class AppStartDiagnostics @Inject constructor(
     private val clocks: TimerClocks,
     private val diagnostics: TimerDiagnosticsPort,
 ) {
-    @Suppress("TooGenericExceptionCaught") // diagnostics never crash the app
+    // Diagnostics never crash the app.
     fun record() {
-        try {
-            diagnostics.record(TimerDiagnostic.PermissionsAtStart(clocks.read(), reader.read()))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w("UmamiTDiagnostics", "Permission states at start not logged", e)
-        }
+        attempt { diagnostics.record(TimerDiagnostic.PermissionsAtStart(clocks.read(), reader.read())) }
+            ?.let { e -> Log.w("UmamiTDiagnostics", "Permission states at start not logged", e) }
     }
 }

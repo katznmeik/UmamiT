@@ -89,20 +89,15 @@ internal class PersistedTimer(
      * (`auto_finished`), else discarded; nothing resumes. A failure is logged; the next process
      * start tries again.
      */
-    @Suppress("TooGenericExceptionCaught") // a storage failure of any kind is logged, never fatal (rule 8)
     suspend fun endOrphans(activeSessionIds: Set<String>, now: ClockReading) {
-        try {
+        attempt {
             sessions.inProgressSessionIds().filter { it !in activeSessionIds }.forEach { id ->
                 val session = sessions.getSession(id) ?: return@forEach
                 val saved = session.steps.any { it.kind != StepKind.RINSE && it.actualSeconds != null && !it.skipped }
                 if (saved) sessions.completeSession(id, autoFinished = true) else sessions.discardSession(id)
                 effects.record(TimerDiagnostic.OrphanSessionEnded(now, saved))
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            effects.record(TimerDiagnostic.OrphanSessionsFailed(now, e))
-        }
+        }?.let { e -> effects.record(TimerDiagnostic.OrphanSessionsFailed(now, e)) }
     }
 
     /** The snapshot of a brew session, from its session row; null for the quick timer, idle or an unreadable row. */

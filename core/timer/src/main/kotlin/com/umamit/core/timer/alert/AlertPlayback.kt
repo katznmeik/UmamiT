@@ -10,6 +10,7 @@ import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerDiagnosticsPort
+import com.umamit.core.timer.controller.attempt
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -204,15 +205,8 @@ class AlertPlayback internal constructor(
     }
 
     /** A command that throws (a device output failing) is logged; the next alert still plays (rule 8). */
-    @Suppress("TooGenericExceptionCaught")
     private suspend fun runGuarded(command: Command) {
-        try {
-            run(command)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.e(TAG, "Alert command $command failed", e)
-        }
+        attempt { run(command) }?.let { e -> Log.e(TAG, "Alert command $command failed", e) }
     }
 
     private suspend fun run(command: Command) {
@@ -284,9 +278,8 @@ class AlertPlayback internal constructor(
      * shows how late the cue actually started, which *Diagnose* and the accuracy run read
      * (TMR-30, D-068); with its [timing], where the time went before the sound (D-092).
      */
-    @Suppress("TooGenericExceptionCaught")
     private fun logPlayed(cue: AlertCue, scheduled: ScheduledTime? = null, timing: StartTiming? = null) {
-        try {
+        attempt {
             val at = clock()
             val conditions = environment.conditions()
             val outputs = AlertMatrix.outputs(conditions, current.vibration, current.ringUnderDnd)
@@ -306,11 +299,7 @@ class AlertPlayback internal constructor(
                     alarmVolumeOff = environment.alarmVolumeOff(),
                 ),
             )
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "Diagnostics of $cue lost", e)
-        }
+        }?.let { e -> Log.w(TAG, "Diagnostics of $cue lost", e) }
     }
 
     private suspend fun settings(): AlertSettings = latest.value
