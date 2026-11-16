@@ -63,12 +63,12 @@ import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.ui.DurationPicker
 import com.umamit.core.ui.RepeatingIconButton
 import com.umamit.feature.brew.R
+import com.umamit.feature.brew.timer.label
 import kotlinx.coroutines.launch
 
 /** The column of a read-only step's status icon (✓ for a done step). */
@@ -200,7 +200,7 @@ private fun EditableStepRow(state: StepsSheetState, index: Int, onDurationClick:
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = UmamiSpacing.XSmall)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = stringResource(R.string.brew_steps_step_label, number, kindLabel(step.kind)),
+                text = stringResource(R.string.brew_steps_step_label, number, stringResource(step.kind.label)),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
@@ -255,7 +255,7 @@ private fun EditableStepRow(state: StepsSheetState, index: Int, onDurationClick:
 private fun ReadOnlyStepRow(state: StepsSheetState, index: Int) {
     val step = state.steps[index]
     val number = index + 1
-    val kind = kindLabel(step.kind)
+    val kind = stringResource(step.kind.label)
     val status = when (step.status) {
         StepStatus.DONE -> stringResource(R.string.brew_steps_status_done)
         StepStatus.STARTED -> stringResource(R.string.brew_steps_status_running)
@@ -384,15 +384,6 @@ private fun Stepper(
         }
     }
 }
-
-@Composable
-private fun kindLabel(kind: StepKind): String = stringResource(
-    when (kind) {
-        StepKind.INFUSION -> R.string.brew_steps_kind_infusion
-        StepKind.RINSE -> R.string.brew_steps_kind_rinse
-        StepKind.WHISK -> R.string.brew_steps_kind_whisk
-    },
-)
 
 /** Tabular lining figures, so the stepper values never jitter (03 §3.2). */
 private fun androidx.compose.ui.text.TextStyle.tabular() = copy(fontFeatureSettings = "lnum, tnum")
