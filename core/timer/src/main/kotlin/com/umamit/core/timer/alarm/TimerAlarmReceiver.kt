@@ -9,10 +9,7 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerAlarm
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerHost
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import com.umamit.core.timer.handOver
 
 /**
  * Receives the timer's alarms (04 §6.2; non-exported) and feeds each to the
@@ -34,14 +31,7 @@ class TimerAlarmReceiver : BroadcastReceiver() {
             unwired(context, alarm)
             return
         }
-        val pending = goAsync()
-        scope.launch {
-            try {
-                inputs.onAlarm(alarm.slot, alarm.kind)
-            } finally {
-                pending.finish()
-            }
-        }
+        handOver { inputs.onAlarm(alarm.slot, alarm.kind) }
     }
 
     /**
@@ -57,9 +47,6 @@ class TimerAlarmReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "UmamiTAlarm"
         private const val ACTION_PREFIX = "com.umamit.core.timer.action.TIMER_ALARM."
-
-        /** Runs the controller turns of delivered alarms; they outlive `onReceive` (`goAsync`). */
-        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
         /**
          * The broadcast of the alarm of [kind] in [slot]; its action names both (`dumpsys alarm` shows it as
