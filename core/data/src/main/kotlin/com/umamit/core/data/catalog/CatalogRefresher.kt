@@ -20,7 +20,6 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.dao.CatalogTeaState
-import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogSkipEntity
 import com.umamit.core.database.entity.CatalogSkipReason
@@ -30,7 +29,6 @@ import com.umamit.core.network.NetworkRetry
 import com.umamit.core.network.ShopClient
 import com.umamit.core.network.ShopFetch
 import com.umamit.core.network.ShopSession
-import com.umamit.core.network.StopCause
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -43,7 +41,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.IOException
-import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -184,7 +181,12 @@ class CatalogRefresher(
     }
 
     private suspend fun refreshInTurn(onProgress: (CatalogRefreshProgress) -> Unit): CatalogRefreshOutcome {
-        val run = Run(startedAt = clock.nowMs(), onProgress = onProgress)
+        val run = CatalogRefreshRun(
+            startedAt = clock.nowMs(),
+            onProgress = onProgress,
+            clock = clock,
+            userAgent = client.userAgent,
+        )
         log("catalog refresh: started, parser v${TeeKontorParser.PARSER_VERSION}")
         onProgress(CatalogRefreshProgress.STARTING)
         return try {
@@ -216,13 +218,13 @@ class CatalogRefresher(
         }
     }
 
-    private suspend fun failed(run: Run, outcome: CatalogRefreshOutcome.Failure): CatalogRefreshOutcome {
+    private suspend fun failed(run: CatalogRefreshRun, outcome: CatalogRefreshOutcome.Failure): CatalogRefreshOutcome {
         withContext(NonCancellable) { end(run, CatalogRefreshStatus.FAILED, outcome.summary()) }
         return outcome
     }
 
     /** Ends a run without a swap: staging emptied, the run logged; a storage error here changes nothing more. */
-    private suspend fun end(run: Run, status: CatalogRefreshStatus, summary: String) {
+    private suspend fun end(run: CatalogRefreshRun, status: CatalogRefreshStatus, summary: String) {
         log("catalog refresh: ${status.name.lowercase()}, $summary")
         try {
             dao.clearStaging()
@@ -254,162 +256,9 @@ class CatalogRefresher(
         }
     }
 
-    /** One refresh's counts, for the progress, the details and the log; it also names the stops. */
-    private inner class Run(val startedAt: Long, private val onProgress: (CatalogRefreshProgress) -> Unit) {
-        var pagesTotal = 0
-        var pagesDone = 0
-        var green = 0
-        var lackingRequired = 0
-        var lackingBrewing = 0
-        var unavailable = 0
-        var sitemapUrls = 0
-        var sets = 0
-        var sales = 0
-        var skippedKnown = 0
-
-        /**
-         * The last successful refresh ran a parser before the current scope (Kräutertees v7, black
-         * teas v8): this one classifies the skip list's not-green entries again and, on success,
-         * replaces them (05 §9, D-093 Q12, D-108).
-         */
-        var reclassifyNotGreen = false
-        var photosStored = 0
-        var photosMissing = 0
-
-        /** Photos without one because they failed for good before (D-091): not asked for again. */
-        var photosFailedBefore = 0
-
-        /** The images that failed for good, read with the previous catalog (D-091). */
-        var imageFailures = ImageFailures(emptyList(), startedAt)
-
-        /** SET-22 *Katalog: Fotos laden* as this run read it. */
-        var downloadPhotos = true
-
-        /** The outcome once the swap and the steps after it are done; a cancel then changes nothing. */
-        var success: CatalogRefreshOutcome.Success? = null
-        val guides = GuideCounts()
-
-        /** Each base number of the staged catalog (merged split numbers too) to its tea's key (guide links). */
-        val catalogKeys = mutableMapOf<String, String>()
-        var photosKept = 0
-        var known = 0
-        var new = 0
-        var recheck = 0
-
-        /**
-         * Known teas none of whose numbers the sitemap lists, each checked once (CAT-16, D-094),
-         * those „Nicht mehr im Sortiment" included.
-         */
-        var unlisted = 0
-
-        /** Of them: kept in the range with their page, and gone (404/410, a redirect away, out of scope). */
-        var unlistedKept = 0
-        var unlistedGone = 0
-
-        /** Of them, the teas whose page couldn't be read this once: kept as they were (CAT-16 AC3). */
-        val unlistedUnread = mutableSetOf<String>()
-
-        /** The catalog before this refresh, by key (#70). */
-        var previous: Map<String, CatalogTeaState> = emptyMap()
-
-        /** Each tea's base numbers in the catalog before this refresh: its key and those merged into it (D-081). */
-        var previousBases: Map<String, Set<String>> = emptyMap()
-
-        /** The base numbers the sitemap lists, and those on the skip list or onto it in this run. */
-        var listedBases: Set<String> = emptySet()
-        val skippedBases = mutableSetOf<String>()
-
-        /** The staged teas' keys and the numbers merged into them. */
-        val stagedBases = mutableSetOf<String>()
-
-        /** Each staged tea's hash and flag, for the summary. */
-        val staged = mutableMapOf<String, StagedTea>()
-
-        /** The teas whose photo this run downloaded. */
-        val photosWritten = mutableSetOf<String>()
-
-        /** Each green tea's key and photo URL, in page order. */
-        val photoUrls = mutableListOf<Pair<String, String>>()
-
-        /** Each green tea's page and packages, in page order, until split numbers are merged and staged. */
-        val entries = mutableListOf<CatalogEntry>()
-        val skips = mutableListOf<CatalogSkipEntity>()
-        val defective = mutableListOf<String>()
-
-        fun progress() = onProgress(
-            CatalogRefreshProgress(
-                pagesDone = pagesDone,
-                pagesTotal = pagesTotal,
-                products = green,
-                photos = photosStored,
-                guides = guides.read,
-            ),
-        )
-
-        fun pagesLine() = "$pagesDone of $pagesTotal pages"
-
-        /** Ends the run: the shop said stop at [where] (08 §2.8). */
-        fun stop(cause: StopCause, where: String): Nothing {
-            val details = details("stopped: $cause at $where")
-            throw RunStopped(
-                when (cause) {
-                    StopCause.CHALLENGE -> CatalogRefreshOutcome.Blocked(BlockCause.CHALLENGE, details)
-                    StopCause.BLOCKED -> CatalogRefreshOutcome.Blocked(BlockCause.BLOCKED, details)
-                    StopCause.TOO_MANY_REQUESTS -> CatalogRefreshOutcome.Blocked(BlockCause.TOO_MANY_REQUESTS, details)
-                    StopCause.RETRY_AFTER -> CatalogRefreshOutcome.Blocked(BlockCause.RETRY_AFTER, details)
-                    StopCause.NETWORK -> CatalogRefreshOutcome.Offline(details)
-                    StopCause.HTTP_ERROR -> CatalogRefreshOutcome.ShopUnavailable(details)
-                },
-            )
-        }
-
-        /** Ends the run: the shop's pages or sitemap no longer fit the app (CAT-07 AC5). */
-        fun shopChanged(reason: String): Nothing =
-            throw RunStopped(CatalogRefreshOutcome.ShopChanged(details("shop changed: $reason")))
-
-        /** Technical English for *Details kopieren* (CAT-07 AC5): counts and article numbers, no shop content. */
-        fun details(reason: String): String = buildString {
-            appendLine("$DETAILS_PREFIX$reason")
-            appendLine("client: ${client.userAgent}")
-            appendLine("parser: v${TeeKontorParser.PARSER_VERSION}")
-            appendLine("started: ${Instant.ofEpochMilli(startedAt).atZone(clock.zone()).toOffsetDateTime()}")
-            appendLine("sitemap: $sitemapUrls URLs, $sets sets, $sales sale duplicates, $skippedKnown on the skip list")
-            appendLine("candidates: $known known green, $new new, $recheck to check again")
-            appendLine(
-                "missing from the sitemap: $unlisted checked once, $unlistedKept kept, $unlistedGone gone, " +
-                    "${unlistedUnread.size} unread",
-            )
-            appendLine("pages: ${pagesLine()}, green $green, not green ${skips.size}, unavailable $unavailable")
-            appendLine(
-                "photos: $photosStored stored, $photosKept unchanged, $photosMissing without " +
-                    "($photosFailedBefore failed before, not asked again)",
-            )
-            appendLine(guides.line())
-            append("defective: ${defective.size}")
-            if (defective.isNotEmpty()) {
-                val more = if (defective.size > MAX_LISTED) ", …" else ""
-                append(" (${defective.take(MAX_LISTED).joinToString()}$more)")
-            }
-        }
-
-        fun logEntry(status: CatalogRefreshStatus, summary: Summary, errorSummary: String?) = CatalogRefreshLogEntity(
-            startedAt = startedAt,
-            finishedAt = clock.nowMs(),
-            status = status,
-            newCount = summary.newTeas,
-            changedCount = summary.changedTeas,
-            discontinuedCount = summary.discontinuedTeas,
-            // Teas to check since this refresh (CAT-07 AC3, D-086).
-            flaggedCount = summary.recipesToCheck,
-            photosCount = photosStored,
-            parserVersion = TeeKontorParser.PARSER_VERSION,
-            errorSummary = errorSummary,
-        )
-    }
-
-    /** The steps of one refresh; a stop ends it by [Run.stop] or [Run.shopChanged]. */
+    /** The steps of one refresh; a stop ends it by [CatalogRefreshRun.stop] or [CatalogRefreshRun.shopChanged]. */
     @Suppress("TooManyFunctions") // one function per step of 06 §5.3 / 08 §2.4
-    private inner class Pipeline(private val run: Run) {
+    private inner class Pipeline(private val run: CatalogRefreshRun) {
         suspend fun execute(): CatalogRefreshOutcome.Success {
             val session = ShopSession.open(client, NetworkRetry.REFRESH)
             session.stopCause?.let { run.stop(it, "robots.txt") }
@@ -962,14 +811,8 @@ class CatalogRefresher(
 
         /** 05 §4.2a: a base number on the skip list is classified again after 90 days. */
         val SKIP_RECHECK_MS = TimeUnit.DAYS.toMillis(90)
-
-        /** Defective article numbers listed in the details. */
-        const val MAX_LISTED = 10
     }
 }
-
-/** A staged tea's shop content hash and whether its recipe is flagged, for the summary (#70). */
-private class StagedTea(val hash: String?, val flagged: Boolean)
 
 /**
  * A known tea missing from the sitemap (CAT-16): the [product] with its key and base numbers
@@ -982,16 +825,6 @@ private class Unlisted(val product: ShopProduct, val url: HttpUrl, val discontin
     val key: String get() = product.key
     val group = ProductGroup(base = product.key, pageUrl = url.toString(), variantUrls = emptyMap())
 }
-
-/** The counts of a refresh's summary (CAT-07 AC3), as logged (05 §4.4). */
-private data class Summary(val newTeas: Int, val changedTeas: Int, val discontinuedTeas: Int, val recipesToCheck: Int) {
-    companion object {
-        val NONE = Summary(0, 0, 0, 0)
-    }
-}
-
-/** Ends a refresh early with [outcome] (a stop or a structural failure); caught in [CatalogRefresher.refresh]. */
-private class RunStopped(val outcome: CatalogRefreshOutcome.Failure) : Exception(outcome.details)
 
 /** A product page at [url] parsed on [dispatcher] (08 §2.3). */
 internal suspend fun parseProduct(dispatcher: CoroutineDispatcher, body: ByteArray, url: String): ProductParse =
