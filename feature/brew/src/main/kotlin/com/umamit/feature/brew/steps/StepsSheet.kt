@@ -63,6 +63,7 @@ import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.designsystem.theme.tabular
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.ui.DurationPicker
@@ -384,6 +385,3 @@ private fun Stepper(
         }
     }
 }
-
-/** Tabular lining figures, so the stepper values never jitter (03 §3.2). */
-private fun androidx.compose.ui.text.TextStyle.tabular() = copy(fontFeatureSettings = "lnum, tnum")
