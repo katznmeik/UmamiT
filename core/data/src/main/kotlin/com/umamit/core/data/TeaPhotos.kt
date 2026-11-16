@@ -18,7 +18,6 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -27,7 +26,6 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
-import java.util.UUID
 import javax.inject.Inject
 
 /** How [TeaPhotos.add] or [SessionPhotos.add] ended. */
@@ -99,48 +97,13 @@ class RoomTeaPhotos @Inject constructor(
     override fun observePhotos(teaId: String): Flow<List<Photo>> =
         db.teaDao().observeTeaPhotos(teaId).map { rows -> rows.map { it.toModel() } }
 
-    override suspend fun add(teaId: String, uri: String): AddPhotoResult = try {
-        // NonCancellable: leaving the detail while the photo is processed never leaves a file without its row.
-        withContext(NonCancellable + Dispatchers.IO) { addNow(teaId, uri) }
-    } catch (_: SQLException) {
-        AddPhotoResult.Failed
-    } catch (_: IOException) {
-        AddPhotoResult.Failed
-    } catch (e: CancellationException) {
-        throw e
-    } catch (
-        // Rule 8: the timer runs in this process; a bug in the processing fails the add, never the app (D-090).
-        @Suppress("TooGenericExceptionCaught", "SwallowedException") e: RuntimeException,
-    ) {
-        AddPhotoResult.Failed
-    }
-
-    private suspend fun addNow(teaId: String, uri: String): AddPhotoResult {
-        // Refused before the image is read when the answer is known already.
-        val photo = if (refusal(teaId) == null) processed(uri) else null
-        return when {
-            photo != null -> store(teaId, photo)
-            else -> refusal(teaId) ?: AddPhotoResult.Unreadable
-        }
-    }
-
-    /** The picked image at [uri] processed (06 §5.2), or null when it can't be read or decoded. */
-    private suspend fun processed(uri: String): EncodedPhoto? = loadPicked(context, uri)
-
-    /** Writes [photo]'s file, then its row; a row that isn't written takes the file with it. */
-    private suspend fun store(teaId: String, photo: EncodedPhoto): AddPhotoResult {
-        val id = UUID.randomUUID().toString()
-        files.write(id, photo.bytes)
-        var result: AddPhotoResult = AddPhotoResult.Failed
-        try {
-            result = db.withTransaction {
-                refusal(teaId) ?: insert(teaId, id, photo)
-            }
-        } finally {
-            if (result !is AddPhotoResult.Added) files.delete(id)
-        }
-        return result
-    }
+    override suspend fun add(teaId: String, uri: String): AddPhotoResult = addPhoto(
+        db,
+        files,
+        refusal = { refusal(teaId) },
+        load = { loadPicked(context, uri) },
+        insert = { id, photo -> insert(teaId, id, photo) },
+    )
 
     /** Why tea [teaId] takes no photo now, or null when it takes one. */
     private suspend fun refusal(teaId: String): AddPhotoResult? = when {

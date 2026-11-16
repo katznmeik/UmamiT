@@ -13,14 +13,11 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -68,45 +65,13 @@ class RoomSessionPhotos internal constructor(
     override fun observePhotos(sessionId: String): Flow<List<Photo>> =
         db.sessionPhotoDao().observePhotos(sessionId).map { rows -> rows.map { it.toModel() } }
 
-    override suspend fun add(sessionId: String, uri: String): AddPhotoResult = try {
-        // NonCancellable: leaving the page while the photo is processed never leaves a file without its row.
-        withContext(NonCancellable + Dispatchers.IO) { addNow(sessionId, uri) }
-    } catch (_: SQLException) {
-        AddPhotoResult.Failed
-    } catch (_: IOException) {
-        AddPhotoResult.Failed
-    } catch (e: CancellationException) {
-        throw e
-    } catch (
-        // Rule 8: the timer runs in this process; a bug in the processing fails the add, never the app (D-090).
-        @Suppress("TooGenericExceptionCaught", "SwallowedException") e: RuntimeException,
-    ) {
-        AddPhotoResult.Failed
-    }
-
-    private suspend fun addNow(sessionId: String, uri: String): AddPhotoResult {
-        // Refused before the image is read when the answer is known already.
-        val photo = if (refusal(sessionId) == null) load(uri) else null
-        return when {
-            photo != null -> store(sessionId, photo)
-            else -> refusal(sessionId) ?: AddPhotoResult.Unreadable
-        }
-    }
-
-    /** Writes [photo]'s file, then its row; a row that isn't written takes the file with it. */
-    private suspend fun store(sessionId: String, photo: EncodedPhoto): AddPhotoResult {
-        val id = UUID.randomUUID().toString()
-        files.write(id, photo.bytes)
-        var result: AddPhotoResult = AddPhotoResult.Failed
-        try {
-            result = db.withTransaction {
-                refusal(sessionId) ?: insert(sessionId, id, photo)
-            }
-        } finally {
-            if (result !is AddPhotoResult.Added) files.delete(id)
-        }
-        return result
-    }
+    override suspend fun add(sessionId: String, uri: String): AddPhotoResult = addPhoto(
+        db,
+        files,
+        refusal = { refusal(sessionId) },
+        load = { load(uri) },
+        insert = { id, photo -> insert(sessionId, id, photo) },
+    )
 
     /** Why session [sessionId] takes no photo now, or null when it takes one. */
     private suspend fun refusal(sessionId: String): AddPhotoResult? = when {

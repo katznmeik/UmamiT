@@ -1,7 +1,6 @@
 package com.umamit.core.data
 
 import android.content.Context
-import android.database.SQLException
 import androidx.room.withTransaction
 import com.umamit.core.common.WallClock
 import com.umamit.core.database.UmamiDatabase
@@ -13,11 +12,6 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
-import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
 
@@ -56,21 +50,8 @@ class RoomVesselPhotos @Inject constructor(
     private val files: PhotoFiles,
     @param:ApplicationContext private val context: Context,
 ) : VesselPhotos {
-    override suspend fun set(vesselId: String, uri: String): SetVesselPhotoResult = try {
-        // NonCancellable: leaving the editor while the photo is processed never leaves a file without its row.
-        withContext(NonCancellable + Dispatchers.IO) { setNow(vesselId, uri) }
-    } catch (_: SQLException) {
-        SetVesselPhotoResult.Failed
-    } catch (_: IOException) {
-        SetVesselPhotoResult.Failed
-    } catch (e: CancellationException) {
-        throw e
-    } catch (
-        // Rule 8: the timer runs in this process; a bug in the processing fails the write, never the app (D-090).
-        @Suppress("TooGenericExceptionCaught", "SwallowedException") e: RuntimeException,
-    ) {
-        SetVesselPhotoResult.Failed
-    }
+    override suspend fun set(vesselId: String, uri: String): SetVesselPhotoResult =
+        photoWrite(SetVesselPhotoResult.Failed) { setNow(vesselId, uri) }
 
     private suspend fun setNow(vesselId: String, uri: String): SetVesselPhotoResult {
         val photo = if (db.vesselDao().get(vesselId) == null) null else loadPicked(context, uri)
@@ -115,29 +96,16 @@ class RoomVesselPhotos @Inject constructor(
         return former
     }
 
-    override suspend fun remove(vesselId: String): Boolean = try {
-        withContext(NonCancellable + Dispatchers.IO) {
-            val former = db.withTransaction {
-                val dao = db.vesselDao()
-                val ids = dao.photoIds(vesselId)
-                dao.setCoverPhoto(vesselId, null, time.nowMs())
-                dao.deletePhotosExcept(vesselId, keepId = "")
-                ids
-            }
-            former.forEach(files::delete)
-            true
+    override suspend fun remove(vesselId: String): Boolean = photoWrite(failed = false) {
+        val former = db.withTransaction {
+            val dao = db.vesselDao()
+            val ids = dao.photoIds(vesselId)
+            dao.setCoverPhoto(vesselId, null, time.nowMs())
+            dao.deletePhotosExcept(vesselId, keepId = "")
+            ids
         }
-    } catch (_: SQLException) {
-        false
-    } catch (_: IOException) {
-        false
-    } catch (e: CancellationException) {
-        throw e
-    } catch (
-        // Rule 8: as in set(), a bug in the removal fails the removal, never the app (D-090).
-        @Suppress("TooGenericExceptionCaught", "SwallowedException") e: RuntimeException,
-    ) {
-        false
+        former.forEach(files::delete)
+        true
     }
 }
 
