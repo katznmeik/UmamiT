@@ -290,6 +290,33 @@ internal fun UmamitRoot(
             navigateAbove(PhotoViewerRoute(owner, sources, index)) { launchSingleTop = true }
         }
     }
+
+    // The shell and the shell of a catalog refresh differ only in how they open and which start tap they show.
+    val shell: @Composable (opening: ShellOpening, startRequest: Long) -> Unit = { opening, startRequest ->
+        UmamitApp(
+            activeBrewSource = activeBrewSource,
+            journalSources = journalSources,
+            alerting = alert != null,
+            onOpenTimer = openTimer,
+            onOpenTimerOf = openTimerOf,
+            startNavigation = startNavigation,
+            alertKey = alert,
+            startScreen = startScreen,
+            statsScreen = statsScreen,
+            catalogScreen = catalogScreen,
+            catalogScreens = catalogScreens,
+            collectionSegments = collectionSegments,
+            collectionScreens = collectionScreens,
+            journalScreens = journalScreens,
+            settings = settings.withRerunSetup(rerunSetup),
+            teaLinkShare = share,
+            onTakeTeaLinkShare = onTakeTeaLinkShare,
+            opening = opening,
+            startRequest = startRequest,
+            archivedTea = archivedTea,
+            onArchivedTeaChange = { archivedTea = it },
+        )
+    }
     CompositionLocalProvider(LocalPhotoViewer provides photoViewer) {
         Box(modifier) {
             NavHost(
@@ -328,55 +355,13 @@ internal fun UmamitRoot(
                 },
             ) {
                 composable<ShellRoute> {
-                    UmamitApp(
-                        activeBrewSource = activeBrewSource,
-                        journalSources = journalSources,
-                        alerting = alert != null,
-                        onOpenTimer = openTimer,
-                        onOpenTimerOf = openTimerOf,
-                        startNavigation = startNavigation,
-                        alertKey = alert,
-                        startScreen = startScreen,
-                        statsScreen = statsScreen,
-                        catalogScreen = catalogScreen,
-                        catalogScreens = catalogScreens,
-                        collectionSegments = collectionSegments,
-                        collectionScreens = collectionScreens,
-                        journalScreens = journalScreens,
-                        settings = settings.withRerunSetup(rerunSetup),
-                        teaLinkShare = share,
-                        onTakeTeaLinkShare = onTakeTeaLinkShare,
-                        startRequest = showStart,
-                        archivedTea = archivedTea,
-                        onArchivedTeaChange = { archivedTea = it },
-                    )
+                    shell(ShellOpening.Start, showStart)
                 }
                 // A shell of its own above what was shown (D-097): back leaves it, its tabs work as the shell's.
                 composable<CatalogRefreshRoute> { entry ->
                     // The token this entry shows, never a later tap's (#121).
                     val sheetToken = entry.toRoute<CatalogRefreshRoute>().sheetToken
-                    UmamitApp(
-                        activeBrewSource = activeBrewSource,
-                        journalSources = journalSources,
-                        alerting = alert != null,
-                        onOpenTimer = openTimer,
-                        onOpenTimerOf = openTimerOf,
-                        startNavigation = startNavigation,
-                        alertKey = alert,
-                        startScreen = startScreen,
-                        statsScreen = statsScreen,
-                        catalogScreen = catalogScreen,
-                        catalogScreens = catalogScreens,
-                        collectionSegments = collectionSegments,
-                        collectionScreens = collectionScreens,
-                        journalScreens = journalScreens,
-                        settings = settings.withRerunSetup(rerunSetup),
-                        teaLinkShare = share,
-                        onTakeTeaLinkShare = onTakeTeaLinkShare,
-                        opening = ShellOpening.CatalogRefresh(sheetToken),
-                        archivedTea = archivedTea,
-                        onArchivedTeaChange = { archivedTea = it },
-                    )
+                    shell(ShellOpening.CatalogRefresh(sheetToken), 0L)
                 }
                 composable<OnboardingRoute> { onboardingScreen(finishSetup) }
                 composable<TimerRoute> { timerEntry ->
