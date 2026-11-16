@@ -349,6 +349,8 @@ personal data or shop content).
 
 **Consequences.** Not yet a spec: the next session writes `docs/plans/v0.7.2.md` and the tickets (a parent issue with sub-issues) for the PO's approval, as for every release; step 1 and the audits start only after that.
 
+**Build note „Remaining audits" (PO, 2026-11-16, #299, three questions as options after the catalog audit).** After reading `docs/plans/v0.7.2-audit-catalog.md` (15 findings, mostly duplicates, no dead code through R8; 63 requests, ≈ 35 k output tokens) the PO **kept all three remaining audits as planned**: data (#300, Fable 5.2 `medium`), timer path (#301, Fable 5.2 `medium`), UI (#302, Opus `medium`), full scope each, one group per session. None is closed.
+
 <a id="d-118"></a>
 ### D-118 — A release token for publishing (`RELEASE_TOKEN`) · *Accepted (PO, 2026-11-15)*
 

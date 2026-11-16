@@ -5,12 +5,13 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-16 (v0.7.2 session 2, the catalog audit). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The PO approved the v0.7.2 plan and tickets (`docs/plans/v0.7.2.md`, spec #296, #297–#310; D-119, D-120). **Step 1 is done** (`docs/plans/v0.7.2-evidence.md`); **the catalog audit (#298) is done:** `docs/plans/v0.7.2-audit-catalog.md` (15 findings CAT-A-01 … CAT-A-15, no code change) is pushed to the draft milestone PR [#312](https://github.com/katznmeik/UmamiT/pull/312). **Next:** the PO's #299 answer (keep / narrow / drop the data, timer-path and UI audits), then session 3.
+**Last updated:** 2026-11-16 (v0.7.2 session 2, the catalog audit). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The PO approved the v0.7.2 plan and tickets (`docs/plans/v0.7.2.md`, spec #296, #297–#310; D-119, D-120). **Step 1 is done** (`docs/plans/v0.7.2-evidence.md`); **the catalog audit (#298) is done:** `docs/plans/v0.7.2-audit-catalog.md` (15 findings CAT-A-01 … CAT-A-15, no code change) is pushed to the draft milestone PR [#312](https://github.com/katznmeik/UmamiT/pull/312). **#299 answered (2026-11-16):** the PO keeps all three remaining audits as planned (D-119 build note „Remaining audits"). **Next:** session 3, the data audit (#300).
 
-## Next: the PO's #299 answer, then v0.7.2 session 3
+## Next: v0.7.2 session 3, the data audit (#300)
 
-- **#299 (PO):** after reading `docs/plans/v0.7.2-audit-catalog.md`, keep / narrow / drop each of the data (#300), timer-path (#301) and UI (#302) audits. The answer is a build note on D-119; dropped audits' tickets are closed as not planned. Asked at the end of session 2 as options.
-- **Session 3 by default:** the data audit #300, Fable 5.2 `medium` (T4-F), in the session itself; branch `claude/wonderful-davinci-fu8tqi`, draft PR #312; output `docs/plans/v0.7.2-audit-data.md` (plan „Step 2"). If the PO narrows it: the catalog files of `core:data`/`core:database` that the catalog audit read in full (its scope table) can be left out.
+- **Model:** Fable 5.2 `medium` (T4-F), the audit in the session itself (no subagents). Branch `claude/wonderful-davinci-fu8tqi`, draft PR #312.
+- **#299 (PO, 2026-11-16):** data, timer-path and UI audits all **kept as planned**, full scope (D-119 build note „Remaining audits"). Order: session 3 data (#300), session 4 timer path (#301, Fable 5.2 `medium`), session 5 UI (#302, Opus `medium`); one group per session and per 5-hour window.
+- **Input:** `docs/plans/v0.7.2-evidence.md` (candidates only), ticket #300, and `docs/plans/v0.7.2-audit-catalog.md` (its CAT-A-06 overlaps the data group; its scope table shows which catalog files of `core:data`/`core:database` were read in full). Output: `docs/plans/v0.7.2-audit-data.md` (one table, about the top 15, plan „Step 2"), IDs `DAT-A-01` …; the session's usage noted at the end (`explain-usage`). No code change; stops with the file pushed.
 - **Session 2 facts to know:** no dead code was found through R8 in the catalog group (every listed function name has a main caller by bare-name grep, which can't separate namesakes); the evidence lists stay candidates only. The catalog audit's scope was 13 668 main lines (the three modules 8 549 plus the catalog parts of `core:data`/`core:database` 5 119), read in full only in part: its scope table says which files. Findings that overlap other groups: CAT-A-06 (data), CAT-A-08 (UI). CAT-A-01 re-points the refresh sheet's strings to `core:data`'s identical ones (no text change); the PO confirms it is in scope at the triage (#303).
 - **Group sizes (main lines, 2026-11-13):** catalog ≈ 8 500 (13 668 as audited); data ≈ 15 100; timer path ≈ 17 800; UI ≈ 27 500; tests ≈ 94 000.
 
@@ -34,7 +35,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): approved by the PO (2026-11-15); step 1 done (evidence file), catalog audit done (2026-11-16); the PO's #299 answer is next. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
+| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): approved by the PO (2026-11-15); step 1 done (evidence file), catalog audit done and #299 answered (2026-11-16, all three audits kept); the data audit is next. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `f0ffaf1a`; evidence and catalog audit commits on top) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -56,7 +57,7 @@
 
 ## Waiting on the PO
 
-1. **#299:** keep / narrow / drop the data, timer-path and UI audits (asked at the end of session 2, read `docs/plans/v0.7.2-audit-catalog.md` first). Installing `v0.7.1` over rc.2 stays optional.
+1. **Nothing until the triage (#303)** after the three remaining audits. Installing `v0.7.1` over rc.2 stays optional.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
