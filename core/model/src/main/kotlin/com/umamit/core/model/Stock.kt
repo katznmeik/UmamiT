@@ -28,11 +28,9 @@ data class InventoryEvent(
  */
 data class StockSummary(val remainingGrams: Double, val costPerGramCents: Double?) {
     companion object {
-        private val PRICED_TYPES = setOf(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
-
         /** Computes the stock of the given events of one tea. */
         fun of(events: List<InventoryEvent>): StockSummary {
-            val priced = events.filter { it.type in PRICED_TYPES && it.priceCents != null }
+            val priced = events.filter { it.type.isPackage && it.priceCents != null }
             val pricedGrams = priced.sumOf { it.deltaGrams }
             val cost = if (pricedGrams > 0.0) priced.sumOf { it.priceCents!! }.toDouble() / pricedGrams else null
             return StockSummary(remainingGrams = events.sumOf { it.deltaGrams }, costPerGramCents = cost)

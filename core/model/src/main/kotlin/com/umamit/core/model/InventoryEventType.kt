@@ -6,4 +6,8 @@ enum class InventoryEventType {
     PURCHASE,
     BREW,
     ADJUSTMENT,
+    ;
+
+    /** A package: the first stock or a purchase (an INITIAL or a PURCHASE event), the events that carry a price. */
+    val isPackage: Boolean get() = this == INITIAL || this == PURCHASE
 }

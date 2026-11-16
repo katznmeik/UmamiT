@@ -15,7 +15,6 @@ import com.umamit.core.data.catalog.ExactPrices
 import com.umamit.core.data.catalog.ShopLink
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.InventoryEvent
-import com.umamit.core.model.InventoryEventType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -235,11 +234,9 @@ class CatalogTeaViewModel @Inject constructor(
 
         private const val STOP_TIMEOUT_MS = 5_000L
 
-        private val BOUGHT = setOf(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
-
         /** The latest INITIAL or PURCHASE event (D-072), the later one of the same moment. */
         private fun List<InventoryEvent>.lastBought(): InventoryEvent? = withIndex()
-            .filter { it.value.type in BOUGHT }
+            .filter { it.value.type.isPackage }
             .maxWithOrNull(compareBy({ it.value.occurredAtMillis }, { it.index }))
             ?.value
     }

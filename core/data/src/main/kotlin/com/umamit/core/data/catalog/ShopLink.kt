@@ -3,7 +3,6 @@ package com.umamit.core.data.catalog
 import com.umamit.core.model.CatalogPackage
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.InventoryEvent
-import com.umamit.core.model.InventoryEventType
 import kotlin.math.abs
 
 /**
@@ -24,7 +23,7 @@ object ShopLink {
     fun url(productUrl: String, packages: List<CatalogPackage>, events: List<InventoryEvent>?): String {
         val bought = events.orEmpty()
             .withIndex()
-            .filter { it.value.type == InventoryEventType.INITIAL || it.value.type == InventoryEventType.PURCHASE }
+            .filter { it.value.type.isPackage }
             .maxWithOrNull(compareBy({ it.value.occurredAtMillis }, { it.index }))
             ?.value
             ?: return productUrl

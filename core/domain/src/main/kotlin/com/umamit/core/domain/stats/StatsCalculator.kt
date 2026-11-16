@@ -2,7 +2,6 @@ package com.umamit.core.domain.stats
 
 import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.domain.collection.LiterAverage
-import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StatsRankingBy
@@ -87,7 +86,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
         val window = window(range, custom)
         val inRange = sessions.filter { it.day in window }
         val purchases = input.inventoryEvents
-            .filter { it.type in PRICED_TYPES && it.priceCents != null }
+            .filter { it.type.isPackage && it.priceCents != null }
             .map { DatedPrice(dayOf(it.occurredAtMillis), it.priceCents ?: 0L) }
             .filter { it.day in window }
         return ConsumptionStats(
@@ -134,7 +133,6 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
 
     private companion object {
         const val ML_PER_LITER = 1000.0
-        val PRICED_TYPES = setOf(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
     }
 }
 
