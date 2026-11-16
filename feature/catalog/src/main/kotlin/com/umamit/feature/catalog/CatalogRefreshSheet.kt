@@ -133,9 +133,7 @@ private fun ColumnScope.Result(outcome: CatalogRefreshOutcome, onClose: () -> Un
             Body(stringResource(outcome.reasonRes()))
             // The shop-changed copy (03 §5) says it itself.
             if (outcome !is CatalogRefreshOutcome.ShopChanged) {
-                Body(
-                    stringResource(DataR.string.data_catalog_result_kept),
-                )
+                Body(stringResource(DataR.string.data_catalog_result_kept))
             }
             Spacer(Modifier.height(UmamiSpacing.XSmall))
             CopyDetails(outcome.details)
