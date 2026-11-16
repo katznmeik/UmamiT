@@ -808,48 +808,22 @@ private fun TabHost(
                 ),
             )
         }
-        composable<SettingsRoute> {
-            settings.screen(
-                SettingsHost(
-                    onBack = dropUnlessResumed { navController.popBackStack() },
-                    onOpenAbout = { navController.navigate(AboutRoute) },
-                    alertKey = alertKey,
-                    scrollToTopRequest = scrollToTopRequest,
-                    onOpenTeaware = dropUnlessResumed { navController.navigate(TeawareRoute) },
-                ),
-            )
-        }
-        composable<AboutRoute> {
-            settings.about(
-                AboutHost(
-                    onBack = dropUnlessResumed { navController.popBackStack() },
-                    onRerunSetup = settings.onRerunSetup,
-                    onOpenDiagnostics = { navController.navigate(DiagnosticsRoute) },
-                ),
-            )
-        }
-        composable<DiagnosticsRoute> { settings.diagnostics(dropUnlessResumed { navController.popBackStack() }) }
-        composable<TeawareRoute> { entry ->
-            settings.teaware(
-                TeawareHost(
-                    onBack = dropUnlessResumed { navController.popBackStack() },
-                    onOpenVessel = resumedOnly { navController.navigate(VesselEditorRoute(it)) },
-                    onAddVessel = dropUnlessResumed { navController.navigate(VesselEditorRoute()) },
-                    archived = entry.archivedVessel(),
-                    onArchivedSnackbarEnd = entry::forgetArchivedVessel,
-                ),
-            )
-        }
-        composable<VesselEditorRoute> {
-            settings.vesselEditor(
-                VesselEditorHost(
-                    onClose = dropUnlessResumed { navController.popBackStack() },
-                    onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
-                    onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
-                    alertKey = alertKey,
-                ),
-            )
-        }
+        settingsRoutes<SettingsRoute>(
+            settings,
+            SettingsNav(
+                back = { navController.popBackStack() },
+                open = { route -> navController.navigate(route) },
+                openVessel = { id -> navController.navigate(VesselEditorRoute(id)) },
+                openVesselResumedOnly = true,
+                addVessel = { navController.navigate(VesselEditorRoute()) },
+                closeVesselEditor = { id, archived ->
+                    navController.closeVesselEditor(savedVesselId = id, archived = archived)
+                },
+                alertKey = alertKey,
+                scrollToTopRequest = scrollToTopRequest,
+                rerunSetup = settings.onRerunSetup,
+            ),
+        )
     }
 }
 
@@ -877,7 +851,7 @@ private fun NavHostController.popToRoot(tab: Tab) {
  * for a callback with an argument): a quick double tap on a row or link navigates once (D-090).
  */
 @Composable
-private fun <T> resumedOnly(action: (T) -> Unit): (T) -> Unit {
+internal fun <T> resumedOnly(action: (T) -> Unit): (T) -> Unit {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     return { if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) action(it) }
 }

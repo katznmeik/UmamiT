@@ -49,6 +49,32 @@ internal class VesselEditorHost(
     val alertKey: String? = null,
 )
 
+/**
+ * How one graph navigates from the settings (SCR-25) and the screens opened from it (D-125): built once per graph
+ * with that graph's own lambdas, since the root above the timer and a tab's stack navigate differently.
+ *
+ * @property back pops the screen on top; every on-screen back acts only while its screen is resumed (D-090).
+ * @property open opens *Über*, *Diagnose* or *Teegeschirr* (above the timer, it records the alert: rule 8).
+ * @property openVessel opens a vessel's editor from *Teegeschirr*; only from the resumed list when
+ *   [openVesselResumedOnly] (D-090).
+ * @property addVessel *Neues Gefäß* on *Teegeschirr*; acts only while the list is resumed.
+ * @property closeVesselEditor closes the vessel editor with its result (`NavController.closeVesselEditor`).
+ * @property alertKey the alert playing now, or null: no dialog of these screens stays over it (rule 8).
+ * @property scrollToTopRequest the tab's re-select request for the settings (03 §2.2); 0 above the timer.
+ * @property rerunSetup *Einrichtung erneut zeigen* on *Über* (ONB-04).
+ */
+internal class SettingsNav(
+    val back: () -> Unit,
+    val open: (route: Any) -> Unit,
+    val openVessel: (vesselId: String) -> Unit,
+    val openVesselResumedOnly: Boolean,
+    val addVessel: () -> Unit,
+    val closeVesselEditor: (savedVesselId: String?, archived: ArchivedVessel?) -> Unit,
+    val alertKey: String?,
+    val scrollToTopRequest: Int = 0,
+    val rerunSetup: () -> Unit,
+)
+
 /** What *Über* (SCR-27) gets from its host. */
 internal class AboutHost(val onBack: () -> Unit, val onRerunSetup: () -> Unit, val onOpenDiagnostics: () -> Unit)
 
