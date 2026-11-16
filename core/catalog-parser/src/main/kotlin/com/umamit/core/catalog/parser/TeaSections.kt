@@ -295,4 +295,5 @@ internal object TeaSections {
     fun pathIn(breadcrumb: List<Crumb>): String? = breadcrumb.lastOrNull { of(it.path) != null }?.path
 }
 
-private fun normalised(path: String) = path.lowercase().let { if (it.endsWith("/")) it else "$it/" }
+/** [path] in lower case with a trailing slash, as the scope classifiers compare paths. */
+internal fun normalised(path: String) = path.lowercase().let { if (it.endsWith("/")) it else "$it/" }

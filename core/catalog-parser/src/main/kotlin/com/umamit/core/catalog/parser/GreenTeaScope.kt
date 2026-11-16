@@ -193,7 +193,5 @@ internal object GreenTeaScope {
     private fun isType(segment: String?) =
         segment != null && (segment in GREEN_TYPES || SHINCHA_OF_A_YEAR.matches(segment))
 
-    private fun normalised(path: String) = path.lowercase().let { if (it.endsWith("/")) it else "$it/" }
-
     private fun segments(path: String) = normalised(path).split('/').filter { it.isNotEmpty() }
 }
