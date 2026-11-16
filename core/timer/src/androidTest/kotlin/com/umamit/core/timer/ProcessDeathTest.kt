@@ -156,7 +156,7 @@ class ProcessDeathTest {
         activeNotification(TimerNotifications.ID_LIVE_UPDATE)?.let {
             fail("notification 1 must be gone while alerting, ${flagsOf(it)} ($kill)\n${deviceState()}")
         }
-        // Evidence of the AlertPlayer (the emulator runs without audio): its vibration, if the image has a vibrator.
+        // Evidence of the alert player (the emulator runs without audio): its vibration, if the image has a vibrator.
         Log.i(
             TAG,
             "vibrations:\n" +

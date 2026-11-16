@@ -1,7 +1,7 @@
 package com.umamit.core.timer.alert
 
 /**
- * The AlertPlayer that follows the ringer mode (04 §9.1, [AlertMatrix]).
+ * The alert player that follows the ringer mode (04 §9.1, [AlertMatrix]); [AlertPlayback] runs it.
  *
  * - **Alert:** the tone (SET-09) plays once per cycle and the vibration
  *   pattern starts with it. A cycle lasts as long as the tone, at least the

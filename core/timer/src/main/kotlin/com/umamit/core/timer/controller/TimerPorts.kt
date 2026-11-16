@@ -127,7 +127,7 @@ interface TimerNotifierPort {
  */
 data class StepAlert(val kind: SessionKind, val stepIndex: Int, val deadlineWallMs: Long)
 
-/** `PlayPreAlert`, `StartAlert`, `StopAlert`: the AlertPlayer that follows the ringer mode (04 §9). */
+/** `PlayPreAlert`, `StartAlert`, `StopAlert`: `ControllerAlertPort` plays them on `RingerModeAlertPlayer` (04 §9). */
 interface TimerAlertPort {
     /**
      * The pre-alert tick (TMR-23); the engine plays it at most once per step. [scheduled] is

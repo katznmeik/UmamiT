@@ -19,7 +19,7 @@ object TimerNotifications {
     /** Live Update / ongoing notification: importance DEFAULT, silent (promotion needs more than MIN). */
     const val CHANNEL_BREW_TIMER = "brew_timer"
 
-    /** Alert with the full-screen intent: importance HIGH, no sound (the AlertPlayer plays it, 04 §9). */
+    /** Alert with the full-screen intent: importance HIGH, no sound (`AlertPlayback` plays it, 04 §9). */
     const val CHANNEL_STEEP_FINISHED = "steep_finished"
 
     /** „Sitzung gespeichert" and the reboot notice: importance LOW, silent (04 §8.1). */
@@ -111,7 +111,7 @@ object TimerNotifications {
         )
     }
 
-    /** One timer channel: no sound (the AlertPlayer plays the alert, 04 §9), no vibration, no badge. */
+    /** One timer channel: no sound (`AlertPlayback` plays the alert, 04 §9), no vibration, no badge. */
     private fun channel(
         context: Context,
         id: String,
