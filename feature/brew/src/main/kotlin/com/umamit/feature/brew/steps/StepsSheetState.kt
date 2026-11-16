@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.umamit.core.domain.brew.BrewScaling
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.BrewTimerEngine
@@ -275,9 +276,6 @@ private const val MAX_SECONDS = 86_400
 private const val MINUTE_STEPS_FROM_SECONDS = 600
 private const val SECONDS_UNIT = 5
 private const val MINUTES_UNIT = 60
-private const val TEMP_UNIT = 5
-private const val MIN_TEMP_C = 5
-private const val MAX_TEMP_C = 100
 
 /** The next longer duration: the next multiple of 5 s below 10 min, of 1 min from 10 min on. */
 internal fun longer(seconds: Int): Int {
@@ -298,11 +296,11 @@ internal fun roundedDuration(seconds: Int): Int {
     return (bounded / unit * unit).coerceAtLeast(MIN_SECONDS)
 }
 
-internal fun warmer(tempC: Int): Int =
-    nextMultiple(tempC, TEMP_UNIT).coerceIn(MIN_TEMP_C, MAX_TEMP_C).coerceAtLeast(tempC)
+/** One 5 °C step up ([BrewScaling.tempStepped]); a temperature above 100 °C is never lowered. */
+internal fun warmer(tempC: Int): Int = BrewScaling.tempStepped(tempC, up = true).coerceAtLeast(tempC)
 
-internal fun cooler(tempC: Int): Int =
-    previousMultiple(tempC, TEMP_UNIT).coerceIn(MIN_TEMP_C, MAX_TEMP_C).coerceAtMost(tempC)
+/** One 5 °C step down ([BrewScaling.tempStepped]); a temperature below 5 °C is never raised. */
+internal fun cooler(tempC: Int): Int = BrewScaling.tempStepped(tempC, up = false).coerceAtMost(tempC)
 
 private fun nextMultiple(value: Int, unit: Int): Int = Math.floorDiv(value, unit) * unit + unit
 
