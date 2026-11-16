@@ -11,6 +11,10 @@
 
 ## Releases and plans
 
+### v0.7.2: triage done (2026-11-16)
+
+- **Triage (#303, Opus `medium`, in the session):** the PO picked all 60 audit findings in 15 multi-select questions over the four groups (overlaps as one choice each; DAT-A-04 follow-up: `VesselDao.delete` goes too, a raw `DELETE` in `SessionEditorTest`). „pick?" filled in the four audit files; the seven restructurings are D-121 – D-127 (#304); #305 (6 IDs), #306 (26), #307 (5), #308 (21, the fence) list them. Usage: 25 requests, 3.39 M cache read, 30 k output. No code change.
+
 ### v0.7.2: UI audit done (2026-11-16)
 
 - **UI audit (#302, Opus `medium`, in the session, full scope):** `docs/plans/v0.7.2-audit-ui.md`, 15 findings (UI-A-01 … UI-A-15: the settings routes registered twice, two intent-request holders and their consumers, the undo snackbar three times, the past-only date picker three times (widens CAT-A-08), the leaf/water/temperature input rules of two editors, the session-zone fallback six times, the reliability-check wiring twice, the pill stepper twice, small copies; UI-A-15 is the group's share of TMR-A-03). Scope 31 665 main lines plus the six `feature:brew` screen files for #308; about 14 900 + 2 040 read in full (scope table). No dead code found through R8. Correction to the data audit's `WallClock.today()` note (one of the four places uses the session's zone). No code change.
@@ -622,6 +626,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-16 | **v0.7.2 session 6:** triage #303 with the PO (Opus `medium`): all 60 findings picked, D-121 – D-127 for the seven restructurings, #304–#308 bodies updated, pushed to draft PR #312. Next: restructuring design #304 (Fable 5.2 `medium`). |
 | 2026-11-16 | **v0.7.2 session 5:** UI audit #302 (Opus `medium`, full scope), `docs/plans/v0.7.2-audit-ui.md` (15 findings UI-A-01 … 15: settings routes twice, request holders, undo snackbar and date picker three times each, the editors' input rules, the session-zone fallback six times; brew parts marked for #308; no code change), pushed to draft PR #312. Next: triage #303 with the PO (Opus `medium`). |
 | 2026-11-16 | **v0.7.2 session 4:** timer-path audit #301 (Fable 5.2 `medium`, full scope), `docs/plans/v0.7.2-audit-timer.md` (15 findings TMR-A-01 … 15: the dead `AlertPlayer` interface and factory, the pass-through `TimerSlotStore`, the start question in three view models, the sheet state eight times, the accuracy report in main sources; the app's timer wiring files named for the #308 fence; no code change), pushed to draft PR #312. Next: UI audit #302 (Opus `medium`). |
 | 2026-11-16 | **v0.7.2 session 3:** data audit #300 (Fable 5.2 `medium`, full scope), `docs/plans/v0.7.2-audit-data.md` (15 findings DAT-A-01 … 15, four of them deletions found through R8, no code change), pushed to draft PR #312. Next: timer-path audit #301 (Fable 5.2 `medium`). |
