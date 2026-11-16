@@ -40,6 +40,7 @@ import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.domain.input.GermanNumber
+import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.editor.DateField
 import kotlinx.coroutines.launch
@@ -68,7 +69,7 @@ internal fun PurchaseSheet(
     onDismissRequest: () -> Unit,
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
-    val sheetState = rememberPurchaseSheetState(reduceMotion)
+    val sheetState = rememberExpandedSheetState(reduceMotion)
     val scope = rememberCoroutineScope()
     // Set by *Erfassen* and *Abbrechen*: the sheet is on its way out, so a second tap records nothing twice.
     var leaving by remember { mutableStateOf(false) }
@@ -222,25 +223,6 @@ private fun AmountField(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     )
 }
-
-/** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun rememberPurchaseSheetState(reduceMotion: Boolean): SheetState {
-    val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-        )
-    }
-}
-
-// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp
 
 /** Long enough for „1.234,50 €" or „10.000 g"; [GermanNumber] refuses anything longer anyway. */
 private const val FIELD_MAX = 12

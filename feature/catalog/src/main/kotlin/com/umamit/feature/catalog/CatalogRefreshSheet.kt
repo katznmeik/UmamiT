@@ -40,6 +40,7 @@ import com.umamit.core.data.catalog.summary
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.core.ui.rememberSheetClose
 import kotlinx.coroutines.launch
 
@@ -59,7 +60,7 @@ const val CATALOG_REFRESH_SUMMARY_TAG = "catalog_refresh_summary"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogRefreshSheet(refresh: CatalogRefreshState, onCancel: () -> Unit, onDismissRequest: () -> Unit) {
-    val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion)
+    val sheetState = rememberExpandedSheetState(UmamiTheme.reduceMotion)
     // *Fertig* and *Schließen* slide the sheet out like a drag, then close it (A-13).
     val close = rememberSheetClose(sheetState, onDismissRequest)
     ModalBottomSheet(
@@ -213,29 +214,3 @@ private fun Body(text: String, modifier: Modifier = Modifier) {
         modifier = modifier,
     )
 }
-
-/**
- * The catalog's sheets (SCR-22, SCR-23): always fully expanded; under reduce motion it starts
- * expanded, so it appears without the slide (03 §3.6).
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun rememberCatalogSheetState(
-    reduceMotion: Boolean,
-    confirmValueChange: (SheetValue) -> Boolean = { true },
-): SheetState {
-    val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-            confirmValueChange = confirmValueChange,
-        )
-    }
-}
-
-// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp

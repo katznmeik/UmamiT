@@ -73,7 +73,7 @@ fun StockSheet(
     sessionLeafGrams: Double? = null,
     hideOnClose: Boolean = false,
 ) {
-    val sheetState = rememberStockSheetState(UmamiTheme.reduceMotion)
+    val sheetState = rememberExpandedSheetState(UmamiTheme.reduceMotion)
     val close = rememberSheetClose(sheetState, onDismissRequest)
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -225,25 +225,6 @@ object StockInput {
         return next.takeIf { it >= BigDecimal.ZERO && it.toDouble() <= MAX_GRAMS }?.let { format(it.toDouble()) }
     }
 }
-
-/** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun rememberStockSheetState(reduceMotion: Boolean): SheetState {
-    val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-        )
-    }
-}
-
-// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp
 
 /** Centres a 48 dp stepper on the 56 dp field below the outlined field's 8 dp label space. */
 private val STEPPER_TOP = 12.dp

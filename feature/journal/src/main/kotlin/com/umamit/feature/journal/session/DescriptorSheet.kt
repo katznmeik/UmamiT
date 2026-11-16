@@ -48,8 +48,8 @@ import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TastingLimits
 import com.umamit.core.ui.DescriptorChip
 import com.umamit.core.ui.labelRes
+import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.feature.journal.R
-import com.umamit.feature.journal.rememberJournalSheetState
 import kotlinx.coroutines.launch
 
 /** The descriptor sheet (SCR-30, JRN-04). */
@@ -77,7 +77,7 @@ internal fun DescriptorSheet(
     onDismissRequest: () -> Unit,
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
-    val sheetState = rememberJournalSheetState(reduceMotion)
+    val sheetState = rememberExpandedSheetState(reduceMotion)
     val scope = rememberCoroutineScope()
     val scroll = rememberScrollState()
     var query by rememberSaveable { mutableStateOf("") }

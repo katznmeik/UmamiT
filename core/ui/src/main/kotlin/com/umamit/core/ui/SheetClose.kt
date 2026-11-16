@@ -2,6 +2,7 @@ package com.umamit.core.ui
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -10,6 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.theme.UmamiTheme
 import kotlinx.coroutines.launch
 
@@ -83,3 +86,29 @@ class LeavingSheet<T : Any> internal constructor(val shown: T?, val leaving: Boo
 private class LeavingSheetHolder<T : Any> {
     var last by mutableStateOf<T?>(null)
 }
+
+/**
+ * A sheet that is always fully expanded; under reduce motion it starts expanded, so it appears without the slide
+ * (03 §3.6). [confirmValueChange] may refuse a state, as the add sheet does while it saves.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun rememberExpandedSheetState(
+    reduceMotion: Boolean,
+    confirmValueChange: (SheetValue) -> Boolean = { true },
+): SheetState {
+    val density = LocalDensity.current
+    return remember(reduceMotion) {
+        SheetState(
+            skipPartiallyExpanded = true,
+            positionalThreshold = { with(density) { POSITIONAL_THRESHOLD.toPx() } },
+            velocityThreshold = { with(density) { VELOCITY_THRESHOLD.toPx() } },
+            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
+            confirmValueChange = confirmValueChange,
+        )
+    }
+}
+
+// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
+private val POSITIONAL_THRESHOLD = 56.dp
+private val VELOCITY_THRESHOLD = 125.dp

@@ -36,6 +36,7 @@ import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.core.ui.rememberSheetClose
 
 /** The sheet of a tea from a shop link (SCR-19, CAT-17). */
@@ -93,7 +94,7 @@ fun TeaLinkSheet(
     onLoad: () -> Unit,
     onDismissRequest: () -> Unit,
 ) {
-    val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion)
+    val sheetState = rememberExpandedSheetState(UmamiTheme.reduceMotion)
     // *Schließen* slides the sheet out like a drag, then closes it (A-13).
     val close = rememberSheetClose(sheetState, onDismissRequest)
     ModalBottomSheet(

@@ -37,6 +37,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.MonthSpan
+import com.umamit.core.ui.rememberExpandedSheetState
 import kotlinx.coroutines.launch
 import java.time.YearMonth
 
@@ -47,8 +48,6 @@ const val STATS_MONTHS_SHEET_TAG = "stats_months_sheet"
 const val STATS_MONTH_FROM_TAG = "stats_month_from"
 const val STATS_MONTH_TO_TAG = "stats_month_to"
 
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp
 private const val HALF_TURN = 180f
 
 /**
@@ -65,7 +64,7 @@ internal fun MonthsSheet(
     onDismissRequest: () -> Unit,
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
-    val sheetState = rememberMonthsSheetState(reduceMotion)
+    val sheetState = rememberExpandedSheetState(reduceMotion)
     val scope = rememberCoroutineScope()
     // The months being stepped: two quick taps both count, without waiting for the saved choice to come back.
     var draft by remember { mutableStateOf(selected) }
@@ -180,20 +179,5 @@ private fun MonthPicker(
                 Icon(painter = painterResource(UmamiIcons.ChevronRight), contentDescription = null)
             }
         }
-    }
-}
-
-/** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun rememberMonthsSheetState(reduceMotion: Boolean): SheetState {
-    val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-        )
     }
 }

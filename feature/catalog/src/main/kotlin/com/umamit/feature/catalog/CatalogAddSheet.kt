@@ -49,6 +49,7 @@ import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.rememberExpandedSheetState
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -95,7 +96,7 @@ fun CatalogAddSheet(
     // While it saves, neither a swipe nor back hides it, so the save's outcome shows (D-090).
     val saving by rememberUpdatedState(state.saving && !leaving)
     val reduceMotion = UmamiTheme.reduceMotion
-    val sheetState = rememberCatalogSheetState(reduceMotion) { it != SheetValue.Hidden || !saving }
+    val sheetState = rememberExpandedSheetState(reduceMotion) { it != SheetValue.Hidden || !saving }
     // Closed by the view model (*Aufnehmen* recorded): it slides out like a drag, then it is removed (A-13).
     val currentOnLeft by rememberUpdatedState(onLeft)
     LaunchedEffect(leaving) {
