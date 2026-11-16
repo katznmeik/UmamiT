@@ -1,9 +1,7 @@
 package com.umamit.feature.collection.detail
 
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,10 +16,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.TeaArchive
+import com.umamit.core.ui.showUndo
 import com.umamit.feature.collection.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -77,20 +75,9 @@ fun ArchivedTeaSnackbar(
     val currentOnDone by rememberUpdatedState(onDone)
     LaunchedEffect(archived) {
         if (archived == null || message == null) return@LaunchedEffect
-        val timeoutMs = accessibility?.calculateRecommendedTimeoutMillis(
-            UNDO_TIMEOUT_MS,
-            containsIcons = false,
-            containsText = true,
-            containsControls = true,
-        ) ?: UNDO_TIMEOUT_MS
-        val result = withTimeoutOrNull(timeoutMs) {
-            hostState.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Indefinite)
-        }
-        if (result == SnackbarResult.ActionPerformed) currentOnUndo(archived.teaId)
+        val undone = hostState.showUndo(message, undo, accessibility)
+        if (undone) currentOnUndo(archived.teaId)
         currentOnDone()
     }
     SnackbarHost(hostState = hostState, modifier = modifier)
 }
-
-/** About 8 s for *Rückgängig* (D-093 Q21). */
-private const val UNDO_TIMEOUT_MS = 8_000L

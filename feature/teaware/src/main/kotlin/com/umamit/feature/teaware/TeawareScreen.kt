@@ -24,10 +24,8 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -58,7 +56,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberPhotoPainter
-import kotlinx.coroutines.withTimeoutOrNull
+import com.umamit.core.ui.showUndo
 
 /** Test tags of SCR-13. */
 object TeawareTags {
@@ -302,20 +300,10 @@ private fun ArchivedSnackbar(
     val currentOnDismiss by rememberUpdatedState(onDismiss)
     LaunchedEffect(archived) {
         if (archived == null || message == null) return@LaunchedEffect
-        val timeoutMs = accessibility?.calculateRecommendedTimeoutMillis(
-            UNDO_TIMEOUT_MS,
-            containsIcons = false,
-            containsText = true,
-            containsControls = true,
-        ) ?: UNDO_TIMEOUT_MS
-        val result = withTimeoutOrNull(timeoutMs) {
-            hostState.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Indefinite)
-        }
-        if (result == SnackbarResult.ActionPerformed) currentOnUndo(archived.id) else currentOnDismiss()
+        val undone = hostState.showUndo(message, undo, accessibility)
+        if (undone) currentOnUndo(archived.id) else currentOnDismiss()
     }
 }
-
-private const val UNDO_TIMEOUT_MS = 8_000L
 
 private val ThumbSize = 40.dp
 
