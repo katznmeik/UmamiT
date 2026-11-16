@@ -333,10 +333,6 @@ interface ActiveBrewDao {
     @Query("DELETE FROM active_brew")
     suspend fun clear()
 
-    /** The tea of the active brew session; null without one, for the quick timer or a session without a tea (E15). */
-    @Query(ACTIVE_TEA_ID)
-    fun observeActiveTeaId(): Flow<String?>
-
     /** The teas of the active brew sessions, in either brew slot (E15, D-108); a session without a tea adds none. */
     @Query("$ACTIVE_TEA_ID WHERE brew_session.tea_id IS NOT NULL")
     fun observeActiveTeaIds(): Flow<List<String>>
