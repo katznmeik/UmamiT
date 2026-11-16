@@ -5,19 +5,18 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-16 (v0.7.2 session 6, the triage). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The PO approved the v0.7.2 plan and tickets (`docs/plans/v0.7.2.md`, spec #296, #297–#310; D-119, D-120). Step 1 and all four audits are done. **The triage (#303) is done:** the PO picked **all 60 findings** („pick?" filled in the four audit files); the seven restructurings are **D-121 – D-127**; #305 (6 IDs), #306 (26), #307 (5) and #308 (21) list them. No code change; all on the draft milestone PR [#312](https://github.com/katznmeik/UmamiT/pull/312). **Next:** session 7, the restructuring design (#304).
+**Last updated:** 2026-11-16 (v0.7.2 session 7, the restructuring design). **`v0.7.1` is released** (versionCode 70199, from `main` `6192bff5`; details in `docs/history.md`). The PO approved the v0.7.2 plan and tickets (`docs/plans/v0.7.2.md`, spec #296, #297–#310; D-119, D-120). Step 1, all four audits and the triage (#303, all 60 findings picked) are done. **The restructuring design (#304) is done and approved by the PO:** `docs/plans/v0.7.2-restructuring.md`, recorded in D-121 – D-127; the steps are in #307 (12 steps) and #308 (D-127 one step, D-126 two). `06-architecture.md` is unchanged. No code change yet; all on the draft milestone PR [#312](https://github.com/katznmeik/UmamiT/pull/312). **Next:** the execution (#305 first).
 
-## Next: v0.7.2 session 7, the restructuring design (#304)
+## Next: v0.7.2 execution (#305 → #306 → #307 → #308)
 
-- **Model:** Fable 5.2 `medium` (T4-F, D-120 Q4), in the session itself. Branch `claude/wonderful-davinci-fu8tqi`, draft PR #312.
-- **Input:** #304 (its checklist), the decisions **D-121 – D-127** („Left to the design" in each), the audit rows they name (`docs/plans/v0.7.2-audit-catalog.md` CAT-A-05, -07, -08, -14; `-ui.md` UI-A-01, -04, -10; `-data.md` DAT-A-14; `-timer.md` TMR-A-06, -09), 06 §3 and `build-logic`'s module rules, plan „Step 3", „Step 4", „Proof".
-- **Output:** per decision the target structure, the steps in a build-green order with tiers, 06 before/after (update `06-architecture.md` only where a section changes) and the risk to goldens, schemas, keys and the timer path; the steps go into #307 (D-121 – D-125) and #308 (D-126, D-127). The PO approves the design (recorded in each decision) before #307/#308 start. Docs only.
-- **Session 6 facts to know:**
-  - The PO picked every finding in 15 multi-select questions (4 groups), each overlap as one choice. **DAT-A-04:** `VesselDao.delete` goes too; `SessionEditorTest:142` uses a raw `DELETE`. **CAT-A-01:** re-pointing the string resources was in the picked option. **TMR-A-14:** picked, so its tests are edited (same expectations).
-  - Routing (the fence): findings with parts in `feature:brew`, `core:timer` or `core:timer-engine` have the outside part in #305/#306 and the fenced part in #308 (UI-A-03, -05, -08, -13, TMR-A-03, DAT-A-13 + TMR-A-15). **UI-A-07** went wholly to #308, because its holder goes into `core:timer` `reliability/`. CAT-A-02, -03, -04 (#306) touch `CatalogRefresher.kt` before its split (D-121).
-  - Open inside tickets, not decided: where UI-A-07's fix-action composable lives (#308).
-  - **Usage:** 25 requests, 3.39 M cache read, 122 k cache write, 30 k output (summed from the transcript before the last commit).
-- After #304: the execution session (#305 first), Opus `medium` orchestrator by 12 §5.1.
+- **Model:** Opus `medium` orchestrator (12 §5.1), `/implement-spec #296`. Branch `claude/wonderful-davinci-fu8tqi`, draft PR #312. D-119 Q4: a later week than the audits, nothing else beside it.
+- **Order (plan „Step 4"):** #305 deletions (T1/T2, data modules T3) → #306 local simplifications (T2, data modules T3) → #307 restructuring (T3, its 12 steps in its order) → #308 the timer path, last and on its own (T3, T4 on a failure). Then the T3 milestone review and the T4 timer review, #309, #310.
+- **Each ticket:** the fence (`git diff main -- core/timer core/timer-engine feature/brew` empty until #308, plus the fenced `app` files of `v0.7.2-audit-timer.md`), the plan's „Proof" and „Verification"; at most 2 implementers, one Gradle build at a time. A session stops at a ticket boundary with CI green and a handover here.
+- **Session 7 facts to know:**
+  - The PO took variant A of all seven designs (eight questions as options). **D-121:** `Run` is an inner class, so about 15 lines change, not 5; it becomes `CatalogRefreshRun`. **D-123:** the date dialog always clamps (no flag); `core:ui` gains `androidx.core.ktx`. **D-125:** the two graphs differ in gating, `launchSingleTop` and the settings route type, so each passes its own lambdas in a `SettingsNav`; the root graph is a step of its own. **D-127:** the shared test folder is wired in `core/timer/build.gradle.kts` only; whether AGP 9.4 accepts one folder in both test source sets was not tried (docs-only session); if not, the step stops in #308.
+  - Design line numbers are from `bce78141`; take them again after #305 and #306.
+  - Session 6 facts still apply: **DAT-A-04** (`VesselDao.delete` goes too; `SessionEditorTest:142` uses a raw `DELETE`), **CAT-A-01** (re-pointing the string resources is picked), **TMR-A-14** (its tests are edited, same expectations); the routing of findings with fenced parts (#305/#306 outside, #308 inside; UI-A-07 wholly in #308). Open inside #308, not decided: where UI-A-07's fix-action composable lives.
+  - **Usage:** 28 requests, 3.9 M cache read, 0.16 M cache write, 45 k output (summed from the transcript before the last commit).
 
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
   init script (`~/.gradle/init.d/mirror.gradle`, not in the repository) points every
@@ -39,7 +38,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): approved by the PO (2026-11-15); step 1 done (evidence file), all four audits done (2026-11-16; #299: all three remaining audits kept); the triage (#303) done (2026-11-16, all 60 picked, D-121 – D-127); the restructuring design (#304) is next. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
+| Current milestone | **v0.7.2** (cleanup review, D-119, D-120): approved by the PO (2026-11-15); step 1 done (evidence file), all four audits done (2026-11-16; #299: all three remaining audits kept); the triage (#303) done (2026-11-16, all 60 picked, D-121 – D-127); the restructuring design (#304) done and approved by the PO (2026-11-16); the execution (#305 first) is next. **v0.7.1** (two ratings, smooth transitions) is released (2026-11-15) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `f0ffaf1a`; evidence and the four audit commits on top) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -61,7 +60,7 @@
 
 ## Waiting on the PO
 
-1. **The restructuring design (#304), session 7:** the PO approves the design of D-121 – D-127 before #307/#308 start. Installing `v0.7.1` over rc.2 stays optional.
+1. **Nothing blocks the execution.** The PO starts its session (a later week, D-119 Q4). Installing `v0.7.1` over rc.2 stays optional.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
