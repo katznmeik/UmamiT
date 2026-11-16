@@ -1,9 +1,5 @@
 package com.umamit.feature.catalog
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +42,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.designsystem.component.BackAction
@@ -58,8 +53,10 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.openInBrowser
 import com.umamit.core.ui.rememberLeavingSheet
 import com.umamit.core.ui.rememberPhotoPainter
+import com.umamit.core.ui.teaTypePlaceholderColor
 
 /** The catalog tea detail's scrolling content (SCR-21). */
 const val CATALOG_TEA_TAG = "catalog_tea"
@@ -96,7 +93,7 @@ fun CatalogTeaRoute(
     CatalogTeaScreen(
         state = state,
         onBack = onBack,
-        onOpenShop = context::openInBrowser,
+        onOpenShop = { context.openInBrowser(it, R.string.catalog_tea_no_browser) },
         onAdd = { if (!alerting) viewModel.openSheet() },
         modifier = modifier,
         onToggleMark = viewModel::toggleMark,
@@ -195,7 +192,7 @@ private fun Detail(
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.End))
                 .testTag(CATALOG_TEA_TAG),
         ) {
-            Hero(photo, placeholderColor(tea.teaType))
+            Hero(photo, teaTypePlaceholderColor(tea.teaType))
             Column(modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin)) {
                 Header(tea)
                 Spacer(Modifier.height(UmamiSpacing.Medium))
@@ -327,15 +324,6 @@ private fun Tag(text: String) {
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.padding(horizontal = UmamiSpacing.Small, vertical = UmamiSpacing.XXSmall),
         )
-    }
-}
-
-/** Opens [url] in the browser; without one, says so. */
-internal fun Context.openInBrowser(url: String) {
-    try {
-        startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addCategory(Intent.CATEGORY_BROWSABLE))
-    } catch (_: ActivityNotFoundException) {
-        Toast.makeText(this, R.string.catalog_tea_no_browser, Toast.LENGTH_SHORT).show()
     }
 }
 

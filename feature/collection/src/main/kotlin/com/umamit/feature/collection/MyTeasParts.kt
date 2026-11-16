@@ -31,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -47,13 +46,13 @@ import com.umamit.core.designsystem.component.FreshnessChip
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
-import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CollectionFilter
 import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.rememberAlertGate
+import com.umamit.core.ui.teaTypePlaceholderColor
 
 /** The search field of *Meine Tees* (SCR-08). */
 const val MY_TEAS_SEARCH_TAG = "my_teas_search"
@@ -295,7 +294,7 @@ internal fun MyTeaItem(
         modifier = modifier.testTag(myTeaRowTag(row.id)),
         onClick = onClick,
         thumbnail = thumbnail,
-        placeholderColor = placeholderColor(row.sorte),
+        placeholderColor = teaTypePlaceholderColor(row.sorte),
         rating = row.rating,
         badges = if (hasBadges) {
             {
@@ -378,24 +377,6 @@ private fun StockChip(row: MyTeaRow) {
             // The same height as „Rezept prüfen" beside it (CheckRecipeBadge).
             modifier = Modifier.padding(horizontal = UmamiSpacing.XSmall, vertical = UmamiSpacing.XXSmall),
         )
-    }
-}
-
-/** The leaf placeholder's colour by the tea's *Sorte* (03 §3.5), for a tea without a photo. */
-@Composable
-private fun placeholderColor(sorte: String?): Color {
-    val colors = UmamiTheme.extendedColors.teaTypes
-    val type = sorte.orEmpty().lowercase()
-    return when {
-        "gyokuro" in type -> colors.gyokuro
-        "kabuse" in type -> colors.kabusecha
-        "shincha" in type -> colors.shincha
-        "sencha" in type -> colors.sencha
-        "matcha" in type -> colors.matcha
-        "kukicha" in type || "karigane" in type -> colors.kukichaKarigane
-        "hojicha" in type || "houjicha" in type -> colors.hojicha
-        "genmaicha" in type -> colors.genmaicha
-        else -> colors.other
     }
 }
 

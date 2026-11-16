@@ -13,4 +13,6 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     // InfusionTasteEditor saves a pending note when the app stops (JRN-05).
     implementation(libs.androidx.lifecycle.runtime.compose)
+    // `toUri` for openInBrowser (D-123).
+    implementation(libs.androidx.core.ktx)
 }
