@@ -5,16 +5,18 @@ import android.database.sqlite.SQLiteFullException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticShop
 import com.umamit.core.catalog.parser.SyntheticShop.Size
+import com.umamit.core.data.catalog.FakeShop.Companion.ROBOTS
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP_GZ
+import com.umamit.core.data.catalog.FakeShop.Companion.text
 import com.umamit.core.data.decodedSize
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.data.syntheticJpeg
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.model.RecipeCheckReason
-import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -22,10 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
-import mockwebserver3.MockWebServer
-import mockwebserver3.RecordedRequest
 import okio.Buffer
 import org.junit.After
 import org.junit.Before
@@ -36,7 +35,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 
 /**
@@ -57,7 +55,7 @@ class CatalogLaterRefreshTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private val server = MockWebServer()
+    private val shop = FakeShop()
     private val db = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CatalogDatabase::class.java)
         .allowMainThreadQueries()
@@ -78,28 +76,16 @@ class CatalogLaterRefreshTest {
 
     private val settings = FakeSettingsRepository()
 
-    private val routes = mutableMapOf<String, () -> MockResponse>()
-    private val requests = CopyOnWriteArrayList<RecordedRequest>()
-    private val listed = mutableListOf<String>()
-    private val base get() = server.url("/").toString().removeSuffix("/")
+    private val routes get() = shop.routes
+    private val requests get() = shop.requests
+    private val listed get() = shop.listed
+    private val base get() = shop.base
 
     @Before
     fun setUp() {
         photos = CatalogPhotoFiles(folder.newFolder("catalog"))
         diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO)
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                requests += request
-                return routes[request.url.encodedPath]?.invoke() ?: MockResponse.Builder().code(404).build()
-            }
-        }
-        server.start()
-        routes[ROBOTS] = { text(SyntheticShop.robotsTxt()) }
-        routes[SITEMAP] = { text(SyntheticShop.sitemapIndex("$base$SITEMAP_GZ")) }
-        routes[SITEMAP_GZ] = {
-            MockResponse.Builder().addHeader("Content-Type", "application/x-gzip")
-                .body(Buffer().write(SyntheticShop.gzip(SyntheticShop.urlSet(listed.map { "$base$it" })))).build()
-        }
+        shop.start()
         product(SENCHA, "Morgennebel Sencha – 100g", photo = "sencha")
         product(GYOKURO, "Tautropfen Gyokuro – 100g", photo = "gyokuro", price = "18,00 €")
         product(SPLIT_30, "Abendrot Sencha 30g", photo = "abendrot", price = "9,90 €", grams = 30)
@@ -111,7 +97,7 @@ class CatalogLaterRefreshTest {
 
     @After
     fun tearDown() {
-        server.close()
+        shop.close()
         db.close()
     }
 
@@ -150,14 +136,13 @@ class CatalogLaterRefreshTest {
         routes[photoPath.substringBefore('?')] = { jpeg(syntheticJpeg(400, 300)) }
     }
 
-    private fun refresher() = CatalogRefresher(
-        client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+    private fun refresher() = catalogRefresher(
+        shop = shop,
         dao = dao,
         clock = clock,
         diagnostics = diagnostics,
         settings = settings,
         photos = photos,
-        sanity = SanityCheck(firstImportMinimum = 1),
         owned = OwnedCatalogKeys { owned },
         seedTeas = CatalogSeedLinker { withPhotos ->
             seedLinks++
@@ -166,7 +151,7 @@ class CatalogLaterRefreshTest {
         },
     )
 
-    private fun paths() = requests.map { it.url.encodedPath }
+    private fun paths() = shop.paths()
 
     /**
      * The teas at [paths] left the shop's range: out of the sitemap and their pages gone (404),
@@ -412,14 +397,13 @@ class CatalogLaterRefreshTest {
 
     @Test
     fun aFailingSeedLinkNeverFailsTheRefresh() = runTest {
-        val refresher = CatalogRefresher(
-            client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+        val refresher = catalogRefresher(
+            shop = shop,
             dao = dao,
             clock = clock,
             diagnostics = diagnostics,
             settings = FakeSettingsRepository(),
             photos = photos,
-            sanity = SanityCheck(firstImportMinimum = 1),
             seedTeas = CatalogSeedLinker { throw SQLiteFullException("full") },
         )
 
@@ -431,16 +415,10 @@ class CatalogLaterRefreshTest {
 
     private fun photoRoute(name: String) = SyntheticShop.photoPath(name).substringBefore('?')
 
-    private fun text(body: String) =
-        MockResponse.Builder().addHeader("Content-Type", "text/html; charset=utf-8").body(body).build()
-
     private fun jpeg(bytes: ByteArray) =
         MockResponse.Builder().addHeader("Content-Type", "image/jpeg").body(Buffer().write(bytes)).build()
 
     private companion object {
-        const val ROBOTS = "/robots.txt"
-        const val SITEMAP = "/sitemap.xml"
-        const val SITEMAP_GZ = "/sitemap/synthetic-1.xml.gz"
         const val SENCHA_KEY = "XY0100"
         const val GYOKURO_KEY = "XY0200"
         const val KABUSE_KEY = "XY0300"

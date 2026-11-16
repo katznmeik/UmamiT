@@ -4,8 +4,11 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticShop
+import com.umamit.core.data.catalog.FakeShop.Companion.ROBOTS
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP_GZ
+import com.umamit.core.data.catalog.FakeShop.Companion.text
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
@@ -14,17 +17,11 @@ import com.umamit.core.database.entity.CatalogSkipEntity
 import com.umamit.core.database.entity.CatalogSkipReason
 import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.UserSettings
-import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import mockwebserver3.Dispatcher
-import mockwebserver3.MockResponse
-import mockwebserver3.MockWebServer
-import mockwebserver3.RecordedRequest
-import okio.Buffer
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -33,8 +30,6 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 
 /**
@@ -48,34 +43,22 @@ class CatalogParserV10RefreshTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private val server = MockWebServer()
+    private val shop = FakeShop()
     private val db = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CatalogDatabase::class.java)
         .allowMainThreadQueries()
         .build()
     private val dao = db.catalogDao()
     private val clock = FakeClock()
-    private val routes = ConcurrentHashMap<String, () -> MockResponse>()
-    private val requests = CopyOnWriteArrayList<RecordedRequest>()
-    private val listed = CopyOnWriteArrayList<String>()
-    private val base get() = server.url("/").toString().removeSuffix("/")
+    private val routes get() = shop.routes
+    private val requests get() = shop.requests
+    private val listed get() = shop.listed
+    private val base get() = shop.base
     private val repository by lazy { RoomCatalogRepository(dao, CatalogPhotoFiles(folder.newFolder())) }
 
     @Before
     fun setUp() {
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                requests += request
-                return routes[request.url.encodedPath]?.invoke() ?: MockResponse.Builder().code(404).build()
-            }
-        }
-        server.start()
-        routes[ROBOTS] = { text(SyntheticShop.robotsTxt()) }
-        routes[SITEMAP] = { text(SyntheticShop.sitemapIndex("$base$SITEMAP_GZ")) }
-        routes[SITEMAP_GZ] = {
-            MockResponse.Builder().addHeader("Content-Type", "application/x-gzip")
-                .body(Buffer().write(SyntheticShop.gzip(SyntheticShop.urlSet(listed.map { "$base$it" })))).build()
-        }
+        shop.start()
         product(SENCHA, "Morgennebel Sencha – 100g", SyntheticShop.SENCHA_PATH, SyntheticShop.BREW_ROWS)
         product(ROOIBOS, "Sonnenfeld Rotbusch – 100g", SyntheticShop.ROOIBOS_CLASSIC_PATH, INFUSION)
         product(FRUIT, "Beerenwolke – 100g", SyntheticShop.FRUIT_CLASSIC_PATH, INFUSION)
@@ -85,7 +68,7 @@ class CatalogParserV10RefreshTest {
 
     @After
     fun tearDown() {
-        server.close()
+        shop.close()
         db.close()
     }
 
@@ -110,17 +93,16 @@ class CatalogParserV10RefreshTest {
         }
     }
 
-    private fun refresher() = CatalogRefresher(
-        client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+    private fun refresher() = catalogRefresher(
+        shop = shop,
         dao = dao,
         clock = clock,
         diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
         settings = FakeSettingsRepository(UserSettings(catalogDownloadPhotos = false)),
         photos = CatalogPhotoFiles(folder.newFolder()),
-        sanity = SanityCheck(firstImportMinimum = 1),
     )
 
-    private fun paths() = requests.map { it.url.encodedPath }
+    private fun paths() = shop.paths()
 
     /** An rc's last successful refresh ran parser v9: the three new kinds' teas and a sweet are skipped. */
     private suspend fun skipListOfParserV9() {
@@ -176,9 +158,6 @@ class CatalogParserV10RefreshTest {
         const val PARSER_V9 = 9
         val INFUSION = SyntheticShop.INFUSION_BREW_ROWS
 
-        const val ROBOTS = "/robots.txt"
-        const val SITEMAP = "/sitemap.xml"
-        const val SITEMAP_GZ = "/sitemap/synthetic-1.xml.gz"
         const val ROOIBOS_KEY = "XR0200"
         const val FRUIT_KEY = "XF0300"
         const val CHAI_KEY = "XR0400"
@@ -188,8 +167,5 @@ class CatalogParserV10RefreshTest {
         const val FRUIT = "/beerenwolke/$FRUIT_KEY"
         const val CHAI = "/rotbusch-chai-savanne/$CHAI_KEY"
         const val SWEETS = "/zimtstern/$SWEETS_KEY"
-
-        fun text(body: String) =
-            MockResponse.Builder().addHeader("Content-Type", "text/html; charset=utf-8").body(body).build()
     }
 }
