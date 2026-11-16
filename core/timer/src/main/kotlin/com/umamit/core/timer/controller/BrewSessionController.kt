@@ -52,7 +52,7 @@ data class BrewStart(val snapshot: SessionSnapshot, val steps: List<PlannedStep>
  * session and quick timer goes through it. It runs three slots (04 §3.3,
  * D-098, D-108), the brew slots `BREW` and `BREW_2` for brew sessions and the
  * quick slot for the quick timer, each with its own engine state, alarms, alert
- * watchdog and stored row ([ControllerSlots], [TimerSlotStore]); any two timers
+ * watchdog and stored row ([ControllerSlots], [ActiveBrewStore]); any two timers
  * are active at once: two brew sessions, or a brew session and the quick timer
  * (GEN-03, TMR-21, TMR-22). One alert player serves all, arbitrated after every
  * event ([AlertArbitration], [TransitionEffects]): the first alarm rings, a
@@ -83,9 +83,8 @@ class BrewSessionController @Inject constructor(
     private val ports: TimerPorts,
 ) : TimerInputs {
     private val lock = Mutex()
-    private val store: TimerSlotStore = ActiveBrewSlotStore(activeBrew)
-    private val effects = TransitionEffects(sessions, store, transactions, ports)
-    private val persistedTimer = PersistedTimer(store, sessions, ports, effects)
+    private val effects = TransitionEffects(sessions, activeBrew, transactions, ports)
+    private val persistedTimer = PersistedTimer(activeBrew, sessions, ports, effects)
     private val recovery = ProcessRecovery()
     private val sideBySide = SideBySide()
 

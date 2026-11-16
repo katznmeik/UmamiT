@@ -1,6 +1,7 @@
 package com.umamit.core.timer.controller
 
 import com.umamit.core.common.ClockReading
+import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
@@ -19,7 +20,7 @@ import kotlinx.coroutines.delay
  * its tea for the UI. Read inside the controller's event lock.
  */
 internal class PersistedTimer(
-    private val store: TimerSlotStore,
+    private val store: ActiveBrewStore,
     private val sessions: SessionRepository,
     private val ports: TimerPorts,
     private val effects: TransitionEffects,
