@@ -460,9 +460,9 @@ private fun StepPreAlertRow(
 
 /**
  * The shared pill stepper ([PillStepper], as the Schritte-Sheet's) with the editor's 56 dp value box: a value
- * between − and + that repeat while held; with
- * [onValueClick] the value is a button too (the duration opens „Dauer wählen"). [canStep] says whether a step up or
- * down changes anything (at a bound the button is greyed out and a hold stops); [onStep] applies one.
+ * between − and + that repeat while held; with [onValueClick] the value is a button too (the duration opens
+ * „Dauer wählen"). [canStep] says whether a step up or down changes anything (at a bound the button is greyed out
+ * and a hold stops); [onStep] applies one.
  */
 @Suppress("LongParameterList") // a stepper's parts
 @Composable
