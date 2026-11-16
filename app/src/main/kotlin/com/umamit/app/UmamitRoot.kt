@@ -572,19 +572,8 @@ private fun CatalogRefreshTaps(
     onConsume: (Long) -> Unit,
     navigateAbove: (route: Any, options: NavOptionsBuilder.() -> Unit) -> Unit,
 ) {
-    var handled by rememberSaveable { mutableLongStateOf(0L) }
-    val token by request.collectAsStateWithLifecycle()
-    val currentOnConsume by rememberUpdatedState(onConsume)
-    val currentNavigateAbove by rememberUpdatedState(navigateAbove)
-    LaunchedEffect(token, alert, setupDone) {
-        if (token == 0L || token == handled) return@LaunchedEffect
-        val inSetup = navController.currentDestination?.hasRoute<OnboardingRoute>() == true
-        if (setupDone && !inSetup) {
-            if (alert != null) return@LaunchedEffect
-            navController.openCatalogRefresh(CatalogRefreshRoute(token), currentNavigateAbove)
-        }
-        handled = token
-        currentOnConsume(token)
+    RequestTaps(navController, alert, setupDone, request, onConsume) { token ->
+        navController.openCatalogRefresh(CatalogRefreshRoute(token), navigateAbove)
     }
 }
 
@@ -604,20 +593,10 @@ private fun startTaps(
     request: StateFlow<Long>,
     onConsume: (Long) -> Unit,
 ): Long {
-    var handled by rememberSaveable { mutableLongStateOf(0L) }
     var shown by rememberSaveable { mutableLongStateOf(0L) }
-    val token by request.collectAsStateWithLifecycle()
-    val currentOnConsume by rememberUpdatedState(onConsume)
-    LaunchedEffect(token, alert, setupDone) {
-        if (token == 0L || token == handled) return@LaunchedEffect
-        val inSetup = navController.currentDestination?.hasRoute<OnboardingRoute>() == true
-        if (setupDone && !inSetup) {
-            if (alert != null) return@LaunchedEffect
-            navController.popBackStack<ShellRoute>(inclusive = false)
-            shown = token
-        }
-        handled = token
-        currentOnConsume(token)
+    RequestTaps(navController, alert, setupDone, request, onConsume) { token ->
+        navController.popBackStack<ShellRoute>(inclusive = false)
+        shown = token
     }
     return shown
 }
