@@ -11,7 +11,6 @@ import com.umamit.core.model.TeaTasting
 import com.umamit.core.ui.TasteRadarShape
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 
 /** How many of the tea's most frequent descriptors GESCHMACK shows (TEA-13, D-112). */
 internal const val TOP_DESCRIPTORS = 5

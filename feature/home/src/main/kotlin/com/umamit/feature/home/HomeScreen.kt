@@ -49,7 +49,6 @@ import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.core.ui.rememberStartsAfterStop
 import kotlinx.coroutines.delay
 import java.time.Instant
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
