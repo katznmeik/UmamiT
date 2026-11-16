@@ -555,8 +555,7 @@ class CatalogRefresher(
             }
         }
 
-        private suspend fun parse(body: ByteArray, url: String): ProductParse =
-            withContext(parseDispatcher) { TeeKontorParser.parseProduct(body, url) }
+        private suspend fun parse(body: ByteArray, url: String): ProductParse = parseProduct(parseDispatcher, body, url)
 
         private suspend fun classify(group: ProductGroup, page: ProductPage) {
             when (page.scope) {
@@ -710,9 +709,7 @@ class CatalogRefresher(
             val entries = CatalogEntries.merge(run.entries)
             run.entries.clear()
             for (entry in entries) {
-                val packages = entry.packages.map { it.toEntity(entry.key) }
-                val page = entry.page.toEntity(entry.key, run.startedAt)
-                val tea = page.copy(contentHash = CatalogContentHash.of(page, packages))
+                val (tea, packages) = entry.rows(run.startedAt)
                 dao.stage(StagedCatalogTeaEntity(tea))
                 dao.stagePackages(packages.map { StagedCatalogPackageEntity(it) })
                 tea.photoUrl?.let { run.photoUrls += tea.key to it }
@@ -1065,6 +1062,23 @@ private fun ProductPage.toEntity(base: String, seenAt: Long, recipes: CatalogRec
     firstSeenAt = seenAt,
     lastSeenAt = seenAt,
 )
+
+/** A tea row with its [CatalogContentHash] and its package rows (05 §4.1–4.2). */
+internal data class CatalogRows(val tea: CatalogTeaEntity, val packages: List<CatalogPackageEntity>)
+
+/**
+ * This entry as its catalog rows, first and last seen at [seenAt]: the refresh and the shop link build them the same
+ * way, so a tea's [CatalogContentHash] is the same from both.
+ */
+internal fun CatalogEntry.rows(seenAt: Long): CatalogRows {
+    val packages = this.packages.map { it.toEntity(key) }
+    val page = this.page.toEntity(key, seenAt)
+    return CatalogRows(page.copy(contentHash = CatalogContentHash.of(page, packages)), packages)
+}
+
+/** A product page at [url] parsed on [dispatcher] (08 §2.3). */
+internal suspend fun parseProduct(dispatcher: CoroutineDispatcher, body: ByteArray, url: String): ProductParse =
+    withContext(dispatcher) { TeeKontorParser.parseProduct(body, url) }
 
 /** A package size of the tea [key] as a catalog row (05 §4.2). */
 internal fun ShopPackage.toEntity(key: String) = CatalogPackageEntity(
