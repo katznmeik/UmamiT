@@ -24,6 +24,7 @@ import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import org.junit.Rule
@@ -46,8 +47,8 @@ class StepsSheetHostTest {
 
     private val input = StepsSheetInput(
         steps = listOf(
-            StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.DONE),
-            StepsSheetStep(StepKind.INFUSION, 30, 60, StepStatus.PENDING),
+            TimerUiStep(StepKind.INFUSION, 60, 60, StepStatus.DONE),
+            TimerUiStep(StepKind.INFUSION, 30, 60, StepStatus.PENDING),
         ),
         hasRecipe = true,
         baseTempC = 60,

@@ -26,6 +26,7 @@ import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.ui.DURATION_PICKER_TOTAL_TAG
@@ -54,7 +55,7 @@ class StepDurationTest {
         }
     }
 
-    private fun show(vararg steps: StepsSheetStep): StepsSheetState {
+    private fun show(vararg steps: TimerUiStep): StepsSheetState {
         val state = StepsSheetState(StepsSheetInput(steps.toList(), true, 60, 10))
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
@@ -66,7 +67,7 @@ class StepDurationTest {
         return state
     }
 
-    private fun pending(seconds: Int) = StepsSheetStep(StepKind.INFUSION, seconds, 60, StepStatus.PENDING)
+    private fun pending(seconds: Int) = TimerUiStep(StepKind.INFUSION, seconds, 60, StepStatus.PENDING)
 
     /** Step [number]'s duration as TalkBack reads it: a button that opens „Dauer wählen". */
     private fun duration(number: Int, spoken: String) =
@@ -148,8 +149,8 @@ class StepDurationTest {
     @Test
     fun `a done or running step's duration is no button`() {
         show(
-            StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.DONE),
-            StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.STARTED),
+            TimerUiStep(StepKind.INFUSION, 60, 60, StepStatus.DONE),
+            TimerUiStep(StepKind.INFUSION, 60, 60, StepStatus.STARTED),
             pending(60),
         )
 

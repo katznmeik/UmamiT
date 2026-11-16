@@ -24,6 +24,7 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeClock
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.PlannedStep
@@ -31,6 +32,7 @@ import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.engine.TimerSession
 import com.umamit.core.timer.engine.TimerState
 import com.umamit.core.timer.engine.TransitionOutcome
 import kotlinx.coroutines.test.runTest
@@ -93,6 +95,17 @@ class StepsSheetIntegrationTest {
         }
     }
 
+    /** The sheet's input for the engine's [session], as SCR-04 and SCR-05 build it. */
+    private fun inputOf(session: TimerSession, hasRecipe: Boolean, baseTempC: Int?) = StepsSheetInput(
+        steps = session.steps.map {
+            TimerUiStep(it.kind, it.plannedSeconds, it.tempC, it.status, it.preAlertSeconds)
+        },
+        hasRecipe = hasRecipe,
+        baseTempC = baseTempC,
+        preAlertBaseSeconds = session.preAlert.inheritedSeconds,
+        longStepsOnly = session.longStepsOnly,
+    )
+
     private fun click(description: String) =
         compose.onNodeWithContentDescription(description).performScrollTo().performClick()
 
@@ -118,7 +131,7 @@ class StepsSheetIntegrationTest {
         state = state.send(TimerEvent.Start)
         advanceSeconds(20)
         val before = state as TimerState.Running
-        show(StepsSheetInput.of(before.session, hasRecipe = true, baseTempC = 60))
+        show(inputOf(before.session, hasRecipe = true, baseTempC = 60))
 
         click("Ziehzeit verlängern, Schritt 3")
         click("Temperatur senken, Schritt 4")
@@ -152,7 +165,7 @@ class StepsSheetIntegrationTest {
         var state = runningFirstOf(PlannedStep(StepKind.INFUSION, 60, 60), PlannedStep(StepKind.INFUSION, 20, 60))
         val deadline = (state as TimerState.Running).deadlineElapsedMs
         assertThat(BrewTimerEngine.dueTimes(state).preAlertAtElapsedMs).isEqualTo(deadline - 10_000)
-        show(StepsSheetInput.of(state.session, hasRecipe = false, baseTempC = 60))
+        show(inputOf(state.session, hasRecipe = false, baseTempC = 60))
         choosePreAlert(1, "Automatisch, 10 Sekunden vorher", "20 s")
         compose.onNodeWithText("Fertig").performClick()
 
@@ -183,7 +196,7 @@ class StepsSheetIntegrationTest {
     fun `Aus for the running step in the sheet cancels only its tick, never its alert`() {
         val state = runningFirstOf(PlannedStep(StepKind.INFUSION, 60, 60))
         val deadline = (state as TimerState.Running).deadlineElapsedMs
-        show(StepsSheetInput.of(state.session, hasRecipe = false, baseTempC = 60))
+        show(inputOf(state.session, hasRecipe = false, baseTempC = 60))
         choosePreAlert(1, "Automatisch, 10 Sekunden vorher", "Aus")
         compose.onNodeWithText("Fertig").performClick()
 
@@ -272,7 +285,7 @@ class StepsSheetIntegrationTest {
     /** The sheet for a session started from [recipe], first infusion done. */
     private fun input(recipe: Recipe) = StepsSheetInput(
         steps = recipe.steps.mapIndexed { index, step ->
-            StepsSheetStep(
+            TimerUiStep(
                 kind = step.kind,
                 plannedSeconds = step.durationSeconds,
                 tempC = step.tempC,

@@ -2,6 +2,7 @@ package com.umamit.feature.brew.steps
 
 import androidx.compose.runtime.saveable.Saver
 import com.umamit.core.model.StepKind
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepStatus
 
@@ -53,7 +54,7 @@ private fun decode(value: Any): StepsSheetState {
     val codes = value as List<Int?>
     val stepsEnd = HEADER_SIZE + requireNotNull(codes[STEP_COUNT_INDEX]) * STEP_SIZE
     val steps = codes.subList(HEADER_SIZE, stepsEnd).chunked(STEP_SIZE).map { step ->
-        StepsSheetStep(
+        TimerUiStep(
             kind = StepKind.entries[requireNotNull(step[0])],
             plannedSeconds = requireNotNull(step[1]),
             tempC = step[2],

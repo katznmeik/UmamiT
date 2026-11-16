@@ -53,6 +53,7 @@ import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StockLevel
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
@@ -67,7 +68,6 @@ import com.umamit.feature.brew.R
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
 import com.umamit.feature.brew.steps.StepsSheet
 import com.umamit.feature.brew.steps.StepsSheetInput
-import com.umamit.feature.brew.steps.StepsSheetStep
 import com.umamit.feature.brew.steps.rememberStepsSheetState
 import com.umamit.feature.brew.timer.TimerBandBitmap
 import com.umamit.feature.brew.timer.label
@@ -186,7 +186,7 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
     }
     val input = StepsSheetInput(
         steps = state.steps.map {
-            StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, StepStatus.PENDING, it.preAlertSeconds)
+            TimerUiStep(it.kind, it.plannedSeconds, it.tempC, StepStatus.PENDING, it.preAlertSeconds)
         },
         hasRecipe = state.selectedRecipeId != null,
         baseTempC = state.baseTempC,

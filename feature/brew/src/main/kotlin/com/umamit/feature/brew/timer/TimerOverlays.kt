@@ -26,7 +26,6 @@ import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
 import com.umamit.feature.brew.steps.StepsSheet
 import com.umamit.feature.brew.steps.StepsSheetInput
-import com.umamit.feature.brew.steps.StepsSheetStep
 import com.umamit.feature.brew.steps.rememberStepsSheetState
 
 /** What a tap on the screen does. */
@@ -131,9 +130,7 @@ internal fun rememberTimerOverlays(): TimerOverlays = rememberSaveable(saver = T
 internal fun TimerStepsSheet(state: TimerUiState.Active, overlays: TimerOverlays, onEvent: (TimerEvent) -> Unit) {
     val input = remember(state.steps, state.preAlertBaseSeconds, state.longStepsOnly) {
         StepsSheetInput(
-            steps = state.steps.map {
-                StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, it.status, it.preAlertSeconds)
-            },
+            steps = state.steps,
             // SCR-05 calls only the controller: *Im Rezept speichern* stays on the setup (D-058).
             hasRecipe = false,
             baseTempC = state.steps.firstNotNullOfOrNull { it.tempC },
