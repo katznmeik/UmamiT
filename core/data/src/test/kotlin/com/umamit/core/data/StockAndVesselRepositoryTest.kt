@@ -86,7 +86,7 @@ class StockAndVesselRepositoryTest {
     }
 
     @Test
-    fun vesselsAreStoredUpdatedListedByNameAndDeleted() = runTest {
+    fun vesselsAreStoredUpdatedAndListedByName() = runTest {
         val kyusu = Vessel("v1", "Kyusu", VesselType.KYUSU, 300, 250, VesselMaterial.UNGLAZED_CLAY)
         val mug = Vessel("v2", "Becher mit Sieb", VesselType.MUG_INFUSER, 400)
         data.vessels.saveVessel(kyusu)
@@ -95,19 +95,5 @@ class StockAndVesselRepositoryTest {
 
         assertThat(data.vessels.observeVessels().first())
             .containsExactly(mug, kyusu.copy(isFavorite = true)).inOrder()
-
-        data.vessels.deleteVessel("v2")
-        assertThat(data.vessels.getVessel("v2")).isNull()
-    }
-
-    @Test
-    fun deletingAVesselKeepsTheRecipeWithoutVessel() = runTest {
-        data.teas.saveTea(tea("t1"))
-        data.vessels.saveVessel(Vessel("v1", "Kyusu", VesselType.KYUSU, 300))
-        data.recipes.saveRecipe(recipe("r1", "t1").copy(vesselId = "v1"))
-
-        data.vessels.deleteVessel("v1")
-
-        assertThat(data.recipes.getRecipe("r1")!!.vesselId).isNull()
     }
 }

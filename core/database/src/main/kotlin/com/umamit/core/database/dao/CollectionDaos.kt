@@ -334,9 +334,6 @@ interface VesselDao {
     @Query("UPDATE vessel SET is_archived = :archived, updated_at = :now WHERE id = :id")
     suspend fun setArchived(id: String, archived: Boolean, now: Long): Int
 
-    @Query("DELETE FROM vessel WHERE id = :id")
-    suspend fun delete(id: String)
-
     /** Stores the vessel's photo row (WARE-01, 05 §3.9). */
     @Upsert
     suspend fun upsertPhoto(photo: PhotoEntity)

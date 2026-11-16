@@ -93,8 +93,6 @@ class RoomVesselRepository @Inject constructor(private val dao: VesselDao, priva
         val now = time.nowMs()
         dao.upsert(vessel.toEntity(createdAt = dao.get(vessel.id)?.createdAt ?: now, updatedAt = now))
     }
-
-    override suspend fun deleteVessel(id: String) = dao.delete(id)
 }
 
 /** [StockRepository] on Room (05 §3.10). */

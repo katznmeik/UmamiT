@@ -139,7 +139,7 @@ class SessionEditorTest {
         completedSession()
         data.vessels.saveVessel(Vessel("v1", "Shiboridashi", VesselType.SHIBORIDASHI, 120))
         editor.editSession("done", SessionEdit(vessel = VesselChange("v1")))
-        data.vessels.deleteVessel("v1")
+        data.db.openHelper.writableDatabase.execSQL("DELETE FROM vessel WHERE id = 'v1'")
         assertThat(session().snapshot.vesselId).isNull()
         assertThat(session().snapshot.vesselName).isEqualTo("Shiboridashi")
 

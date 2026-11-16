@@ -175,11 +175,6 @@ class FakeVesselRepository internal constructor(private val c: FakeCollection) :
     override suspend fun getVessel(id: String): Vessel? = c.vesselRows.value[id]
 
     override suspend fun saveVessel(vessel: Vessel) = c.vesselRows.update { it + (vessel.id to vessel) }
-
-    override suspend fun deleteVessel(id: String) {
-        c.recipeRows.update { map -> map.mapValues { (_, r) -> if (r.vesselId == id) r.copy(vesselId = null) else r } }
-        c.vesselRows.update { it - id }
-    }
 }
 
 /** Fake [StockRepository]; create it through [FakeCollection]. */

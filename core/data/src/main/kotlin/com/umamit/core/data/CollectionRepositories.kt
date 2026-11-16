@@ -114,9 +114,6 @@ interface VesselRepository {
     suspend fun getVessel(id: String): Vessel?
 
     suspend fun saveVessel(vessel: Vessel)
-
-    /** Deletes the vessel row. The app never deletes a vessel: it archives it ([VesselArchive], D-100). */
-    suspend fun deleteVessel(id: String)
 }
 
 /** Stock events and the stock derived from them (05 §3.10). */
