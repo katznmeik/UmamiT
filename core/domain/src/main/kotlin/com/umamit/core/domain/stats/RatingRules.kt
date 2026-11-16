@@ -31,22 +31,21 @@ internal fun teaRanking(
     inRange: List<DatedSession>,
     by: StatsRankingBy,
     names: Map<String, String>,
-    teas: Map<String, StatsTea> = emptyMap(),
+    teas: Map<String, StatsTea>,
 ): List<TeaRatingRow> = inRange
     .ratedBy(by)
     .groupBy { it.dated.session.teaKey() }
     .values
     .map { rated ->
         val group = rated.map { it.dated }
-        val teaId = group.first().session.teaId
-        val tea = teaId?.let(teas::get)
+        val tea = group.groupTea(names, teas)
         TeaRatingRow(
-            teaId = teaId,
-            teaName = group.teaName(names),
+            teaId = tea.teaId,
+            teaName = tea.teaName,
             average = oneDecimal(rated.map { it.rating }.average()),
             ratingCount = group.size,
-            coverPhoto = tea?.coverPhoto,
-            styleKey = tea?.styleKey ?: group.maxBy { it.session.startedAtMs }.session.styleKey,
+            coverPhoto = tea.coverPhoto,
+            styleKey = tea.styleKey,
         )
     }
     .sortedWith(
@@ -63,7 +62,7 @@ internal fun newlyDiscovered(
     inRange: List<DatedSession>,
     window: StatsWindow,
     names: Map<String, String>,
-    teas: Map<String, StatsTea> = emptyMap(),
+    teas: Map<String, StatsTea>,
 ): List<NewTea> {
     if (window.from == null) return emptyList()
     val ratedByTea = inRange.ratedBy(StatsRankingBy.TEA).groupBy { it.dated.session.teaKey() }
@@ -73,16 +72,15 @@ internal fun newlyDiscovered(
             val first = group.minBy { it.session.startedAtMs }
             if (first.day !in window) return@mapNotNull null
             val ratings = ratedByTea[key].orEmpty()
-            val teaId = first.session.teaId
-            val tea = teaId?.let(teas::get)
+            val tea = group.groupTea(names, teas)
             NewTea(
-                teaId = teaId,
-                teaName = group.teaName(names),
+                teaId = tea.teaId,
+                teaName = tea.teaName,
                 firstDay = first.day,
                 average = ratings.takeIf { it.isNotEmpty() }?.let { oneDecimal(it.map { r -> r.rating }.average()) },
                 ratingCount = ratings.size,
-                coverPhoto = tea?.coverPhoto,
-                styleKey = tea?.styleKey ?: group.maxBy { it.session.startedAtMs }.session.styleKey,
+                coverPhoto = tea.coverPhoto,
+                styleKey = tea.styleKey,
             ) to first.session.startedAtMs
         }
         .sortedWith(compareByDescending<Pair<NewTea, Long>> { it.second }.thenBy { it.first.teaName })
@@ -117,7 +115,7 @@ private data class RatingSum(val total: Double = 0.0, val count: Int = 0) {
 internal fun bestRecipes(
     inRange: List<DatedSession>,
     names: Map<String, String>,
-    teas: Map<String, StatsTea> = emptyMap(),
+    teas: Map<String, StatsTea>,
 ): List<BestRecipeTea> = inRange
     .ratedBy(StatsRankingBy.BREWING)
     .filter { it.dated.session.profileId != null }
@@ -133,15 +131,14 @@ internal fun bestRecipes(
             }
             .sortedWith(compareByDescending<RecipeRating> { it.average }.thenBy { it.profileName.orEmpty() })
         if (recipes.size < BEST_RECIPE_MIN_RECIPES) return@mapNotNull null
-        val teaId = teaSessions.first().session.teaId
-        val tea = teaId?.let(teas::get)
+        val tea = teaSessions.groupTea(names, teas)
         BestRecipeTea(
-            teaId = teaId,
-            teaName = teaSessions.teaName(names),
+            teaId = tea.teaId,
+            teaName = tea.teaName,
             recipes = recipes,
             gap = recipes.first().average - recipes.last().average,
-            coverPhoto = tea?.coverPhoto,
-            styleKey = tea?.styleKey ?: teaSessions.maxBy { it.session.startedAtMs }.session.styleKey,
+            coverPhoto = tea.coverPhoto,
+            styleKey = tea.styleKey,
         )
     }
     .sortedWith(compareByDescending<BestRecipeTea> { it.gap }.thenBy { it.teaName })
