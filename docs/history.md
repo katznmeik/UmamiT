@@ -11,6 +11,10 @@
 
 ## Releases and plans
 
+### v0.7.2: #305 and #306 done (2026-11-16)
+
+- **Execution part 1 (Opus `medium` orchestrator, `/implement-spec #296`):** #305 (5 deletions; DAT-A-03 moved to #308, DAT-A-05's DAO query too) and #306 (all 26 simplifications, in three batches: low data/catalog T3, UI T2, medium/high data/catalog T3) on #312, head `2cab854f`. Fenced remainders of DAT-A-09, -11, -15 routed to #308. Proof after each batch: fence empty, golden digest `cbe41c94…` unchanged, schemas frozen, DataStore unchanged, `strings.xml` lost only the 19 unused refresh copies (checked byte-identical), no test weakened. Usage: 112 orchestrator requests, 22.0 M cache read, 65 k output; implementers about 0.89 M tokens.
+
 ### v0.7.2: restructuring design done (2026-11-16)
 
 - **Design (#304, Fable 5.2 `medium`, in the session):** `docs/plans/v0.7.2-restructuring.md` for D-121 – D-127: target files and types, steps in a build-green order (all T3), the module rules and 06 before and after (no section changes), the risk per decision. The PO approved variant A of each in eight questions as options, recorded in the decisions. Found against the triage: `Run` in `CatalogRefresher.kt` is an inner class (about 15 changed lines, not 5); the two settings registrations differ in gating, `launchSingleTop` and the settings route type. Steps written into #307 (12) and #308 (3). Usage: 28 requests, 3.9 M cache read, 45 k output. No code change.
