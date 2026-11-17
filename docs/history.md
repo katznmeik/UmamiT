@@ -11,6 +11,14 @@
 
 ## Releases and plans
 
+### v0.7.2: #309 done, rc.1 published (2026-11-17)
+
+- **Session 13 (Opus `medium` orchestrator, no subagents):** `umamit.version=0.7.2-rc.1` (`a8f78d4f`, versionCode 70201); the proof on that commit, recorded on #312: goldens and `core/database/schemas` vs `main` empty (1085 tracked goldens, so the pathspec matched), DataStore keys = the #297 baseline (36 keys, `schemaVersion` 3), `check-frozen-schemas.sh` (179 files), `SchemaVersionsTest` (3 tests), `checkManifestPermissions`, `verifyRoborazziDebug`, the full local gate PASS, the 04 §12 timer tests 263 / 512 / 707 (1 skipped) counted from the result XMLs.
+  - **CI** green on `a8f78d4f` (run 44020292963, both emulator jobs). **Accuracy on `a8f78d4f` (09 §4a, API 36, 50 steps), all PASS on the first attempt:** standard (run 44020476878), alongside (run 44020480260), two-brews (run 44020482994).
+  - **`v0.7.2-rc.1`** published by `release.yml` run 44028380084 (pre-release, tag on `a8f78d4f`). The orchestrator downloaded the APK and ran `scripts/verify-release-apk.sh` on it: APK SHA-256 `dd1cbdd8…aab1c` as in the notes, certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`, 0.7.2-rc.1 / 70201, not debuggable. Checklist 09 §4 „v0.7.2" on #312, push notification sent.
+  - **Environment:** the mirror init script written again as PROJECT_STATE describes; it worked first time. Maven Central answered 429 on the SDK 36 Robolectric jar's `.sha512` once and served it on retry.
+  - **Usage (from the transcript, before the final handover turn):** orchestrator 41 requests, 5.3 M cache read, 0.10 M cache write, 15 k output.
+
 ### v0.7.2: milestone and timer review done (2026-11-16)
 
 - **Session 12 (Opus `medium` orchestrator):** the T3 milestone review (Opus `medium`, `git diff main`) and the T4 timer review (Opus `high`, `d9e79cbe..c0116fc7` plus `d2eee004`) found **no Block**. The orchestrator reread the two untested paths (D-125 `SettingsNav.alertKey`, TMR-A-07 `slotSession` on a failed read) and both hold.
@@ -672,6 +680,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-17 | **v0.7.2 session 13 (#309: the proof, accuracy, rc.1):** the proof on `a8f78d4f` all clean (recorded on #312), full local gate PASS, CI green, all three accuracy variants PASS; `v0.7.2-rc.1` released (70201, certificate verified), checklist to the PO on #312. Next: #310 after the PO's check. |
 | 2026-11-16 | **v0.7.2 session 11 (execution part 4, #308's alert-path group):** TMR-A-14, -01, -11, -12, -13 and D-126 (DAT-A-14, TMR-A-06) by seven T3 implementers, at most two at a time on disjoint files. Each step was verified (diff, proof; 04 §12 counts 263/512/707 unchanged on four landed heads) and pushed in three groups, each green on CI before the next. #308 is done. Usage: orchestrator 115 requests, 21.7 M cache read, 0.19 M cache write, 48 k output; seven implementers 77 requests, 5.7 M cache read, 0.93 M cache write, 39 k output (from the transcripts, before the final handover turn). Next: the T3 milestone review and the T4 timer review, then #309. |
 | 2026-11-16 | **v0.7.2 session 10 (execution part 3, #308 groups 1 and 2):** 20 timer-path steps by four T3 implementers in two lanes each, verified per step and on the combined head (diff, proof, 04 §12 test counts 263/512/707 unchanged), CI green (API 36 jank flake once, rerun green). PO answers as options, in #308: one `UnlockedDevice.kt` in a shared androidTest folder; UI-A-07's fix action generic in `core:ui`; DAT-A-03 via a public `FakeCollection.deleteTeaRows`. Possible crash filed as #313. Usage: orchestrator ≈ 105 requests, 20.5 M cache read, 0.21 M cache write, 46 k output; four implementers 317 requests, 44.0 M cache read, 2.42 M cache write, 167 k output (from the transcripts). Next: #308's alert-path group in one session. |
 | 2026-11-16 | **v0.7.2 session 9 (execution part 2):** #307's 12 steps (D-121 – D-125) by eight T3 implementers plus one follow-up fix (`SettingsNav.alertKey` read lazily), verified per step (diff, fence, proof), CI green. Next: #308 on its own (Opus `medium` orchestrator). |
