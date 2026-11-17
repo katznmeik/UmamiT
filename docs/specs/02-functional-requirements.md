@@ -1976,8 +1976,9 @@ and holds *Design* (SET-05).
 **SET-05, the timer (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128); supersedes D-012).** The timer screens
 (SCR-05, SCR-07, the sheets on them and the cover shown while a timer
 opens) use the app's theme: *Hell* gives a light timer, *Dunkel* a dark
-one, *System* follows the phone. The alert surface is the same in both
-(washi and matcha with ink content, D-046). The light colours are settled
+one, *System* follows the phone. The alert surface pulses washi and matcha
+with ink content on the dark timer (D-046) and washi and sage `#AEBF8D` on the light one (D-128 item 36);
+the active-brew bar's static alert is matcha in the dark app and sage in the light app (D-128 item 38). The light colours are settled
 in an early design check on rendered screens (03 §3.1).
 - AC1: With *Design* „Hell", starting a session from Start shows no dark
   screen at any moment: the setup, the cover, READY, RUNNING and the sheets

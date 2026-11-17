@@ -234,7 +234,7 @@ First-pass values approximated from the mockup, to be finalized with the PO.
 | ← and ⋮ circles | `surface` at 60 % with `onSurface` icons | The icon carries the control (12.6:1); the circle itself is 1.03:1 on washi |
 | Liquor fill | As in the dark timer: `liquor.green` `#C9D58F` | Faint on washi (1.1:1) by the PO's choice; the fill is decoration, the ring and the digits carry the state |
 | Pre-alert glow and tick | As today, in `primary` | Visible on washi (rendered at the glow's peak) |
-| Sheets (Geschmack, Schritte, Timer-Einstellungen) | The light scheme's `surface` | As every light sheet |
+| Sheets (Geschmack, Schritte, Timer-Einstellungen) | The light scheme's `surfaceContainerLow` (as rendered and approved, D-128 item 37) | As every light sheet |
 | Ink-wash band A13 | A13 in ink on washi | The existing picture through a colour filter: its dark paper (luma ≈ 30) becomes washi, its brightest bamboo (≈ 140) goes 85 % of the way to `onSurface`. No new picture |
 | Seal | Washi disc, thin ink ring, a soft 2 dp shadow | The shadow only in the light timer |
 | Schnelltimer chips | Unselected outlined in full `onSurfaceVariant` (4.8:1) | The dark timer keeps 60 % (3.3:1 on Steeping); 60 % would be 2.3:1 on washi |
@@ -2073,7 +2073,7 @@ under *System* (D-117 build note A-08), so the dialog
 never shows again after a pick (PO, 2026-11-12, motion review M21). The timer, the quick timer and the alert surface stay as they
 are (Steeping, washi/matcha); the status-bar icons follow D-069 on the
 chosen theme. **From v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128))** the timer and the quick timer follow
-the pick too (SET-05, §3.1); only the alert surface stays as it is.
+the pick too (SET-05, §3.1); the alert surface keeps washi ↔ matcha on the dark timer and pulses washi ↔ sage on the light one (D-128 items 36, 38).
 
 **Katalog, progress (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128); SET-23).** While a refresh runs, the
 row „Letzter Abruf" reads „Wird gerade aktualisiert …", *Jetzt
