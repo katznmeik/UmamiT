@@ -1,6 +1,7 @@
 package com.umamit.core.ui
 
 import android.graphics.Picture
+import android.util.Log
 import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,6 +44,8 @@ private const val SCRIM_STEPS = 2
 
 /** Frames over which the sheet itself then fades out over the stand-in. */
 private const val SHEET_STEPS = 2
+
+private const val TAG = "SheetHandOver"
 
 /** How long the stand-in waits for the next route to cover the screen it was frozen over. */
 private const val MAX_UNCOVERED_NANOS = 500_000_000L
@@ -104,7 +107,9 @@ class SheetHandOver {
         scrim: Color,
     ): Boolean {
         val root = sheetView.rootView
-        val picture = (if (frame == null && root.width > 0 && root.height > 0) record(root) else null) ?: return false
+        // Only hardware windows are composited apart, out of step; a software window draws as it did.
+        val recordable = frame == null && root.isHardwareAccelerated && root.width > 0 && root.height > 0
+        val picture = (if (recordable) record(root) else null) ?: return false
         val bounds = Rect(sheetLeft, sheetTop, sheetRight, root.height.toFloat())
         val outline = shape.createOutline(bounds.size, layoutDirection, density)
         val path = Path().apply {
@@ -174,9 +179,9 @@ class SheetHandOver {
         if (frame === frozen) clear()
     }
 
-    // Whatever keeps the window from drawing in software (a hardware-only layer or bitmap, a test's stubbed graphics),
-    // the frozen frame is presentation only: the sheet then closes as without a hand-over, and the tap never fails.
-    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    // Whatever keeps the window from drawing in software (a hardware-only layer or bitmap), the frozen frame is
+    // presentation only: the sheet then closes as without a hand-over, and the tap never fails.
+    @Suppress("TooGenericExceptionCaught")
     private fun record(root: View): Picture? {
         val picture = Picture()
         val canvas = picture.beginRecording(root.width, root.height)
@@ -184,6 +189,7 @@ class SheetHandOver {
             root.draw(canvas)
             picture
         } catch (e: RuntimeException) {
+            Log.w(TAG, "Sheet frame not recorded; the sheet closes without a hand-over", e)
             null
         } finally {
             picture.endRecording()

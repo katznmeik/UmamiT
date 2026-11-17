@@ -35,6 +35,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -182,7 +183,11 @@ fun TeaPickerSheet(
         modifier = Modifier
             .testTag(TEA_PICKER_TAG)
             .onGloballyPositioned { sheetSpan.bounds = it.boundsInWindow() }
-            .graphicsLayer { alpha = handOver?.sheetAlpha ?: 1f },
+            // Before Material's offset: an offscreen layer would clip the lowered sheet to these bounds.
+            .graphicsLayer {
+                alpha = handOver?.sheetAlpha ?: 1f
+                compositingStrategy = CompositingStrategy.ModulateAlpha
+            },
         shape = shape,
         containerColor = container,
         scrimColor = scrim.copy(alpha = scrim.alpha * (handOver?.sheetScrimShare ?: 1f)),

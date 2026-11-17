@@ -1,5 +1,8 @@
 package com.umamit.app
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +49,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
+import kotlin.math.abs
+import android.graphics.Color as AndroidColor
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 
 /**
@@ -252,6 +258,49 @@ class PickerHandOverTest {
         compose.onNodeWithTag(STAND_IN_TAG).assertDoesNotExist()
     }
 
+    @Test
+    fun `the stand-in shows the sheet where it stood (D-129)`() {
+        show()
+        openPickerAndScrollTo(TEA)
+        compose.mainClock.autoAdvance = false
+        repeat(SETTLE_FRAMES) { compose.mainClock.advanceTimeByFrame() }
+        val sheet = draw(ShadowDialog.getLatestDialog().window!!.decorView)
+        val start = draw(compose.activity.window.decorView)
+        tapTea()
+        compose.mainClock.advanceTimeByFrame()
+        // The activity's window alone, as it shows once the sheet's window has gone: the setup's fade has just begun.
+        val standIn = draw(compose.activity.window.decorView)
+
+        assertWithMessage("share of the sheet's pixels Start shows instead (the measure tells them apart)")
+            .that(differingShare(sheet, start))
+            .isGreaterThan(MAX_DIFFERING_SHARE * 5)
+        assertWithMessage("share of the sheet's pixels the stand-in does not show")
+            .that(differingShare(sheet, standIn))
+            .isAtMost(MAX_DIFFERING_SHARE)
+    }
+
+    /** Over the sheet's lower half (its rows and buttons, where Start shows only its background), pixel by pixel. */
+    private fun differingShare(sheet: Bitmap, other: Bitmap): Double {
+        var differing = 0
+        var compared = 0
+        for (y in sheet.height / 2 until sheet.height step GRID) {
+            for (x in 0 until sheet.width step GRID) {
+                compared++
+                if (distance(sheet.getPixel(x, y), other.getPixel(x, y)) > PIXEL_TOLERANCE) differing++
+            }
+        }
+        return differing.toDouble() / compared
+    }
+
+    private fun draw(view: View): Bitmap =
+        Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888).also { view.draw(Canvas(it)) }
+
+    private fun distance(a: Int, b: Int): Int = maxOf(
+        abs(AndroidColor.red(a) - AndroidColor.red(b)),
+        abs(AndroidColor.green(a) - AndroidColor.green(b)),
+        abs(AndroidColor.blue(a) - AndroidColor.blue(b)),
+    )
+
     private fun tapTea() {
         compose.onNode(hasText(TEA) and hasAnyAncestor(hasTestTag(TEA_PICKER_TAG))).performClick()
     }
@@ -274,5 +323,17 @@ class PickerHandOverTest {
 
         /** About half of the setup's 300 ms fade. */
         const val HALF_FADE_FRAMES = 9
+
+        /** Frames for the opened sheet to settle before it is drawn. */
+        const val SETTLE_FRAMES = 3
+
+        /** Every how many pixels the frames are compared. */
+        const val GRID = 8
+
+        /** The largest channel difference still counted as the same pixel. */
+        const val PIXEL_TOLERANCE = 12
+
+        /** The share of compared pixels allowed to differ: the pressed row's ripple, edges. */
+        const val MAX_DIFFERING_SHARE = 0.01
     }
 }

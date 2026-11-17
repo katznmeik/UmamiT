@@ -76,6 +76,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 
 /**
@@ -290,6 +291,8 @@ class CatalogBrewFlowTest {
         compose.onNodeWithText("Neue Session").assertIsDisplayed()
     }
 
+    // A tea row's tap freezes the sheet's frame (D-129), which needs real graphics to draw.
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Test
     fun `the setup's Im Katalog ansehen opens the tea's catalog page and back keeps every value (SCR-04, D-098)`() {
         catalog.details.value += HISUI_KEY to TEA.copy(key = HISUI_KEY, name = HISUI_CATALOG_NAME, discontinued = true)
@@ -315,6 +318,8 @@ class CatalogBrewFlowTest {
         assertThat(shownTexts()).isEqualTo(before)
     }
 
+    // A tea row's tap freezes the sheet's frame (D-129), which needs real graphics to draw.
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Test
     fun `the catalog page's own back returns to the setup too (SCR-04, D-098)`() {
         catalog.details.value += HISUI_KEY to TEA.copy(key = HISUI_KEY, name = HISUI_CATALOG_NAME)
