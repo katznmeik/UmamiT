@@ -319,6 +319,20 @@ class TeaEditorViewModelTest {
     }
 
     @Test
+    fun `a Sorte changed away and back restores the stored Kategorie and its Automatisch set (TEA-03)`() = runTest {
+        collection.teas.saveTea(catalogTea.copy(category = TeaCategory.HERBAL))
+        val vm = viewModel(teaId = "t1")
+
+        vm.update { it.withStyle("black_generic") }
+        assertThat(vm.ready.form.category).isEqualTo(TeaCategory.BLACK)
+        vm.update { it.withStyle("gyokuro") }
+
+        assertThat(vm.ready.form.category).isEqualTo(TeaCategory.HERBAL)
+        assertThat(vm.ready.form.effectiveTasteSet).isEqualTo(TasteSet.HERBAL)
+        assertThat(vm.ready.hasChanges).isFalse()
+    }
+
+    @Test
     fun `the form survives a process death`() {
         val saved = SavedStateHandle()
         viewModel(styleKey = "sencha", saved = saved).update { it.copy(name = "Halb getippt") }
