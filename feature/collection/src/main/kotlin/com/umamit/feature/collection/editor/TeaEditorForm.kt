@@ -43,12 +43,21 @@ data class TeaEditorForm(
     val category: TeaCategory = TeaCategory.OTHER,
     /** *Geschmacksprofil* (TEA-02, D-128): null is *Automatisch (nach Kategorie)*; a Sorte change keeps the choice. */
     val tasteSet: TasteSet? = null,
+    /** A stored tea's Sorte (TEA-03): back on it, [withStyle] restores [storedCategory], as `applyTo` keeps it. */
+    val storedStyleKey: String? = null,
+    /** A stored tea's Kategorie; null for a new tea. */
+    val storedCategory: TeaCategory? = null,
 ) : Serializable {
     /** The Sorte [key] (`other`: *Andere / unbekannt*) with its umami level (TEA-03: the recipes stay). */
     fun withStyle(key: String): TeaEditorForm {
         val style = BuiltInStyles.byKey(key)?.takeIf { key != OTHER_STYLE_KEY }
-        // The Kategorie follows a changed Sorte only, as `applyTo` has it; so does *Automatisch*'s set.
-        val newCategory = if (style?.key == styleKey) category else style?.category ?: TeaCategory.OTHER
+        // The Kategorie follows a changed Sorte only, as `applyTo` has it; so does *Automatisch*'s set. Back on a
+        // stored tea's Sorte, its stored Kategorie is the one `applyTo` keeps.
+        val newCategory = when {
+            storedCategory != null && style?.key == storedStyleKey -> storedCategory
+            style?.key == styleKey -> category
+            else -> style?.category ?: TeaCategory.OTHER
+        }
         return copy(styleKey = style?.key, umami = style?.umami, category = newCategory)
     }
 
@@ -168,6 +177,8 @@ data class TeaEditorForm(
             notes = tea.notes.orEmpty(),
             category = tea.category,
             tasteSet = tea.tasteSet,
+            storedStyleKey = tea.styleKey,
+            storedCategory = tea.category,
         )
 
         /** „50", „37,5", „1.000" → grams in (0, 10 000]; null otherwise (shared rule, F14). */

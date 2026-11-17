@@ -1,6 +1,10 @@
 package com.umamit.feature.settings
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -15,6 +19,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -94,6 +100,14 @@ class CatalogSettingsViewModel @Inject constructor(
     /** *Jetzt aktualisieren*: the refresh runs in its own service with a notification (06 §5.3). */
     fun refreshNow() = refresh.start()
 
+    /**
+     * The settings screen is left (popped, or covered by *Über* or *Teegeschirr*): a result shown so far is not shown
+     * again when it comes back (SET-23); a refresh still running keeps its progress and then its result.
+     */
+    fun leave() {
+        sawRunning.value = refresh.state.value is CatalogRefreshState.Running
+    }
+
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
     }
@@ -143,24 +157,33 @@ internal fun CatalogSection(state: CatalogSettingsState, onRefresh: () -> Unit, 
     }
 }
 
-/** The progress bar and line while a refresh runs, its result line after it; nothing otherwise (SET-23). */
+/**
+ * The progress bar and line while a refresh runs, its result line after it; nothing otherwise (SET-23). While it
+ * leaves, the last bar or line stays drawn, so it never collapses empty (03 §3.6, D-117); the change from progress to
+ * result takes its height with `sheet`.
+ */
 @Composable
 private fun RefreshStatus(state: CatalogSettingsState) {
     val motion = UmamiTheme.motion
+    val current = RefreshFrame(state.progress, state.result).takeIf { it.progress != null || it.result != null }
+    val held = remember { RefreshFrameHolder() }
+    SideEffect { if (current != null) held.last = current }
+    val frame = current ?: held.last
     AnimatedVisibility(
-        visible = state.progress != null || state.result != null,
+        visible = current != null,
         enter = expandVertically(motion.sheet()) + fadeIn(motion.fade()),
         exit = shrinkVertically(motion.sheet()) + fadeOut(motion.exitFade()),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .animateContentSize(motion.sheet())
                 .padding(bottom = UmamiSpacing.XSmall)
                 .testTag(SettingsTags.CATALOG_REFRESH),
             verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
         ) {
-            val progress = state.progress
-            val result = state.result
+            val progress = frame?.progress
+            val result = frame?.result
             if (progress != null) {
                 // The bar says nothing to TalkBack: the counts are not announced as they change.
                 CatalogRefreshBar(progress, Modifier.clearAndSetSemantics {})
@@ -178,6 +201,14 @@ private fun RefreshStatus(state: CatalogSettingsState) {
     }
 }
 
+/** What [RefreshStatus] draws: a running refresh's [progress], else its [result]. */
+private data class RefreshFrame(val progress: CatalogRefreshProgress?, val result: CatalogRefreshOutcome?)
+
+/** The last [RefreshFrame] drawn, kept while the status leaves; written after composition, so it is no state. */
+private class RefreshFrameHolder {
+    var last: RefreshFrame? = null
+}
+
 @Composable
 private fun RefreshLine(text: String, modifier: Modifier = Modifier) {
     Text(
@@ -186,4 +217,11 @@ private fun RefreshLine(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )
+}
+
+/** The activity this [Context] belongs to, through its wrappers; null outside one. */
+internal tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

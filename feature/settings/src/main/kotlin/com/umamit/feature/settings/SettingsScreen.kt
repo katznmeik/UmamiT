@@ -176,6 +176,10 @@ fun SettingsRoute(
             viewModel.stopPreview()
         }
     }
+    // The refresh result shows until the settings are left (SET-23); a re-creation of the activity does not leave.
+    DisposableEffect(catalogViewModel) {
+        onDispose { if (context.findActivity()?.isChangingConfigurations != true) catalogViewModel.leave() }
+    }
     val fix = rememberReliabilityFixAction(
         notifications = ReliabilityCheck.Notifications,
         openPage = { check: ReliabilityCheck -> context.startFirstIntent(viewModel.open(check)) },
