@@ -238,7 +238,7 @@ First-pass values approximated from the mockup, to be finalized with the PO.
 | Ink-wash band A13 | A13 in ink on washi | The existing picture through a colour filter: its dark paper (luma ≈ 30) becomes washi, its brightest bamboo (≈ 140) goes 85 % of the way to `onSurface`. No new picture |
 | Seal | Washi disc, thin ink ring, a soft 2 dp shadow | The shadow only in the light timer |
 | Schnelltimer chips | Unselected outlined in full `onSurfaceVariant` (4.8:1) | The dark timer keeps 60 % (3.3:1 on Steeping); 60 % would be 2.3:1 on washi |
-| Alert | Washi ↔ **sage `#AEBF8D`**, ink content `#1F271B`, ink pill and circles with washi text and icons | The PO's choice for the light timer (#324); the pulse keeps its rhythm and starts at full sage, the swing is 1.72:1 (softer than the dark timer's 2.95:1). Ink on sage is 7.8:1. The dark timer's alert is unchanged (washi ↔ matcha, D-046) |
+| Alert | Washi ↔ **sage `#AEBF8D`**, ink content `#1F271B`, ink pill and circles with washi text and icons | The PO's choice for the light timer (#324); the pulse keeps its rhythm and starts at full sage, the swing is 1.73:1 (softer than the dark timer's 2.97:1). Ink on sage is 7.8:1. The dark timer's alert is unchanged (washi ↔ matcha, D-046) |
 
 Every value is checked by the contrast test (NFR-A11Y-02) in both themes.
 
