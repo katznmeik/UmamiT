@@ -14,13 +14,13 @@ import java.time.LocalDateTime
 
 /** What became of a session's tea (BRW-06, D-100). */
 enum class SessionTea {
-    /** In the collection: the name links to its detail, and *So nochmal brühen* is offered. */
+    /** In the collection: the name links to its detail, and *So nochmal aufgießen* is offered. */
     AVAILABLE,
 
-    /** Archived: *So nochmal brühen* is greyed out with „Tee ist archiviert" and *Wiederherstellen*. */
+    /** Archived: *So nochmal aufgießen* is greyed out with „Tee ist archiviert" and *Wiederherstellen*. */
     ARCHIVED,
 
-    /** Deleted: the name without a link, and no *So nochmal brühen*. */
+    /** Deleted: the name without a link, and no *So nochmal aufgießen*. */
     DELETED,
 }
 
@@ -29,7 +29,7 @@ enum class SessionTea {
  * its measured time (*tatsächlich*, until *Abgegossen*, overtime included; 11 „Set time / measured time").
  *
  * @property infusionNumber the step's number among the session's infusions („Aufguss 2"); null for a rinse or a whisk.
- * @property actualSeconds null for a step never started, kept from v0.4.0 (Q-19): it reads „nicht gebrüht".
+ * @property actualSeconds null for a step never started, kept from v0.4.0 (Q-19): it reads „nicht aufgegossen".
  * @property tempC the step's temperature, the session's base where the step had none.
  */
 data class SessionPageStep(
@@ -116,7 +116,7 @@ data class SessionPage(
             return (leaf.toBigDecimal() * HUNDRED).divide(water.toBigDecimal(), 1, RoundingMode.HALF_UP).toDouble()
         }
 
-    /** *So nochmal brühen* is enabled: the tea is in the collection (BRW-06). */
+    /** *So nochmal aufgießen* is enabled: the tea is in the collection (BRW-06). */
     val canBrewAgain: Boolean get() = tea == SessionTea.AVAILABLE
 
     private companion object {

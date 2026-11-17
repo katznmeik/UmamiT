@@ -19,7 +19,7 @@ const val TEA_DETAIL_COST_TAG = "tea_detail_cost"
 
 /**
  * The cost of a priced tea (INV-08, D-104): „12,40 € / 100 g", „ca. 2,40 € pro Liter (Rezept)" with a default recipe,
- * and from the first priced session „Ø 2,70 € pro Liter aus 5 Sitzungen" (TalkBack: „Durchschnittlich …").
+ * and from the first priced session „Ø 2,70 € pro Liter aus 5 Sessions" (TalkBack: „Durchschnittlich …").
  */
 @Composable
 internal fun CostLines(cost: TeaCost) {

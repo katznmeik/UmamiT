@@ -67,7 +67,7 @@ const val TEA_DETAIL_TAG = "tea_detail"
 /** The top bar while the tea is read; it stays underneath until the arriving content has faded in (A-12). */
 const val TEA_DETAIL_LOADING_BAR_TAG = "tea_detail_loading_bar"
 
-/** The sticky *Brühen*. */
+/** The sticky *Session starten*. */
 const val TEA_DETAIL_BREW_TAG = "tea_detail_brew"
 
 /** The pencil FAB: the tea editor (SCR-10). */
@@ -80,13 +80,13 @@ const val TEA_DETAIL_CATALOG_TAG = "tea_detail_catalog"
 const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
 
 /**
- * What the tea detail does: back; *Brühen* with a recipe (null: the default); the editors (SCR-10, SCR-12); ⋮
+ * What the tea detail does: back; *Session starten* with a recipe (null: the default); the editors (SCR-10, SCR-12); ⋮
  * *Favorit*, *Archivieren*, *Wiederherstellen*, *Löschen* (the dialog's confirmed delete); *Bestand korrigieren*'s
  * and *Nachkauf erfassen*'s saves (INV-03); the browser for INV-09's link; and *+ Foto*, the photo picker (TEA-05).
  * The stock history's confirmed *Löschen* of a purchase or correction, and a brew row's session page (SCR-29;
  * [openSession] null: brew rows open nothing).
  * The confirmed ⋮ *Aus Katalog zurücksetzen* (PRF-06). VORRAT's *Warnung* and *Knapp ab* (D-108).
- * LETZTE SITZUNGEN (TEA-13, D-112): a row opens its session page through [openSession] (null: the rows open
+ * LETZTE SESSIONS (TEA-13, D-112): a row opens its session page through [openSession] (null: the rows open
  * nothing), and the header's *Alle anzeigen* [showAllSessions] the Journal filtered to the tea (null: hidden).
  * ⋮ *Im Katalog ansehen* [openCatalog] (D-114 Q10), first, while the tea has a catalog tea.
  */
@@ -118,10 +118,11 @@ class TeaDetailActions(
 /**
  * The stateless tea detail (SCR-09, TEA-13; v0.4.0 per D-100): the hero photo (or the style's leaf), names, the
  * *Sorte* chip, the umami meter and the `StatTriplet` of sessions, last brew and stock; REZEPTE, VORRAT and, only
- * with content, BESCHREIBUNG, NOTIZEN and DETAILS. *Brühen* stays at the bottom (greyed out for an archived tea);
+ * with content, BESCHREIBUNG, NOTIZEN and DETAILS. *Session starten* stays at the bottom (greyed out for an archived
+ * tea);
  * the pencil FAB opens the tea editor. ⋮ offers *Favorit* (checked), *Archivieren* or, for an archived tea,
  * *Wiederherstellen*, and *Löschen*, which asks first (03 §5); both greyed out for the tea of the active brew
- * session („Erst die Sitzung beenden", E15).
+ * session („Erst die Session beenden", E15).
  *
  * **Alerts first (rule 8):** the menu, the delete question, the stock and the purchase sheet each remember the
  * alert they were opened in ([alertKey]); another alert removes them in its first frame and closes them for good.
@@ -317,7 +318,7 @@ private fun Detail(
     }
 }
 
-/** The sticky *Brühen*: the setup with the default recipe; greyed out with „Tee ist archiviert" (D-100). */
+/** The sticky *Session starten*: the setup with the default recipe; greyed out with „Tee ist archiviert" (D-100). */
 @Composable
 private fun BrewBar(tea: TeaDetail, onBrew: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -437,7 +438,7 @@ private fun ColumnScope.TeaMenu(
     }
 }
 
-/** A ⋮ item; [blocked] greys it out with „Erst die Sitzung beenden" (E15). */
+/** A ⋮ item; [blocked] greys it out with „Erst die Session beenden" (E15). */
 @Composable
 private fun MenuItem(label: Int, blocked: Boolean, onClick: () -> Unit) {
     DropdownMenuItem(

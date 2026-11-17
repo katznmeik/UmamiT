@@ -31,7 +31,7 @@ import org.junit.rules.TemporaryFolder
 import java.time.LocalDate
 
 /**
- * The tea detail's rating, GESCHMACK and LETZTE SITZUNGEN (TEA-13, JRN-02, JRN-03, JRN-04, D-112, #232): the figures
+ * The tea detail's rating, GESCHMACK and LETZTE SESSIONS (TEA-13, JRN-02, JRN-03, JRN-04, D-112, #232): the figures
  * come from the sessions' tasting inputs and follow them at once; every one is absent without data.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

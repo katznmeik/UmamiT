@@ -33,7 +33,7 @@ internal class StartNavigation(
     val openTimer: () -> Unit = {},
     val openQuickTimer: () -> Unit = {},
     val openTimerOf: (TimerSlot) -> Unit = { openTimer() },
-    /** *So nochmal brühen* on a session's page (SCR-16, BRW-06): the setup prefilled with that past session. */
+    /** *So nochmal aufgießen* on a session's page (SCR-16, BRW-06): the setup prefilled with that past session. */
     val openSetupFromSession: (sessionId: String) -> Unit = {},
 )
 
@@ -61,7 +61,7 @@ internal class StartTab(
 )
 
 /**
- * Start's hand-off to the timer, for the shell (D-111): while Start holds still after *Nochmal brühen*, the active
+ * Start's hand-off to the timer, for the shell (D-111): while Start holds still after *Nochmal aufgießen*, the active
  * brew bar does not grow in. The Start tab sets [source] to its view model's snapshot state, so the shell reads it
  * in the frame the new brew arrives.
  */

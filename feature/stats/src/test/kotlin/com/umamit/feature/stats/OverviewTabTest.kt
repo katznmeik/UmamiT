@@ -52,7 +52,7 @@ class OverviewTabTest {
         show(OverviewFixtures.data())
 
         compose.onNodeWithText("42").assertExists()
-        compose.onNodeWithText("Sitzungen").assertExists()
+        compose.onNodeWithText("Sessions").assertExists()
         compose.onNodeWithText("12,4 Liter").assertExists()
         compose.onNodeWithText("Tee").assertExists()
         compose.onNodeWithText("24").assertExists()
@@ -90,8 +90,8 @@ class OverviewTabTest {
             .fetchSemanticsNodes()
             .map { it.config[SemanticsProperties.ContentDescription].joinToString() }
             .single { it.startsWith("Tees.") }
-        assertThat(description).contains("Hisui Gyokuro: 29 %, 12 Sitzungen.")
-        assertThat(description).contains("Andere: 11 %, 5 Sitzungen.")
+        assertThat(description).contains("Hisui Gyokuro: 29 %, 12 Sessions.")
+        assertThat(description).contains("Andere: 11 %, 5 Sessions.")
     }
 
     @Test
@@ -160,6 +160,6 @@ class OverviewTabTest {
     fun `nothing is drawn before the first read`() {
         show(null)
 
-        assertThat(compose.onAllNodesWithText("Sitzungen").fetchSemanticsNodes()).isEmpty()
+        assertThat(compose.onAllNodesWithText("Sessions").fetchSemanticsNodes()).isEmpty()
     }
 }

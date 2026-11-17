@@ -47,7 +47,7 @@ import org.robolectric.annotation.Config
 
 /**
  * *Archivieren* from the tea picker (TEA-04, SCR-03, D-093 point 8): the tea leaves
- * the picker and Start's *Nochmal brühen* at once; *Rückgängig* brings it back. Real Start and
+ * the picker and Start's *Nochmal aufgießen* at once; *Rückgängig* brings it back. Real Start and
  * picker view models on fake repositories.
  */
 @RunWith(RobolectricTestRunner::class)

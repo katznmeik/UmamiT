@@ -88,8 +88,8 @@ class TeaDetailScreenTest {
         compose.onNodeWithText("Asagiri").assertIsDisplayed()
         compose.onNodeWithText("Sencha").assertIsDisplayed()
         compose.onNodeWithContentDescription("Umami: hoch").assertExists()
-        compose.onNodeWithContentDescription("12 Sitzungen").assertExists()
-        compose.onNodeWithContentDescription("Zuletzt gebrüht am 21. Okt. 2026").assertExists()
+        compose.onNodeWithContentDescription("12 Sessions").assertExists()
+        compose.onNodeWithContentDescription("Zuletzt aufgegossen am 21. Okt. 2026").assertExists()
         compose.onNodeWithContentDescription("Vorrat: 38\u00A0g").assertExists()
     }
 
@@ -156,8 +156,8 @@ class TeaDetailScreenTest {
     fun `a tea never brewed says so`() {
         show(sample().copy(sessionCount = 0, lastBrewed = null))
 
-        compose.onNodeWithContentDescription("0 Sitzungen").assertExists()
-        compose.onNodeWithContentDescription("Noch nie gebrüht").assertExists()
+        compose.onNodeWithContentDescription("0 Sessions").assertExists()
+        compose.onNodeWithContentDescription("Noch nie aufgegossen").assertExists()
     }
 
     @Test
@@ -298,7 +298,7 @@ class TeaDetailScreenTest {
         compose.onNode(hasText("Archivieren", substring = true) and hasClickAction()).assertIsNotEnabled()
         compose.onNode(hasText("Löschen", substring = true) and hasClickAction()).assertIsNotEnabled()
         compose.onNode(hasText("Favorit") and hasClickAction()).assertIsEnabled()
-        assertThat(compose.onAllNodes(hasText("Erst die Sitzung beenden")).fetchSemanticsNodes()).hasSize(2)
+        assertThat(compose.onAllNodes(hasText("Erst die Session beenden")).fetchSemanticsNodes()).hasSize(2)
     }
 
     @Test

@@ -5,8 +5,8 @@ package com.umamit.feature.journal.session
  *
  * @property onBack leaves the page.
  * @property onOpenTea the tea's name: its detail (SCR-09) by its id.
- * @property onBrewAgain *So nochmal brühen* (BRW-06): the setup prefilled with the session, by its id. The app opens
- *   the setup above the shell, through the same setup → *Brühen starten* path as every brew, or the alerting timer
+ * @property onBrewAgain *So nochmal aufgießen* (BRW-06): the setup prefilled with the session, by its id. The app opens
+ *   the setup above the shell, through the same setup → *Session starten* path as every brew, or the alerting timer
  *   during an alert (rule 8).
  * @property onDeleted *Löschen* removed the session (JRN-10, D-102): the app leaves the page.
  * @property onEdit ⋮ *Bearbeiten* (JRN-11, D-112): the app opens the session editor (SCR-17) above the page, by the

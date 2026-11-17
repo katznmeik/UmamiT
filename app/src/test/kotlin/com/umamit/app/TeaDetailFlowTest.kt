@@ -40,6 +40,7 @@ import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.testing.FakeTeaPhotos
 import com.umamit.feature.brew.setup.BrewSetupViewModel
+import com.umamit.feature.brew.setup.SETUP_START_TAG
 import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.collection.detail.TEA_DETAIL_BREW_TAG
 import com.umamit.feature.collection.detail.TEA_DETAIL_CATALOG_TAG
@@ -60,7 +61,8 @@ import org.robolectric.annotation.Config
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 
 /**
- * The tea detail (SCR-09) in the Sammlung tab: *Brühen* opens the setup with the default recipe, a recipe's tap
+ * The tea detail (SCR-09) in the Sammlung tab: *Session starten* opens the setup with the default recipe, a recipe's
+ * tap
  * with that recipe, back returns to the detail; *Archivieren* closes it and the list below offers *Rückgängig*.
  * The real root and shell navigation, the real view models on fakes; an invented tea (D-016).
  */
@@ -217,7 +219,7 @@ class TeaDetailFlowTest {
     }
 
     private fun assertSetupRecipe(name: String) {
-        compose.onNodeWithText("Session starten").assertExists()
+        compose.onNodeWithTag(SETUP_START_TAG).assertExists()
         compose.onNode(hasText(name) and isSelectable()).assertIsSelected()
     }
 
@@ -256,7 +258,7 @@ class TeaDetailFlowTest {
         compose.waitForIdle()
 
         // The alerting timer instead (rule 8, D-062 S3).
-        compose.onNodeWithText("Session starten").assertDoesNotExist()
+        compose.onNodeWithTag(SETUP_START_TAG).assertDoesNotExist()
         compose.onNodeWithText(TIMER).assertIsDisplayed()
     }
 

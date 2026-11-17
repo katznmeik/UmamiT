@@ -27,9 +27,9 @@ internal data class TimerRoute(val slotName: String?, val switched: Boolean) {
 
 /**
  * The setup (SCR-04): of the tea [teaId] (from the tea picker or a favourite), or of the waiting
- * session [sessionId] (*Brühen anpassen* on the timer, BRW-11). Full-screen like the timer. [recipeId]: the recipe
+ * session [sessionId] (*Session anpassen* on the timer, BRW-11). Full-screen like the timer. [recipeId]: the recipe
  * tapped on the tea detail (SCR-09); null opens the tea's default recipe. [pastSessionId]: a past session's *So
- * nochmal brühen* (SCR-16, BRW-06), the setup holding that session as brewed.
+ * nochmal aufgießen* (SCR-16, BRW-06), the setup holding that session as brewed.
  */
 @Serializable
 internal data class BrewSetupRoute(
@@ -47,7 +47,7 @@ internal data class BrewSetupRoute(
 internal data class JournalSessionRoute(val sessionId: String)
 
 /**
- * Sitzung bearbeiten (SCR-17, JRN-11, D-112) above the session page in the Journal tab's stack; [sessionId] is named
+ * Session bearbeiten (SCR-17, JRN-11, D-112) above the session page in the Journal tab's stack; [sessionId] is named
  * as its view model reads it (`SessionEditorViewModel.SESSION_ID`).
  */
 @Serializable

@@ -222,7 +222,7 @@ fun SettingsRoute(
 
 /**
  * SCR-25 without state: the reliability card first, then *Darstellung* (D-114), *Timer & Alarm*,
- * *Brühen & Vorrat*, *Katalog*, *Teegeschirr* and *Über* (SET-30).
+ * *Aufguss & Vorrat*, *Katalog*, *Teegeschirr* and *Über* (SET-30).
  */
 @Composable
 fun SettingsScreen(

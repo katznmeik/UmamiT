@@ -159,7 +159,7 @@ class SettingsTest {
         show()
 
         clickRow("Vibration")
-        clickRow("Bildschirm beim Brühen anlassen")
+        clickRow("Bildschirm beim Aufguss anlassen")
         clickRow("Beim Ziehen abdunkeln")
         compose.waitForIdle()
 
@@ -277,7 +277,7 @@ class SettingsTest {
         show()
         val row = compose.onNode(hasText("Bestand abziehen") and isToggleable()).performScrollTo()
         row.assertIsOn()
-        compose.onNodeWithText("Zieht nach jeder Sitzung die Blätter vom Vorrat ab.").assertIsDisplayed()
+        compose.onNodeWithText("Zieht nach jeder Session die Blätter vom Vorrat ab.").assertIsDisplayed()
         // Above „Knapp ab" (D-100).
         val lowStockTop = compose.onNodeWithText("Knapp ab").performScrollTo().fetchSemanticsNode().boundsInRoot.top
         val switchTop = row.fetchSemanticsNode().boundsInRoot.top

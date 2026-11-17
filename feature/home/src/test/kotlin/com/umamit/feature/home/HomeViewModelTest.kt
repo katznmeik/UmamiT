@@ -517,7 +517,7 @@ class HomeViewModelTest {
         assertThat(vm.state.value.active).isNotNull()
         assertThat(vm.state.value.twoTimersActive).isFalse()
 
-        // Two brews: no third start from the card; *Nochmal brühen* asks „Welchen Timer beenden?".
+        // Two brews: no third start from the card; *Nochmal aufgießen* asks „Welchen Timer beenden?".
         clock.elapsed += LATER_MS
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
         vm.handOff.startLeft()

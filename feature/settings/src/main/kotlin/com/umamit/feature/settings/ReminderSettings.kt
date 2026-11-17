@@ -16,7 +16,7 @@ import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.UserSettings
 
 /**
- * The low-stock reminder in *Brühen & Vorrat* (SET-28, SET-29, INV-11, D-098, D-108): its interval („Täglich"),
+ * The low-stock reminder in *Aufguss & Vorrat* (SET-28, SET-29, INV-11, D-098, D-108): its interval („Täglich"),
  * which opens [ReminderIntervalDialog], and while it is not *Aus* the time („18:00"), which opens the time picker.
  */
 @Composable

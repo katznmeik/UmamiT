@@ -83,7 +83,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   content or full-screen intent), with the timer it names; token 0 for none.
  * @param onConsumeTimerRequest consumes that token: the timer was opened for it.
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
- *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11), its fourth
+ *   Its third argument opens the setup of the waiting session (*Session anpassen*, BRW-11), its fourth
  *   names the timer the route shows and opens the other one's (D-098).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
  * @param statsScreen the Statistik tab's content; the app passes [StatsTabContent].
@@ -93,7 +93,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param collectionScreens *Meine Tees*, a collection tea's detail (SCR-09) and its archive snackbar; tests
  *   replace them.
  * @param journalScreens a past session's page (SCR-16, D-100) in the Journal tab; tests replace it. Its *So nochmal
- *   brühen* opens the setup of that session above the shell ([BrewSetupRoute.pastSessionId], BRW-06).
+ *   aufgießen* opens the setup of that session above the shell ([BrewSetupRoute.pastSessionId], BRW-06).
  * @param setupScreen the setup route's content (SCR-04); tests replace it. Its [SetupHost] opens a catalog tea's
  *   detail (SCR-21) above it by its key (⋮ *Im Katalog ansehen*, D-098), shown with [catalogScreens]; a collection
  *   tea's detail (SCR-09) by its id (⋮ *Tee ansehen*, D-100), shown with [collectionScreens]; and the vessel editor
@@ -265,7 +265,8 @@ internal fun UmamitRoot(
         openSetup = { teaId -> openSetupWith(teaId, null) },
         openSetupWith = openSetupWith,
         openTimer = openTimer,
-        // *So nochmal brühen* (BRW-06): the setup holding a past session as brewed, the same setup → *Brühen starten*
+        // *So nochmal aufgießen* (BRW-06): the setup holding a past session as brewed, the same setup → *Session
+        // starten*
         // path as every brew; during an alert the alerting timer instead (rule 8).
         openSetupFromSession = { sessionId ->
             unlessAlerting({ currentAlerting }, instead = openTimer) {
@@ -371,7 +372,7 @@ internal fun UmamitRoot(
                             closeTimer,
                             { navigateAbove(TimerSettingsRoute) {} },
                             { sessionId ->
-                                // The setup replaces the timer; *Brühen starten* there opens it again (BRW-11).
+                                // The setup replaces the timer; *Session starten* there opens it again (BRW-11).
                                 navigateAbove(BrewSetupRoute(sessionId = sessionId)) {
                                     popUpTo<TimerRoute> { inclusive = true }
                                 }
@@ -436,7 +437,8 @@ internal fun UmamitRoot(
                         ),
                     )
                 }
-                // ⋮ *Tee ansehen* (D-100): the tea's detail above the setup. *Brühen* there starts a new setup in place
+                // ⋮ *Tee ansehen* (D-100): the tea's detail above the setup. *Session starten* there starts a new setup
+                // in place
                 // of this one (the alerting timer during an alert, rule 8); *Archivieren* and *Löschen* close the setup
                 // too, as its tea has left the collection.
                 composable<SetupTeaRoute> { entry ->
@@ -626,7 +628,7 @@ private fun NavGraphBuilder.setupEditorRoutes(
 
 /**
  * What the tea detail (SCR-09) above the setup gets (⋮ *Tee ansehen*, D-100): back returns to the setup;
- * *Brühen* (or a recipe's tap) hands [openSetup] a new setup of the tea, which replaces the old one;
+ * *Session starten* (or a recipe's tap) hands [openSetup] a new setup of the tea, which replaces the old one;
  * *Archivieren* and *Löschen* close the detail and the setup; its pencils open the tea and recipe editors above it
  * (F5). Each acts only while [entry] is on top, so a quick
  * double tap or a late outcome never pops another screen (D-090).

@@ -108,7 +108,7 @@ fun OverviewTab(
     }
 }
 
-/** „42 Sitzungen · 12,4 l Tee · 24 Tees (+3 im Zeitraum)" in ONE row (R10), in the display font. */
+/** „42 Sessions · 12,4 l Tee · 24 Tees (+3 im Zeitraum)" in ONE row (R10), in the display font. */
 @Composable
 private fun Numerals(stats: OverviewStats) {
     Row(

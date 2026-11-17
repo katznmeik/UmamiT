@@ -53,13 +53,13 @@ const val TEA_DETAIL_BREWING_RATING_TAG = "tea_detail_brewing_rating"
 /** GESCHMACK (TEA-13, D-112): the average radar and the top descriptors. */
 const val TEA_DETAIL_TASTE_TAG = "tea_detail_taste"
 
-/** LETZTE SITZUNGEN (TEA-13, D-112). */
+/** LETZTE SESSIONS (TEA-13, D-112). */
 const val TEA_DETAIL_RECENT_TAG = "tea_detail_recent"
 
-/** A row of LETZTE SITZUNGEN, by the session's id. */
+/** A row of LETZTE SESSIONS, by the session's id. */
 fun teaDetailSessionTag(sessionId: String) = "tea_detail_session_$sessionId"
 
-/** The header's „★ 4,5 (12)" under the names; TalkBack reads „Bewertung 4,5 von 5, aus 12 Sitzungen". */
+/** The header's „★ 4,5 (12)" under the names; TalkBack reads „Bewertung 4,5 von 5, aus 12 Sessions". */
 @Composable
 internal fun RatingLine(rating: TeaRating, modifier: Modifier = Modifier) {
     val value = averageRatingText(rating.average)
@@ -128,7 +128,7 @@ internal fun TasteSection(taste: DetailTasting) {
 }
 
 /**
- * LETZTE SITZUNGEN (TEA-13, D-112), after GESCHMACK and only with finished sessions: the last three as rows
+ * LETZTE SESSIONS (TEA-13, D-112), after GESCHMACK and only with finished sessions: the last three as rows
  * „8. Juni · 55 °C · 1:00 · 3 Aufgüsse" with „★ 4,5" when rated. A row opens the session page through [onOpenSession]
  * (null: the detail has no page to open, the rows are not tappable); with more sessions than rows, the header's *Alle
  * anzeigen* calls [onShowAll] (null: hidden), which shows the Journal filtered to the tea.

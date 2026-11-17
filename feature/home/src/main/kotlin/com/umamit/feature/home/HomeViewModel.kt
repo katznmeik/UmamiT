@@ -52,7 +52,7 @@ import javax.inject.Inject
 data class HomeTea(val id: String, val name: String, val photoPath: String?)
 
 /**
- * A row of *Zuletzt gebrüht* (SCR-02, BRW-11, D-110): a tea of the collection with its last session, which a
+ * A row of *Zuletzt aufgegossen* (SCR-02, BRW-11, D-110): a tea of the collection with its last session, which a
  * tap brews again. The `TeaListItem` meta line „8. Juni · 1 Min. · 65 °C" comes from that session's start, its
  * first brewed step's planned duration and its temperature.
  *
@@ -82,10 +82,10 @@ data class HomeQuestion(val timers: List<TimerToEnd>)
  *   the brew's; the active brew bar shows it. With two brew sessions the first in the slot order (`BREW`, then
  *   `BREW_2`; D-108); the bar shows both.
  * @property twoTimersActive two timers are active, the most there may be (D-108): *Aufguss starten* is hidden, and a
- *   start from *Zuletzt gebrüht* or the setup asks „Welchen Timer beenden?". With fewer it shows, also below the
+ *   start from *Zuletzt aufgegossen* or the setup asks „Welchen Timer beenden?". With fewer it shows, also below the
  *   card of one active brew (v0.5.0; v0.3.0 hid it while a brew was active).
- * @property recent *Zuletzt gebrüht*: the six most recently brewed distinct teas of the collection, each with its
- *   last session (BRW-11, D-110; until v0.5.0 three tiles *Nochmal brühen* and the last three sessions apart).
+ * @property recent *Zuletzt aufgegossen*: the six most recently brewed distinct teas of the collection, each with its
+ *   last session (BRW-11, D-110; until v0.5.0 three tiles *Nochmal aufgießen* and the last three sessions apart).
  * @property collectionEmpty no tea to brew yet: the empty state (GEN-09).
  * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
  * @property reliabilityProblem a reliability check is missing: the banner with its message (TMR-31); null: none.
@@ -112,7 +112,8 @@ sealed interface HomeEvent {
 
 /**
  * Start's view model (SCR-02): the collection, the recent sessions and the
- * timer's state. *Nochmal brühen* (a tap on a tea of *Zuletzt gebrüht*) starts the tea's last session again through
+ * timer's state. *Nochmal aufgießen* (a tap on a tea of *Zuletzt aufgegossen*) starts the tea's last session again
+ * through
  * the [BrewStarter] (BRW-11), beside one other active timer (D-108); a tea with an active session opens it, and
  * while two timers are active it asks „Welchen Timer beenden?" (TMR-21).
  */
@@ -132,7 +133,8 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Start holds still while *Nochmal brühen* opens the timer (D-111); its route calls [StartHandOff.startLeft] when
+     * Start holds still while *Nochmal aufgießen* opens the timer (D-111); its route calls [StartHandOff.startLeft]
+     * when
      * Start leaves the screen, and the shell's bar reads [StartHandOff.handingOff].
      */
     val handOff = StartHandOff(viewModelScope)
@@ -227,7 +229,7 @@ class HomeViewModel @Inject constructor(
     /** The monotonic clock of the deadlines, for the live countdown of *Aufguss fortsetzen*. */
     fun nowElapsedMs(): Long = clock.elapsedMs()
 
-    /** *Nochmal brühen* (BRW-11): the tea's last session again, waiting in READY. */
+    /** *Nochmal aufgießen* (BRW-11): the tea's last session again, waiting in READY. */
     fun brewAgain(teaId: String) {
         // A second tap (on this or another row) while the first start is in flight would only be
         // refused and leave a stale TMR-21 question on Start (#54 S6, as D-065 for the quick timer).
@@ -329,7 +331,7 @@ class HomeViewModel @Inject constructor(
     private class Started(val sessionId: String, val atElapsedMs: Long)
 
     private companion object {
-        /** *Zuletzt gebrüht* shows six teas (SCR-02, BRW-11, D-110). */
+        /** *Zuletzt aufgegossen* shows six teas (SCR-02, BRW-11, D-110). */
         const val SHOWN = 6
 
         /** Enough recent sessions to find six distinct teas. */

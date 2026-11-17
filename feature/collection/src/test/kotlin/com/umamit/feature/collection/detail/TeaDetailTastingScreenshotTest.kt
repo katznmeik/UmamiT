@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The tea detail's rating, GESCHMACK and LETZTE SITZUNGEN (TEA-13, D-112, #232) in light and dark at font scale 1.0
+ * The tea detail's rating, GESCHMACK and LETZTE SESSIONS (TEA-13, D-112, #232) in light and dark at font scale 1.0
  * and 2.0 (03 §6): the header with its rating, GESCHMACK with the average radar and the top descriptors, and the last
  * three sessions with *Alle anzeigen*. The detail without a rating is `TeaDetailScreenshotTest`'s. Invented tea, no
  * photo (D-016). Goldens: `src/test/screenshots/`.

@@ -57,7 +57,7 @@ class ConsumptionTabTest {
         show(ConsumptionFixtures.data())
 
         compose.onNodeWithText("23,40 €").performScrollTo().assertExists()
-        compose.onNodeWithText("aus 20 Sitzungen mit Preis").performScrollTo().assertExists()
+        compose.onNodeWithText("aus 20 Sessions mit Preis").performScrollTo().assertExists()
         compose.onNodeWithText("Ø 2,70 € pro Liter").performScrollTo().assertExists()
         val money = compose.onNodeWithTag(statsSectionTag("consumption.money")).fetchSemanticsNode().boundsInRoot.top
         val drunk = compose.onNodeWithTag(statsSectionTag("consumption.drunk")).fetchSemanticsNode().boundsInRoot.top
@@ -68,7 +68,7 @@ class ConsumptionTabTest {
     fun `GETRUNKEN without a priced session says so`() {
         show(ConsumptionFixtures.data(drunkSessions = 0, costPerLiter = null))
 
-        compose.onNodeWithText("Keine Sitzungen mit Preis").performScrollTo().assertExists()
+        compose.onNodeWithText("Keine Sessions mit Preis").performScrollTo().assertExists()
     }
 
     @Test
@@ -86,7 +86,7 @@ class ConsumptionTabTest {
     fun `one session is singular`() {
         show(ConsumptionFixtures.data(costPerLiter = LiterAverage(450, 1), drunkSessions = 1))
 
-        compose.onNodeWithText("aus 1 Sitzung mit Preis").performScrollTo().assertExists()
+        compose.onNodeWithText("aus 1 Session mit Preis").performScrollTo().assertExists()
         compose.onNodeWithText("Ø 4,50 € pro Liter").performScrollTo().assertExists()
     }
 
@@ -135,7 +135,7 @@ class ConsumptionTabTest {
         // Gramm, Tee; Ausgaben and Getrunken say „Keine … mit Preis".
         assertThat(compose.onAllNodesWithText("In diesem Zeitraum nichts").fetchSemanticsNodes()).hasSize(2)
         compose.onNodeWithText("Keine Käufe mit Preis").performScrollTo().assertExists()
-        compose.onNodeWithText("Keine Sitzungen mit Preis").performScrollTo().assertExists()
+        compose.onNodeWithText("Keine Sessions mit Preis").performScrollTo().assertExists()
         compose.onNodeWithText("Hisui Gyokuro").performScrollTo().assertExists()
     }
 

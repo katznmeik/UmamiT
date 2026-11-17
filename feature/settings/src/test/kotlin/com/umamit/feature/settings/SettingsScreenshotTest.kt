@@ -181,7 +181,7 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
         )
     }
 
-    /** *Brühen & Vorrat* between *Timer & Alarm* and *Katalog*: „Knapp ab" 15 g (SET-16, SET-30, D-097). */
+    /** *Aufguss & Vorrat* between *Timer & Alarm* and *Katalog*: „Knapp ab" 15 g (SET-16, SET-30, D-097). */
     @Test
     fun settingsBrewing() = capture("Settings_brewing", scrollToText = "Knapp ab") {
         SettingsScreen(

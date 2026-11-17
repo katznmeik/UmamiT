@@ -182,7 +182,7 @@ class TransitionJankTest {
         launchOnStart()
         tab(context.getString(Tab.Journal.label)).click()
         Thread.sleep(SETTLE_MS)
-        // The loaded page is the hero layout (SCR-16, D-112) without a „Sitzung" title (that shows only while it
+        // The loaded page is the hero layout (SCR-16, D-112) without a „Session" title (that shows only while it
         // loads or for a missing session), so its ← (Zurück) marks it: nothing on the Journal tab carries one.
         val page = By.desc(context.getString(DsR.string.ds_back))
         repeat(JankGate.runs) {

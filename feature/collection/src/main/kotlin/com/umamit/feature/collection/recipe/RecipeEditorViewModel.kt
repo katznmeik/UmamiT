@@ -41,7 +41,7 @@ sealed interface RecipeEditorUiState {
      * @property isStoredDefault the stored recipe is the tea's default: *Als Standard* stays on (PRF-01).
      * @property canDelete a stored recipe that is not its tea's last one (PRF-01) nor the running brew's.
      * @property isBrewing the stored recipe is the running brew's: *Rezept löschen* is greyed out with „Erst die
-     * Sitzung beenden" (E15, D-101 F12).
+     * Session beenden" (E15, D-101 F12).
      * @property vessels the *Gefäß* list: favourites first, then A–Z, never an archived vessel (WARE-02).
      * @property selectedVessel the form's vessel, archived or not („Kyusu 250 ml (archiviert)", D-100).
      * @property globalPreAlertSeconds the settings' Vorwarnung (SET-10): B while the recipe has none of its own.

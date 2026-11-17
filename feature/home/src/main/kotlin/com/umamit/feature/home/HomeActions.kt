@@ -11,11 +11,11 @@ class HomeActions(
     val openTimer: (TimerSlot) -> Unit = {},
     /** *Schnelltimer* (SCR-07). */
     val quickTimer: () -> Unit = {},
-    /** *Nochmal brühen* (BRW-11): a tap on a tea of *Zuletzt gebrüht* (D-110). */
+    /** *Nochmal aufgießen* (BRW-11): a tap on a tea of *Zuletzt aufgegossen* (D-110). */
     val brewAgain: (teaId: String) -> Unit = {},
     /** A favourite: its setup (SCR-04). */
     val openSetup: (teaId: String) -> Unit = {},
-    /** *Zuletzt gebrüht › Alle anzeigen*: the journal. */
+    /** *Zuletzt aufgegossen › Alle anzeigen*: the journal. */
     val showJournal: () -> Unit = {},
     /** The empty state's *Katalog öffnen*. */
     val openCatalog: () -> Unit = {},

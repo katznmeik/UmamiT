@@ -112,7 +112,7 @@ private const val SLIDE_FRACTION = 12
  *   snackbar; tests replace them. *Meine Tees*' *Aus dem Katalog* and *Im Katalog stöbern* turn to the *Katalog*
  *   segment.
  * @param journalScreens a past session's page (SCR-16) in the Journal tab, opened from its entry (D-100); its tea
- *   link opens the tea's detail in the same stack, and *So nochmal brühen* the setup above the shell
+ *   link opens the tea's detail in the same stack, and *So nochmal aufgießen* the setup above the shell
  *   ([StartNavigation.openSetupFromSession]). Tests replace it.
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
  * @param teaLinkShare a link shared to the app (CAT-17): the shell turns to Sammlung › Katalog (the
@@ -194,7 +194,7 @@ internal fun UmamitApp(
         controllers.getValue(Tab.Start).popToRoot(Tab.Start)
         select(Tab.Start)
     }
-    // LETZTE SITZUNGEN's *Alle anzeigen* (TEA-13): the Journal tab's root, filtered to the tea.
+    // LETZTE SESSIONS's *Alle anzeigen* (TEA-13): the Journal tab's root, filtered to the tea.
     val journalRequests = rememberSaveable(saver = JournalTeaRequests.Saver) { JournalTeaRequests() }
     val showInJournal: (String) -> Unit = { teaId ->
         journalRequests.ask(teaId)
@@ -650,7 +650,7 @@ private fun TabHost(
                 alerting = alertKey != null,
             )
         }
-        // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal brühen* opens the setup
+        // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal aufgießen* opens the setup
         // above the shell, which opens the alerting timer instead during an alert (rule 8).
         // The session page (SCR-16): *Löschen* closes it, only while it is on top (D-090, D-102).
         composable<JournalSessionRoute> { entry ->
@@ -668,7 +668,7 @@ private fun TabHost(
                 ),
             )
         }
-        // Sitzung bearbeiten (SCR-17, JRN-11): ✕ and *Speichern* return to the session page, which shows the new
+        // Session bearbeiten (SCR-17, JRN-11): ✕ and *Speichern* return to the session page, which shows the new
         // values.
         composable<JournalSessionEditorRoute> { entry ->
             val closeIfOnTop = { navController.popIfOnTop(entry) }
@@ -702,7 +702,8 @@ private fun TabHost(
                 )
             }
         }
-        // A collection tea's detail (SCR-09): *Brühen* and a recipe's tap open the setup above the shell, which
+        // A collection tea's detail (SCR-09): *Session starten* and a recipe's tap open the setup above the shell,
+        // which
         // opens the alerting timer instead during an alert (rule 8). *Archivieren* and *Löschen* close it.
         composable<CollectionTeaRoute> { entry ->
             val teaId = entry.toRoute<CollectionTeaRoute>().teaId
@@ -728,7 +729,7 @@ private fun TabHost(
                     onOpenSession = resumedOnly { sessionId: String ->
                         navController.navigate(JournalSessionRoute(sessionId))
                     },
-                    // LETZTE SITZUNGEN's *Alle anzeigen*: the Journal tab at its root, not a list in this stack.
+                    // LETZTE SESSIONS's *Alle anzeigen*: the Journal tab at its root, not a list in this stack.
                     onShowAllSessions = dropUnlessResumed { collection.showInJournal(teaId) },
                     // ⋮ *Im Katalog ansehen* (D-114 Q10): the catalog tea in this stack; back returns to the detail.
                     onOpenCatalog = resumedOnly { key: String -> navController.navigate(CatalogTeaRoute(key)) },

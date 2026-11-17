@@ -75,10 +75,10 @@ class ChartsScreenshotTest(private val dark: Boolean, private val fontScale: Flo
     }
 
     @Test
-    fun bars13() = shot("bars13") { PeriodBarChart(weeks(13), ChartUnit.SESSIONS, "Sitzungen pro Woche") }
+    fun bars13() = shot("bars13") { PeriodBarChart(weeks(13), ChartUnit.SESSIONS, "Sessions pro Woche") }
 
     @Test
-    fun bars30() = shot("bars30") { PeriodBarChart(weeks(30), ChartUnit.SESSIONS, "Sitzungen pro Woche") }
+    fun bars30() = shot("bars30") { PeriodBarChart(weeks(30), ChartUnit.SESSIONS, "Sessions pro Woche") }
 
     @Test
     fun barsGesamtScrolled() = shot("barsGesamt") {

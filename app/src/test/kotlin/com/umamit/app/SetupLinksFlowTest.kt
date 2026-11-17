@@ -38,6 +38,7 @@ import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.testing.FakeTeaPhotos
 import com.umamit.feature.brew.setup.BrewSetupViewModel
+import com.umamit.feature.brew.setup.SETUP_START_TAG
 import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.collection.detail.TEA_DETAIL_ADD_RECIPE_TAG
 import com.umamit.feature.collection.detail.TEA_DETAIL_BREW_TAG
@@ -201,7 +202,7 @@ class SetupLinksFlowTest {
     private fun openSetup() {
         compose.onNodeWithText(BREW).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Session starten").assertExists()
+        compose.onNodeWithTag(SETUP_START_TAG).assertExists()
     }
 
     private fun openTeaFromSetup() {
@@ -234,12 +235,12 @@ class SetupLinksFlowTest {
 
         openTeaFromSetup()
         compose.onNodeWithTag(TEA_DETAIL_TAG).assertIsDisplayed()
-        compose.onNodeWithText("Session starten").assertDoesNotExist()
+        compose.onNodeWithTag(SETUP_START_TAG).assertDoesNotExist()
 
         back()
 
         compose.onNodeWithTag(TEA_DETAIL_TAG).assertDoesNotExist()
-        compose.onNodeWithText("Session starten").assertExists()
+        compose.onNodeWithTag(SETUP_START_TAG).assertExists()
         assertAmounts("255 ml", "5,1 g")
         compose.onNodeWithContentDescription("Gefäß: Kyusu 250 ml. Ändern").assertExists()
     }
@@ -287,7 +288,7 @@ class SetupLinksFlowTest {
         compose.onNodeWithTag(VesselEditorTags.SAVE).performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithText("Session starten").assertExists()
+        compose.onNodeWithTag(SETUP_START_TAG).assertExists()
         compose.onNodeWithContentDescription("Gefäß: Gaiwan. Ändern").assertExists()
         // 5,0 g / 250 ml, locked: 2,4 g in 120 ml (WARE-03).
         assertAmounts("120 ml", "2,4 g")
@@ -326,7 +327,7 @@ class SetupLinksFlowTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag(TEA_DETAIL_TAG).assertDoesNotExist()
-        compose.onNodeWithText("Session starten").assertDoesNotExist()
+        compose.onNodeWithTag(SETUP_START_TAG).assertDoesNotExist()
         compose.onNodeWithText(BREW).assertIsDisplayed()
         assertThat(runBlocking { collection.teas.getTea(ID)!!.isArchived }).isTrue()
         // The screen below the setup offers Rückgängig (F6).
@@ -356,7 +357,7 @@ class SetupLinksFlowTest {
         compose.onNodeWithTag(TEA_DETAIL_TAG).assertIsDisplayed()
 
         back()
-        compose.onNodeWithText("Session starten").assertExists()
+        compose.onNodeWithTag(SETUP_START_TAG).assertExists()
     }
 
     @Test

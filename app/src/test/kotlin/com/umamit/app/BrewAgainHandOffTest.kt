@@ -56,7 +56,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Start holds still while *Nochmal brühen* opens the timer (SCR-02, D-111): the active brew bar does not grow in
+ * Start holds still while *Nochmal aufgießen* opens the timer (SCR-02, D-111): the active brew bar does not grow in
  * under the timer's fade, and on the way back it is already there. The real root, shell and Start tab with its view
  * model on fakes; the bar's source follows the fake controller's starts.
  */

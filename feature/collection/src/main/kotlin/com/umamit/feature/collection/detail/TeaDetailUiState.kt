@@ -30,7 +30,7 @@ sealed interface TeaDetailUiState {
  * @property photos the hero pager's photos (SCR-28): the cover first, then the others in their order; only those
  *   whose file exists.
  * @property photoCount the tea's photo rows, for the limit of [Photo.MAX_PER_TEA].
- * @property sessionCount the tea's finished sessions (the `StatTriplet`'s *Sitzungen*).
+ * @property sessionCount the tea's finished sessions (the `StatTriplet`'s *Sessions*).
  * @property lastBrewed the day of the latest finished session in its own time zone; null when never brewed.
  * @property stockGrams the remaining grams (Σ of the stock events; 0 without any, as the setup reads it).
  * @property hasStock whether the tea has any stock event; without one no figure is shown (D-100: no stock is invented).
@@ -57,7 +57,7 @@ sealed interface TeaDetailUiState {
  * @property brewingRating the „Zubereitung Ø 3,8 (10)" line below it: the average of the sessions' *Zubereitung*
  *   ratings and their count (D-117 Q3); null without one, the line is hidden.
  * @property taste GESCHMACK: the average radar and the top descriptors (TEA-13, D-112).
- * @property recentSessions LETZTE SITZUNGEN: the last [RECENT_SESSIONS] finished sessions, newest first.
+ * @property recentSessions LETZTE SESSIONS: the last [RECENT_SESSIONS] finished sessions, newest first.
  */
 data class TeaDetail(
     val id: String,
@@ -97,7 +97,7 @@ data class TeaDetail(
     val taste: DetailTasting = DetailTasting(),
     val recentSessions: List<RecentSession> = emptyList(),
 ) {
-    /** LETZTE SITZUNGEN has more finished sessions than it lists: *Alle anzeigen* (TEA-13). */
+    /** LETZTE SESSIONS has more finished sessions than it lists: *Alle anzeigen* (TEA-13). */
     val hasMoreSessions: Boolean get() = sessionCount > recentSessions.size
 
     /** *Rezept hinzufügen* is offered below 10 recipes (PRF-01, D-100). */
@@ -106,7 +106,7 @@ data class TeaDetail(
     /** *+ Foto* is greyed out at 10 photos („Höchstens 10 Fotos", TEA-05). */
     val canAddPhoto: Boolean get() = photoCount < Photo.MAX_PER_TEA
 
-    /** *Brühen* is greyed out for an archived tea („Tee ist archiviert", D-100). */
+    /** *Session starten* is greyed out for an archived tea („Tee ist archiviert", D-100). */
     val canBrew: Boolean get() = !isArchived
 }
 

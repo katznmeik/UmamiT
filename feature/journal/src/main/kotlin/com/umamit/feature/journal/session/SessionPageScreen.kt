@@ -67,7 +67,7 @@ class SessionPageActions(
     val back: () -> Unit = {},
     /** The tea's name: its detail (SCR-09) by its id. */
     val openTea: (teaId: String) -> Unit = {},
-    /** *So nochmal brühen* (BRW-06): the setup prefilled with this session, by its id. */
+    /** *So nochmal aufgießen* (BRW-06): the setup prefilled with this session, by its id. */
     val brewAgain: (sessionId: String) -> Unit = {},
     /** *Wiederherstellen* of the archived tea. */
     val restore: () -> Unit = {},
@@ -106,9 +106,9 @@ class SessionPageActions(
 /**
  * The session page (SCR-16; JRN-10, D-100): the tea (a tap opens its detail), date and time,
  * method, vessel, leaf / water / ratio, and the step table (*geplant* / *tatsächlich* / °C, each step's kind; a step
- * never started reads „nicht gebrüht", Q-19). *So nochmal brühen* (BRW-06) opens the setup prefilled with the
+ * never started reads „nicht aufgegossen", Q-19). *So nochmal aufgießen* (BRW-06) opens the setup prefilled with the
  * session; for an archived tea it is greyed out with „Tee ist archiviert" and *Wiederherstellen*, for a deleted tea
- * there is neither the link nor the button. ⋮ *Löschen* (D-102) asks „Sitzung löschen?" and removes a finished
+ * there is neither the link nor the button. ⋮ *Löschen* (D-102) asks „Session löschen?" and removes a finished
  * session with its stock deduction. BEWERTUNG (the stars, JRN-02) and NOTIZEN (JRN-05) sit above the step table and
  * save as they change (D-112), GESCHMACK (JRN-03) and BESCHREIBUNGEN (JRN-04) follow the step table; ⋮ *Bearbeiten*
  * opens the editor (JRN-11). The hero (JRN-07) shows the session's photos ([hero], with *+ Foto* and *Löschen*
@@ -243,7 +243,7 @@ private fun SessionMenu(
     }
 }
 
-/** „Sitzung löschen?" · *Abbrechen* / *Löschen* (03 SCR-16, D-102). */
+/** „Session löschen?" · *Abbrechen* / *Löschen* (03 SCR-16, D-102). */
 @Composable
 private fun DeleteDialog(onDelete: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
@@ -373,7 +373,7 @@ private fun DetailRow(label: String, value: String) {
 }
 
 /**
- * *So nochmal brühen* (BRW-06): enabled for a tea of the collection; greyed out with „Tee ist archiviert" and
+ * *So nochmal aufgießen* (BRW-06): enabled for a tea of the collection; greyed out with „Tee ist archiviert" and
  * *Wiederherstellen* for an archived one; absent for a deleted one.
  */
 @Composable

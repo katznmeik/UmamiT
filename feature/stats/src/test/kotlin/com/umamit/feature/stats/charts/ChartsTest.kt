@@ -66,52 +66,52 @@ class ChartsTest {
 
     @Test
     fun `a tap on a bar shows its value label, a second tap hides it`() {
-        show { PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sitzungen pro Woche") }
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertDoesNotExist()
+        show { PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sessions pro Woche") }
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertDoesNotExist()
         tapBar(index = 4, count = 5)
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertExists()
         tapBar(index = 4, count = 5)
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertDoesNotExist()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertDoesNotExist()
     }
 
     @Test
     fun `a tap elsewhere in the chart hides the value label and a tap on another bar moves it`() {
-        show { PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sitzungen pro Woche") }
+        show { PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sessions pro Woche") }
         tapBar(index = 4, count = 5)
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertExists()
         tapBar(index = 3, count = 5)
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertDoesNotExist()
-        compose.onNodeWithText("KW 43 · 5 Sitzungen").assertExists()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertDoesNotExist()
+        compose.onNodeWithText("KW 43 · 5 Sessions").assertExists()
         // High above every bar (the plot's top edge, over the shortest one): the column still counts.
         chart().performTouchInput { click(Offset(width * (2 + 0.5f) / 5, 1f)) }
-        compose.onNodeWithText("KW 43 · 5 Sitzungen").assertDoesNotExist()
-        compose.onNodeWithText("KW 42 · 2 Sitzungen").assertExists()
+        compose.onNodeWithText("KW 43 · 5 Sessions").assertDoesNotExist()
+        compose.onNodeWithText("KW 42 · 2 Sessions").assertExists()
     }
 
     @Test
     fun `the value label fades out over 0,1 s and is gone at once with reduce motion`() {
         show(reduceMotion = false) {
-            PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sitzungen pro Woche", animateIn = false)
+            PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sessions pro Woche", animateIn = false)
         }
         tapBar(index = 4, count = 5)
         compose.waitForIdle()
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertExists()
 
         compose.mainClock.autoAdvance = false
         tapBar(index = 4, count = 5)
         compose.mainClock.advanceTimeBy(FRAME_MS * 2)
         // Still fading out.
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertExists()
         compose.mainClock.advanceTimeBy(FADE_SETTLE_MS)
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertDoesNotExist()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertDoesNotExist()
     }
 
     @Test
     fun `a zero bar can be tapped`() {
         val entries = listOf(PeriodValue("KW 40", 3.0), PeriodValue("KW 41", 0.0), PeriodValue("KW 42", 5.0))
-        show { PeriodBarChart(entries, ChartUnit.SESSIONS, "Sitzungen pro Woche") }
+        show { PeriodBarChart(entries, ChartUnit.SESSIONS, "Sessions pro Woche") }
         tapBar(index = 1, count = 3, yFraction = 0.9f)
-        compose.onNodeWithText("KW 41 · 0 Sitzungen").assertExists()
+        compose.onNodeWithText("KW 41 · 0 Sessions").assertExists()
     }
 
     @Test
@@ -120,18 +120,18 @@ class ChartsTest {
         show {
             ChartSelectionHost(holder) {
                 Column {
-                    PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sitzungen pro Woche")
+                    PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sessions pro Woche")
                     Box(Modifier.size(40.dp).testTag("outside"))
                 }
             }
         }
         tapBar(index = 4, count = 5)
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertExists()
         compose.onNodeWithTag("outside").performTouchInput { click() }
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertDoesNotExist()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertDoesNotExist()
         // A second tap on the same bar shows it again (the outside tap did not leave a stale selection).
         tapBar(index = 4, count = 5)
-        compose.onNodeWithText("KW 44 · 6 Sitzungen").assertExists()
+        compose.onNodeWithText("KW 44 · 6 Sessions").assertExists()
     }
 
     @Test
@@ -146,9 +146,9 @@ class ChartsTest {
             }
         }
         compose.onAllNodesWithTag(STATS_CHART_TAG)[0].performTouchInput { click(Offset(width * 0.9f, height * 0.75f)) }
-        compose.onAllNodesWithText("KW 44 · 6 Sitzungen").assertCountEquals(1)
+        compose.onAllNodesWithText("KW 44 · 6 Sessions").assertCountEquals(1)
         compose.onAllNodesWithTag(STATS_CHART_TAG)[1].performTouchInput { click(Offset(width * 0.9f, height * 0.75f)) }
-        compose.onAllNodesWithText("KW 44 · 6 Sitzungen").assertCountEquals(1)
+        compose.onAllNodesWithText("KW 44 · 6 Sessions").assertCountEquals(1)
     }
 
     @Test
@@ -158,7 +158,7 @@ class ChartsTest {
         show(reduceMotion = false) {
             CompositionLocalProvider(LocalChartPage provides page) {
                 Box(Modifier.fillMaxSize().chartViewport(page)) {
-                    if (shown) PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sitzungen pro Woche")
+                    if (shown) PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sessions pro Woche")
                 }
             }
         }
@@ -176,11 +176,11 @@ class ChartsTest {
 
     @Test
     fun `the chart is one node that reads every period`() {
-        show { PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sitzungen pro Woche") }
+        show { PeriodBarChart(weeks, ChartUnit.SESSIONS, "Sessions pro Woche") }
         val description = chart().fetchSemanticsNode().config[SemanticsProperties.ContentDescription].joinToString()
         assertThat(description).isEqualTo(
-            "Sitzungen pro Woche. KW 40: 3 Sitzungen. KW 41: 4 Sitzungen. KW 42: 2 Sitzungen. " +
-                "KW 43: 5 Sitzungen. KW 44: 6 Sitzungen.",
+            "Sessions pro Woche. KW 40: 3 Sessions. KW 41: 4 Sessions. KW 42: 2 Sessions. " +
+                "KW 43: 5 Sessions. KW 44: 6 Sessions.",
         )
     }
 
@@ -223,14 +223,14 @@ class ChartsTest {
         val description = chart().fetchSemanticsNode().config[SemanticsProperties.ContentDescription].joinToString()
         assertThat(
             description,
-        ).isEqualTo("Tee-Sorten. Sencha: 42 %, 21 Sitzungen. Gyokuro: 42 %, 21 Sitzungen. Andere: 16 %, 8 Sitzungen.")
+        ).isEqualTo("Tee-Sorten. Sencha: 42 %, 21 Sessions. Gyokuro: 42 %, 21 Sessions. Andere: 16 %, 8 Sessions.")
         chart().performTouchInput {
             // 45° clockwise from 12 o'clock is inside the first slice (0°–151°), on the ring.
             val radius = width * 58f / 148f
             val angle = Math.toRadians(45.0)
             click(Offset(width / 2f + radius * sin(angle).toFloat(), height / 2f - radius * cos(angle).toFloat()))
         }
-        compose.onNodeWithText("Sencha · 42 % · 21 Sitzungen").assertExists()
+        compose.onNodeWithText("Sencha · 42 % · 21 Sessions").assertExists()
     }
 
     @Test

@@ -14,7 +14,7 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
-/** What a bar chart counts; decides the value label („6 Sitzungen", „38 g", „64,80 €") and the TalkBack text. */
+/** What a bar chart counts; decides the value label („6 Sessions", „38 g", „64,80 €") and the TalkBack text. */
 enum class ChartUnit {
     SESSIONS,
     GRAMS,

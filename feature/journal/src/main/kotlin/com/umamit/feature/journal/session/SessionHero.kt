@@ -130,7 +130,7 @@ internal fun SessionHeroLayout(
  * leaf). *+ Foto* (only for a finished session, [canAdd]) opens the photo picker; at 6 it is greyed out with
  * „Höchstens 6 Fotos". The shown photo's ⋮ („Foto-Optionen", only with session photos) offers *Löschen* after „Foto
  * löschen?"; the menu and the question close in the frame an alert starts ([alertKey], rule 8). TalkBack reads
- * „Fotos der Sitzung" and each photo as „Foto 1 von 3". While [hero] is still loading (null) only the 4:3 tinted
+ * „Fotos der Session" and each photo as „Foto 1 von 3". While [hero] is still loading (null) only the 4:3 tinted
  * box shows, so a session with photos or a cover never flashes the leaf first.
  */
 @Composable

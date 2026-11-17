@@ -54,7 +54,7 @@ class HomeScreenScreenshotTest(private val dark: Boolean, private val fontScale:
 
         val seeded = HomeUiState(
             loading = false,
-            // Invented teas besides the two seed teas (D-016): six rows, the most *Zuletzt gebrüht* shows (D-110).
+            // Invented teas besides the two seed teas (D-016): six rows, the most *Zuletzt aufgegossen* shows (D-110).
             recent = listOf(
                 RecentBrew("h", "s6", "Bio Sencha Hisui", null, OCT_21, "Europe/Berlin", 60, 65, 3),
                 RecentBrew("t", "s5", "Bio Sencha Tanabata", null, OCT_21 - DAY_MS, "Europe/Berlin", 45, 65, 3),

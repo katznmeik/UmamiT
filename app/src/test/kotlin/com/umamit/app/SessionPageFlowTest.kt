@@ -75,10 +75,11 @@ import java.time.ZonedDateTime
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 
 /**
- * The session page and *So nochmal brühen* as routes of the root (SCR-15, SCR-16, BRW-06, D-100; seam 3): a past
- * journal entry opens its page, whose *So nochmal brühen* opens the setup above the shell with the session as brewed:
+ * The session page and *So nochmal aufgießen* as routes of the root (SCR-15, SCR-16, BRW-06, D-100; seam 3): a past
+ * journal entry opens its page, whose *So nochmal aufgießen* opens the setup above the shell with the session as
+ * brewed:
  * each step at its set time (a step changed in the Schritte-Sheet and run into overtime prefills its set time), and
- * *Ohne Rezept* for a recipe that is gone. *Brühen starten* there is the only way into the timer. The real root, the
+ * *Ohne Rezept* for a recipe that is gone. *Session starten* there is the only way into the timer. The real root, the
  * real page and setup view models on fakes; an invented tea (D-016).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -257,7 +258,7 @@ class SessionPageFlowTest {
     fun `an entry opens its page, whose So nochmal bruehen opens the setup with set times and Ohne Rezept`() {
         show()
         openSessionPage()
-        compose.onNodeWithText("nicht gebrüht", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("nicht aufgegossen", useUnmergedTree = true).assertExists()
 
         brewAgain()
 

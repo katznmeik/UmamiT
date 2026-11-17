@@ -42,7 +42,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * *Nochmal brühen* in two taps (BRW-11): the tea on Start opens the timer in
+ * *Nochmal aufgießen* in two taps (BRW-11): the tea on Start opens the timer in
  * READY with the last session's parameters, then *Start* starts the step. Real
  * Start view model and root navigation, fake repositories and controller.
  */
@@ -118,7 +118,7 @@ class BrewAgainFlowTest {
             }
         }
 
-        // Tap 1: the tea under *Zuletzt gebrüht* (D-110).
+        // Tap 1: the tea under *Zuletzt aufgegossen* (D-110).
         compose.onNodeWithTag(homeRecentTag(SeedData.HISUI_TEA_ID)).performClick()
         compose.waitForIdle()
 

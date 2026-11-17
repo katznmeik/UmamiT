@@ -55,14 +55,14 @@ import java.util.Locale
 internal const val HOME_ACTIVE_CARD_TAG = "home_active_card"
 internal const val HOME_HEADER_HEIGHT_DP = 120
 
-/** The row of the tea [teaId] under *Zuletzt gebrüht*; its tap brews the tea again (BRW-11). */
+/** The row of the tea [teaId] under *Zuletzt aufgegossen*; its tap brews the tea again (BRW-11). */
 fun homeRecentTag(teaId: String): String = "home_recent_$teaId"
 
 /**
  * Start (SCR-02): the header illustration, *Aufguss fortsetzen* with a live
  * countdown while a brew is active (GEN-06), *Aufguss starten* while fewer than
  * two timers are active (D-108),
- * *Schnelltimer*, *Zuletzt gebrüht* (six teas, a tap brews one again; BRW-11, D-110) and *Favoriten*; with
+ * *Schnelltimer*, *Zuletzt aufgegossen* (six teas, a tap brews one again; BRW-11, D-110) and *Favoriten*; with
  * an empty collection the calm empty state (GEN-09). The second-session
  * question never covers an alert: the view model closes it when one starts.
  *
