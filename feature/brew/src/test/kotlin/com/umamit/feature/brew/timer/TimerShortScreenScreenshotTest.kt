@@ -21,7 +21,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * SCR-05 on a short screen (384 × 832 dp) at font scale 2.0 with a two-line tea name: the band
  * and the seal give way, so the primary control lies whole on the screen (rule 8, D-096), READY's
- * stock line „14 g übrig · knapp" included (BRW-11, D-098). The
+ * stock line „14 g übrig · knapp" included (BRW-11, D-098). In the dark app theme, so the dark timer (its alert
+ * in the matcha phase); the light timer's colours are in `TimerScreenScreenshotTest` at font 2.0 too. The
  * seal shows a plain white synthetic photo (D-016). Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
@@ -42,7 +43,7 @@ class TimerShortScreenScreenshotTest {
         compose.mainClock.autoAdvance = false
         val start = compose.mainClock.currentTime
         compose.setContent {
-            UmamiThemeWithDarkTimer(reduceMotion = false) {
+            UmamiTheme(darkTheme = true, reduceMotion = false) {
                 TimerScreen(
                     state = state.copy(teaName = TWO_LINE_NAME),
                     nowElapsedMs = { NOW + compose.mainClock.currentTime - start },

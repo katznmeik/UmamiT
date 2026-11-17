@@ -11,7 +11,6 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.feature.brew.setup.StartQuestion
-import com.umamit.feature.brew.timer.UmamiThemeWithDarkTimer
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,7 +21,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * SCR-07 before its *Start*, at font scale 1.0 and 2.0 (03 §6), inside the
- * light and the dark app theme (the screen pinned dark until #325, [UmamiThemeWithDarkTimer]): the chips, a
+ * light and the dark app theme, which the screen follows (SET-05, D-128 Q20): the chips, a
  * custom duration, the duration picker, the second-timer question, and the
  * *Vorwarnung* row with each kind of label and its menu (TMR-22, D-097):
  * „Auto · 10 s" (chips), „Auto · keine" (custom, a long step), „Aus", „20 s"
@@ -59,7 +58,7 @@ class QuickTimerScreenshotTest(private val appDark: Boolean, private val fontSca
     ) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
-            UmamiThemeWithDarkTimer(darkTheme = appDark, reduceMotion = true) {
+            UmamiTheme(darkTheme = appDark, reduceMotion = true) {
                 QuickTimerScreen(state = state, actions = QuickTimerActions())
             }
         }
