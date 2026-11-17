@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -49,9 +48,9 @@ import java.io.File
 /**
  * Record-only renders of the light timer for the PO's design check (v0.8.0-08 #323, D-128 Q23): every state in the
  * light app theme at 384 × 832 dp (the alarm at full sage and at its washi phase, and the active-brew bar's alert in
- * the light app, #325), the same states dark for comparison, and the alternatives of the two open rows of
- * 03 §3.1 side by side (the band A13 in ink on washi against a plain washi top; the liquor fill as today against a
- * deeper one). The seal shows a synthetic tea photo (D-016). They are written to
+ * the light app, #325), and the same states dark for comparison, in the final look (the band A13 in ink on washi,
+ * the liquor fill as today; D-128 items 34, 35). The band and fill alternatives the PO chose from are no longer
+ * rendered. The seal shows a synthetic tea photo (D-016). They are written to
  * `docs/design/review/v0.8.0/light-timer/` and are no goldens: skipped unless the Gradle property
  * `umamit.recordDesignCheck` is set (`./gradlew :feature:brew:testDebugUnitTest -Pumamit.recordDesignCheck=true
  * --tests '*LightTimerDesignCheckTest'`).
@@ -88,8 +87,6 @@ class LightTimerDesignCheckTest(private val dark: Boolean) {
 
     private fun render(
         name: String,
-        band: LightTimerBand = LightTimerBand.Ink,
-        liquor: LightTimerLiquor = LightTimerLiquor.Today,
         reduceMotion: Boolean = false,
         afterFirstFrame: () -> Unit = {},
         content: @Composable () -> Unit,
@@ -97,11 +94,7 @@ class LightTimerDesignCheckTest(private val dark: Boolean) {
         compose.mainClock.autoAdvance = false
         start = compose.mainClock.currentTime
         compose.setContent {
-            UmamiTheme(darkTheme = dark, reduceMotion = reduceMotion) {
-                CompositionLocalProvider(LocalLightTimerBand provides band, LocalLightTimerLiquor provides liquor) {
-                    content()
-                }
-            }
+            UmamiTheme(darkTheme = dark, reduceMotion = reduceMotion, content = content)
         }
         compose.mainClock.advanceTimeByFrame()
         compose.waitForIdle()
@@ -242,29 +235,6 @@ class LightTimerDesignCheckTest(private val dark: Boolean) {
                 onNote = { _, _ -> },
             ),
         )
-    }
-
-    // The two open rows of 03 §3.1, light only: each alternative while running, side by side.
-
-    @Test
-    fun bandInk() = lightOnly("band-ink", band = LightTimerBand.Ink)
-
-    @Test
-    fun bandPlain() = lightOnly("band-plain", band = LightTimerBand.Plain)
-
-    @Test
-    fun fillToday() = lightOnly("fill-today", liquor = LightTimerLiquor.Today)
-
-    @Test
-    fun fillDeeper() = lightOnly("fill-deeper", liquor = LightTimerLiquor.Deeper)
-
-    private fun lightOnly(
-        name: String,
-        band: LightTimerBand = LightTimerBand.Ink,
-        liquor: LightTimerLiquor = LightTimerLiquor.Today,
-    ) {
-        assumeFalse("The alternatives are for the light timer", dark)
-        render(name, band = band, liquor = liquor) { Brew(TimerStates.running(remainingMs = 20_000)) }
     }
 }
 

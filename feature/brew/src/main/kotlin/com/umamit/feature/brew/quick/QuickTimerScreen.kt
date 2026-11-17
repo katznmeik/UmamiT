@@ -52,7 +52,6 @@ import com.umamit.feature.brew.steps.preAlertSpoken
 import com.umamit.feature.brew.timer.CircledIconButton
 import com.umamit.feature.brew.timer.TimerBand
 import com.umamit.feature.brew.timer.TimerBandPage
-import com.umamit.feature.brew.timer.timerLiquorColor
 
 /** Test tag of SCR-07's ring: a tap opens the duration picker. */
 const val QUICK_RING_TAG = "quick_ring"
@@ -192,7 +191,7 @@ private fun ColumnScope.QuickTimerContent(
         progress = { 0f },
         remainingSeconds = state.durationSeconds,
         caption = stringResource(R.string.brew_quick_caption),
-        liquorColor = timerLiquorColor,
+        liquorColor = UmamiTheme.extendedColors.liquor.green,
         stepDescription = title,
         // Where the running quick timer shows it, so it does not move at *Start* (D-097).
         preAlertPosition = mark,

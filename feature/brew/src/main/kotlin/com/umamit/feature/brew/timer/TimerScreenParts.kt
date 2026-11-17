@@ -328,7 +328,7 @@ private fun TimerRingArea(state: TimerUiState.Active, now: Long, nowElapsedMs: (
         progress = progress,
         remainingSeconds = state.display(now).remainingSeconds.toInt(),
         caption = stringResource(state.caption(now)),
-        liquorColor = timerLiquorColor,
+        liquorColor = UmamiTheme.extendedColors.liquor.green,
         stepDescription = timerStepDescription(state),
         preAlertPosition = state.preAlertPosition(),
         // One identity per step: a resume after the pre-alert must not replay the glow (D-046).
