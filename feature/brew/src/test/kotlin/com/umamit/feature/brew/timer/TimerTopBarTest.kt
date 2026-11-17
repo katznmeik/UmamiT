@@ -12,7 +12,9 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.AlertSurface
 import com.umamit.core.designsystem.theme.AlertColors
 import com.umamit.core.designsystem.theme.SteepingTheme
+import com.umamit.core.designsystem.theme.TimerTheme
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.designsystem.theme.WashiColorScheme
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import org.junit.Rule
 import org.junit.Test
@@ -23,9 +25,9 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * SCR-05 „Top-bar icons" (D-093 point 2, #85): ← and ⋮ sit on a 40 dp circle
- * of the Steeping surface at 60 % opacity and keep at least 3:1 against it
- * over any photo, a pure white one included, in both app themes; the touch
- * targets stay 48 dp.
+ * of the timer's surface at 60 % opacity and keep at least 3:1 against it
+ * over any photo, a pure white one included, in both app themes: the dark
+ * timer's and the light one's (D-128 Q20); the touch targets stay 48 dp.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -53,11 +55,11 @@ class TimerTopBarTest {
         Color.Magenta,
     ) + (0..255 step 15).map { Color(it, it, it) }
 
-    private fun steepingColors(appDark: Boolean): TimerTopBarColors {
+    private fun timerColors(appDark: Boolean): TimerTopBarColors {
         lateinit var colors: TimerTopBarColors
         compose.setContent {
             UmamiTheme(darkTheme = appDark, reduceMotion = true) {
-                SteepingTheme(reduceMotion = true) { colors = TimerTopBarDefaults.colors() }
+                TimerTheme(reduceMotion = true) { colors = TimerTopBarDefaults.colors() }
             }
         }
         compose.waitForIdle()
@@ -74,20 +76,29 @@ class TimerTopBarTest {
 
     @Test
     fun `the icons keep 3 to 1 against their circle over any photo in the light app theme`() {
-        assertLegibleOverAnyPhoto(steepingColors(appDark = false))
+        assertLegibleOverAnyPhoto(timerColors(appDark = false))
     }
 
     @Test
     fun `the icons keep 3 to 1 against their circle over any photo in the dark app theme`() {
-        assertLegibleOverAnyPhoto(steepingColors(appDark = true))
+        assertLegibleOverAnyPhoto(timerColors(appDark = true))
     }
 
     @Test
     fun `on a pure white photo the icon is at least 3 to 1 against its circle`() {
-        val colors = steepingColors(appDark = false)
+        val colors = timerColors(appDark = true)
         // Worked example (03 §3.1): #232B24 at 60 % over white is ≈ #7B807C; #ECE8DE on it is ≈ 3.3:1.
         val ratio = contrast(colors.icon, colors.circle.compositeOver(Color.White))
         assertThat(ratio).isWithin(0.1).of(3.3)
+    }
+
+    @Test
+    fun `on the light timer the icon is at least 4,5 to 1 against its circle even over black`() {
+        val colors = timerColors(appDark = false)
+        // The light timer (D-128 Q20): #F7F5F0 at 60 % over black is ≈ #949390; #2B2D27 on it is ≈ 4.5:1.
+        assertThat(colors.icon).isEqualTo(WashiColorScheme.onSurface)
+        val ratio = contrast(colors.icon, colors.circle.compositeOver(Color.Black))
+        assertThat(ratio).isWithin(0.1).of(4.5)
     }
 
     @Test

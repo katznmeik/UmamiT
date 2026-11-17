@@ -42,7 +42,7 @@ class TimerShortScreenScreenshotTest {
         compose.mainClock.autoAdvance = false
         val start = compose.mainClock.currentTime
         compose.setContent {
-            UmamiTheme(reduceMotion = false) {
+            UmamiThemeWithDarkTimer(reduceMotion = false) {
                 TimerScreen(
                     state = state.copy(teaName = TWO_LINE_NAME),
                     nowElapsedMs = { NOW + compose.mainClock.currentTime - start },

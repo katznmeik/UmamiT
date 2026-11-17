@@ -31,3 +31,17 @@ tasks.withType<Test>().configureEach {
         outputs.upToDateWhen { false }
     }
 }
+
+// Record-only renders for the PO's design check of the light timer (LightTimerDesignCheckTest, #323): they run only
+// with `-Pumamit.recordDesignCheck=true` (with `--tests '*LightTimerDesignCheckTest'`), never in CI or
+// `verifyRoborazziDebug`, and write to docs/design/review/v0.8.0/light-timer/.
+val recordDesignCheck = providers.gradleProperty("umamit.recordDesignCheck").map { it.toBoolean() }.orElse(false)
+val designCheckOutputDir = layout.projectDirectory.dir("../../docs/design/review/v0.8.0/light-timer")
+    .asFile.absolutePath
+tasks.withType<Test>().configureEach {
+    if (recordDesignCheck.get()) {
+        systemProperty("umamit.designCheckOutputDir", designCheckOutputDir)
+        systemProperty("roborazzi.test.record", "true")
+        outputs.upToDateWhen { false }
+    }
+}

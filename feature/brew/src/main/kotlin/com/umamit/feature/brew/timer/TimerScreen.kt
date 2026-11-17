@@ -20,7 +20,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.umamit.core.designsystem.component.AlertSurface
-import com.umamit.core.designsystem.theme.SteepingTheme
+import com.umamit.core.designsystem.theme.TimerTheme
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
@@ -37,8 +37,8 @@ const val TIMER_ANNOUNCEMENT_TAG = "timer_announcement"
 const val TIMER_RING_TAG = "timer_ring"
 
 /**
- * The timer (SCR-05; TMR-02…13, TMR-17, TMR-31): always in the dark
- * „Steeping" scheme, edge-to-edge, in one of five states. It draws [state]
+ * The timer (SCR-05; TMR-02…13, TMR-17, TMR-31): in the app's theme ([TimerTheme], SET-05, D-128 Q20), the dark
+ * „Steeping" scheme or the light one, edge-to-edge, in one of five states. It draws [state]
  * and turns every tap into a controller event ([onEvent]); it calls nothing
  * else.
  *
@@ -101,7 +101,7 @@ fun TimerScreen(
     tasting: TimerTasting? = null,
     closing: Boolean = false,
 ) {
-    SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
+    TimerTheme(reduceMotion = UmamiTheme.reduceMotion) {
         val alerting = state.alerting
         val alertKey = state.alertKey()
         val now by rememberTimerNow(state, nowElapsedMs)

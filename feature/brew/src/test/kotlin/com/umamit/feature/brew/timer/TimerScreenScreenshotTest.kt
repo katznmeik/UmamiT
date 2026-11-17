@@ -29,7 +29,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * SCR-05 in every state, at font scale 1.0 and 2.0 (03 §6), inside the light
- * and the dark app theme: the timer is always dark, so both look the same.
+ * and the dark app theme: the timer is pinned dark until #325 ([UmamiThemeWithDarkTimer]), so both look the same.
  * The alert is captured in both pulse phases (matcha and washi) and with the
  * prominent overtime; the content must stay readable in each (D-055). The top
  * is the ink-wash band A13; a brew's seal shows a synthetic white-backed tea
@@ -73,7 +73,7 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
         compose.mainClock.autoAdvance = false
         val start = compose.mainClock.currentTime
         compose.setContent {
-            UmamiTheme(darkTheme = appDark, reduceMotion = false) {
+            UmamiThemeWithDarkTimer(darkTheme = appDark, reduceMotion = false) {
                 TimerScreen(
                     state = state,
                     nowElapsedMs = { NOW + compose.mainClock.currentTime - start },

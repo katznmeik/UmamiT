@@ -20,6 +20,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.designsystem.theme.SteepingColorScheme
+import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.designsystem.theme.WashiColorScheme
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.lastRinging
@@ -76,9 +78,11 @@ fun BrewTimerRoute(
     // fades the timer out instead of an empty frame (A-15). Not saved: a restored route has none.
     var last by remember { mutableStateOf<TimerUiState.Active?>(null) }
     val closing = view.shown == null
-    // Under everything, the Steeping background: before recovery and while closing the route is never the light
-    // window background under the dark timer (A-05, A-15). It draws no content and delays nothing (rule 8).
-    Box(modifier.fillMaxSize().background(SteepingColorScheme.background)) {
+    // Under everything, the timer's background in the app's theme (D-128 Q20): before recovery and while closing the
+    // route is never the window background of the other theme under the timer (A-05, A-15). It draws no content and
+    // delays nothing (rule 8).
+    val routeBackground = if (UmamiTheme.isDark) SteepingColorScheme.background else WashiColorScheme.background
+    Box(modifier.fillMaxSize().background(routeBackground)) {
         if (closing && recovered) {
             // Restored after process death (from recents, or a notification of a session the new process has not
             // read yet), the route sees Idle before recovery: it waits for it and closes only on a known end
