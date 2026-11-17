@@ -9,7 +9,6 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.feature.brew.timer.TimerScreen
 import com.umamit.feature.brew.timer.TimerStates
 import com.umamit.feature.brew.timer.TimerStates.NOW
-import com.umamit.feature.brew.timer.UmamiThemeWithDarkTimer
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,7 +40,7 @@ class QuickTimerShortScreenScreenshotTest {
 
     private fun captureBeforeStart(name: String, state: QuickTimerUiState) {
         compose.setContent {
-            UmamiThemeWithDarkTimer(darkTheme = false, reduceMotion = true) {
+            UmamiTheme(darkTheme = false, reduceMotion = true) {
                 QuickTimerScreen(state = state, actions = QuickTimerActions())
             }
         }
@@ -57,7 +56,7 @@ class QuickTimerShortScreenScreenshotTest {
     @Test
     fun running() {
         compose.setContent {
-            UmamiThemeWithDarkTimer(darkTheme = false, reduceMotion = true) {
+            UmamiTheme(darkTheme = false, reduceMotion = true) {
                 TimerScreen(
                     state = TimerStates.quick(TimerPhase.RUNNING, seconds = 600, remainingMs = 420_000),
                     nowElapsedMs = { NOW },

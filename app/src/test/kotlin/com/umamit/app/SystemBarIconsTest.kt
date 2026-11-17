@@ -32,10 +32,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The status-bar icons and the gesture handle have one owner, the root (D-069): light on the
- * dark timer and quick timer, dark on the alert, the theme's own on everything else. The real
- * SCR-07 and SCR-05 overlap during the route crossfade, and SCR-07 leaves last; the bars must
- * still follow the screen on top, and the shell must get its dark icons back in the light theme.
+ * The status-bar icons and the gesture handle have one owner, the root (D-069): dark on the
+ * alert, the app theme's own on everything else, the timer and the quick timer included since they follow the
+ * app's theme (v0.8.0, SET-05). The real SCR-07 and SCR-05 overlap during the route crossfade, and SCR-07 leaves
+ * last; the bars must still follow the screen on top, and the shell keeps the theme's icons.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -81,14 +81,14 @@ class SystemBarIconsTest {
 
     private var closeTimer: () -> Unit = {}
 
-    private fun show() {
-        // What enableEdgeToEdge leaves in the light theme: dark icons.
+    private fun show(dark: Boolean) {
+        // What enableEdgeToEdge leaves in the theme: dark icons in the light one, light in the dark one.
         compose.runOnUiThread {
-            controller.isAppearanceLightStatusBars = true
-            controller.isAppearanceLightNavigationBars = true
+            controller.isAppearanceLightStatusBars = !dark
+            controller.isAppearanceLightNavigationBars = !dark
         }
         compose.setContent {
-            UmamiTheme(darkTheme = false, reduceMotion = false) {
+            UmamiTheme(darkTheme = dark, reduceMotion = false) {
                 UmamitRoot(
                     activeBrewSource = source,
                     journalSources = testJournalSources(),
@@ -118,17 +118,23 @@ class SystemBarIconsTest {
     }
 
     @Test
-    fun `quick timer, timer and back - the bars follow the screen on top (S1)`() {
-        show()
-        assertDarkIcons(true, "Start")
+    fun `light theme - quick timer, timer and back, the bars follow the top (S1)`() = quickTimerAndBack(false)
+
+    @Test
+    fun `dark theme - quick timer, timer and back, the bars follow the top (S1)`() = quickTimerAndBack(true)
+
+    private fun quickTimerAndBack(dark: Boolean) {
+        show(dark)
+        val theme = !dark
+        assertDarkIcons(theme, "Start")
 
         compose.onNodeWithText("Schnell").performClick()
-        assertDarkIcons(false, "quick timer")
+        assertDarkIcons(theme, "quick timer")
 
         // The timer replaces SCR-07 with a crossfade; SCR-07 leaves last.
         compose.onNodeWithText("Start").performClick()
         compose.mainClock.advanceTimeBy(1_000)
-        assertDarkIcons(false, "running quick timer")
+        assertDarkIcons(theme, "running quick timer")
 
         timerState = quickRunning(TimerPhase.ALERTING)
         alertKey.value = "quick:0:90000"
@@ -136,11 +142,11 @@ class SystemBarIconsTest {
 
         timerState = quickRunning(TimerPhase.RUNNING)
         alertKey.value = null
-        assertDarkIcons(false, "after the alert")
+        assertDarkIcons(theme, "after the alert")
 
         compose.runOnIdle { closeTimer() }
         compose.mainClock.advanceTimeBy(1_000)
-        assertDarkIcons(true, "Start again")
+        assertDarkIcons(theme, "Start again")
     }
 
     @Test

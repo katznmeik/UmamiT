@@ -185,11 +185,27 @@ class TokenContrastTest {
         assertWithMessage("ink on sage (03 §3.1)").that(contrast(alert.content, alert.matcha)).isWithin(0.05).of(7.8)
     }
 
+    /**
+     * The active-brew bar's static alert (SCR-07, D-128 item 38): sage with ink in the light app, matcha with ink in
+     * the dark app. Its text („Jetzt abgießen!", the overtime) is ink on that surface, ≥ 4.5:1 in both.
+     */
+    @Test
+    fun `the active-brew bar's alert is readable in both app themes`() {
+        mapOf("light app, sage" to LightTimerAlertColors, "dark app, matcha" to DefaultExtendedColors.alert)
+            .forEach { (app, alert) ->
+                assertWithMessage("ink on the bar, $app").that(contrast(alert.content, alert.matcha))
+                    .isAtLeast(TEXT_CONTRAST)
+            }
+        val sage = LightTimerAlertColors
+        assertWithMessage("ink on the light app's sage bar").that(contrast(sage.content, sage.matcha))
+            .isWithin(0.05).of(7.8)
+    }
+
     @Test
     fun `the light timer's pulse swings 1,73 to 1, the dark timer's stays washi to matcha`() {
         assertWithMessage("washi ↔ sage").that(contrast(LightTimerAlertColors.washi, LightTimerAlertColors.matcha))
             .isWithin(RATIO_TOLERANCE).of(1.73)
-        assertWithMessage("the dark timer and the app keep matcha").that(DefaultExtendedColors.alert.matcha)
+        assertWithMessage("the dark timer and the dark app's bar keep matcha").that(DefaultExtendedColors.alert.matcha)
             .isEqualTo(Color(0xFF6B9845))
     }
 }

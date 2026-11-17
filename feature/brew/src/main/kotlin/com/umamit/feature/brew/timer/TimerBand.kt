@@ -90,8 +90,8 @@ private const val SEAL_LEAF_FRACTION = 0.5f
 private const val BAND_FADE_START = 0.35f
 
 /**
- * Ink on washi (light timer, [LightTimerBand.Ink]): the luma of A13's dark paper (≈ 30 of 255) becomes the
- * background, its brightest bamboo (≈ 140) [BAND_INK_STRENGTH] of the way to the ink.
+ * Ink on washi (light timer, 03 §3.1 „Ink-wash band A13", D-128 item 34): the luma of A13's dark paper (≈ 30 of
+ * 255) becomes the background, its brightest bamboo (≈ 140) [BAND_INK_STRENGTH] of the way to the ink.
  */
 private const val BAND_PAPER_LUMA = 30f
 private const val BAND_LEAF_LUMA = 140f
@@ -118,18 +118,13 @@ internal val SealContentKey = SemanticsPropertyKey<SealContent>("SealContent")
 
 /**
  * The ink-wash band A13 at the top, centre-cropped and fading into the
- * timer's background (D-095). Decorative: the title names the tea. On the light timer (D-128 Q20) it is drawn as
- * [LocalLightTimerBand] says: A13 turned into ink on washi, or a plain washi top (the design check, #323).
+ * timer's background (D-095). Decorative: the title names the tea. On the light timer (D-128 Q20) it is A13 turned
+ * into ink on washi through a colour filter, no new picture (the PO's design check, D-128 item 34).
  */
 @Composable
 internal fun TimerBand(modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.background
     val light = !UmamiTheme.isDark
-    val lightBand = LocalLightTimerBand.current
-    if (light && lightBand == LightTimerBand.Plain) {
-        Spacer(modifier.fillMaxWidth().height(TimerBandHeight).testTag(TIMER_BAND_TAG))
-        return
-    }
     val ink = MaterialTheme.colorScheme.onSurface
     val filter = if (light) remember(background, ink) { inkOnWashi(paper = background, ink = ink) } else null
     val resources = LocalResources.current

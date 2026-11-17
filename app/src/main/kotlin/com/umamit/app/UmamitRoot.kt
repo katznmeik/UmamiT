@@ -36,6 +36,7 @@ import androidx.navigation.toRoute
 import com.umamit.app.timer.TimerRequest
 import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.designsystem.theme.WashiColorScheme
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.ui.LocalPhotoViewer
 import com.umamit.core.ui.PhotoViewerScreen
@@ -67,7 +68,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * A notification opens the timer the same way (03 §2.4; D-064): each new [timerRequest] token
  * (its content or full-screen intent) brings the timer to the top, the timer the notification names (04 §8.2,
  * D-098: a notification opens its own timer, whichever role it has). Until it is there, the root
- * draws the timer's dark background over the shell and reports the timer as visible, so the
+ * draws the timer's background in the app's theme over the shell (SET-05) and reports the timer as visible, so the
  * shell never shows over the lock screen, not even for one frame (D-058). One place decides
  * both ([rememberTimerFirst]).
  *
@@ -736,11 +737,16 @@ private fun rememberTimerFirst(
     )
 }
 
-/** Opened from a notification, the timer comes next: its dark background covers the shell until then. */
+/**
+ * Opened from a notification, the timer comes next: its background covers the shell until then, in the app's theme
+ * like the timer route's (SET-05, D-128 Q21): washi with *Design* „Hell", Steeping with „Dunkel", never dynamic
+ * colour. It reads no setting and delays nothing (rule 8).
+ */
 @Composable
 private fun ShellCover(requestPending: Boolean, timerOnTop: Boolean) {
     if (requestPending && !timerOnTop) {
-        Box(Modifier.fillMaxSize().background(SteepingColorScheme.background).testTag(SHELL_COVER_TAG))
+        val cover = if (UmamiTheme.isDark) SteepingColorScheme.background else WashiColorScheme.background
+        Box(Modifier.fillMaxSize().background(cover).testTag(SHELL_COVER_TAG))
     }
 }
 

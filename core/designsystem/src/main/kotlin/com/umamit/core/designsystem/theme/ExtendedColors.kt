@@ -105,8 +105,9 @@ val DefaultExtendedColors = UmamiExtendedColors(
 /**
  * The light timer's alert (03 §3.1 „Timer in the light theme", D-128 item 36): washi ↔ sage `#AEBF8D` with the
  * same ink content, pill and circles. Ink on sage is 7.8:1; the swing washi ↔ sage is 1.73:1, a softer pulse than
- * the dark timer's, accepted by the PO. Only [TimerTheme] in the light theme provides it; the dark timer and every
- * surface outside the timer (the active-brew bar) keep [DefaultExtendedColors]' matcha (D-046).
+ * the dark timer's, accepted by the PO. Only [TimerTheme] in the light theme provides it; the dark timer keeps
+ * [DefaultExtendedColors]' matcha (D-046). Outside the timer, the active-brew bar's static alert takes its sage in the
+ * light app and matcha in the dark one (D-128 item 38).
  */
 val LightTimerAlertColors = DefaultExtendedColors.alert.copy(matcha = Color(0xFFAEBF8D))
 

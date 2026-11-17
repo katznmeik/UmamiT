@@ -26,7 +26,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * SCR-05's „Geschmack · N. Aufguss" button and sheet (v0.6.1, D-114), at font scale 1.0 and 2.0, inside the light
- * and the dark app theme (the timer pinned dark until #325, [UmamiThemeWithDarkTimer]): READY and RUNNING with
+ * and the dark app theme, which the timer and its sheet follow (SET-05, D-128 Q20): READY and RUNNING with
  * the button, the button with its „✓", and the sheet with a value and a note: per taste set, with „Was bedeuten die
  * Regler?" folded (as it opens) and unfolded (v0.8.0, D-128). The seal shows a plain white synthetic photo (D-016).
  * Goldens: `src/test/screenshots/`.
@@ -66,7 +66,7 @@ class TimerTasteScreenshotTest(private val appDark: Boolean, private val fontSca
         val start = compose.mainClock.currentTime
         compose.setContent {
             // Reduce motion for the sheet: it opens expanded, without the slide.
-            UmamiThemeWithDarkTimer(darkTheme = appDark, reduceMotion = openSheet) {
+            UmamiTheme(darkTheme = appDark, reduceMotion = openSheet) {
                 TimerScreen(
                     state = state,
                     nowElapsedMs = { NOW + compose.mainClock.currentTime - start },

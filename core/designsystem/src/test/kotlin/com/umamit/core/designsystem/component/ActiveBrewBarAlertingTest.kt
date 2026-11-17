@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
+import com.umamit.core.designsystem.theme.LightTimerAlertColors
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.designsystem.theme.WashiColorScheme
 import org.junit.Rule
@@ -23,8 +24,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The active brew bar while the step alerts (03 §3.8, GEN-06, rule 8): static
- * matcha from the first frame, „Jetzt abgießen!" with the overtime counting up,
- * no pulse in the bar, and a tap still opens the timer.
+ * sage in the light app and static matcha in the dark app (D-128 item 38) from the first frame, „Jetzt abgießen!"
+ * with the overtime counting up, no pulse in the bar, and a tap still opens the timer.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -34,7 +35,8 @@ class ActiveBrewBarAlertingTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private val alert = DefaultExtendedColors.alert
+    /** The light app's bar alert: sage (D-128 item 38). */
+    private val alert = LightTimerAlertColors
 
     private val running = ActiveBrew(
         title = "Bio Sencha Hisui",
@@ -50,11 +52,12 @@ class ActiveBrewBarAlertingTest {
 
     private var brew by mutableStateOf(running)
     private var clicks = 0
+    private var dark by mutableStateOf(false)
 
     private fun show() {
         compose.mainClock.autoAdvance = false
         compose.setContent {
-            UmamiTheme(darkTheme = false, reduceMotion = false) {
+            UmamiTheme(darkTheme = dark, reduceMotion = false) {
                 ActiveBrewBar(brew = brew, progress = { 1f }, onClick = { clicks++ })
             }
         }
@@ -69,7 +72,7 @@ class ActiveBrewBarAlertingTest {
     }
 
     @Test
-    fun `entering ALERTING turns the bar matcha on the next frame`() {
+    fun `entering ALERTING turns the bar sage on the next frame`() {
         show()
         assertThat(barBackground().distanceTo(WashiColorScheme.surfaceContainerHigh)).isLessThan(SAME)
 
@@ -81,7 +84,7 @@ class ActiveBrewBarAlertingTest {
     }
 
     @Test
-    fun `a bar that arrives already alerting is full height and matcha on the next frame (B1, rule 8)`() {
+    fun `a bar that arrives already alerting is full height and sage on the next frame (B1, rule 8)`() {
         var arriving by mutableStateOf<ActiveBrew?>(null)
         compose.mainClock.autoAdvance = false
         compose.setContent {
@@ -106,6 +109,22 @@ class ActiveBrewBarAlertingTest {
         show()
         assertThat(barBackground().distanceTo(alert.matcha)).isLessThan(SAME)
         compose.mainClock.advanceTimeBy(HALF_PULSE_MILLIS)
+        assertThat(barBackground().distanceTo(alert.matcha)).isLessThan(SAME)
+    }
+
+    @Test
+    fun `in the dark app the alerting bar is static matcha, and a theme change recolours it in one frame`() {
+        dark = true
+        brew = alerting
+        show()
+        val matcha = DefaultExtendedColors.alert.matcha
+        assertThat(barBackground().distanceTo(matcha)).isLessThan(SAME)
+        compose.mainClock.advanceTimeBy(HALF_PULSE_MILLIS)
+        assertThat(barBackground().distanceTo(matcha)).isLessThan(SAME)
+
+        dark = false
+        compose.waitForIdle()
+        compose.mainClock.advanceTimeByFrame()
         assertThat(barBackground().distanceTo(alert.matcha)).isLessThan(SAME)
     }
 

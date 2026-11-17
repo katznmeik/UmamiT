@@ -26,9 +26,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The status-bar icons on the timer's own transitions (D-117 build note A-16, amends D-069's timing): they flip at the
- * fade's midpoint, 150 ms into `fade` on the way in and 100 ms into `exitFade` on the way out, and an alert flips them
- * at once (rule 8). A night switch in place (A-08) keeps the alert surface and its icons.
+ * The status-bar icons on the timer's own transitions (D-117 build note A-16, amends D-069's timing): a change waits
+ * for the fade's midpoint, 150 ms into `fade` on the way in and 100 ms into `exitFade` on the way out, and an alert
+ * flips them at once (rule 8). From v0.8.0 the timer is in the app's theme (SET-05), so its own transitions change
+ * nothing. A night switch in place (A-08) keeps the alert surface and its icons.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -75,36 +76,47 @@ class TimerIconTimingTest {
         compose.mainClock.advanceTimeBy(FRAME_MS * 3)
     }
 
+    /**
+     * The timer follows the app's theme (SET-05, D-128 Q20), so into and out of it the icons are those of the theme
+     * all along: there is no flip to time in either theme (the midpoint timing of A-16 stays for any other change).
+     */
     @Test
-    fun `into the timer the icons flip 150 ms into the fade, out of it 100 ms into the exit fade`() {
+    fun `into and out of the light timer the icons stay dark`() = iconsStayThroughTheTimer(dark = false)
+
+    @Test
+    fun `into and out of the dark timer the icons stay light`() = iconsStayThroughTheTimer(dark = true)
+
+    private fun iconsStayThroughTheTimer(dark: Boolean) {
+        systemDark = dark
         show()
-        assertDarkIcons(true, "Start, light theme")
+        val icons = !dark
+        assertDarkIcons(icons, "Start, dark theme $dark")
 
         compose.onNodeWithText("Zum Timer").performClick()
         compose.mainClock.advanceTimeBy(130)
-        assertDarkIcons(true, "130 ms into the timer's fade")
-        compose.mainClock.advanceTimeBy(60)
-        assertDarkIcons(false, "past the fade's midpoint")
+        assertDarkIcons(icons, "130 ms into the timer's fade, dark theme $dark")
+        compose.mainClock.advanceTimeBy(SETTLE_MS)
+        assertDarkIcons(icons, "the timer, dark theme $dark")
 
         compose.runOnIdle { closeTimer() }
         compose.mainClock.advanceTimeBy(80)
-        assertDarkIcons(false, "80 ms into the exit fade")
-        compose.mainClock.advanceTimeBy(60)
-        assertDarkIcons(true, "past the exit fade's midpoint")
+        assertDarkIcons(icons, "80 ms into the exit fade, dark theme $dark")
+        compose.mainClock.advanceTimeBy(SETTLE_MS)
+        assertDarkIcons(icons, "back on Start, dark theme $dark")
     }
 
     @Test
-    fun `from the quick timer into the timer the light icons never change (SCR-07 to SCR-05)`() {
+    fun `from the quick timer into the timer the icons never change (SCR-07 to SCR-05)`() {
         show()
         compose.onNodeWithText("Schnell").performClick()
         compose.mainClock.advanceTimeBy(SETTLE_MS)
-        assertDarkIcons(false, "the quick timer")
+        assertDarkIcons(true, "the light quick timer")
 
         compose.onNodeWithText("QUICK-START").performClick()
         compose.mainClock.advanceTimeBy(FRAME_MS * 3)
-        assertDarkIcons(false, "the timer's fade, early")
+        assertDarkIcons(true, "the light timer's fade, early")
         compose.mainClock.advanceTimeBy(SETTLE_MS)
-        assertDarkIcons(false, "the timer")
+        assertDarkIcons(true, "the light timer")
     }
 
     @Test
