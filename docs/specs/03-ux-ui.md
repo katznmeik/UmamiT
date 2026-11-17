@@ -409,7 +409,8 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
   `withContext(UnscaledMotion)`), so a developer scale cannot slow the alert or
   pull the glow away from the 0.8 s tick.
 - **Alert contrast, not flashing:** the pulse runs washi `#F3F0E9` ↔ matcha
-  `#6B9845` (§3.1 „Alert surface"), 2.97:1 in luminance, one cycle per 1.5 s:
+  `#6B9845` (§3.1 „Alert surface"), 2.97:1 in luminance, on the dark timer; on the light
+  timer washi ↔ sage `#AEBF8D`, 1.73:1, the softer pulse the PO accepted (D-128 item 36); one cycle per 1.5 s:
   0.67 flashes/s, far below WCAG 2.3.1's 3 per second, with sine edges. The
   content stays ≥ 4.5:1 on both ends and is never faded or moved. Inside the
   alert the ring shows no liquor, so nothing softens the pulse.
