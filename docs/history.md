@@ -11,6 +11,19 @@
 
 ## Releases and plans
 
+### v0.8.0: build session 2 (2026-11-17)
+
+- **Branch:** worked directly on `claude/inspiring-ritchie-8hfw00` (PR #328); the session's assigned branch `claude/hopeful-feynman-nizldo` was not used.
+- **Environment:** the mirror init script and `gw.sh` written again in the scratchpad, and Robolectric's SDK 35/36 jars pre-fetched and checked against the sha512. The wrapper now fetches Gradle 9.8.2.
+- **Merged on #328, each verified by the orchestrator** (the diff, the cross-module check, the empty timer diff where the plan asks for it, and `feature:brew`'s tests and goldens after a shared-module change):
+  - #319 (T2, `6ee8d0f0`): progress and result in *Katalog*. The formatter composables are in `core:ui`, which now depends on `core:data`; the `data_catalog_*` words stay in `core:data`, which the notifications share.
+  - #320 (T3, `157dd673`): umamit.db v9 and `TasteSet`; `9.json` is Room-generated and `check-frozen-schemas.sh` passes.
+  - #313 (T3, `752111b1`): `firstOrNull` guard. The test deletes through `FakeTeaArchive` (`teaId` null, as on Room); it was red before the guard and green after.
+  - #321 (T2, `3d1ef4ba`): the sets and `TasteInfo` on the session page, the tea detail and the editor.
+  - #322 (T3, `b465d7a5`): the timer's taste sheet per set with `TasteInfo`, the alert gate with the info unfolded, two brews with two sets, and the leftover „Sitzung" / *Brühen anpassen* KDoc. Timer tests 263 / 513 / 765 (25 skipped).
+- **#325 step 1** (T3, `3cfa5870`): the light timer's sage alarm. `TimerTheme` provides `LightTimerAlertColors` in light only; no existing golden changed and `dark-alarm.png` is byte-identical. Timer tests 263 / 513 / 770 (29 skipped). The implementer stopped on the stated swing: it measures 1.734:1, not 1.72 (and matcha measures 2.975, not 2.95). The colours stay; the figures are corrected in 03 §3.1 and D-128 item 36 (`a5cb7006`). Renders posted on #324 for the PO's confirmation, with the active-brew bar's alarm in the light app (unchanged matcha).
+- **CI:** green on `752111b1` (run 44109846265) and fully green on `3cfa5870` (run 44127033591, both emulator jobs).
+
 ### v0.8.0: build session 1 (2026-11-17)
 
 - **The PO approved** spec #315, tickets #316–#327 and #313, and `docs/plans/v0.8.0.md` at the session's start; D-128 *Accepted*. Tickets relabelled (`ready-for-agent`, #324 `ready-for-human`); draft milestone PR #328 from `claude/inspiring-ritchie-8hfw00` (the assigned branch, fast-forwarded to `claude/magical-heisenberg-qev7fe`).
@@ -706,6 +719,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-17 | **v0.8.0 build session 2:** #319, #320, #313, #321 and #322 merged and verified on PR #328; #325 step 1 (the sage alarm of the light timer) built and its renders posted on #324; the swing figures corrected to the measured 1.73 / 2.97. Next: the PO's confirmation, then build session 3 (the rest of #325, #326). |
 | 2026-11-17 | **v0.8.0 build session 1:** the PO approved spec #315, the tickets and the plan; PR #328 (draft) opened; #317, #318, #316 (+ a brew test follow-up) and #323 merged and verified; the light timer's renders posted on #324 and answered by the PO (band ink, fill as today, sage alarm for the light timer; D-128 34–37). Next: build session 2 (#320, #319, #321, #313, #322, #325). |
 | 2026-11-17 | **v0.8.0 specify session:** docs PR #314 merged; the PO's nine points grilled (Q1–Q31) into D-128: v0.8.0 (Session and Aufguss wording, three taste sets with *Geschmacksprofil* and the slider info, the timer follows *Design*, refresh progress in the settings, the ⋮ fix, #313) and v0.9.0 planned (export/import, shared recipes); 1.0 postponed. Specs, spec #315, tickets #316–#327, plan `docs/plans/v0.8.0.md` written. Next: the PO's approval, then build session 1. |
 | 2026-11-17 | **v0.7.2 session 14 (#310: the PO's approval, merge, final):** the PO approved checklist and design review; PR #312 merged (`c5f19e8e`), CI and all three accuracy variants PASS on it; `v0.7.2` released (70299, certificate verified); #296–#310 closed. Next: the PO decides the next release. |
