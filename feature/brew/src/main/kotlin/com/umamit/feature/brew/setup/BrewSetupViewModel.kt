@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -139,7 +140,8 @@ class BrewSetupViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            source.first { it != null }?.let { s ->
+            // A session whose tea is gone: `source` ends after one null, the state stays NotFound (BRW-06, #313).
+            source.firstOrNull { it != null }?.let { s ->
                 if (edits.value == null) setEdits(s.initialEdits(savedState[RECIPE_ID]))
             }
         }
