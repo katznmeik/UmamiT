@@ -221,10 +221,7 @@ First-pass values approximated from the mockup, to be finalized with the PO.
 | `onSurfaceVariant` | `#A9A99D` | Secondary text |
 | `outline` | `#4A544A` | Ring track |
 
-**Timer in the light theme (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)).** No mockup shows it, so these
-are the **starting values for the early design check** (Claude; the PO
-approves or changes them on rendered screens before the rest is built, and
-the approved values replace this table):
+**Timer in the light theme (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)).** The PO approved these values on rendered screens in the design check #324 (2026-11-17, D-128 „Build notes: the light timer's design check"). The light timer is the Washi scheme:
 
 | Element | Light timer | Note |
 |---|---|---|
@@ -234,13 +231,14 @@ the approved values replace this table):
 | Ring progress | `primary` `#4A5643` | 6.8:1 against washi |
 | Ring track | `outline` `#D9D4C8` | 1.3:1, decorative; the progress carries the information |
 | *Pause* / *Weiter* / *Starten* pill | `primary` with `onPrimary` | „Green on light" (`PillButton`, §3.8) |
-| ← and ⋮ circles | `surface` at 60 % with `onSurface` icons | As on Steeping, on the light band |
-| Liquor fill | To settle in the check | The green liquors are 1.2–1.4:1 on washi (hōjicha 3.2:1), so today's fill would hardly show; the check renders a deeper fill for the light timer. The fill is decoration: the ring and the digits carry the state |
-| Pre-alert glow and tick | As today, in `primary` | Must stay visible on washi |
+| ← and ⋮ circles | `surface` at 60 % with `onSurface` icons | The icon carries the control (12.6:1); the circle itself is 1.03:1 on washi |
+| Liquor fill | As in the dark timer: `liquor.green` `#C9D58F` | Faint on washi (1.1:1) by the PO's choice; the fill is decoration, the ring and the digits carry the state |
+| Pre-alert glow and tick | As today, in `primary` | Visible on washi (rendered at the glow's peak) |
 | Sheets (Geschmack, Schritte, Timer-Einstellungen) | The light scheme's `surface` | As every light sheet |
-| Ink-wash band A13 | To settle in the check | A13 is drawn for the dark surface. The check shows it in ink on washi; if that does not hold, a light picture is needed from the PO (prompt in `docs/design/assets.md`) |
-| Seal | Unchanged: washi disc, thin ink ring | On washi the ring and a soft shadow set it off |
-| Alert | Unchanged in both themes | Washi ↔ matcha, ink content (D-046, D-128 Q22) |
+| Ink-wash band A13 | A13 in ink on washi | The existing picture through a colour filter: its dark paper (luma ≈ 30) becomes washi, its brightest bamboo (≈ 140) goes 85 % of the way to `onSurface`. No new picture |
+| Seal | Washi disc, thin ink ring, a soft 2 dp shadow | The shadow only in the light timer |
+| Schnelltimer chips | Unselected outlined in full `onSurfaceVariant` (4.8:1) | The dark timer keeps 60 % (3.3:1 on Steeping); 60 % would be 2.3:1 on washi |
+| Alert | Washi ↔ **sage `#AEBF8D`**, ink content `#1F271B`, ink pill and circles with washi text and icons | The PO's choice for the light timer (#324); the pulse keeps its rhythm and starts at full sage, the swing is 1.72:1 (softer than the dark timer's 2.95:1). Ink on sage is 7.8:1. The dark timer's alert is unchanged (washi ↔ matcha, D-046) |
 
 Every value is checked by the contrast test (NFR-A11Y-02) in both themes.
 
@@ -252,7 +250,7 @@ Shincha `#9DB86E`, Matcha `#5F8C3E`, Kukicha/Karigane `#A6B07A`, Hōjicha
 green `#C9D58F`, gyokuro `#D7DF9F`, hōjicha `#B07A45`.
 
 **Alert surface** (extended tokens `alert`, the same in both schemes; M1-04,
-D-046): washi `#F3F0E9`, matcha `#6B9845`, content (ring, digits, caption,
+D-046; from v0.8.0 the **light timer** pulses washi ↔ sage `#AEBF8D` instead, see „Timer in the light theme" above, D-128): washi `#F3F0E9`, matcha `#6B9845`, content (ring, digits, caption,
 overtime) `#1F271B`. The content stays readable through the whole pulse: 13.5:1 on
 washi, 4.55:1 on matcha (AA for body text). The only control, the
 *Abgegossen* pill, is ink with washi text there (13.5:1 for its label; the pill

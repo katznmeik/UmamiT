@@ -5,9 +5,9 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-17 (v0.8.0 build session 1: #317, #318, #316 and #323 merged on PR #328; the light timer's renders posted on #324). **Next:** the PO answers #324; build session 2 (#320, #319, #321, #313, #322; #325 after #324).
+**Last updated:** 2026-11-17 (v0.8.0 build session 1: #317, #318, #316 and #323 merged on PR #328; the PO answered the design check #324: band ink, fill as today, a sage alarm for the light timer, the rest approved; D-128 items 34–37). **Next:** build session 2 (#320, #319, #321, #313, #322, then #325 with the sage alarm re-rendered for the PO first).
 
-## Next: the PO's design check #324, then v0.8.0 build session 2
+## Next: v0.8.0 build session 2
 
 - **Approved by the PO (2026-11-17):** spec #315, tickets #316–#327 and #313, `docs/plans/v0.8.0.md`. D-128 is *Accepted*; the „Claude" details stand as defaults in the approved spec. Tickets `ready-for-agent`, #324 `ready-for-human`.
 - **Done in build session 1** (on PR #328, draft, branch `claude/inspiring-ritchie-8hfw00`):
@@ -15,11 +15,14 @@
   - #318 (T1) `bdd53797`: `OverflowSettingsAction` in its own `Box`; Statistik test and goldens with the open menu. The test allows 8 dp beyond the button's end, because the menu clamps to the window edge (about 4 dp past the button).
   - #316 (T2) `503a3092`: wording in the seven non-timer modules, the goldens re-recorded. `79d3f557` (T3) is its follow-up: the shared stock-sheet text broke a `feature:brew` test and 4 goldens, which #316 was not allowed to touch.
   - #323 (T3) `162aee5f`: `TimerTheme` follows the app's theme, and the light timer is the Washi scheme. `LightTimerLook.kt` holds the two open choices (band, fill); its defaults are ink band and today's fill. The renders are in `docs/design/review/v0.8.0/light-timer/` (`LightTimerDesignCheckTest`, record-only with `-Pumamit.recordDesignCheck=true`). Timer tests 263 / 513 / 734 (25 skipped: 24 record-only renders, +1 top-bar test). Engine, alarms, service, notifications and alert surface are untouched; every dark golden is unchanged.
-- **Waits on the PO:** #324 (comment of 2026-11-17): the band (ink / plain / a light picture from the PO), the fill (today / deeper), the rest of the colours. Claude's choices are a 2 dp seal shadow in light, and full `onSurfaceVariant` for the Schnelltimer chip outline in light (60 % was 2.3:1). Each answer becomes a D-128 build note and replaces 03 §3.1's starting table.
+- **The PO answered #324 (2026-11-17, D-128 items 34–37, 03 §3.1 updated):**
+  - band A13 in ink on washi; liquor fill as today; everything else as rendered (the seal shadow and the chip outline included);
+  - **new:** the light timer's alarm is sage, washi ↔ `#AEBF8D`, with ink content, pill and circles. It is light timer only, and the pulse stays at a swing of 1.72:1. The dark alarm is unchanged (D-046).
+  - #325's body now carries this: it builds the sage alarm first, re-renders it on #324 (with the active-brew bar's alert in the light app, unchanged unless the PO says so), and lands the rest only after the PO confirms.
 - **For #325 (from #323):** five screenshot classes are pinned to a dark timer by the test helper `UmamiThemeWithDarkTimer` (`DarkTimerPin.kt`): `QuickTimerScreenshotTest`, `QuickTimerShortScreenScreenshotTest`, `TimerScreenScreenshotTest`, `TimerTasteScreenshotTest`, `TimerShortScreenScreenshotTest`. #325 removes the pin and re-records their 69 light goldens. In a light app the cover while the timer opens (`UmamitRoot`) and the system-bar icons (`app/`) still assume a dark timer; that is #325's too. **No rc before #325.**
 - **Small leftovers:** KDoc in `feature:brew` (`TeaPickerSheet`, `TeaPickerViewModel`, `BrewSetupUiState`, `BrewSetupViewModel`, `TimerScreenParts`, `TimerOverlays`) and `app` `Routes.kt` still quote „Sitzung" / *Brühen anpassen*. These are comments only; fold them into #322 or #325.
 - **CI:** API 36 `TransitionJankTest.sessionPagePushAndPop` failed once on `bdd53797` with „Start is not shown" at launch. API 35 passed, and neither ticket touched that text, so it is taken as the known API 36 jank flake. CI is fully green on `79d3f557` (run 44085961534, both emulator jobs).
-- **Build session 2** (Opus `medium` orchestrator): #320 beside #319, then #321 beside #313, then #322; #325 once the PO has answered #324 and #322 is in (plan „Order"). Stop at „everything but #326 in, CI green".
+- **Build session 2** (Opus `medium` orchestrator): #320 beside #319, then #321 beside #313, then #322, then #325 (sage alarm first, re-render on #324, the PO's confirmation, then the rest). Stop at „everything but #326 in, CI green", or at the sage re-render if the PO has not confirmed it yet.
 - **v0.9.0 (planned, D-128 Q4–Q11):** export, a replacing import with four safeguards, backup reminder, „Letzte Sicherung", journal CSV, recipes shared as text plus a file. Its own specify session after v0.8.0; the points still to ask are under D-128 „Open for the v0.9.0 specify session".
 - **1.0 (M5) is postponed** (D-128 Q3): it starts only on the PO's go; releases stay 0.x.
 - **Notes left by the v0.7.2 reviews** (R-7, T-1 and others; `docs/history.md` „v0.7.2: milestone and timer review done") need a ticket only if the PO wants one.
@@ -49,7 +52,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.8.0** (D-128): approved by the PO (2026-11-17), **build session 1 done**; the light timer's design check #324 waits on the PO; **v0.9.0** planned (export/import, shared recipes); M5 / 1.0 postponed until the PO's go. **v0.7.2** (cleanup review) released 2026-11-17 |
+| Current milestone | **v0.8.0** (D-128): approved by the PO (2026-11-17), **build session 1 done**; the PO answered the design check #324 (sage alarm to confirm in #325); **v0.9.0** planned (export/import, shared recipes); M5 / 1.0 postponed until the PO's go. **v0.7.2** (cleanup review) released 2026-11-17 |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00` (build session 1's assigned branch, fast-forwarded to `claude/magical-heisenberg-qev7fe` `0fd54c84`, which carries the v0.8.0 specs, D-128 and the plan) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -71,7 +74,7 @@
 
 ## Waiting on the PO
 
-1. **The light timer's design check #324** (renders posted 2026-11-17): band, fill and colours; possibly a light band picture (plan „The band A13").
+1. **Confirm the sage alarm's re-render on #324** once #325 posts it (build session 2).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.

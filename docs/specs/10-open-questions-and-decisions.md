@@ -403,6 +403,15 @@ personal data or shop content).
 32. **Q10:** one recipe of a tea is shared, from the recipe's ⋮ menu: its steps, leaf, water and vessel type, with the tea's name, kind and, for a catalog tea, its shop link (the link only, never shop text or photos, rule 3).
 33. **Q11, receiving:** if the same tea is in the collection, the recipe is offered for it; if not, the PO chooses one of the teas or creates the tea (from the catalog when it is there, else without catalog). It is always added as a new recipe, never over an existing one.
 
+#### Build notes: the light timer's design check (#324, the PO, 2026-11-17)
+
+The PO checked the renders of #323 (comment on #324) and answered in build session 1 (in the session, as options; the alarm from a screenshot of their own):
+
+34. **Band A13: ink on washi** (option A): the existing picture through a colour filter, no new picture, so `docs/design/assets.md` needs no light band.
+35. **Liquor fill: as today** (option A): `liquor.green`, faint on washi.
+36. **The alarm of the light timer is sage**, „similar to" the PO's screenshot: surface `#AEBF8D` (sampled from it), ink content `#1F271B`, ink pill and ink circles with washi text and icons. **Light timer only** (the dark timer keeps washi ↔ matcha, D-046). **The pulse stays, washi ↔ sage**, same rhythm, first frame full sage; reduce motion shows static sage. Its swing is 1.72:1 instead of 2.95:1, accepted by the PO as a softer pulse. This amends D-128 Q22 („the alert unchanged in both themes") for the light timer; the change is built in #325 (alert surface: T3, and the T4 timer review reads it) and rendered again for the PO's confirmation before the rest of #325 lands.
+37. **Everything else as rendered** (the PO approved): Claude's two values, the seal's 2 dp shadow in light and the Schnelltimer chips' full-`onSurfaceVariant` outline in light, and every other light-timer colour. 03 §3.1 „Timer in the light theme" now holds the approved values in place of the starting table.
+
 **Open for the v0.9.0 specify session (not asked yet):** how a received recipe file reaches the app (open-with for the recipe file type only, or an import entry in the app), the recipe file's format and version, the CSV's columns, where the safety copy lives and how its 7 days are counted, the export's progress and size note, whether shop photos copied to a tea are in the file, and the tiers (backup and import code is T3 or higher). A received file is **untrusted input**: its shop link is used only if its host is on the allow-list, and whether opening it may run rule 7's product-page fetch is asked then.
 
 **Consequences.**
