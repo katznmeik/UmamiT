@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -41,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import com.umamit.core.designsystem.R
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
+import com.umamit.core.designsystem.theme.AlertColors
+import com.umamit.core.designsystem.theme.LightTimerAlertColors
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 
@@ -64,8 +67,8 @@ private val RemainingLineHeight = 32.sp
  * it keeps showing the last brew. Under reduce motion it appears at once, and so
  * does a bar that arrives already alerting (rule 8).
  *
- * **ALERTING** ([ActiveBrew.alerting]): the bar turns static matcha on the next
- * frame (`alertEnter`, no transition) with ink content, „Jetzt abgießen!" in
+ * **ALERTING** ([ActiveBrew.alerting]): the bar turns static matcha (in the light app static sage,
+ * [barAlertColors], D-128 item 38) on the next frame (`alertEnter`, no transition) with ink content, „Jetzt abgießen!" in
  * place of the step and the overtime counting up („+0:07"); the mini ring is
  * full, in ink, without liquor. It does not pulse: the full alert is the timer
  * screen, which a tap on the bar opens. Rule 8: nothing in the bar delays or
@@ -143,9 +146,9 @@ private fun ActiveBrewBarContent(
     onClick: () -> Unit,
     windowInsets: WindowInsets,
 ) {
-    val alert = UmamiTheme.extendedColors.alert
-    // Static matcha with ink while alerting (4.55:1); the calm bar otherwise. No colour
-    // animation: entering ALERTING is instant (`alertEnter`).
+    val alert = barAlertColors
+    // Static matcha with ink while alerting (4.55:1), static sage in the light app (7.8:1); the calm bar otherwise.
+    // No colour animation: entering ALERTING is instant (`alertEnter`).
     val background = if (brew.alerting) alert.matcha else MaterialTheme.colorScheme.surfaceContainerHigh
     val content = if (brew.alerting) alert.content else MaterialTheme.colorScheme.onSurface
     val spoken = brew.spokenDescription()
@@ -228,8 +231,9 @@ private fun TwoTimersBarContent(halves: List<BarHalf>, windowInsets: WindowInset
 @Composable
 private fun BarHalfContent(half: BarHalf, modifier: Modifier = Modifier) {
     val brew = half.brew
-    val alert = UmamiTheme.extendedColors.alert
-    // The alerting half alone turns static matcha with ink (`alertEnter`, no transition); a held one stays calm.
+    val alert = barAlertColors
+    // The alerting half alone turns static matcha (sage in the light app) with ink (`alertEnter`, no transition); a
+    // held one stays calm.
     val background = if (brew.alerting) alert.matcha else Color.Transparent
     val content = if (brew.alerting) alert.content else MaterialTheme.colorScheme.onSurface
     val spoken = brew.spokenDescription()
@@ -337,6 +341,15 @@ private fun ActiveBrew.runningDescription(): String {
         stringResource(R.string.ds_active_brew_description_no_step, title, remaining)
     }
 }
+
+/**
+ * The bar's alert colours (03 SCR-07 `ActiveBrewBar`, D-055): static matcha `#6B9845` with ink in the dark app, static
+ * sage `#AEBF8D` with ink in the light app (D-128 item 38, the light timer's strong phase, [LightTimerAlertColors]).
+ * Keyed on the app's theme, so a theme change recolours the bar in one frame; it never pulses.
+ */
+internal val barAlertColors: AlertColors
+    @Composable @ReadOnlyComposable
+    get() = if (UmamiTheme.isDark) UmamiTheme.extendedColors.alert else LightTimerAlertColors
 
 /**
  * The mini ring: the timer ring's drawing at 56 dp, with the same long-step glide

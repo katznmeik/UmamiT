@@ -164,8 +164,8 @@ class LightTimerDesignCheckTest(private val dark: Boolean) {
     }
 
     /**
-     * The active-brew bar's alert state in the light app, outside the timer: its colours are unchanged (static matcha
-     * with ink, `ActiveBrewBar`), shown beside the sage alarm for the PO (#325).
+     * The active-brew bar's alert state in the light app, outside the timer: static sage with ink (`ActiveBrewBar`,
+     * D-128 item 38), beside the sage alarm for the design review (#325).
      */
     @Test
     fun appBarAlert() {
