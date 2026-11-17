@@ -17,7 +17,7 @@
   - **CI** green on `a8f78d4f` (run 44020292963, both emulator jobs). **Accuracy on `a8f78d4f` (09 §4a, API 36, 50 steps), all PASS on the first attempt:** standard (run 44020476878), alongside (run 44020480260), two-brews (run 44020482994).
   - **`v0.7.2-rc.1`** published by `release.yml` run 44028380084 (pre-release, tag on `a8f78d4f`). The orchestrator downloaded the APK and ran `scripts/verify-release-apk.sh` on it: APK SHA-256 `dd1cbdd8…aab1c` as in the notes, certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`, 0.7.2-rc.1 / 70201, not debuggable. Checklist 09 §4 „v0.7.2" on #312, push notification sent.
   - **Environment:** the mirror init script written again as PROJECT_STATE describes; it worked first time. Maven Central answered 429 on the SDK 36 Robolectric jar's `.sha512` once and served it on retry.
-  - **Usage (from the transcript, before the final handover turn):** orchestrator 41 requests, 5.3 M cache read, 0.10 M cache write, 15 k output.
+  - **Usage (from the transcript, before the final handover turn):** orchestrator 56 requests, 8.0 M cache read, 0.13 M cache write, 25 k output.
 
 ### v0.7.2: milestone and timer review done (2026-11-16)
 
