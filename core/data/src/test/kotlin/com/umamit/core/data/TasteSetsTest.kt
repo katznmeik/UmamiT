@@ -222,6 +222,19 @@ class TasteSetsTest {
         assertThat(sets()).containsExactly(TasteSet.GREEN)
     }
 
+    @Test
+    fun `a tea whose taste_set cannot be read gives the snapshot category's set, the session read does not fail`() =
+        runTest {
+            finishedSession()
+            data.teas.saveTea(tea("t1").copy(category = TeaCategory.BLACK, tasteSet = TasteSet.HERBAL))
+            data.db.openHelper.writableDatabase.execSQL("UPDATE tea SET taste_set = 'NO_SUCH_SET' WHERE id = 't1'")
+
+            val session = checkNotNull(data.sessions.getSession(SESSION_ID))
+            assertThat(session.tasteSet).isEqualTo(TasteSet.GREEN)
+            assertThat(checkNotNull(RoomSessionEditor(data.db, clock).editable(SESSION_ID)).session.tasteSet)
+                .isEqualTo(TasteSet.GREEN)
+        }
+
     private fun SessionStepEntity.tasteColumns(): List<Any?> = listOf(
         tasteUmami,
         tasteSweetness,
