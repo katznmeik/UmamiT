@@ -669,6 +669,8 @@ Claude's details within that choice:
   routes, so the setup cannot simply be drawn over it.
 - A way that only holds the sheet and then drops it in one frame looks like „setup at once", which the PO did not
   pick. If the result above cannot be reached, the build stops and asks the PO.
+- Built (#331): the setup fades in over a frozen frame of the sheet, scrim included, which the shell draws below it;
+  the sheet's own window fades out over that frame within a few frames of the tap (D-129, „Claude's details").
 
 **Archiving a tea (v0.2.1, TEA-04, [D-093](10-open-questions-and-decisions.md#d-093); wording from v0.4.0, [D-100](10-open-questions-and-decisions.md#d-100)).**
 A long press on a tea row opens a small menu with *Archivieren* (until v0.3.0
