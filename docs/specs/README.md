@@ -82,11 +82,11 @@ releases are dispatched and verified).
     gets a Tee/Zubereitung switch, two Verlauf lines and Bestes Rezept by
     Zubereitung; a transition audit with a CI frame metric
     (NFR-PERF-12). — D-116, D-117
-  - v0.8.0 (planned, waiting for the PO's approval) says „Session" for
-    „Sitzung" and „aufgießen" / „Aufguss" for „brühen"; teas get one of
-    three taste sets of six sliders by kind, with a foldable info on the
-    sliders (umamit.db v9); the timer follows *Design*, so it has a light
-    version; refresh progress in the settings; the ⋮ menu fix. — D-128
+- **v0.8.0 (planned, waiting for the PO's approval):** „Session" for
+  „Sitzung" and „aufgießen" / „Aufguss" for „brühen"; teas get one of
+  three taste sets of six sliders by kind, with a foldable info on the
+  sliders (umamit.db v9); the timer follows *Design*, so it has a light
+  version; refresh progress in the settings; the ⋮ menu fix. — D-128
 - **Backup:** Android device backup. A manual export **and a replacing
   import** are planned for v0.9.0, with recipes shared as text plus a
   file; 1.0 starts only on the PO's go. — D-022, D-036, D-128

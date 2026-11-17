@@ -65,8 +65,8 @@ Use cases: `ScaleRecipe`, `Snap5`, `StartSession`, `FinishSession`
 (status, stock deduction, cost, opened date, recipe-update applicability),
 `DiscardSession`, `ComputePreAlert`, `ComputeFreshness`, `ComputeStock`,
 `ComputeCostPerGram`, `ComputeStreak`, `BuildStatistics`,
-`AddFromCatalog`, `ResetFromCatalog`, `CreateBackup` (`RestoreBackup` is
-post-1.0, BAK-02).
+`AddFromCatalog`, `ResetFromCatalog`, `CreateBackup` and `RestoreBackup`
+(both planned for v0.9.0, BAK-01, BAK-02, D-128).
 
 Catalog: `TeeKontorParser` (HTML → `ProductPage`), `CatalogEntries` (variant merge),
 `StyleMapper`, `RecipeDeriver` (rules in [08 §2.5](08-content.md#25-recipe-derivation)),
@@ -95,7 +95,7 @@ UmamiT/
 │   ├── datastore/             Settings
 │   ├── content/               Bundled styles, descriptors, sounds, illustrations
 │   ├── data/                  Repositories, photo storage, CatalogRefreshService
-│   ├── backup/                Export (restore post-1.0)
+│   ├── backup/                Export and import (planned for v0.9.0, D-128)
 │   ├── designsystem/          Theme, fonts, components, icons
 │   ├── ui/                    Shared composables
 │   └── testing/               Fakes, fixtures, builders

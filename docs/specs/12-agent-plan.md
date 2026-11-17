@@ -1,6 +1,6 @@
 # 12 · Subagent Distribution Plan
 
-> Status: **Draft v0.3** · Last updated: 2026-11-15 (v0.7.2 tiers and T4-F, D-119, D-120; 2026-11-14: v0.7.1 tiers, D-117; 2026-11-13: v0.7.0 tiers, D-115; 2026-11-12: v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
+> Status: **Draft v0.3** · Last updated: 2026-11-17 (v0.8.0 tiers, D-128; 2026-11-15: v0.7.2 tiers and T4-F, D-119, D-120; 2026-11-14: v0.7.1 tiers, D-117; 2026-11-13: v0.7.0 tiers, D-115; 2026-11-12: v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
 > Decisions: [D-026](10-open-questions-and-decisions.md#d-026), [D-101](10-open-questions-and-decisions.md#d-101), [D-119](10-open-questions-and-decisions.md#d-119), [D-120](10-open-questions-and-decisions.md#d-120)
 
 UmamiT is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
@@ -240,12 +240,35 @@ issue, plan `docs/plans/v0.7.1.md`)
 | Milestone review | T3 |
 | Timer review | T4 |
 
-**M5 — Data & polish → 1.0**
+*v0.8.0 — Session wording, taste sets, light timer* (D-128; tickets in spec
+#315, plan `docs/plans/v0.8.0.md`; timer code: never below T3 for
+`feature:brew`, `core:timer` and `core:timer-engine`, the T4 timer review,
+all three accuracy variants before the rc and the final)
+
+| Task | Tier |
+|---|---|
+| Wording outside the timer path (strings, tests, goldens) | T2 |
+| Wording in the timer path, channel names, the setup's titles | T3 |
+| ⋮ menu anchor | T1 |
+| Refresh progress in the settings | T2 |
+| umamit.db v9 and the taste data layer | T3 |
+| Taste sets and `TasteInfo` on the session page, tea detail and tea editor | T2 |
+| Timer taste sheet | T3 |
+| Light timer (both parts) | T3 |
+| #313 setup guard | T3 |
+| Milestone review | T3 |
+| Timer review | T4 |
+
+*v0.9.0 — Export, import, shared recipes* (planned, D-128): tiers are set
+in its specify session; backup and import code is never below T3.
+
+**M5 — Polish → 1.0** (postponed until the PO's go, D-128; the manual
+export moved to v0.9.0)
 
 | Task | Tier |
 |---|---|
 | Device backup verification and refinements (rules and `active_brew` clearing exist since M1) | T3 |
-| Simple manual export (ZIP: data JSON + own photos) | T2 |
+| ~~Simple manual export (ZIP: data JSON + own photos)~~: moved to v0.9.0 with the import, never below T3 (D-128) | — |
 | Orphan sweeper and reminders | T2 |
 | Remaining settings screens | T1 |
 | Diagnostics log extended to the catalog | T2 |

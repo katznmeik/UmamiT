@@ -736,12 +736,14 @@ Time rounding for derived recipes: nearest 5 s (half up).
   (absent or null = from the category) and sessionSteps `tasteRoast`,
   `tasteAcidity`, `tasteFreshness`, `tasteSpice` beside the six. Export
   and import are planned for **v0.9.0** (D-128), no longer M5.
-- **Restore (post-1.0, BAK-02 `Won't` for 1.x, D-036):** if built later,
-  restore validation covers ZIP limits and zip-slip protection,
+- **Restore (planned for v0.9.0, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128); until then `Won't` for
+  1.x, D-036):** a replacing import. Its validation covers ZIP limits and zip-slip protection,
   manifest/version check, checksums, types/enums, constraints, referential
   integrity, photo files decodable; safety backup of current data; staging;
-  single transaction; rollback on failure. The 1.x export already writes
-  `manifest.json` with checksums so such a restore can read it.
+  single transaction; rollback on failure. The export writes
+  `manifest.json` with checksums so the import can check it. The details
+  (the safety copy's place and its 7 days, a file from a newer version) are
+  set in v0.9.0's specify session.
 - **Android device backup** (`res/xml/data_extraction_rules.xml` for cloud
   backup and device transfer, the same set in `res/xml/backup_rules.xml` as
   `fullBackupContent`; both referenced from the manifest): **only included
@@ -751,7 +753,8 @@ Time rounding for derived recipes: nearest 5 s (half up).
   includes it: `catalog.db*`, `photos/`, `catalog/`, caches, other libraries'
   databases and the no-backup storage (D-052). `BackupRulesTest` checks the
   sets. The user's own tea photos (v0.4.1) are in `photos/` too, so they are
-  **not** in the device backup until M5's export (BAK-01, D-104); after a
+  **not** in the device backup; the manual export carries them (BAK-01,
+  planned for v0.9.0, D-104, D-128); after a
   restore their rows go with the sweep below.
 - **Restore detection** (D-052): an empty install marker file
   `umamit-install-marker` in `Context.noBackupFilesDir`, which no backup

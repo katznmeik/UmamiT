@@ -328,7 +328,7 @@ personal data or shop content).
 
 **Context.** After `v0.7.2` the PO asked for nine things (session of 2026-11-17): (1) „Brühen starten" becomes „Session starten"; (2) „Sitzung" becomes „Session" everywhere; (3) a small foldable info section on the taste sliders; (4) other sliders for teas that are not green tea, above all herbal tea; (5) recipes can be shared; (6) a display bug: on Statistik the ⋮ menu opens at the left, not below the three dots; (7) *Jetzt aktualisieren* in the settings shows its progress there; (8) a light version of the timer; (9) data export and import. Issue #313 (found in v0.7.2) was to be triaged with the next release.
 
-**How it was decided.** One grilling session, eight rounds of selectable options (Q1–Q31). Every answer below is the PO's; each recommended option was marked as such. Three answers are in the PO's own words (Q3, Q25, and the follow-up to Q25 in Q28–Q31). Details marked „Claude" are Claude's defaults and were **not** put to the PO; the PO sees them with the spec and can change any.
+**How it was decided.** One grilling session, nine rounds of selectable options (Q1–Q31). Every answer below is the PO's; each recommended option was marked as such. Three answers are in the PO's own words (Q3, Q25, and the follow-up to Q25 in Q28–Q31). Details marked „Claude" are Claude's defaults and were **not** put to the PO; the PO sees them with the spec and can change any.
 
 #### Releases (Q1–Q3)
 
@@ -343,7 +343,7 @@ personal data or shop content).
 6. **Q25 (the PO's words):** „rename brühen with "Aufguss" everywhere, except from the currently named "Brühen" screens where it says "Brühen starten" which should be named "Session starten"". Put back to the PO as a list with a proposal per text (Q28–Q31):
    - **Q28, verb texts take „aufgießen":** *Nochmal aufgießen*; *So nochmal aufgießen*; *Weiter aufgießen*; *Zuletzt aufgegossen* (Start, the sort); „Zuletzt aufgegossen am …"; „Noch nie aufgegossen"; „Aufgegossen" and „Aufgegossen am …: … g verbraucht" (stock history); „nicht aufgegossen" (a step); „Jede Tasse, die du aufgießt, erscheint hier von selbst."; „Gieß deinen ersten Tee auf, dann wächst hier deine Tee-Reise."
    - **Q29, „Session" where the whole session is meant,** because „Aufguss" already names one infusion („2. Aufguss", „Aufguss 2/4"): *Session anpassen* (the timer's ⋮); the tea detail's button *Session starten* (was *Brühen*); „Neue Sessions und die Teeauswahl nehmen dieses Rezept." The rest takes „Aufguss": „Bildschirm beim Aufguss anlassen", the settings section *Aufguss & Vorrat*, „… wird beim Aufguss nicht angeboten."
-   - **Q30:** the notification channel „Brühtimer" becomes **„Aufguss-Timer"** (the channel id stays, so the PO's notification settings stay); the taste word „Dashi / brühig" stays.
+   - **Q30:** the notification channel „Brühtimer" becomes **„Aufguss-Timer"** (the channel id stays, so the PO's notification settings stay); the taste word „Dashi / brühig" stays. (Claude: so do „brühige Fülle" and „Brühe" in the Umami info, which the PO saw in Q17 and Q18.)
    - **Q31, the setup's title:** **„Neue Session"** when a brew is started, **„Session anpassen"** when it was opened from a running timer's ⋮. The journal's session page is „Session".
 7. **Claude:** the channel „Sitzungen" becomes „Sessions" („Automatisch gespeicherte Sessions"), ids unchanged. Resource names, code identifiers and the English docs keep „brew" and „session". The specs' German copy was changed in 02, 03, 04, 05, 08, 11 and 12; this log, 09 §4's past checklists, `docs/history.md` and the old plans keep the wording of their time.
 
@@ -403,7 +403,7 @@ personal data or shop content).
 32. **Q10:** one recipe of a tea is shared, from the recipe's ⋮ menu: its steps, leaf, water and vessel type, with the tea's name, kind and, for a catalog tea, its shop link (the link only, never shop text or photos, rule 3).
 33. **Q11, receiving:** if the same tea is in the collection, the recipe is offered for it; if not, the PO chooses one of the teas or creates the tea (from the catalog when it is there, else without catalog). It is always added as a new recipe, never over an existing one.
 
-**Open for the v0.9.0 specify session (not asked yet):** how a received recipe file reaches the app (open-with for the recipe file type only, or an import entry in the app), the recipe file's format and version, the CSV's columns, where the safety copy lives and how its 7 days are counted, the export's progress and size note, whether shop photos copied to a tea are in the file, and the tiers (backup and import code is T3 or higher).
+**Open for the v0.9.0 specify session (not asked yet):** how a received recipe file reaches the app (open-with for the recipe file type only, or an import entry in the app), the recipe file's format and version, the CSV's columns, where the safety copy lives and how its 7 days are counted, the export's progress and size note, whether shop photos copied to a tea are in the file, and the tiers (backup and import code is T3 or higher). A received file is **untrusted input**: its shop link is used only if its host is on the allow-list, and whether opening it may run rule 7's product-page fetch is asked then.
 
 **Consequences.**
 

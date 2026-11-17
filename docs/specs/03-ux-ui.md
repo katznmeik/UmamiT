@@ -518,8 +518,8 @@ does not say „Sitzung" or „brühen". Every text that changed:
 | Brühen und die Teeauswahl nehmen dieses Rezept. | Neue Sessions und die Teeauswahl nehmen dieses Rezept. | SCR-12 |
 | Brühtimer (notification channel) | Aufguss-Timer | Android's notification settings; the channel id stays |
 
-Unchanged: *Aufguss starten* (the Start card), „Dashi / brühig" (a taste
-word). Resource names and code keep `brew` and `session`.
+Unchanged: *Aufguss starten* (the Start card) and taste words: „Dashi /
+brühig", and „brühige Fülle" / „Brühe" in the Umami slider's info (08 §4a). Resource names and code keep `brew` and `session`.
 
 ### 3.8 Core components
 
@@ -2086,9 +2086,9 @@ tokens (§3.6); reduce motion: they appear at once.
 
 ### SCR-26 Daten & Sicherung
 
-Device-backup explanation, *Sicherung erstellen* (BAK-01), (Could) CSV
-export, *Alle Daten löschen*. No in-app restore in 1.x (BAK-02 `Won't`,
-D-036).
+Device-backup explanation and *Alle Daten löschen* (as built). Until
+D-128 the plan was *Sicherung erstellen* (BAK-01) and a possible CSV export
+with M5, and no in-app restore in 1.x (D-036).
 
 **Planned for v0.9.0 ([D-128](10-open-questions-and-decisions.md#d-128); amends D-036):** *Sicherung erstellen* and
 *Sicherung einspielen* (a replacing import with preview, the typed word

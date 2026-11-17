@@ -93,7 +93,8 @@ time formats (e.g. „21. Okt. 2026", „4,5 g").
   use „Session" (*Session starten*, *Session anpassen*, the setup's title
   „Neue Session"), the rest uses „Aufguss" (*Aufguss & Vorrat*, „Bildschirm
   beim Aufguss anlassen", the channel „Aufguss-Timer"). The Start card stays
-  *Aufguss starten*; the taste word „Dashi / brühig" stays. The full list:
+  *Aufguss starten*; taste words stay („Dashi / brühig", and „brühige
+  Fülle" / „Brühe" in the Umami slider's info, 08 §4a). The full list:
   [03 §3.7](03-ux-ui.md#wording-v080).
 
 **GEN-05 — Undo for destructive actions** `Should`
@@ -1981,7 +1982,9 @@ in an early design check on rendered screens (03 §3.1).
 - AC1: With *Design* „Hell", starting a session from Start shows no dark
   screen at any moment: the setup, the cover, READY, RUNNING and the sheets
   are light.
-- AC2: With *Design* „Dunkel" every timer golden is unchanged from v0.7.2.
+- AC2: With *Design* „Dunkel" no colour of a timer screen changes from
+  v0.7.2 (the goldens differ only by this release's wording and the taste
+  sheet's new content).
 - AC3: Text and controls on the light timer meet NFR-A11Y-02 (4.5:1 text,
   3:1 large text and components), the pre-alert state included.
 

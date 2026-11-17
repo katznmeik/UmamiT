@@ -46,7 +46,7 @@ Automated instrumented checks run in the CI emulator job on GitHub Actions
 | NFR-REL-02 | Confirmed writes are committed before UI success; multi-table changes are transactional. |
 | NFR-REL-03 | Timer survives process death and reboot ([04 §7](04-brew-timer.md#7-persistence--recovery)). |
 | NFR-REL-04 | Every schema migration tested; no destructive migrations of personal data. |
-| NFR-REL-05 | The catalog refresh is atomic; a failure leaves the previous catalog intact. (In-app restore is post-1.0, BAK-02.) |
+| NFR-REL-05 | The catalog refresh is atomic; a failure leaves the previous catalog intact. (In-app restore is planned for v0.9.0, BAK-02, D-128; it replaces the data in one transaction or not at all.) |
 | NFR-REL-06 | Network failures, timeouts and shop-structure changes during refresh never corrupt or delete the existing catalog and never affect personal data. |
 | NFR-REL-07 | A local diagnostic log (timer, alarms, catalog) is available for bug reports ([06 §5.6](06-architecture.md#56-error-handling--logging)). |
 
