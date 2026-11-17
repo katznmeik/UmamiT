@@ -149,7 +149,7 @@ internal fun TimerBody(args: TimerBodyArgs) {
             }
             Spacer(Modifier.height(UmamiSpacing.Large))
         },
-        // FINISHED's *Weiterer Aufguss* fits with *Sitzung beenden* and the bottom margin (D-096), and every phase
+        // FINISHED's *Weiterer Aufguss* fits with *Session beenden* and the bottom margin (D-096), and every phase
         // of a brew reserves them, so the pill moves neither at *Start*, at the alert nor at the last *Abgegossen*.
         reservedControls = { if (!state.isQuick) FinishedControls(onFinish = {}, onAddStep = {}) },
         // The quick timer reserves its screen before *Start* (the chips and the *Vorwarnung* row): the band, the ring
@@ -548,7 +548,7 @@ private fun TimerControls(state: TimerUiState.Active, actions: TimerActions) {
     }
 }
 
-/** FINISHED's *Sitzung beenden* with *Weiterer Aufguss* below it; every phase of a brew reserves their height. */
+/** FINISHED's *Session beenden* with *Weiterer Aufguss* below it; every phase of a brew reserves their height. */
 @Composable
 private fun FinishedControls(onFinish: () -> Unit, onAddStep: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {

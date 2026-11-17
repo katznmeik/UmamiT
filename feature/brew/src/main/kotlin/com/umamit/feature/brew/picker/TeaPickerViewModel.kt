@@ -78,7 +78,7 @@ enum class TeaKind {
 /**
  * A tea of the picker: its name, type and cover photo file (null: the leaf placeholder, 03 §3.5).
  * [removable] is false for the tea of the active brew session: *Archivieren* is greyed
- * out with „Erst die Sitzung beenden" (TEA-04, E15). [kind] is its group in *Alle* (D-097).
+ * out with „Erst die Session beenden" (TEA-04, E15). [kind] is its group in *Alle* (D-097).
  * [freshness] is its small freshness chip (INV-06, D-104); null for none.
  */
 data class PickerTea(

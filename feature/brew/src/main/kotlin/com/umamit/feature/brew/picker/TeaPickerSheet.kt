@@ -113,7 +113,7 @@ fun TeaPickerHost(
  * alert has started (rule 8, D-062).
  *
  * A long press on a tea opens its menu with *Archivieren* ([onRemoveTea]; greyed out
- * with „Erst die Sitzung beenden" for the active session's tea, E15). While [TeaPickerUiState.removed]
+ * with „Erst die Session beenden" for the active session's tea, E15). While [TeaPickerUiState.removed]
  * is set, a snackbar of about 8 s offers *Rückgängig* ([onUndoRemove]); when it goes,
  * [onRemovedDismiss] is called (TEA-04, D-093 Q21).
  */
@@ -296,7 +296,7 @@ private fun Section(title: String?, teas: List<PickerTea>, actions: TeaRowAction
 
 /**
  * A tea of the picker, with its small freshness chip (INV-06, D-104), read with the row. A long
- * press opens its menu with *Archivieren*, greyed out with „Erst die Sitzung beenden" for the
+ * press opens its menu with *Archivieren*, greyed out with „Erst die Session beenden" for the
  * active session's tea (E15); TalkBack offers the removal as a custom action on the row (SCR-03).
  */
 @Composable

@@ -50,10 +50,12 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.ui.InfusionTasteEditor
+import com.umamit.core.ui.TasteInfo
 import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.feature.brew.R
 import kotlinx.coroutines.launch
@@ -110,14 +112,17 @@ private val TASTE_PHASES = setOf(TimerPhase.READY, TimerPhase.RUNNING, TimerPhas
  * stored per step `position` of the shown session ([byPosition]; null until read, and after a failed read) and the
  * writes, each of the step at the position it names. The writes go to `SessionTasting` beside the timer; none is an
  * engine event. [refusals] counts the writes that were refused or failed: when it changes, the sheet shows the stored
- * values again instead of the ones it was given (no message, SCR-05).
+ * values again instead of the ones it was given (no message, SCR-05). [set] is the session's taste set (D-128),
+ * whose six sliders the sheet shows and whose six axes [onReset] clears; null until read, and after a failed read
+ * (the sliders then wait). The route passes the shown session's; the default is for hosts that show a Grüntee.
  */
 class TimerTasting(
     val byPosition: Map<Int, StepTasting>?,
     val onTaste: (position: Int, axis: TasteAxis, value: Int) -> Unit,
-    val onReset: (position: Int) -> Unit,
+    val onReset: (position: Int, axes: List<TasteAxis>) -> Unit,
     val onNote: (position: Int, note: String) -> Unit,
     val refusals: Int = 0,
+    val set: TasteSet? = TasteSet.GREEN,
 )
 
 /** „2. Aufguss", or „Aufschlagen" for a step the step table does not number. */
@@ -250,18 +255,24 @@ internal fun TimerTasteHost(state: TimerUiState.Active, tasting: TimerTasting?, 
         title = stringResource(R.string.brew_timer_taste_button, target.name()),
         position = target.position,
         stored = tasting.byPosition?.let { it[target.position] ?: StepTasting.EMPTY },
+        set = tasting.set,
         refusals = tasting.refusals,
         onTaste = { axis, value -> tasting.onTaste(target.position, axis, value) },
-        onReset = { tasting.onReset(target.position) },
+        onReset = { axes -> tasting.onReset(target.position, axes) },
         onNote = { tasting.onNote(target.position, it) },
         onDismissRequest = { overlays.tasteFor = null },
     )
 }
 
 /**
- * Material 3's modal sheet on the Steeping surface: the title with *Fertig* pinned at its end (D-110), below it the
- * shared [InfusionTasteEditor] scrolling (no radar). The keyboard does not open by itself. [stored] is null until the
- * session's taste is read: the editor then waits for it, so its note field starts from the stored note.
+ * Material 3's modal sheet on the Steeping surface: the title with *Fertig* pinned at its end (D-110), below it,
+ * scrolling, „Was bedeuten die Regler?" ([TasteInfo], folded whenever the sheet opens) and the shared
+ * [InfusionTasteEditor] with the six sliders of [set] in its order (no radar; SCR-05 v0.8.0, D-128). Unfolded, the
+ * info scrolls with the sliders and *Fertig* stays pinned; it is part of the sheet, so an alert removes it with the
+ * sheet in the alert's first frame, folded or not (rule 8). The keyboard does not open by itself. [stored] is null
+ * until the session's taste is read and [set] until its set is read: the editor waits for both, so its note field
+ * starts from the stored note and no slider of another set shows first. *Zurücksetzen* clears the six of [set] only;
+ * a value of another axis (stored under an earlier set) stays.
  *
  * A slider's release saves; a drag still in progress when the sheet leaves (an alert removes it) is dropped, as
  * nothing was released. When [refusals] changes (a write was refused or failed), the editor starts again from
@@ -273,9 +284,10 @@ private fun TimerTasteSheet(
     title: String,
     position: Int,
     stored: StepTasting?,
+    set: TasteSet?,
     refusals: Int,
     onTaste: (TasteAxis, Int) -> Unit,
-    onReset: () -> Unit,
+    onReset: (List<TasteAxis>) -> Unit,
     onNote: (String) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
@@ -316,7 +328,11 @@ private fun TimerTasteSheet(
                 .navigationBarsPadding()
                 .padding(start = UmamiSpacing.SideMargin, end = UmamiSpacing.SideMargin, bottom = UmamiSpacing.Large),
         ) {
-            if (stored != null) {
+            if (set != null) {
+                // Outside the key: a refused write does not fold it. Folded whenever the sheet opens.
+                TasteInfo(set = set)
+            }
+            if (stored != null && set != null) {
                 // Started again after a refused write, so the note field too shows the stored note.
                 key(position, refusals) {
                     InfusionTasteEditor(
@@ -331,9 +347,11 @@ private fun TimerTasteSheet(
                         },
                         onNoteSave = onNote,
                         onReset = {
-                            pending = TasteProfile.EMPTY
-                            onReset()
+                            // The set's six only: a value of another axis stays stored, and shown nowhere here.
+                            pending = (pending ?: stored.taste).without(set.axes)
+                            onReset(set.axes)
                         },
+                        set = set,
                     )
                 }
             }

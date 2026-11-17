@@ -209,7 +209,7 @@ internal object TimerBandBitmap {
  * primary control ([controlHeight] tall) and the bottom margin lie on the
  * screen without scrolling. [reservedControls], measured and never placed,
  * take [controlHeight]'s place when they are taller: a brew passes FINISHED's
- * *Sitzung beenden* with *Weiterer Aufguss* in every phase, so the secondary
+ * *Session beenden* with *Weiterer Aufguss* in every phase, so the secondary
  * control and the bottom margin fit in FINISHED and the pill does not move at
  * the last *Abgegossen*. The band's height follows only the screen, the
  * insets, [aboveControls], [reservedAboveControls] and [reservedControls], never [controls] or whether

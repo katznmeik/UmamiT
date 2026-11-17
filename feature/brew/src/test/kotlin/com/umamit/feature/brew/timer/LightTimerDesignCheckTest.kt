@@ -181,7 +181,7 @@ class LightTimerDesignCheckTest(private val dark: Boolean) {
             TimerTasting(
                 mapOf(0 to StepTasting(TasteProfile(umami = 4, sweetness = 3, body = 2), note = "Süß, nach Nori")),
                 onTaste = { _, _, _ -> },
-                onReset = {},
+                onReset = { _, _ -> },
                 onNote = { _, _ -> },
             ),
         )

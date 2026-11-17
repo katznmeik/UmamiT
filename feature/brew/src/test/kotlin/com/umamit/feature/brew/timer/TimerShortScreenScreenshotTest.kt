@@ -103,7 +103,7 @@ class TimerShortScreenScreenshotTest {
         capture("Alerting_taste", TimerStates.alerting(overtimeMs = 7_000, stepIndex = 1), tasting = TASTING)
 
     private companion object {
-        val TASTING = TimerTasting(emptyMap(), onTaste = { _, _, _ -> }, onReset = {}, onNote = { _, _ -> })
+        val TASTING = TimerTasting(emptyMap(), onTaste = { _, _, _ -> }, onReset = { _, _ -> }, onNote = { _, _ -> })
 
         /** A synthetic tea name (D-016) that takes two lines of the title here. */
         const val TWO_LINE_NAME = "Bio Japan Sencha Kagoshima Asatsuyu"

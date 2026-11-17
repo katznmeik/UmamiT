@@ -159,7 +159,7 @@ internal fun SetupButtons(state: BrewSetupUiState.Ready, actions: BrewSetupActio
             .fillMaxWidth()
             .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Medium),
     ) {
-        // Once saved, the slot keeps its height and shows „Im Rezept gespeichert", so *Brühen starten* never
+        // Once saved, the slot keeps its height and shows „Im Rezept gespeichert", so *Session starten* never
         // moves under a finger that taps *Im Rezept speichern* twice (D-058, D-062). It grows from its top
         // edge only when a change makes it appear, far from the start button (03 §3.6).
         var saved by rememberSaveable { mutableStateOf(false) }

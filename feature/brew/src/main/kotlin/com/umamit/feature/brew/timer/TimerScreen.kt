@@ -48,9 +48,9 @@ const val TIMER_RING_TAG = "timer_ring"
  * - **ALERTING:** the pulsing [AlertSurface], entered without any transition
  *   (`alertEnter`), „Jetzt abgießen!", the overtime, from 15 s on large and
  *   marked with a warm-accent dot; *Abgegossen* (*Weggegossen* for a rinse).
- * - **FINISHED:** *Sitzung beenden* and *Weiterer Aufguss*.
+ * - **FINISHED:** *Session beenden* and *Weiterer Aufguss*.
  *
- * The overflow ⋮ follows the SCR-05 table ([menuItems]). *Sitzung verwerfen*
+ * The overflow ⋮ follows the SCR-05 table ([menuItems]). *Session verwerfen*
  * and a finish that would discard the session ask first (TMR-12 AC1, TMR-13).
  * The Schritte-Sheet is hosted with `alerting` bound to the phase: on ALERTING
  * it is removed in the same frame (D-051, rule 8), and so are a menu or a

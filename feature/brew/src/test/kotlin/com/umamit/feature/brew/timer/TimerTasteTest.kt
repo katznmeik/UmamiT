@@ -36,12 +36,16 @@ import com.umamit.core.model.StepTasting
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.ui.INFUSION_NOTE_TAG
 import com.umamit.core.ui.INFUSION_TASTE_RESET_TAG
+import com.umamit.core.ui.TASTE_INFO_HOWTO_TAG
+import com.umamit.core.ui.TASTE_INFO_TAG
+import com.umamit.core.ui.tasteInfoEntryTag
 import com.umamit.core.ui.tasteSliderTag
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import org.junit.Rule
@@ -70,16 +74,17 @@ class TimerTasteTest {
     private var state by mutableStateOf<TimerUiState.Active>(TimerStates.ready(stepIndex = 1))
     private var stored by mutableStateOf<Map<Int, StepTasting>?>(emptyMap())
     private var refusals by mutableIntStateOf(0)
+    private var set by mutableStateOf<TasteSet?>(TasteSet.GREEN)
 
     private val tastes = mutableListOf<Triple<Int, TasteAxis, Int>>()
-    private val resets = mutableListOf<Int>()
+    private val resets = mutableListOf<Pair<Int, List<TasteAxis>>>()
     private val notes = mutableListOf<Pair<Int, String>>()
 
-    private fun show(initial: TimerUiState.Active) {
+    private fun show(initial: TimerUiState.Active, reduceMotion: Boolean = true) {
         state = initial
         val start = compose.mainClock.currentTime
         compose.setContent {
-            UmamiTheme(reduceMotion = true) {
+            UmamiTheme(reduceMotion = reduceMotion) {
                 TimerScreen(
                     state = state,
                     nowElapsedMs = { NOW + compose.mainClock.currentTime - start },
@@ -91,9 +96,10 @@ class TimerTasteTest {
                     tasting = TimerTasting(
                         byPosition = stored,
                         onTaste = { position, axis, value -> tastes += Triple(position, axis, value) },
-                        onReset = { resets += it },
+                        onReset = { position, axes -> resets += position to axes },
                         onNote = { position, note -> notes += position to note },
                         refusals = refusals,
+                        set = set,
                     ),
                 )
             }
@@ -355,7 +361,7 @@ class TimerTasteTest {
         compose.waitForIdle()
 
         assertThat(tastes).containsExactly(Triple(0, TasteAxis.BODY, 4))
-        assertThat(resets).containsExactly(0)
+        assertThat(resets).containsExactly(0 to TasteSet.GREEN.axes)
     }
 
     @Test
@@ -479,7 +485,7 @@ class TimerTasteTest {
                     onBack = {},
                     onAdjustBrew = {},
                     onOpenTimerSettings = {},
-                    tasting = TimerTasting(stored, { _, _, _ -> }, {}, { _, _ -> }),
+                    tasting = TimerTasting(stored, { _, _, _ -> }, { _, _ -> }, { _, _ -> }),
                 )
             }
         }
@@ -499,6 +505,146 @@ class TimerTasteTest {
         state = TimerStates.ready(stepIndex = 2)
         compose.waitForIdle()
         sheet().assertDoesNotExist()
+    }
+
+    // --- Taste sets and the info (SCR-05 v0.8.0, D-128) -------------------------------------------------------
+
+    /** The sheet's sliders, top to bottom, by the axis of each. */
+    private fun sliderOrder(): List<TasteAxis> = TasteAxis.entries
+        .filter { axis ->
+            compose.onAllNodes(hasTestTag(tasteSliderTag(axis)), useUnmergedTree = true).fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+        .sortedBy { compose.onNodeWithTag(tasteSliderTag(it)).getUnclippedBoundsInRoot().top.value }
+
+    private fun unfoldInfo() {
+        compose.onNodeWithTag(TASTE_INFO_TAG).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(TASTE_INFO_HOWTO_TAG).assertExists()
+    }
+
+    /** JRN-03 AC5: a black tea's sheet starts with Röstung/Malz and offers no Umami; the writes carry its six. */
+    @Test
+    fun `an oxidised tea's sheet shows its six in the set's order, and Zuruecksetzen clears those six only`() {
+        set = TasteSet.OXIDISED
+        // Umami stored under an earlier set: not shown, and *Zurücksetzen* leaves it stored.
+        stored = mapOf(0 to StepTasting(TasteProfile(umami = 3, roast = 2)))
+        show(TimerStates.ready(stepIndex = 1))
+        openSheet()
+
+        assertThat(sliderOrder()).containsExactlyElementsIn(TasteSet.OXIDISED.axes).inOrder()
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.ROAST))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "2 von 5"))
+
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.ROAST)).performScrollTo()
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(4f) }
+        compose.waitForIdle()
+        compose.onNodeWithTag(INFUSION_TASTE_RESET_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        assertThat(tastes).containsExactly(Triple(0, TasteAxis.ROAST, 4))
+        assertThat(resets).containsExactly(0 to TasteSet.OXIDISED.axes)
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.ROAST))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "nicht gesetzt"))
+    }
+
+    @Test
+    fun `a herbal tea's sheet shows its six, and its info names them`() {
+        set = TasteSet.HERBAL
+        show(TimerStates.ready(stepIndex = 1))
+        openSheet()
+
+        assertThat(sliderOrder()).containsExactlyElementsIn(TasteSet.HERBAL.axes).inOrder()
+        unfoldInfo()
+        TasteSet.HERBAL.axes.forEach { compose.onNodeWithTag(tasteInfoEntryTag(it)).assertExists() }
+        compose.onNodeWithTag(tasteInfoEntryTag(TasteAxis.UMAMI)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `until the set is read no slider shows`() {
+        set = null
+        show(TimerStates.ready(stepIndex = 1))
+        openSheet()
+
+        TasteAxis.entries.forEach { compose.onNodeWithTag(tasteSliderTag(it)).assertDoesNotExist() }
+        compose.onNodeWithTag(TASTE_INFO_TAG).assertDoesNotExist()
+
+        set = TasteSet.OXIDISED
+        compose.waitForIdle()
+        assertThat(sliderOrder()).containsExactlyElementsIn(TasteSet.OXIDISED.axes).inOrder()
+    }
+
+    @Test
+    fun `the info sits between the title and the first slider, folded whenever the sheet opens`() {
+        show(TimerStates.ready(stepIndex = 1))
+        openSheet()
+        compose.onNodeWithTag(TASTE_INFO_HOWTO_TAG).assertDoesNotExist()
+        val info = compose.onNodeWithTag(TASTE_INFO_TAG).getUnclippedBoundsInRoot()
+        val done = compose.onNodeWithTag(TIMER_TASTE_DONE_TAG).getUnclippedBoundsInRoot()
+        val first = compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).getUnclippedBoundsInRoot()
+        assertThat(info.top).isAtLeast(done.bottom)
+        assertThat(first.top).isAtLeast(info.bottom)
+
+        unfoldInfo()
+        compose.onNodeWithTag(TIMER_TASTE_DONE_TAG).performClick()
+        compose.waitForIdle()
+        openSheet()
+        compose.onNodeWithTag(TASTE_INFO_HOWTO_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `unfolded, the sheet scrolls and Fertig stays pinned`() {
+        show(TimerStates.ready(stepIndex = 1))
+        openSheet()
+        unfoldInfo()
+        val done = compose.onNodeWithTag(TIMER_TASTE_DONE_TAG).getUnclippedBoundsInRoot()
+        val info = compose.onNodeWithTag(TASTE_INFO_TAG).getUnclippedBoundsInRoot()
+
+        compose.onNodeWithTag(INFUSION_TASTE_RESET_TAG).performScrollTo()
+        compose.waitForIdle()
+
+        // The info scrolled up under the pinned title row.
+        assertThat(compose.onNodeWithTag(TASTE_INFO_TAG).getUnclippedBoundsInRoot().top).isLessThan(info.top)
+        compose.onNodeWithTag(TIMER_TASTE_DONE_TAG).assertIsDisplayed()
+        assertThat(compose.onNodeWithTag(TIMER_TASTE_DONE_TAG).getUnclippedBoundsInRoot()).isEqualTo(done)
+        compose.onNodeWithTag(INFUSION_TASTE_RESET_TAG).assertIsDisplayed()
+    }
+
+    /** Rule 8, JRN-03 AC2: unfolded, the info goes with the sheet in the alert's first frame. */
+    @Test
+    fun `an alert removes the sheet with the info unfolded in its first frame`() {
+        show(TimerStates.running(stepIndex = 1))
+        openSheet()
+        unfoldInfo()
+
+        compose.mainClock.autoAdvance = false
+        state = TimerStates.alerting(stepIndex = 1)
+        advanceOneFrame()
+
+        sheetComposed().assertDoesNotExist()
+        compose.onNodeWithTag(TASTE_INFO_TAG, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag(TASTE_INFO_HOWTO_TAG, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("Abgegossen").assertExists()
+    }
+
+    /** Rule 8 with motion: an alert while the info still unfolds removes the sheet in its first frame too. */
+    @Test
+    fun `an alert while the info unfolds removes the sheet in its first frame`() {
+        show(TimerStates.running(stepIndex = 1), reduceMotion = false)
+        openSheet()
+
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithTag(TASTE_INFO_TAG).performClick()
+        repeat(2) { advanceOneFrame() }
+        compose.onNodeWithTag(TASTE_INFO_HOWTO_TAG, useUnmergedTree = true).assertExists()
+
+        state = TimerStates.alerting(stepIndex = 1)
+        advanceOneFrame()
+
+        sheetComposed().assertDoesNotExist()
+        compose.onNodeWithTag(TASTE_INFO_HOWTO_TAG, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("Abgegossen").assertExists()
     }
 
     private companion object {
