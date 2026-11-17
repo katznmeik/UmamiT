@@ -105,7 +105,7 @@ irreversible actions (e.g. delete all) use a confirmation dialog.
 While a session or quick timer is active, top-level screens show a compact bar
 above the navigation bar with tea name, step („Aufguss 2/4") and live remaining
 time; tapping it opens the timer (SCR-05). While the step alerts, the bar turns
-static matcha with „Jetzt abgießen!" and the overtime counting up (03 §3.8,
+static matcha (static sage in the light app, D-128 item 38) with „Jetzt abgießen!" and the overtime counting up (03 §3.8,
 D-055). With two active timers (v0.3.0 a brew and the quick timer, D-098;
 v0.5.0 also two brew sessions, D-108) it holds both in the slot order, each
 half with its live countdown and its own tap, which opens that timer; an
