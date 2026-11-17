@@ -75,7 +75,7 @@ class TwoTimersTest {
     }
 
     @Test
-    fun `Sitzung beenden and verwerfen leave the quick timer running, Abbrechen leaves the brew running`() = runTest {
+    fun `Session beenden and verwerfen leave the quick timer running, Abbrechen leaves the brew running`() = runTest {
         h.controller.startSession(brewStart(infusion(60, preAlert = 0)))
         h.controller.startQuickTimer(300, preAlertSeconds = 0, run = true)
         val quick = active(TimerSlot.QUICK)

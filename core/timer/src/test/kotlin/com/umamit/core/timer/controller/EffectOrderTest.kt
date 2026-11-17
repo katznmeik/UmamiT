@@ -154,7 +154,7 @@ class EffectOrderTest {
     }
 
     @Test
-    fun `Sitzung beenden clears the timer, cancels every alarm and stops the service before the saved sheet`() =
+    fun `Session beenden clears the timer, cancels every alarm and stops the service before the saved sheet`() =
         runTest {
             h.controller.startSession(brewStart(infusion(10)))
             h.controller.send(TimerEvent.Start)

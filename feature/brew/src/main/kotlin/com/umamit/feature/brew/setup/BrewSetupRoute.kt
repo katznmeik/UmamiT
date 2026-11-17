@@ -75,5 +75,5 @@ fun BrewSetupRoute(
             newVessel = { currentOnNewVessel() },
         )
     }
-    BrewSetupScreen(state = state, modifier = modifier, actions = actions)
+    BrewSetupScreen(state = state, modifier = modifier, adjusting = viewModel.adjusting, actions = actions)
 }

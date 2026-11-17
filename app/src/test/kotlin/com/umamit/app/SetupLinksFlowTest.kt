@@ -201,7 +201,7 @@ class SetupLinksFlowTest {
     private fun openSetup() {
         compose.onNodeWithText(BREW).performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Brühen starten").assertExists()
+        compose.onNodeWithText("Session starten").assertExists()
     }
 
     private fun openTeaFromSetup() {
@@ -234,12 +234,12 @@ class SetupLinksFlowTest {
 
         openTeaFromSetup()
         compose.onNodeWithTag(TEA_DETAIL_TAG).assertIsDisplayed()
-        compose.onNodeWithText("Brühen starten").assertDoesNotExist()
+        compose.onNodeWithText("Session starten").assertDoesNotExist()
 
         back()
 
         compose.onNodeWithTag(TEA_DETAIL_TAG).assertDoesNotExist()
-        compose.onNodeWithText("Brühen starten").assertExists()
+        compose.onNodeWithText("Session starten").assertExists()
         assertAmounts("255 ml", "5,1 g")
         compose.onNodeWithContentDescription("Gefäß: Kyusu 250 ml. Ändern").assertExists()
     }
@@ -287,7 +287,7 @@ class SetupLinksFlowTest {
         compose.onNodeWithTag(VesselEditorTags.SAVE).performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithText("Brühen starten").assertExists()
+        compose.onNodeWithText("Session starten").assertExists()
         compose.onNodeWithContentDescription("Gefäß: Gaiwan. Ändern").assertExists()
         // 5,0 g / 250 ml, locked: 2,4 g in 120 ml (WARE-03).
         assertAmounts("120 ml", "2,4 g")
@@ -326,7 +326,7 @@ class SetupLinksFlowTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag(TEA_DETAIL_TAG).assertDoesNotExist()
-        compose.onNodeWithText("Brühen starten").assertDoesNotExist()
+        compose.onNodeWithText("Session starten").assertDoesNotExist()
         compose.onNodeWithText(BREW).assertIsDisplayed()
         assertThat(runBlocking { collection.teas.getTea(ID)!!.isArchived }).isTrue()
         // The screen below the setup offers Rückgängig (F6).
@@ -356,7 +356,7 @@ class SetupLinksFlowTest {
         compose.onNodeWithTag(TEA_DETAIL_TAG).assertIsDisplayed()
 
         back()
-        compose.onNodeWithText("Brühen starten").assertExists()
+        compose.onNodeWithText("Session starten").assertExists()
     }
 
     @Test

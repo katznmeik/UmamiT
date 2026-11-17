@@ -306,7 +306,7 @@ class TimerTasteTest {
         state = TimerStates.finished()
         compose.waitForIdle()
         compose.onNodeWithText("Geschmack", substring = true).assertDoesNotExist()
-        val finished = listOf(ringTop(), top("Sitzung beenden"))
+        val finished = listOf(ringTop(), top("Session beenden"))
 
         assertThat(listOf(firstRunning, firstAlert, secondReady, running, alert, lastAlert, finished))
             .containsExactly(ready, ready, ready, ready, ready, ready, ready)

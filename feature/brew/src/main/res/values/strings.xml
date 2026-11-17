@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Schritte-Sheet (SCR-31) -->
-    <string name="brew_steps_title">Schritte für diese Sitzung</string>
+    <string name="brew_steps_title">Schritte für diese Session</string>
     <string name="brew_steps_kind_infusion">Aufguss</string>
     <string name="brew_steps_kind_rinse">Spülen</string>
     <string name="brew_steps_kind_whisk">Aufschlagen</string>

@@ -217,7 +217,7 @@ class TeaDetailFlowTest {
     }
 
     private fun assertSetupRecipe(name: String) {
-        compose.onNodeWithText("Brühen starten").assertExists()
+        compose.onNodeWithText("Session starten").assertExists()
         compose.onNode(hasText(name) and isSelectable()).assertIsSelected()
     }
 
@@ -256,7 +256,7 @@ class TeaDetailFlowTest {
         compose.waitForIdle()
 
         // The alerting timer instead (rule 8, D-062 S3).
-        compose.onNodeWithText("Brühen starten").assertDoesNotExist()
+        compose.onNodeWithText("Session starten").assertDoesNotExist()
         compose.onNodeWithText(TIMER).assertIsDisplayed()
     }
 

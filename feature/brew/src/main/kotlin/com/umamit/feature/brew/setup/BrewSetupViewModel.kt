@@ -88,8 +88,14 @@ class BrewSetupViewModel @Inject constructor(
     private val catalog: CatalogRepository,
 ) : ViewModel() {
 
-    /** The session *Brühen anpassen* came from; it is replaced without asking while it still waits. */
+    /** The session *Session anpassen* came from; it is replaced without asking while it still waits. */
     private val adjustedSessionId: String? = savedState[SESSION_ID]
+
+    /**
+     * The setup was opened from a running timer's ⋮ *Session anpassen* (the route carries the active session's
+     * id): its title reads „Session anpassen", else „Neue Session" (SCR-04, D-128).
+     */
+    val adjusting: Boolean = adjustedSessionId != null
 
     /** The past session *So nochmal brühen* came from (BRW-06, D-100); it is only read, never replaced. */
     private val pastSessionId: String? = savedState[PAST_SESSION_ID]

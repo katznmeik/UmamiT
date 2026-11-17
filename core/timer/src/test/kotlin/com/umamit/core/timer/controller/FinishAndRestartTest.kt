@@ -19,9 +19,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * *Beenden & neu starten* (TMR-21, D-054; #46): the answer to „Erst die … -Sitzung beenden?"
+ * *Beenden & neu starten* (TMR-21, D-054; #46): the answer to „Erst die … -Session beenden?"
  * ends the active timer and starts the new session in one controller turn. The finish's
- * „Gespeichert" sheet becomes the notification „Sitzung gespeichert" (TMR-14): the timer
+ * „Gespeichert" sheet becomes the notification „Session gespeichert" (TMR-14): the timer
  * screen of the new session is in front.
  */
 @RunWith(RobolectricTestRunner::class)

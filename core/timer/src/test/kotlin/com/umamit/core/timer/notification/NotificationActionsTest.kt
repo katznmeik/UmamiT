@@ -71,7 +71,7 @@ class NotificationActionsTest {
         tap("Start", expect = TimerPhase.RUNNING)
         harness.advanceSeconds(30)
         tap("Abgegossen", expect = TimerPhase.FINISHED)
-        tap("Sitzung beenden", expect = null)
+        tap("Session beenden", expect = null)
 
         val sources = harness.diagnostics.entriesOf<TimerDiagnostic.EventHandled>()
             .filter { it.event !is TimerEvent.StartSession && it.source != EventSource.WAKE_UP }
@@ -101,7 +101,7 @@ class NotificationActionsTest {
         harness.advanceSeconds(30 * 60)
         assertThat(harness.active.demoted).isTrue()
 
-        tap("Sitzung beenden", expect = null)
+        tap("Session beenden", expect = null)
     }
 
     @Test

@@ -22,7 +22,7 @@ object TimerNotifications {
     /** Alert with the full-screen intent: importance HIGH, no sound (`AlertPlayback` plays it, 04 §9). */
     const val CHANNEL_STEEP_FINISHED = "steep_finished"
 
-    /** „Sitzung gespeichert" and the reboot notice: importance LOW, silent (04 §8.1). */
+    /** „Session gespeichert" and the reboot notice: importance LOW, silent (04 §8.1). */
     const val CHANNEL_SESSIONS = "sessions"
 
     /**
@@ -44,7 +44,7 @@ object TimerNotifications {
      */
     const val ID_ALERT = 2
 
-    /** „Sitzung gespeichert" (`NotifySessionSaved`, TMR-14), on [CHANNEL_SESSIONS]. */
+    /** „Session gespeichert" (`NotifySessionSaved`, TMR-14), on [CHANNEL_SESSIONS]. */
     const val ID_SESSION_SAVED = 3
 
     /**

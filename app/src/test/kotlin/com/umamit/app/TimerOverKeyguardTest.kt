@@ -72,7 +72,7 @@ class TimerOverKeyguardTest {
                         Column {
                             Text("TIMER")
                             Text("slot:${shown.slot}")
-                            Button(onClick = onClose) { Text("Sitzung beenden") }
+                            Button(onClick = onClose) { Text("Session beenden") }
                             Button(onClick = { timerTaps++ }) { Text("Pause") }
                             Button(onClick = { shown.onShowOther(TimerSlot.BREW_2) }) { Text("Anderer") }
                         }
@@ -117,7 +117,7 @@ class TimerOverKeyguardTest {
     private fun openAndClose() {
         show()
         openTimer()
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         compose.waitForIdle()
         assertThat(keyguard.closePending.value).isTrue()
     }
@@ -128,7 +128,7 @@ class TimerOverKeyguardTest {
         openTimer()
         compose.mainClock.autoAdvance = false
 
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         // In the tap's own turn, before any frame.
         assertThat(visible.last()).isFalse()
         advanceSecond()
@@ -142,7 +142,7 @@ class TimerOverKeyguardTest {
     fun `the timer left over the keyguard is popped at the stop with no transition`() {
         show()
         openTimer()
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         compose.waitForIdle()
         compose.mainClock.autoAdvance = false
 
@@ -158,7 +158,7 @@ class TimerOverKeyguardTest {
     fun `the timer leaving over the keyguard takes no tap`() {
         show()
         openTimer()
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         compose.waitForIdle()
 
         compose.onNodeWithTag(LEAVING_COVER_TAG).assertExists()
@@ -171,7 +171,7 @@ class TimerOverKeyguardTest {
     fun `an alert before the stop cancels the close and reports the timer again at once (rule 8)`() {
         show()
         openTimer()
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         compose.waitForIdle()
         compose.mainClock.autoAdvance = false
 
@@ -200,7 +200,7 @@ class TimerOverKeyguardTest {
         compose.mainClock.autoAdvance = false
 
         // No frame between the close and the alert: one recomposition sees both.
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         alert("A")
         val afterAlert = visible.size
         compose.mainClock.advanceTimeByFrame()
@@ -258,7 +258,7 @@ class TimerOverKeyguardTest {
         openTimer()
         compose.mainClock.autoAdvance = false
 
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         advanceFrames()
 
         // The fade still runs over the shell.
@@ -277,7 +277,7 @@ class TimerOverKeyguardTest {
         openTimer()
         compose.mainClock.autoAdvance = false
 
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         advanceFrames()
 
         compose.onNodeWithText("TIMER").assertDoesNotExist()
@@ -359,7 +359,7 @@ class TimerOverKeyguardTest {
         compose.onNodeWithText("slot:BREW_2").assertIsDisplayed()
         compose.mainClock.autoAdvance = false
 
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         assertThat(keyguard.closePending.value).isFalse()
         advanceFrames()
         compose.onNodeWithTag(LEAVING_COVER_TAG).assertDoesNotExist()

@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
 /**
  * Time rules the controller carries out on its own (TMR-14, TMR-18, D-053):
  * a waiting session goes quiet after 30 min and is saved at midnight with
- * „Sitzung gespeichert"; a long step runs without the service, which the
+ * „Session gespeichert"; a long step runs without the service, which the
  * deadline brings back for the alert.
  */
 @RunWith(RobolectricTestRunner::class)

@@ -102,7 +102,7 @@ class TimerNotificationsDeviceTest {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) allowPromotion()
         startStep(RUNNING_STEP)
 
-        // The service starts with READY's Live Update (*Brühen starten*, D-053); *Start* updates it.
+        // The service starts with READY's Live Update (*Session starten*, D-053); *Start* updates it.
         val liveUpdate = eventually("the running step's Live Update (ID 1) as the foreground notification", TIMEOUT) {
             activeNotification(TimerNotifications.ID_LIVE_UPDATE)
                 ?.takeIf {

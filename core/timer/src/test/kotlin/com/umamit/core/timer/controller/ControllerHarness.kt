@@ -170,7 +170,7 @@ class ControllerHarness(
     }
 }
 
-/** The request of *Brühen starten* for tea [teaId] („t1" by default) with 4 g and 200 ml in the „Kyusu" recipe. */
+/** The request of *Session starten* for tea [teaId] („t1" by default) with 4 g and 200 ml in the „Kyusu" recipe. */
 fun brewStart(
     vararg steps: PlannedStep,
     recipePreAlertSeconds: Int? = null,

@@ -156,7 +156,7 @@ class TimerRouteTest {
         compose.waitForIdle()
         assertThat(timer.sent).isEmpty()
         assertThat(closed).isEqualTo(1)
-        compose.onNodeWithText("Sitzung verwerfen").assertDoesNotExist()
+        compose.onNodeWithText("Session verwerfen").assertDoesNotExist()
     }
 
     @Test
@@ -304,7 +304,7 @@ class TimerRouteTest {
         timer.show(brew = alert, quick = held, front = alert)
         show(timer, slot = TimerSlot.BREW)
 
-        // *Sitzung beenden* during the brew's alert: the held quick alert rings in the same turn.
+        // *Session beenden* during the brew's alert: the held quick alert rings in the same turn.
         val ringing = TimerStates.quick(TimerPhase.ALERTING)
         timer.show(brew = TimerUiState.Idle, quick = ringing, front = ringing)
         compose.waitForIdle()
