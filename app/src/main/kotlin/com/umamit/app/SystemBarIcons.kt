@@ -21,23 +21,23 @@ import kotlinx.coroutines.delay
 
 /**
  * Whether the status-bar icons and the gesture handle are dark (D-069). `enableEdgeToEdge`
- * picks them from the phone's theme, which is wrong on the always-dark timer (SCR-05) and quick
- * timer (SCR-07) in the light theme and on the light alert surface in the dark theme.
+ * picks them from the phone's theme, which is wrong when *Design* differs from it, and on the
+ * light alert surface in the dark theme. The timer (SCR-05) and the quick timer (SCR-07) follow
+ * the app's theme from v0.8.0 (SET-05, D-128 Q20).
  *
- * - the timer on top: dark on the washi/matcha alert, light on the Steeping surface;
- * - the quick timer on top: light;
+ * - the timer on top: dark on the alert (washi/matcha, in the light timer washi/sage), else the app theme's own
+ *   (light on the Steeping surface, dark on the light timer);
  * - the photo viewer on top (SCR-28): light, on its black;
- * - anything else: the app theme's own (dark icons in the light theme).
+ * - anything else, the quick timer (SCR-07) included: the app theme's own (dark icons in the light theme).
  */
 internal fun systemBarDarkIcons(
     timerOnTop: Boolean,
-    quickTimerOnTop: Boolean,
     alerting: Boolean,
     darkTheme: Boolean,
     photoViewerOnTop: Boolean = false,
 ) = when {
-    timerOnTop -> alerting
-    quickTimerOnTop || photoViewerOnTop -> false
+    timerOnTop -> alerting || !darkTheme
+    photoViewerOnTop -> false
     else -> !darkTheme
 }
 
@@ -69,7 +69,7 @@ internal fun SystemBarIcons(darkIcons: Boolean) {
  * nothing changes to wait for.
  *
  * [immediate] flips at once, in that frame: an alert (`alertEnter`, rule 8), also one that comes while a flip waits,
- * and the timer opened from a notification, whose cover is dark at once.
+ * and the timer opened from a notification, whose cover is the timer's background at once.
  *
  * @param topEntry the back stack's top entry: one that was on top before came back by a pop (`exitFade`), a new one
  *   was pushed (`fade`).
@@ -139,7 +139,7 @@ private class IconTiming(var lastShown: Boolean, var lastIcons: Boolean) {
 }
 
 /**
- * The root's icons for the [entry] on top (D-069, A-16). An [alert] and the notification's dark cover
+ * The root's icons for the [entry] on top (D-069, A-16). An [alert] and the notification's cover
  * ([requestPending]) flip them at once.
  */
 @Composable
@@ -153,7 +153,6 @@ internal fun RootSystemBarIcons(
         timedDarkIcons(
             darkIcons = systemBarDarkIcons(
                 timerOnTop = timerShown,
-                quickTimerOnTop = entry?.destination?.hasRoute<QuickTimerRoute>() == true,
                 photoViewerOnTop = entry?.destination?.hasRoute<PhotoViewerRoute>() == true,
                 alerting = alert != null,
                 darkTheme = UmamiTheme.isDark,

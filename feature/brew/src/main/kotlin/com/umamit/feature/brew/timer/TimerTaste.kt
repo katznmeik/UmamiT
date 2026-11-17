@@ -265,7 +265,7 @@ internal fun TimerTasteHost(state: TimerUiState.Active, tasting: TimerTasting?, 
 }
 
 /**
- * Material 3's modal sheet on the Steeping surface: the title with *Fertig* pinned at its end (D-110), below it,
+ * Material 3's modal sheet on the timer's surface in the app's theme (SET-05): the title with *Fertig* pinned at its end (D-110), below it,
  * scrolling, „Was bedeuten die Regler?" ([TasteInfo], folded whenever the sheet opens) and the shared
  * [InfusionTasteEditor] with the six sliders of [set] in its order (no radar; SCR-05 v0.8.0, D-128). Unfolded, the
  * info scrolls with the sliders and *Fertig* stays pinned; it is part of the sheet, so an alert removes it with the
