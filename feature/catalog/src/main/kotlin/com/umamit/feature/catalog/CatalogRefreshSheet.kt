@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -22,7 +21,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -30,15 +28,17 @@ import androidx.compose.ui.semantics.semantics
 import com.umamit.core.data.catalog.CatalogRefreshOutcome
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
-import com.umamit.core.data.catalog.reasonRes
-import com.umamit.core.data.catalog.summaryText
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.CatalogRefreshBar
+import com.umamit.core.ui.catalogRefreshProgressLine
+import com.umamit.core.ui.catalogRefreshResultLine
 import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.core.ui.rememberSheetClose
 import kotlinx.coroutines.launch
 import com.umamit.core.data.R as DataR
+import com.umamit.core.ui.R as UiR
 
 /** The refresh sheet (SCR-22). */
 const val CATALOG_REFRESH_SHEET_TAG = "catalog_refresh_sheet"
@@ -85,22 +85,9 @@ fun CatalogRefreshSheet(refresh: CatalogRefreshState, onCancel: () -> Unit, onDi
 @Composable
 private fun ColumnScope.Running(progress: CatalogRefreshProgress, onCancel: () -> Unit) {
     Title(stringResource(DataR.string.data_catalog_progress_title))
-    if (progress.pagesTotal == 0) {
-        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        Body(stringResource(DataR.string.data_catalog_progress_starting))
-    } else {
-        LinearProgressIndicator(
-            progress = { progress.pagesDone.toFloat() / progress.pagesTotal },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Body(
-            stringResource(
-                DataR.string.data_catalog_progress,
-                progress.pagesDone,
-                progress.pagesTotal,
-                progress.products,
-            ),
-        )
+    CatalogRefreshBar(progress, Modifier.fillMaxWidth())
+    Body(catalogRefreshProgressLine(progress))
+    if (progress.pagesTotal != 0) {
         // The photos come after the pages (CAT-08); none while SET-22 is off.
         if (progress.photos > 0) Body(stringResource(R.string.catalog_refresh_photos, progress.photos))
         // The guides come after the photos (CAT-09).
@@ -118,19 +105,19 @@ private fun ColumnScope.Result(outcome: CatalogRefreshOutcome, onClose: () -> Un
     when (outcome) {
         is CatalogRefreshOutcome.Success -> {
             Title(stringResource(DataR.string.data_catalog_result_success_title))
-            Body(outcome.summaryText(LocalResources.current), Modifier.testTag(CATALOG_REFRESH_SUMMARY_TAG))
+            Body(catalogRefreshResultLine(outcome), Modifier.testTag(CATALOG_REFRESH_SUMMARY_TAG))
             Close(stringResource(R.string.catalog_refresh_done), onClose)
         }
 
         CatalogRefreshOutcome.Cancelled -> {
-            Title(stringResource(R.string.catalog_refresh_cancelled_title))
+            Title(stringResource(UiR.string.ui_catalog_refresh_cancelled))
             Body(stringResource(DataR.string.data_catalog_result_kept))
             Close(stringResource(R.string.catalog_refresh_close), onClose)
         }
 
         is CatalogRefreshOutcome.Failure -> {
             Title(stringResource(DataR.string.data_catalog_result_failed_title))
-            Body(stringResource(outcome.reasonRes()))
+            Body(catalogRefreshResultLine(outcome))
             // The shop-changed copy (03 §5) says it itself.
             if (outcome !is CatalogRefreshOutcome.ShopChanged) {
                 Body(stringResource(DataR.string.data_catalog_result_kept))

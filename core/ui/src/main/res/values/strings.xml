@@ -147,4 +147,6 @@
     <string name="ui_photo_enlarge">Foto vergrößern</string>
     <string name="ui_photo_viewer_counter">%1$d / %2$d</string>
     <string name="ui_photo_viewer_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d</string>
+    <!-- The refresh's result when the user cancelled it (CAT-07): SCR-22's title and SCR-25's result line. -->
+    <string name="ui_catalog_refresh_cancelled">Laden abgebrochen</string>
 </resources>

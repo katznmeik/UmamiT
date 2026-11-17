@@ -7,6 +7,8 @@ import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
+import com.umamit.core.data.catalog.CatalogRefreshOutcome
+import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.ThemeMode
@@ -165,6 +167,38 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
             actions = SettingsActions(),
             // Midday UTC, so the date is the same in every time zone the tests run in.
             catalog = CatalogSettingsState(lastRefreshAtMillis = LAST_REFRESH_MS),
+        )
+    }
+
+    /** SET-23: the running refresh's bar and line under *Jetzt aktualisieren*. */
+    @Test
+    fun settingsCatalogRefreshing() = capture("Settings_catalogRefreshing", scrollToText = "Fotos laden") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            catalog = CatalogSettingsState(
+                lastRefreshAtMillis = LAST_REFRESH_MS,
+                progress = CatalogRefreshProgress(pagesDone = 120, pagesTotal = 274, products = 96),
+            ),
+        )
+    }
+
+    /** SET-23: the result line after the refresh, with the new date. */
+    @Test
+    fun settingsCatalogResult() = capture("Settings_catalogResult", scrollToText = "Fotos laden") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            catalog = CatalogSettingsState(
+                lastRefreshAtMillis = LAST_REFRESH_MS,
+                result = CatalogRefreshOutcome.Success(teas = 274, newTeas = 12, changedTeas = 5),
+            ),
         )
     }
 

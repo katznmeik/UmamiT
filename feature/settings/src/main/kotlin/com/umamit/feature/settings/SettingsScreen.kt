@@ -65,6 +65,8 @@ object SettingsTags {
     const val ABOUT = "SettingsAbout"
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
+    const val CATALOG_REFRESH = "SettingsCatalogRefresh"
+    const val CATALOG_REFRESH_LINE = "SettingsCatalogRefreshLine"
 
     /** The *Teegeschirr* row (SET-30, D-100). */
     const val TEAWARE = "SettingsTeaware"
