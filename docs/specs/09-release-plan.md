@@ -436,13 +436,14 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 - [ ] **Info:** „Was bedeuten die Regler?" is folded on the timer's taste sheet and on the session page; unfolded it shows the how-to and the six sliders of that tea's set, each with „0 = … · 5 = …"; it is folded again the next time. An alert during the unfolded info on the timer takes the screen at once.
 - [ ] **Light timer:** with *Design* „Hell" the setup, the opening, the timer in every state (bereit, läuft, pausiert, Vorwarnung), the quick timer and the sheets are light as approved in the design check; with „Dunkel" they have the colours of v0.7.2; „System" follows the phone, also when it switches while a timer runs.
 - [ ] **Alert on the light timer:** „Jetzt abgießen!" pulses washi and **sage** (D-128 items 36, 38) with ink content, starting at full sage, with sound and vibration, over the lock screen too; *Abgegossen* returns to the light timer. On the dark timer it pulses washi and matcha as in v0.7.2.
+- [ ] **Overtime on the light timer:** from 15 s over, the small warm dot beside „+… überzogen" has a thin ink ring (D-128 item 40); on the dark timer it has none.
 - [ ] **The bar's alarm:** with *Design* „Hell", the active-brew bar outside the timer turns **static sage** with ink when the alert rings (it snaps in, never pulses); with „Dunkel" static matcha as in v0.7.2.
 - [ ] *Beim Ziehen abdunkeln* and *Bildschirm beim Aufguss anlassen* work on the light timer.
 - [ ] **Settings › Katalog:** *Jetzt aktualisieren* shows the bar and the counts under the button and the result when it ends; a refresh started on the Katalog tab shows there too.
 - [ ] **Statistik:** the ⋮ menu opens below the three dots at the right edge, as on Journal and Sammlung.
 - [ ] A brew of two infusions with the screen off, a quick timer beside a brew, and two brews: Vorwarnung, alarm, full-screen alert and Live Update as in v0.7.2.
 - [ ] Font 2.0 and TalkBack spot checks of the light timer, the info section and *Geschmacksprofil*.
-- [ ] The rc's PR shows the timer tests and the emulator jobs green and all three accuracy variants PASS (§4a).
+- [x] The rc's PR shows the timer tests and the emulator jobs green and all three accuracy variants PASS (§4a): `9c0e4225`, CI run 44153741694, accuracy runs 44153741187, 44153745560, 44153749225 (Claude, 2026-11-17).
 
 ### M5 — 1.0 (postponed: starts only on the PO's go, D-128)
 
