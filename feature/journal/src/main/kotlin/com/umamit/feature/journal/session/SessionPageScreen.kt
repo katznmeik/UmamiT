@@ -86,8 +86,11 @@ class SessionPageActions(
      * runs if it is not stored (refused or failed), so the page shows the stored value again.
      */
     val setTaste: (position: Int, TasteAxis, Int, onRefused: () -> Unit) -> Unit = { _, _, _, _ -> },
-    /** *Zurücksetzen* (JRN-03): the six taste values of the infusion at `position` are unset; `onRefused` as above. */
-    val clearTaste: (position: Int, onRefused: () -> Unit) -> Unit = { _, _ -> },
+    /**
+     * *Zurücksetzen* (JRN-03): the taste values of `axes` (the set shown) of the infusion at `position` are unset;
+     * `onRefused` as above.
+     */
+    val clearTaste: (position: Int, axes: Collection<TasteAxis>, onRefused: () -> Unit) -> Unit = { _, _, _ -> },
     /**
      * The note of the infusion at `position` (JRN-05, D-114), handed over by the shared editor: saved now;
      * `onRefused` as above.

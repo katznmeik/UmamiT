@@ -52,9 +52,9 @@ object TasteRadarShape {
      * The point of [axis] at [value] (0–5; null = unset, at the centre) around the centre (0, 0) at full [radius]:
      * the first axis points straight up, the others follow clockwise at equal angles. Screen coordinates (y down).
      */
-    fun point(axis: TasteAxis, value: Double?, radius: Float): Pair<Float, Float> {
+    fun point(axis: TasteAxis, value: Double?, radius: Float, set: TasteSet = TasteSet.GREEN): Pair<Float, Float> {
         val angle = Math.toRadians(
-            -QUARTER_TURN_DEGREES + FULL_TURN_DEGREES / RADAR_AXES.size * RADAR_AXES.indexOf(axis),
+            -QUARTER_TURN_DEGREES + FULL_TURN_DEGREES / set.axes.size * set.axes.indexOf(axis),
         )
         val reach = radius * ((value ?: 0.0) / TastingLimits.MAX_TASTE).toFloat()
         return reach * cos(angle).toFloat() to reach * sin(angle).toFloat()
@@ -67,15 +67,9 @@ object TasteRadarShape {
     }
 }
 
-/** [TasteProfile]'s set axes as the radar takes them. */
-fun TasteProfile.radarValues(): Map<TasteAxis, Double> =
-    RADAR_AXES.mapNotNull { axis -> get(axis)?.let { axis to it.toDouble() } }.toMap()
-
-/**
- * The radar's six axes, in its order: the Grüntee set's until the screens show each tea's set (JRN-03, D-128). Every
- * other axis is left out, also when [TasteRadar]'s values hold it.
- */
-internal val RADAR_AXES: List<TasteAxis> = TasteSet.GREEN.axes
+/** [TasteProfile]'s axes of [set] as the radar takes them; every other axis is left out (D-128 Q16). */
+fun TasteProfile.radarValues(set: TasteSet = TasteSet.GREEN): Map<TasteAxis, Double> =
+    set.axes.mapNotNull { axis -> get(axis)?.let { axis to it.toDouble() } }.toMap()
 
 private val RADAR_HEIGHT = 240.dp
 private val LABEL_GAP = 6.dp
@@ -83,7 +77,9 @@ private val POINT_RADIUS = 3.dp
 private val STROKE = 2.dp
 private val RIM_STROKE = 1.5.dp
 private val HAIRLINE = 1.dp
-private val VERTICAL_AXES = setOf(TasteAxis.UMAMI, TasteAxis.ASTRINGENCY)
+
+/** The radar's slots whose labels sit above and below the rim: the first axis (top) and the fourth (bottom). */
+private val VERTICAL_SLOTS = setOf(0, 3)
 private const val FILL_ALPHA = 0.22f
 private const val MAX_FONT_SCALE = 2f
 private const val HEIGHT_PER_FONT_SCALE = 0.4f
@@ -93,21 +89,23 @@ private const val RIM_RINGS = 5
 private const val SIDE_REACH = 0.866f
 
 /**
- * The taste radar (03 §3.8, JRN-03): six axes (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma), 0–5, drawn once
- * three axes are set; an unset axis lies at the centre. Read-only, a plain Canvas in the washi/matcha palette: [values]
- * holds the set axes only, a session's whole numbers or a tea's averages (TEA-13). Under three axes it shows nothing.
+ * The taste radar (03 §3.8, JRN-03): the six axes of [set] (Grüntee: Umami, Süße, Bitterkeit, Adstringenz, Körper,
+ * Aroma; D-128), clockwise from the top in the set's order, 0–5, drawn once three axes are set; an unset axis lies at
+ * the centre. Read-only, a plain Canvas in the washi/matcha palette: [values] holds the set axes only, a session's
+ * whole numbers or a tea's averages (TEA-13); an axis outside [set] is left out. Under three axes it shows nothing.
  * TalkBack reads the set values as a list.
  */
 @Composable
-fun TasteRadar(values: Map<TasteAxis, Double>, modifier: Modifier = Modifier) {
-    val shown = values.filterKeys { it in RADAR_AXES }
+fun TasteRadar(values: Map<TasteAxis, Double>, modifier: Modifier = Modifier, set: TasteSet = TasteSet.GREEN) {
+    val axes = set.axes
+    val shown = values.filterKeys { it in axes }
     if (!TasteRadarShape.isDrawn(shown)) return
     val measurer = rememberTextMeasurer()
     val labelStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
     val grid = MaterialTheme.colorScheme.outlineVariant
     val accent = MaterialTheme.colorScheme.primary
-    val labels = RADAR_AXES.associateWith { it.tasteLabel() }
-    val spoken = RADAR_AXES.filter { it in shown }.map {
+    val labels = axes.associateWith { it.tasteLabel() }
+    val spoken = axes.filter { it in shown }.map {
         stringResource(
             R.string.ui_taste_radar_item,
             labels.getValue(it),
@@ -126,12 +124,13 @@ fun TasteRadar(values: Map<TasteAxis, Double>, modifier: Modifier = Modifier) {
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val layouts = labels.mapValues { (_, text) -> measurer.measure(text, labelStyle) }
-            drawRadar(layouts, shown, grid, accent)
+            drawRadar(set, layouts, shown, grid, accent)
         }
     }
 }
 
 private fun DrawScope.drawRadar(
+    set: TasteSet,
     layouts: Map<TasteAxis, TextLayoutResult>,
     values: Map<TasteAxis, Double>,
     grid: Color,
@@ -139,7 +138,7 @@ private fun DrawScope.drawRadar(
 ) {
     val gap = LABEL_GAP.toPx()
     // The side labels sit at 0,87 of the radius, the top and bottom ones above and below the rim.
-    val maxSideWidth = layouts.filterKeys { it !in VERTICAL_AXES }.values.maxOf { it.size.width }
+    val maxSideWidth = layouts.filterKeys { set.axes.indexOf(it) !in VERTICAL_SLOTS }.values.maxOf { it.size.width }
     val labelHeight = layouts.values.maxOf { it.size.height }
     val centre = Offset(size.width / 2f, size.height / 2f)
     val radius = min(
@@ -147,11 +146,11 @@ private fun DrawScope.drawRadar(
         size.height / 2f - labelHeight - gap,
     ).coerceAtLeast(0f)
     fun at(axis: TasteAxis, value: Double?, r: Float = radius): Offset {
-        val (x, y) = TasteRadarShape.point(axis, value, r)
+        val (x, y) = TasteRadarShape.point(axis, value, r, set)
         return centre + Offset(x, y)
     }
     fun polygon(value: (TasteAxis) -> Double?): Path = Path().apply {
-        RADAR_AXES.forEachIndexed { i, axis ->
+        set.axes.forEachIndexed { i, axis ->
             val p = at(axis, value(axis))
             if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
         }
@@ -161,25 +160,22 @@ private fun DrawScope.drawRadar(
         val width = if (ring == RIM_RINGS) RIM_STROKE.toPx() else HAIRLINE.toPx()
         drawPath(polygon { ring.toDouble() }, grid, style = Stroke(width = width))
     }
-    RADAR_AXES.forEach { drawLine(grid, centre, at(it, TastingLimits.MAX_TASTE.toDouble()), HAIRLINE.toPx()) }
+    set.axes.forEach { drawLine(grid, centre, at(it, TastingLimits.MAX_TASTE.toDouble()), HAIRLINE.toPx()) }
     val shape = polygon { values[it] }
     drawPath(shape, accent.copy(alpha = FILL_ALPHA), style = Fill)
     drawPath(shape, accent, style = Stroke(width = STROKE.toPx()))
     values.keys.forEach { drawCircle(accent, POINT_RADIUS.toPx(), at(it, values[it])) }
-    RADAR_AXES.forEach { axis ->
+    set.axes.forEachIndexed { slot, axis ->
         val layout = layouts.getValue(axis)
         val anchor = at(axis, TastingLimits.MAX_TASTE.toDouble(), radius + gap)
         val width = layout.size.width.toFloat()
         val height = layout.size.height.toFloat()
-        val topLeft = when (axis) {
-            TasteAxis.UMAMI, TasteAxis.ROAST -> Offset(anchor.x - width / 2f, anchor.y - height)
-
-            TasteAxis.ASTRINGENCY -> Offset(anchor.x - width / 2f, anchor.y)
-
-            TasteAxis.SWEETNESS, TasteAxis.BITTERNESS, TasteAxis.ACIDITY -> Offset(anchor.x, anchor.y - height / 2f)
-
-            TasteAxis.BODY, TasteAxis.AROMA, TasteAxis.FRESHNESS, TasteAxis.SPICE ->
-                Offset(anchor.x - width, anchor.y - height / 2f)
+        // By slot, not by axis: top, two on the right, bottom, two on the left, whichever set it is.
+        val topLeft = when (slot) {
+            0 -> Offset(anchor.x - width / 2f, anchor.y - height)
+            3 -> Offset(anchor.x - width / 2f, anchor.y)
+            1, 2 -> Offset(anchor.x, anchor.y - height / 2f)
+            else -> Offset(anchor.x - width, anchor.y - height / 2f)
         }
         drawText(layout, topLeft = topLeft)
     }

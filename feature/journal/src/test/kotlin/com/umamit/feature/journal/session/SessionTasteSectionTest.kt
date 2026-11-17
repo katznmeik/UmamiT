@@ -24,6 +24,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
@@ -36,7 +37,10 @@ import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.ui.INFUSION_NOTE_TAG
 import com.umamit.core.ui.INFUSION_TASTE_RESET_TAG
+import com.umamit.core.ui.TASTE_INFO_HOWTO_TAG
+import com.umamit.core.ui.TASTE_INFO_TAG
 import com.umamit.core.ui.TASTE_RADAR_TAG
+import com.umamit.core.ui.tasteInfoEntryTag
 import com.umamit.core.ui.tasteSliderTag
 import com.umamit.feature.journal.JournalSessions
 import kotlinx.coroutines.CompletableDeferred
@@ -394,6 +398,113 @@ class SessionTasteSectionTest {
         node(sessionTasteChipTag(FIRST)).assertIsSelected()
         node(SESSION_TASTE_ADJUST_TAG).assert(hasStateDescription("eingeklappt"))
         compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
+    }
+
+    private fun setTeaSet(set: TasteSet?) = runBlocking {
+        collection.teas.saveTea(
+            Tea(TEA, "Sencha Morgentau", category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF, tasteSet = set),
+        )
+    }
+
+    @Test
+    fun `a herbal tea shows Suesse, Saeure, Frische, Wuerze, Bitterkeit, Koerper and none of the others (JRN-03)`() {
+        setTeaSet(TasteSet.HERBAL)
+        show()
+        tap(SESSION_TASTE_ADD_TAG)
+
+        TasteSet.HERBAL.axes.forEach { node(tasteSliderTag(it)).assertExists() }
+        (TasteAxis.entries - TasteSet.HERBAL.axes.toSet()).forEach {
+            compose.onNodeWithTag(tasteSliderTag(it)).assertDoesNotExist()
+        }
+        assertThat(TasteSet.HERBAL.axes.map { it.name })
+            .containsExactly("SWEETNESS", "ACIDITY", "FRESHNESS", "SPICE", "BITTERNESS", "BODY").inOrder()
+    }
+
+    @Test
+    fun `the folded line and the radar follow the set, and Umami stays hidden until the Gruentee set is back (AC4)`() {
+        seedTaste(FIRST, TasteAxis.UMAMI to 4, TasteAxis.SWEETNESS to 3, TasteAxis.SPICE to 2)
+        setTeaSet(TasteSet.HERBAL)
+        show()
+
+        compose.onNodeWithText("Süße 3 · Würze 2").performScrollTo().assertExists()
+        tap(SESSION_TASTE_ADJUST_TAG)
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
+        slider(TasteAxis.SPICE).assert(hasStateDescription("2 von 5"))
+        // Zurücksetzen clears the six shown and nothing else.
+        tap(INFUSION_TASTE_RESET_TAG)
+        assertThat(tasting(FIRST).taste.sweetness).isNull()
+        assertThat(tasting(FIRST).taste.spice).isNull()
+        assertThat(tasting(FIRST).taste.umami).isEqualTo(4)
+
+        // Geschmacksprofil „Grüntee" again: the Umami value is there, nothing lost.
+        setTeaSet(TasteSet.GREEN)
+        compose.waitForIdle()
+        slider(TasteAxis.UMAMI).assert(hasStateDescription("4 von 5"))
+    }
+
+    @Test
+    fun `a green tea's sliders are the six of the Gruentee set in its order`() {
+        show()
+        tap(SESSION_TASTE_ADD_TAG)
+
+        TasteSet.GREEN.axes.forEach { node(tasteSliderTag(it)).assertExists() }
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.ROAST)).assertDoesNotExist()
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.ACIDITY)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `TasteInfo is folded, lists the six entries of the set and folds again on reopen and on a chip change`() {
+        seedTaste(FIRST, TasteAxis.SWEETNESS to 4)
+        seedTaste(THIRD, TasteAxis.SWEETNESS to 2)
+        setTeaSet(TasteSet.OXIDISED)
+        show()
+        tap(SESSION_TASTE_ADJUST_TAG)
+
+        node(TASTE_INFO_TAG)
+            .assert(hasContentDescription("Was bedeuten die Regler?"))
+            .assert(hasStateDescription("eingeklappt"))
+        compose.onNodeWithTag(TASTE_INFO_HOWTO_TAG).assertDoesNotExist()
+
+        tap(TASTE_INFO_TAG)
+        node(TASTE_INFO_TAG).assert(hasStateDescription("ausgeklappt"))
+        node(TASTE_INFO_HOWTO_TAG).assertExists()
+        TasteSet.OXIDISED.axes.forEach { node(tasteInfoEntryTag(it)).assertExists() }
+        (TasteAxis.entries - TasteSet.OXIDISED.axes.toSet()).forEach {
+            compose.onNodeWithTag(tasteInfoEntryTag(it)).assertDoesNotExist()
+        }
+        node(tasteInfoEntryTag(TasteAxis.ROAST))
+            .assert(
+                hasContentDescription(
+                    "Röstung/Malz. Geröstete, malzige Tiefe – wie Brotkruste oder Kakao. " +
+                        "0 bedeutet keine, 5 bedeutet kräftig geröstet.",
+                ),
+            )
+
+        // A chip change folds it again.
+        tapChip(sessionTasteChipTag(THIRD))
+        node(TASTE_INFO_TAG).assert(hasStateDescription("eingeklappt"))
+        compose.onNodeWithTag(TASTE_INFO_HOWTO_TAG).assertDoesNotExist()
+
+        // Anpassen folded and unfolded again: folded.
+        tap(TASTE_INFO_TAG)
+        tap(SESSION_TASTE_ADJUST_TAG)
+        tap(SESSION_TASTE_ADJUST_TAG)
+        node(TASTE_INFO_TAG).assert(hasStateDescription("eingeklappt"))
+    }
+
+    /** A tea whose set changed meanwhile: the open page follows it (the tea's row is the source, #320 gap). */
+    @Test
+    fun `the page follows a changed Geschmacksprofil of its tea`() {
+        seedTaste(FIRST, TasteAxis.UMAMI to 4, TasteAxis.SWEETNESS to 2)
+        show()
+        tap(SESSION_TASTE_ADJUST_TAG)
+        node(tasteSliderTag(TasteAxis.UMAMI)).assertExists()
+
+        setTeaSet(TasteSet.HERBAL)
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
+        node(tasteSliderTag(TasteAxis.ACIDITY)).assertExists()
     }
 
     private companion object {

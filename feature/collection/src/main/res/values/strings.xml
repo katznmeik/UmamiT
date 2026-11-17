@@ -332,6 +332,9 @@
     <string name="tea_editor_secondary_name">Zweiter Name</string>
     <string name="tea_editor_secondary_name_hint">z. B. der japanische Name</string>
     <string name="tea_editor_sorte">Sorte</string>
+    <string name="tea_editor_taste_set">Geschmacksprofil</string>
+    <string name="tea_editor_taste_set_auto">Automatisch (nach Kategorie)</string>
+    <string name="tea_editor_taste_set_hint">Bestimmt die sechs Geschmacksregler dieses Tees. Eingetragene Werte bleiben erhalten.</string>
     <string name="tea_editor_umami">Umami</string>
     <string name="tea_editor_umami_unset">Keine Angabe</string>
     <string name="tea_editor_umami_none">Kein</string>

@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.SlimSlider
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TastingLimits
 import kotlin.math.roundToInt
 
@@ -49,6 +50,16 @@ fun TasteAxis.tasteLabel(): String = stringResource(
         TasteAxis.ACIDITY -> R.string.ui_taste_acidity
         TasteAxis.FRESHNESS -> R.string.ui_taste_freshness
         TasteAxis.SPICE -> R.string.ui_taste_spice
+    },
+)
+
+/** The German name of [this] taste set (08 §4a), e.g. „Grüntee" or „Kräuter · Rotbusch · Früchte". */
+@Composable
+fun TasteSet.tasteSetLabel(): String = stringResource(
+    when (this) {
+        TasteSet.GREEN -> R.string.ui_taste_set_green
+        TasteSet.OXIDISED -> R.string.ui_taste_set_oxidised
+        TasteSet.HERBAL -> R.string.ui_taste_set_herbal
     },
 )
 

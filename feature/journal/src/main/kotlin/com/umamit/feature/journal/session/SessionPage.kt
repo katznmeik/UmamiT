@@ -6,6 +6,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.feature.journal.RecipeOfferState
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -49,6 +50,7 @@ data class SessionPageStep(
  * @property position the step's `position`, which the tasting writes address.
  * @property number the step table's number („2. Aufguss"); null for an *Aufschlagen* step, which reads its kind.
  * @property note the infusion's short note (≤ 200), trimmed; null without.
+ * @property tasteSet the tea's set, whose six axes the chip's data counts (JRN-03, D-128).
  */
 data class SessionInfusion(
     val position: Int,
@@ -56,9 +58,10 @@ data class SessionInfusion(
     val kind: StepKind,
     val taste: TasteProfile = TasteProfile.EMPTY,
     val note: String? = null,
+    val tasteSet: TasteSet = TasteSet.GREEN,
 ) {
-    /** The chip's dot: a taste value or a note is stored (SCR-16 v0.6.1). */
-    val hasData: Boolean get() = taste.setCount > 0 || note != null
+    /** The chip's dot: a value of the set shown or a note is stored (SCR-16 v0.6.1; others stay hidden, D-128). */
+    val hasData: Boolean get() = taste.setCount(tasteSet) > 0 || note != null
 }
 
 /**
@@ -104,6 +107,8 @@ data class SessionPage(
      * Katalog ansehen* shows only then. Never set for a deleted tea, as the session keeps no key of its own.
      */
     val catalogKey: String? = null,
+    /** The taste set the page shows: its tea's now, or the snapshot category's once the tea is gone (JRN-03, D-128). */
+    val tasteSet: TasteSet = TasteSet.GREEN,
 ) {
     /** The tasting inputs are offered for a finished session only (05 §3.7: the writes refuse one in progress). */
     val canTaste: Boolean get() = !inProgress
@@ -161,6 +166,7 @@ fun sessionPage(session: BrewSession, tea: SessionTea, catalogKey: String? = nul
         infusions = infusionsOf(session),
         descriptorKeys = session.descriptorKeys,
         catalogKey = catalogKey.takeIf { tea != SessionTea.DELETED },
+        tasteSet = session.tasteSet,
     )
 }
 
@@ -169,7 +175,7 @@ private fun infusionsOf(session: BrewSession): List<SessionInfusion> {
     val rows = session.steps.associateBy { it.position }
     return session.infusions.mapNotNull { infusion ->
         val row = rows.getValue(infusion.position)
-        SessionInfusion(infusion.position, infusion.number, row.kind, infusion.taste, infusion.note)
+        SessionInfusion(infusion.position, infusion.number, row.kind, infusion.taste, infusion.note, session.tasteSet)
             .takeIf { !row.skipped || it.hasData }
     }
 }

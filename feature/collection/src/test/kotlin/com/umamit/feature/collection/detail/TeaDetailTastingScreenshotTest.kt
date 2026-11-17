@@ -38,12 +38,12 @@ class TeaDetailTastingScreenshotTest(private val dark: Boolean, private val font
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun show() {
+    private fun show(tea: TeaDetail = TeaDetailTastingScreenTest.TASTED) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
                 TeaDetailScreen(
-                    TeaDetailUiState.Ready(TeaDetailTastingScreenTest.TASTED),
+                    TeaDetailUiState.Ready(tea),
                     TeaDetailActions(openSession = {}, showAllSessions = {}),
                     photo = { null },
                 )
@@ -67,6 +67,24 @@ class TeaDetailTastingScreenshotTest(private val dark: Boolean, private val font
         compose.onNodeWithTag(TEA_DETAIL_TASTE_TAG).performScrollTo()
         compose.waitForIdle()
         capture("taste")
+    }
+
+    /** A black tea's radar: Röstung/Malz first (D-128). */
+    @Test
+    fun tasteOxidised() {
+        show(TeaDetailTastingScreenTest.TASTED_OXIDISED)
+        compose.onNodeWithTag(TEA_DETAIL_TASTE_TAG).performScrollTo()
+        compose.waitForIdle()
+        capture("tasteOxidised")
+    }
+
+    /** A herbal tea's radar: Süße, Säure, Frische, Würze, Bitterkeit, Körper. */
+    @Test
+    fun tasteHerbal() {
+        show(TeaDetailTastingScreenTest.TASTED_HERBAL)
+        compose.onNodeWithTag(TEA_DETAIL_TASTE_TAG).performScrollTo()
+        compose.waitForIdle()
+        capture("tasteHerbal")
     }
 
     @Test

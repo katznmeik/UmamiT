@@ -112,7 +112,7 @@ internal fun TasteSection(taste: DetailTasting) {
     if (!taste.hasData) return
     Section(stringResource(R.string.collection_tea_section_taste)) {
         Column(modifier = Modifier.testTag(TEA_DETAIL_TASTE_TAG)) {
-            TasteRadar(taste.averages)
+            TasteRadar(taste.averages, set = taste.tasteSet)
             if (taste.descriptors.isNotEmpty()) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),

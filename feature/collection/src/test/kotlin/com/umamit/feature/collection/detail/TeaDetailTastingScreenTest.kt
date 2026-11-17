@@ -20,6 +20,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TeaRating
 import org.junit.Rule
 import org.junit.Test
@@ -214,6 +215,33 @@ class TeaDetailTastingScreenTest {
         assertThat(shownAll).isEqualTo(0)
     }
 
+    @Test
+    fun `a herbal tea's radar reads its six axes in the set's order`() {
+        show(TASTED_HERBAL)
+
+        compose.onNodeWithTag("taste_radar").performScrollTo().assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf(
+                    "Geschmacksprofil: Süße 3 von 5, Säure 4 von 5, Frische 2 von 5, Würze 1 von 5, " +
+                        "Bitterkeit 0,5 von 5, Körper 2 von 5",
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `a green tea's radar is as before`() {
+        show(TASTED)
+
+        compose.onNodeWithTag("taste_radar").performScrollTo().assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf("Geschmacksprofil: Umami 4,5 von 5, Süße 3 von 5, Bitterkeit 1,5 von 5, Körper 3,5 von 5"),
+            ),
+        )
+    }
+
     companion object {
         private val TODAY = LocalDate.of(2026, 11, 8)
 
@@ -239,6 +267,36 @@ class TeaDetailTastingScreenTest {
                 RecentSession("s1", LocalDate.of(2026, 6, 8), 55, 60, 3, 3, 4.5, 3.5),
                 RecentSession("s2", LocalDate.of(2026, 10, 21), 70, 45, 2, 3, null, 3.5),
                 RecentSession("s3", LocalDate.of(2026, 10, 19), 70, 45, 3, 3, 4.0),
+            ),
+        )
+
+        /** [TASTED] for a black tea (Schwarz · Oolong · Pu-Erh set, D-128). */
+        val TASTED_OXIDISED = TASTED.copy(
+            taste = TASTED.taste.copy(
+                averages = mapOf(
+                    TasteAxis.ROAST to 4.0,
+                    TasteAxis.SWEETNESS to 2.0,
+                    TasteAxis.BITTERNESS to 1.0,
+                    TasteAxis.ASTRINGENCY to 3.0,
+                    TasteAxis.BODY to 3.5,
+                    TasteAxis.AROMA to 4.5,
+                ),
+                tasteSet = TasteSet.OXIDISED,
+            ),
+        )
+
+        /** [TASTED] for a herbal tea (Kräuter · Rotbusch · Früchte set, D-128). */
+        val TASTED_HERBAL = TASTED.copy(
+            taste = TASTED.taste.copy(
+                averages = mapOf(
+                    TasteAxis.SWEETNESS to 3.0,
+                    TasteAxis.ACIDITY to 4.0,
+                    TasteAxis.FRESHNESS to 2.0,
+                    TasteAxis.SPICE to 1.0,
+                    TasteAxis.BITTERNESS to 0.5,
+                    TasteAxis.BODY to 2.0,
+                ),
+                tasteSet = TasteSet.HERBAL,
             ),
         )
     }

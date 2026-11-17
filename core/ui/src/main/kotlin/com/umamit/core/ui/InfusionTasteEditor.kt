@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TastingLimits
 import kotlinx.coroutines.delay
 
@@ -42,7 +43,8 @@ const val INFUSION_NOTE_COUNTER_FROM = 180
 
 /**
  * The taste inputs of one infusion (JRN-03, JRN-05, D-114), shared by the session page's GESCHMACK (SCR-16) and the
- * timer's taste sheet (SCR-05): the six [TasteSlider]s (each a `SlimSlider`), the field „Notiz zum Aufguss …"
+ * timer's taste sheet (SCR-05): the six [TasteSlider]s of [set] in its order (each a `SlimSlider`; Grüntee unless the
+ * host passes its tea's set, D-128), the field „Notiz zum Aufguss …"
  * (≤ 200 characters, a counter from 180) and *Zurücksetzen*. No radar and no heading: the host places those.
  *
  * - [taste] is shown as given; [onTasteChange] gets a slider's value on release (a release saves).
@@ -65,9 +67,10 @@ fun InfusionTasteEditor(
     onNoteSave: (String) -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
+    set: TasteSet = TasteSet.GREEN,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        RADAR_AXES.forEach { axis ->
+        set.axes.forEach { axis ->
             TasteSlider(axis = axis, value = taste[axis], onChange = { onTasteChange(axis, it) })
         }
         InfusionNoteField(note = note, onSave = onNoteSave)
@@ -156,14 +159,14 @@ private fun InfusionNoteField(note: String?, onSave: (String) -> Unit) {
 }
 
 /**
- * „Umami 4 · Süße 3": the set axes of [values] in the sliders' order, averages to one decimal („3,5"); „Noch nichts
- * eingetragen" when none is set. The folded taste's line below three axes (SCR-16 v0.6.1, D-114).
+ * „Umami 4 · Süße 3": the axes of [set] in [values], in the sliders' order, averages to one decimal („3,5");
+ * „Noch nichts eingetragen" when none is set. The folded taste's line below three axes (SCR-16 v0.6.1, D-114).
  */
 @Composable
-fun tasteSummary(values: Map<TasteAxis, Double>): String {
+fun tasteSummary(values: Map<TasteAxis, Double>, set: TasteSet = TasteSet.GREEN): String {
     if (values.isEmpty()) return stringResource(R.string.ui_taste_summary_empty)
     val separator = stringResource(R.string.ui_taste_summary_separator)
-    return RADAR_AXES.mapNotNull { axis ->
+    return set.axes.mapNotNull { axis ->
         values[axis]?.let {
             stringResource(R.string.ui_taste_summary_item, axis.tasteLabel(), TasteRadarShape.valueText(it))
         }

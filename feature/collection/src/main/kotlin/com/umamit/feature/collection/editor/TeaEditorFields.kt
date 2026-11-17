@@ -64,10 +64,12 @@ import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.HarvestSeason
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.UmamiLevel
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
 import com.umamit.core.ui.rememberAlertGate
+import com.umamit.core.ui.tasteSetLabel
 import com.umamit.core.ui.then
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.countryName
@@ -142,6 +144,18 @@ private fun General(
             onSelect = { key -> update { it.withStyle(key) } },
             alertKey = alertKey,
             modifier = FieldModifier.testTag(TeaEditorTags.SORTE),
+        )
+        ChoiceField(
+            label = stringResource(R.string.tea_editor_taste_set),
+            selected = form.tasteSet,
+            options = listOf<TasteSet?>(null) + TasteSet.entries,
+            optionLabel = { it?.tasteSetLabel() ?: stringResource(R.string.tea_editor_taste_set_auto) },
+            onSelect = { set -> update { it.copy(tasteSet = set) } },
+            alertKey = alertKey,
+            modifier = FieldModifier.testTag(TeaEditorTags.TASTE_SET),
+            helper = stringResource(R.string.tea_editor_taste_set_hint),
+            // „Automatisch" names the set its Kategorie gives (JRN-03, TEA-02).
+            optionSupporting = { set -> if (set == null) form.effectiveTasteSet.tasteSetLabel() else null },
         )
         ChoiceField(
             label = stringResource(R.string.tea_editor_umami),

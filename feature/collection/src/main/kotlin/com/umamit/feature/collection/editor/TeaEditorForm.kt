@@ -5,6 +5,7 @@ import com.umamit.core.domain.input.GermanNumber
 import com.umamit.core.domain.style.BuiltInStyles
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.HarvestSeason
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
@@ -38,12 +39,21 @@ data class TeaEditorForm(
     val openedDate: LocalDate? = null,
     val bestBefore: LocalDate? = null,
     val notes: String = "",
+    /** The tea's Kategorie as *Speichern* will store it: the stored one, or the chosen Sorte's (TEA-03). */
+    val category: TeaCategory = TeaCategory.OTHER,
+    /** *Geschmacksprofil* (TEA-02, D-128): null is *Automatisch (nach Kategorie)*; a Sorte change keeps the choice. */
+    val tasteSet: TasteSet? = null,
 ) : Serializable {
     /** The Sorte [key] (`other`: *Andere / unbekannt*) with its umami level (TEA-03: the recipes stay). */
     fun withStyle(key: String): TeaEditorForm {
         val style = BuiltInStyles.byKey(key)?.takeIf { key != OTHER_STYLE_KEY }
-        return copy(styleKey = style?.key, umami = style?.umami)
+        // The Kategorie follows a changed Sorte only, as `applyTo` has it; so does *Automatisch*'s set.
+        val newCategory = if (style?.key == styleKey) category else style?.category ?: TeaCategory.OTHER
+        return copy(styleKey = style?.key, umami = style?.umami, category = newCategory)
     }
+
+    /** The taste set in effect: the chosen one, else the Kategorie's (JRN-03, TEA-02). */
+    val effectiveTasteSet: TasteSet get() = TasteSet.effective(tasteSet, category)
 
     /** What *Speichern* refuses on [today] (TEA-02, 05 §3.1), shown at the field. */
     fun errors(today: LocalDate): Set<TeaFieldError> = buildSet {
@@ -118,6 +128,7 @@ data class TeaEditorForm(
             openedDate = openedDate,
             bestBefore = bestBefore,
             notes = notes.orNull(),
+            tasteSet = tasteSet,
         )
     }
 
@@ -155,6 +166,8 @@ data class TeaEditorForm(
             openedDate = tea.openedDate,
             bestBefore = tea.bestBefore,
             notes = tea.notes.orEmpty(),
+            category = tea.category,
+            tasteSet = tea.tasteSet,
         )
 
         /** „50", „37,5", „1.000" → grams in (0, 10 000]; null otherwise (shared rule, F14). */

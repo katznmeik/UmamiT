@@ -3,6 +3,7 @@ package com.umamit.core.ui
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import org.junit.Test
 
 /** The pure parts of `TasteRadar` and `TasteSlider` (03 §3.8, JRN-03): when it is drawn, where points lie. */
@@ -46,6 +47,29 @@ class TasteRadarShapeTest {
         assertThat(second.second).isWithin(EPS).of(-50f)
         assertThat(fourth.first).isWithin(EPS).of(0f)
         assertThat(fourth.second).isWithin(EPS).of(100f)
+    }
+
+    @Test
+    fun `a set's axes follow in its own order, the first straight up`() {
+        val top = TasteRadarShape.point(TasteAxis.SWEETNESS, value = 5.0, radius = 100f, set = TasteSet.HERBAL)
+        val bottom = TasteRadarShape.point(TasteAxis.SPICE, value = 5.0, radius = 100f, set = TasteSet.HERBAL)
+
+        assertThat(top.second).isWithin(EPS).of(-100f)
+        assertThat(bottom.first).isWithin(EPS).of(0f)
+        assertThat(bottom.second).isWithin(EPS).of(100f)
+        assertThat(TasteRadarShape.point(TasteAxis.ROAST, 5.0, 100f, TasteSet.OXIDISED).second)
+            .isWithin(EPS).of(-100f)
+    }
+
+    @Test
+    fun `the radar values of a set leave out every axis outside it`() {
+        val profile = TasteProfile(umami = 4, sweetness = 3, acidity = 2, spice = 1, roast = 5)
+
+        assertThat(profile.radarValues(TasteSet.HERBAL).keys)
+            .containsExactly(TasteAxis.SWEETNESS, TasteAxis.ACIDITY, TasteAxis.SPICE).inOrder()
+        assertThat(profile.radarValues().keys).containsExactly(TasteAxis.UMAMI, TasteAxis.SWEETNESS)
+        assertThat(profile.radarValues(TasteSet.OXIDISED).keys)
+            .containsExactly(TasteAxis.ROAST, TasteAxis.SWEETNESS)
     }
 
     @Test

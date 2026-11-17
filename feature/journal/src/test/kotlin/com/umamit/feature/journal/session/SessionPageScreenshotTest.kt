@@ -10,7 +10,10 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.core.ui.INFUSION_TASTE_RESET_TAG
+import com.umamit.core.ui.TASTE_INFO_HOWTO_TAG
+import com.umamit.core.ui.TASTE_INFO_TAG
 import com.umamit.feature.journal.RECIPE_OFFER_TAG
 import com.umamit.feature.journal.RecipeOfferState
 import org.junit.Rule
@@ -88,6 +91,7 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
         state: SessionPageUiState,
         scrollToTag: String? = null,
         click: String? = null,
+        thenClick: String? = null,
         thenScrollTo: String? = null,
     ) {
         RuntimeEnvironment.setFontScale(fontScale)
@@ -95,6 +99,8 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
         compose.waitForIdle()
         if (scrollToTag != null) compose.onNodeWithTag(scrollToTag).performScrollTo()
         if (click != null) compose.onNodeWithTag(click).performClick()
+        compose.waitForIdle()
+        if (thenClick != null) compose.onNodeWithTag(thenClick).performScrollTo().performClick()
         compose.waitForIdle()
         if (thenScrollTo != null) compose.onNodeWithTag(thenScrollTo).performScrollTo()
         compose.waitForIdle()
@@ -179,6 +185,62 @@ class SessionPageScreenshotTest(private val dark: Boolean, private val fontScale
         ),
         scrollToTag = SESSION_TASTE_ADJUST_TAG,
         click = SESSION_TASTE_ALL_TAG,
+    )
+
+    /** The page of a tea of [set] with the 1st infusion's [first] (JRN-03, D-128): its six axes, in its order. */
+    private fun setPage(set: TasteSet, first: TasteProfile) = SessionPageUiState.Ready(
+        page.copy(steps = tastedSteps, infusions = infusions(first), tasteSet = set)
+            .let { it.copy(infusions = it.infusions.map { infusion -> infusion.copy(tasteSet = set) }) },
+    )
+
+    private val oxidised = TasteProfile(roast = 4, sweetness = 2, bitterness = 1, astringency = 3, body = 3, aroma = 4)
+    private val herbal = TasteProfile(sweetness = 3, acidity = 4, freshness = 2, spice = 1, bitterness = 0, body = 2)
+
+    /** A black tea, folded: the radar over Röstung/Malz … Aroma (a green tea's is `tasteFoldedRadar`). */
+    @Test
+    fun tasteFoldedRadarOxidised() = capture(
+        "tasteFoldedRadarOxidised",
+        setPage(TasteSet.OXIDISED, oxidised),
+        scrollToTag = SESSION_TASTE_ADJUST_TAG,
+    )
+
+    /** A herbal tea, folded: the radar over Süße, Säure, Frische, Würze, Bitterkeit, Körper. */
+    @Test
+    fun tasteFoldedRadarHerbal() = capture(
+        "tasteFoldedRadarHerbal",
+        setPage(TasteSet.HERBAL, herbal),
+        scrollToTag = SESSION_TASTE_ADJUST_TAG,
+    )
+
+    /** A black tea, unfolded: *Was bedeuten die Regler?* folded above the six sliders. */
+    @Test
+    fun tasteUnfoldedOxidised() = capture(
+        "tasteUnfoldedOxidised",
+        setPage(TasteSet.OXIDISED, oxidised),
+        scrollToTag = SESSION_TASTE_ADJUST_TAG,
+        click = SESSION_TASTE_ADJUST_TAG,
+        thenScrollTo = INFUSION_TASTE_RESET_TAG,
+    )
+
+    /** A herbal tea, unfolded, with the info folded. */
+    @Test
+    fun tasteUnfoldedHerbal() = capture(
+        "tasteUnfoldedHerbal",
+        setPage(TasteSet.HERBAL, herbal),
+        scrollToTag = SESSION_TASTE_ADJUST_TAG,
+        click = SESSION_TASTE_ADJUST_TAG,
+        thenScrollTo = INFUSION_TASTE_RESET_TAG,
+    )
+
+    /** A herbal tea with the info unfolded: the how-to and the six entries of the set. */
+    @Test
+    fun tasteInfoUnfoldedHerbal() = capture(
+        "tasteInfoUnfoldedHerbal",
+        setPage(TasteSet.HERBAL, herbal),
+        scrollToTag = SESSION_TASTE_ADJUST_TAG,
+        click = SESSION_TASTE_ADJUST_TAG,
+        thenClick = TASTE_INFO_TAG,
+        thenScrollTo = TASTE_INFO_HOWTO_TAG,
     )
 
     /** The recipe offer applies: *Zeiten ins Rezept übernehmen* under the step table, scrolled into view (PRF-07). */

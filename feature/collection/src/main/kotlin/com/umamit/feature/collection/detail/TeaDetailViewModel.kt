@@ -385,7 +385,7 @@ class TeaDetailViewModel @Inject constructor(
             cost = costOf(stockEvents, recipeList, finished),
             rating = brew.tasting.rating,
             brewingRating = brew.tasting.brewingRating,
-            taste = DetailTasting.of(brew.tasting),
+            taste = DetailTasting.of(brew.tasting, tea.effectiveTasteSet),
             recentSessions = finished.sortedByDescending { it.startedAtMs }.take(RECENT_SESSIONS).map { it.recent() },
         )
     }
