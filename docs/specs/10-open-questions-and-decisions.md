@@ -324,7 +324,7 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-128"></a>
-### D-128 — v0.8.0 and v0.9.0 (planned): „Session" wording, taste sliders per kind of tea with an info section, the light timer, refresh progress in the settings, the Statistik ⋮ menu, #313; then export/import and shared recipes; 1.0 postponed (BRW-06, BRW-11, JRN-03, TEA-02, TMR-17, SET-05, SET-23, BAK-01, BAK-02, BAK-04, BAK-06; SCR-04, SCR-05, SCR-07, SCR-09, SCR-10, SCR-16, SCR-18, SCR-25, SCR-26; 03 §3.1, §3.8; 05 §3.1, §3.7, §5, §8, §9 v9; 08 §4a; supersedes D-012, amends D-036's „no in-app restore" and BAK-02/BAK-03/BAK-07) · *Proposed*: the PO's answers Q1–Q31 below are *Accepted (PO, 2026-11-17)*; the spec, tickets and plan wait for the PO's approval
+### D-128 — v0.8.0 and v0.9.0 (planned): „Session" wording, taste sliders per kind of tea with an info section, the light timer, refresh progress in the settings, the Statistik ⋮ menu, #313; then export/import and shared recipes; 1.0 postponed (GEN-04, BRW-06, JRN-03, TEA-02, SET-05, SET-23, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; SCR-04, SCR-05, SCR-07, SCR-09, SCR-10, SCR-16, SCR-18, SCR-25, SCR-26; 03 §2.2, §3.1, §3.7, §3.8; 05 §3.1, §3.7, §5, §8, §9 v9; 08 §4a; supersedes D-012, amends D-036's „no in-app restore" and BAK-02/BAK-03/BAK-07) · *Proposed*: the PO's answers Q1–Q31 below are *Accepted (PO, 2026-11-17)*; the spec, tickets and plan wait for the PO's approval
 
 **Context.** After `v0.7.2` the PO asked for nine things (session of 2026-11-17): (1) „Brühen starten" becomes „Session starten"; (2) „Sitzung" becomes „Session" everywhere; (3) a small foldable info section on the taste sliders; (4) other sliders for teas that are not green tea, above all herbal tea; (5) recipes can be shared; (6) a display bug: on Statistik the ⋮ menu opens at the left, not below the three dots; (7) *Jetzt aktualisieren* in the settings shows its progress there; (8) a light version of the timer; (9) data export and import. Issue #313 (found in v0.7.2) was to be triaged with the next release.
 
@@ -407,7 +407,7 @@ personal data or shop content).
 
 **Consequences.**
 
-- Specs changed in this session: 02 (BRW-06, BRW-11, JRN-03, TEA-02, TEA-05, TMR-17 note, SET-05, SET-23, BAK-01–BAK-06, the Won't table), 03 (§1, §3.1, §3.8, SCR-04, SCR-05, SCR-07, SCR-09, SCR-10, SCR-16, SCR-18, SCR-25, SCR-26), 04 (German copy), 05 (§3.1, §3.7, §5, §8, §9 v9), 08 (§4a), 09 (§2, §4 „v0.8.0", §5), 11, the README.
+- Specs changed in this session: 02 (GEN-04, BRW-06, JRN-03, TEA-02, SET-05, SET-23; planned for v0.9.0: BAK-01, BAK-02, BAK-04, BAK-06 and the new PRF-08), 03 (§1, §2.2, §3.1, §3.7 with the full wording list, §3.8 `TasteInfo`, SCR-04, SCR-05, SCR-07, SCR-09, SCR-10, SCR-16, SCR-25, SCR-26), 04 and 12 (German copy only), 05 (§3.1, §3.7, §5, §8, §9 v9), 08 (§4a), 09 (§2, §4 „v0.8.0", §5), 11, the README.
 - **Timer code changes in v0.8.0** (the light timer, the taste sheet, the wording in `feature:brew` and `core:timer`, #313): those tickets are T3 or higher, the timer tests of 04 §12 pass, the T4 timer review runs, and all three accuracy variants run before the rc and the final (09 §4a).
 - **A migration in v0.8.0** (umamit.db v9): T3, tested, the rc installs over `v0.7.2`.
 - v0.9.0 gets its own decision for whatever its specify session adds.

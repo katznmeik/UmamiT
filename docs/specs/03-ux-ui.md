@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.1, D-117: two ratings on SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18 and §3.8, transitions without stale frames in §3.6; v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SESSIONS, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal aufgießen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-11-17 (v0.8.0, D-128: the wording list in §3.7 and all German copy, the timer in the light theme in §3.1, SCR-05 and SCR-07, `TasteInfo` and the taste sets in §3.8, SCR-05, SCR-09, SCR-10 and SCR-16, the setup's titles on SCR-04, the anchored ⋮ in §2.2, refresh progress on SCR-25, SCR-26 planned for v0.9.0; 2026-11-14: v0.7.1, D-117: two ratings on SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18 and §3.8, transitions without stale frames in §3.6; v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SESSIONS, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal aufgießen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -21,7 +21,7 @@ The PO's brand mockup defines the **look and feel**. Its screens are
 | Mood | Calm, quiet, premium, Japanese tea house; generous whitespace | Principle "Calm over clever" |
 | Background | Warm off-white "washi paper" | `background`/`surface` tokens (§3.1) |
 | Primary colour | Deep matcha/olive green (*Start Steeping* card, FAB) | `primary` |
-| Dark surface | Deep forest green-black (timer) | Timer always uses the dark "Steeping" scheme |
+| Dark surface | Deep forest green-black (timer) | The dark "Steeping" scheme; until v0.7.2 the timer always used it, from v0.8.0 the timer follows *Design* (D-128) |
 | Display type | Elegant serif for titles and tea names | Display font Alegreya Sans (§3.2, D-110) |
 | Labels | Small, letter-spaced uppercase labels („ZULETZT GEBRÜHT") | `labelOverline` |
 | Imagery | Ink-wash mountains, tea leaves, moody tea photography | Illustrations + Tee-Kontor product photos |
@@ -120,6 +120,10 @@ Bottom navigation bar (navigation rail on wide screens):
 - Re-selecting a tab scrolls to top; a second re-select pops to its root (D-049);
   each tab keeps its back stack.
 - Settings via the gear on Start and the ⋮ menu of the other tabs.
+  **v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128), a fix):** the ⋮ menu opens anchored to its button on
+  every tab: below the three dots, its end edge on the button's. Until
+  v0.7.2 it opened at the screen's start on Statistik, whose header is a
+  full-width row (the menu had no anchor of its own).
 - **Settings closes on a tab switch** (D-104): when the tab being left has
   Settings in its back stack, the stack is popped to below the Settings entry,
   so Settings and everything opened from it (*Teegeschirr*, a vessel, *Über*,
@@ -173,7 +177,9 @@ First-pass values approximated from the mockup, to be finalized with the PO.
   generated from the seed colour `#4A5643` with material-color-utilities /
   Material Theme Builder. The values in the tables below are applied as
   **overrides** on top; roles not listed come from the generated scheme.
-- The timer always uses the dark ("Steeping") scheme.
+- Until v0.7.2 the timer always used the dark ("Steeping") scheme (D-012).
+  **From v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128)) the timer follows *Design* (SET-05)**: Steeping in
+  the dark theme, „Timer in the light theme" below in the light one.
 - **Extended tokens** that M3 has no role for are provided through a
   `CompositionLocal` (`UmamiExtendedColors`): warm accent `#D9A35F`
   (prominent overtime, as a non-text mark only: as text it is 1.97:1 on
@@ -200,7 +206,7 @@ First-pass values approximated from the mockup, to be finalized with the PO.
 | `outline` | `#D9D4C8` | Hairlines |
 | `error` | `#9E3B2F` | Errors (rare) |
 
-**Dark ("Steeping")** — dark theme and the timer screen in both themes.
+**Dark ("Steeping")** — the dark theme, the timer included (until v0.7.2 the timer screen in both themes).
 
 | Token | Hex | Usage |
 |---|---|---|
@@ -214,6 +220,29 @@ First-pass values approximated from the mockup, to be finalized with the PO.
 | `onSurface` | `#ECE8DE` | Text |
 | `onSurfaceVariant` | `#A9A99D` | Secondary text |
 | `outline` | `#4A544A` | Ring track |
+
+**Timer in the light theme (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)).** No mockup shows it, so these
+are the **starting values for the early design check** (Claude; the PO
+approves or changes them on rendered screens before the rest is built, and
+the approved values replace this table):
+
+| Element | Light timer | Note |
+|---|---|---|
+| Background | `background` `#F3F0E9` | Washi, as every light screen |
+| Digits, title, caption | `onSurface` `#2B2D27` | 12.2:1 |
+| Secondary text | `onSurfaceVariant` `#6B6A62` | ≈ 4.8:1 |
+| Ring progress | `primary` `#4A5643` | 6.8:1 against washi |
+| Ring track | `outline` `#D9D4C8` | 1.3:1, decorative; the progress carries the information |
+| *Pause* / *Weiter* / *Starten* pill | `primary` with `onPrimary` | „Green on light" (`PillButton`, §3.8) |
+| ← and ⋮ circles | `surface` at 60 % with `onSurface` icons | As on Steeping, on the light band |
+| Liquor fill | To settle in the check | The green liquors are 1.2–1.4:1 on washi (hōjicha 3.2:1), so today's fill would hardly show; the check renders a deeper fill for the light timer. The fill is decoration: the ring and the digits carry the state |
+| Pre-alert glow and tick | As today, in `primary` | Must stay visible on washi |
+| Sheets (Geschmack, Schritte, Timer-Einstellungen) | The light scheme's `surface` | As every light sheet |
+| Ink-wash band A13 | To settle in the check | A13 is drawn for the dark surface. The check shows it in ink on washi; if that does not hold, a light picture is needed from the PO (prompt in `docs/design/assets.md`) |
+| Seal | Unchanged: washi disc, thin ink ring | On washi the ring and a soft shadow set it off |
+| Alert | Unchanged in both themes | Washi ↔ matcha, ink content (D-046, D-128 Q22) |
+
+Every value is checked by the contrast test (NFR-A11Y-02) in both themes.
 
 **Type colours** (chips, chart series; always with a label): Gyokuro
 `#5F7F45`, Kabusecha `#6C8A4F`, Sencha `#7C9A5B`, Fukamushi `#8AA463`,
@@ -462,6 +491,36 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 - Alert: „Jetzt abgießen!"
 - Pre-alert caption: „Gleich fertig …"
 
+<a id="wording-v080"></a>
+**Wording: Session, Aufguss, aufgießen (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)).** A brew from setup
+to *Session beenden* is a **Session**; **Aufguss** is one infusion; the app
+does not say „Sitzung" or „brühen". Every text that changed:
+
+| Until v0.7.2 | From v0.8.0 | Where |
+|---|---|---|
+| Sitzung, Sitzungen (every text) | Session, Sessions | Everywhere: „Session beenden", „Session verwerfen?", „LETZTE SESSIONS", „12 Sessions", „Erst die Sencha-Session beenden?", „Schritte für diese Session", the channel „Sessions" |
+| Brühen (screen title) | **Neue Session**; **Session anpassen** when opened from a running timer's ⋮ | SCR-04 |
+| Brühen starten | Session starten | SCR-04 |
+| Brühen (button) | Session starten | SCR-09 |
+| Brühen anpassen | Session anpassen | SCR-05 ⋮ |
+| Nochmal brühen | Nochmal aufgießen | SCR-02 (TalkBack) |
+| So nochmal brühen | So nochmal aufgießen | SCR-16 |
+| Weiter brühen | Weiter aufgießen | SCR-05, „Session verwerfen?" |
+| Zuletzt gebrüht | Zuletzt aufgegossen | SCR-02, the sort on SCR-08 |
+| Zuletzt gebrüht am … / Noch nie gebrüht | Zuletzt aufgegossen am … / Noch nie aufgegossen | SCR-09 (TalkBack) |
+| Gebrüht / Gebrüht am …: … g verbraucht | Aufgegossen / Aufgegossen am …: … g verbraucht | SCR-29 |
+| nicht gebrüht | nicht aufgegossen | SCR-16 step table |
+| Jede Tasse, die du brühst, erscheint hier von selbst. | Jede Tasse, die du aufgießt, erscheint hier von selbst. | SCR-15 empty state |
+| Brühe deinen ersten Tee, dann wächst hier deine Tee-Reise. | Gieß deinen ersten Tee auf, dann wächst hier deine Tee-Reise. | SCR-18 empty state |
+| Bildschirm beim Brühen anlassen | Bildschirm beim Aufguss anlassen | SCR-25 |
+| Brühen & Vorrat | Aufguss & Vorrat | SCR-25 section |
+| … wird beim Brühen nicht angeboten. | … wird beim Aufguss nicht angeboten. | SCR-14 |
+| Brühen und die Teeauswahl nehmen dieses Rezept. | Neue Sessions und die Teeauswahl nehmen dieses Rezept. | SCR-12 |
+| Brühtimer (notification channel) | Aufguss-Timer | Android's notification settings; the channel id stays |
+
+Unchanged: *Aufguss starten* (the Start card), „Dashi / brühig" (a taste
+word). Resource names and code keep `brew` and `session`.
+
 ### 3.8 Core components
 
 | Component | Description |
@@ -474,6 +533,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `PillButton` | Cream on dark / green on light; ink with washi text on the alert surface |
 | `KettleHint` | Kettle icon + „Wasserkocher auf 60 °C" |
 | `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named. From v0.6.0 (D-112): `RatingStars` is the one rating input (sheet and session page): five stars, 48 dp targets, a tap sets whole stars, a second tap on the same star takes half off, a third clears; a half star draws half filled; a light tick per change; TalkBack „Bewertung, 3,5 von 5 Sternen" / „Bewertung, keine", adjustable in half steps, action „Bewertung entfernen". Read-only it is the text „★ 4,5". From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) a session has two: a row takes a label at its left („Tee", „Zubereitung"; body font, `onSurfaceVariant`), TalkBack „Tee-Bewertung, 3,5 von 5 Sternen" / „Zubereitung, keine", actions „Tee-Bewertung entfernen" / „Zubereitung entfernen"; read-only in rows it is „Tee ★ 4,5 · Zubereitung ★ 3,5" (only the set one; wraps after „·" at large font). `TasteSlider`: 0–5 in whole steps, „–" while unset. **The slim slider** (from v0.6.0, [D-113](10-open-questions-and-decisions.md#d-113); `TasteSlider` and the settings' *Lautstärke*, one look in `core:designsystem`): a pin handle of 3 × 20 dp, corners 1.5 dp, `primary` (4 × 24 dp while pressed or dragged); a 2 dp line with round caps, `primary` up to the handle and `outlineVariant` beyond it, with a 4 dp gap on each side of the handle; stop dots of 3 dp in `onSurfaceVariant` on the part beyond the handle only; the touch target stays 48 dp high. An unset `TasteSlider` shows a short mark of 1.5 × 10 dp in `onSurfaceVariant` at the left end and no `primary` line, so it differs from a set 0. `TasteRadar`: six axes (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma), drawn from three set axes on, unset axes at the centre; TalkBack reads the values as a list |
+| `TasteInfo` (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)) | `core:ui`. A foldable row above the taste sliders: ⓘ, „Was bedeuten die Regler?", a chevron; 48 dp high, the whole row is the button (TalkBack: „Was bedeuten die Regler?, eingeklappt / ausgeklappt"). Unfolded: the how-to (three short sentences), then per slider of the set shown its name (`titleSmall`), one line and „0 = … · 5 = …" (`bodySmall`, `onSurfaceVariant`); texts in [08 §4a](08-content.md#4a-taste-sets-and-the-slider-info). It folds with the fold's tokens (§3.6: `sheet` for the height, `fade`; reduce motion: no height animation). Always folded when its host opens. `TasteSlider`s and `TasteRadar` take the set's six axes in the set's order |
 | `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen". `FreshnessChip` (v0.4.1, `core:designsystem`): *Frisch* on `primaryContainer`, *Bald genießen* on `secondaryContainer` (as *Knapp*), *Über dem Höhepunkt* on `surfaceContainerHigh`; a compact size in SCR-03 |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
 | `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings. **Two brews (v0.5.0, D-108):** two brew sessions take the halves the same way, in the slot order (`BREW`, `BREW_2`), each with its step; a held brew shows „wartet" (TalkBack: „*Kamille*, Aufguss 1 von 2 fertig, wartet auf den anderen Aufguss") |
@@ -642,6 +702,11 @@ kind the list has no group headers, as before.
 └──────────────────────────────┘
 ```
 
+**Title (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)):** „Neue Session" when a brew is being started
+(from Start, a tea, the picker, *So nochmal aufgießen*); „Session anpassen"
+when the setup was opened from a running timer's ⋮ (*Session anpassen*).
+The button is *Session starten* in both.
+
 „Rezept prüfen" badge with reason above the steps if flagged (the same note as
 SCR-21's, D-088). *Bearb.* and
 the *Vorwarnung* row open the Schritte-Sheet (SCR-31). Steppers: leaf ± 0,1 g, water to the next 5 ml;
@@ -702,7 +767,13 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 
 ### SCR-05 Timer
 
-Always dark ("Steeping"), edge-to-edge, keeps the screen on. At the end of a
+Edge-to-edge, keeps the screen on. **Theme (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)):** the timer
+follows *Design* (SET-05): the dark „Steeping" scheme in the dark theme
+(unchanged, the only look until v0.7.2) and „Timer in the light theme"
+(§3.1) in the light one. That holds for this screen, SCR-07, the sheets on
+them (Geschmack, SCR-31, Timer-Einstellungen) and the cover shown while a
+timer opens; „the Steeping surface" below means the timer's surface in the
+theme in effect. The alert surface is the same in both. At the end of a
 step it is brought up by the full-screen intent (TMR-06) and shown **over the
 lock screen** (`setShowWhenLocked(true)`, `setTurnScreenOn(true)`); unlocking
 is only needed to leave the timer.
@@ -715,7 +786,8 @@ new alert before that cancels the close at once (v0.7.1, D-117 build note
 „Lock screen").
 
 The status-bar icons and the gesture handle follow the surface, not the phone's
-theme: light on the dark Steeping surface (also SCR-07), dark on the washi/matcha
+theme: light on the dark Steeping surface (also SCR-07), dark on the light
+timer surface (v0.8.0) and on the washi/matcha
 alert; the app theme's own on every other screen. The root sets them from the
 route on top, never the screens themselves
 ([D-069](10-open-questions-and-decisions.md#d-069)). On the timer's own
@@ -870,6 +942,12 @@ timer screen offers the taste of the infusion ended last (JRN-03, JRN-05):
   value is not saved (Claude, T4 review nit 6); a value that was not
   stored (a write refused or failed) is not kept on screen: the sheet shows
   the stored one again.
+- **Taste sets and the info (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)).** The sheet's six sliders are
+  the six of the tea's taste set, in the set's order (JRN-03, 08 §4a); a
+  black tea's sheet starts with Röstung/Malz. Between the title and the
+  first slider sits `TasteInfo` (§3.8), folded whenever the sheet opens.
+  Unfolded, the sheet scrolls; *Fertig* stays pinned. An alert closes the
+  sheet in its first frame as before, folded or not.
 - **Rule 8.** The pre-alert leaves the sheet open; an alert of any slot
   closes it (and the keyboard) in its first frame, a write already started
   completes, nothing entered is lost. The sheet never delays, covers or
@@ -953,7 +1031,7 @@ is as above (an alert removes it in the same frame, rule 8).
 
 ### SCR-07 Schnelltimer
 
-Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00 and, from v0.2.2, 8:00 (wrapping onto a second row when needed); from v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)) 1:00 · 2:00 · 3:00 · 5:00 · 8:00 · 10:00 · 15:00, opening at 1:00, with polish 2 and the band rule re-checked at font 2.0; tap time for a duration picker; *Start*;
+Themed like SCR-05 (dark until v0.7.2; from v0.8.0 it follows *Design*, D-128), with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00 and, from v0.2.2, 8:00 (wrapping onto a second row when needed); from v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)) 1:00 · 2:00 · 3:00 · 5:00 · 8:00 · 10:00 · 15:00, opening at 1:00, with polish 2 and the band rule re-checked at font 2.0; tap time for a duration picker; *Start*;
 while running *Pause*/*Weiter*; on alert *Fertig*; overflow *Abbrechen*
 ([04 §10](04-brew-timer.md#10-quick-timer)).
 
@@ -1201,6 +1279,9 @@ v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)):
 - **Hero:** a tap opens the photo viewer (SCR-28) on the photo shown.
 - **GESCHMACK:** the radar averages every infusion of every session per
   axis (JRN-03).
+- **v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128)):** the radar shows the six axes of the tea's taste set
+  (JRN-03) and averages only those. The sticky button reads *Session
+  starten* (§3.7).
 
 ### SCR-10 Tee bearbeiten
 
@@ -1225,6 +1306,14 @@ nothing in the running session.
   today by default and never later (as SCR-23); a price needs a package
   („Zum Preis gehört eine Packung."). The editor sits in the Sammlung stack;
   after an add, the new tea's detail replaces it, *Sorte wählen* included.
+- **Geschmacksprofil (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128); TEA-02):** in *Allgemein*, after the
+  Sorte, a menu „Geschmacksprofil" with „Automatisch (nach Kategorie)"
+  (the default; its supporting line names the set in effect, e.g. „Kräuter
+  · Rotbusch · Früchte"), „Grüntee", „Schwarz · Oolong · Pu-Erh" and
+  „Kräuter · Rotbusch · Früchte". Under it: „Bestimmt die sechs
+  Geschmacksregler dieses Tees. Eingetragene Werte bleiben erhalten."
+  A Sorte change keeps the choice; with „Automatisch" the set follows the
+  new Kategorie.
 - **Frische (v0.4.1, #179):** a section after *Kauf* with *Geöffnet am*
   (empty: „Nicht gesetzt", hint „Leer: noch ungeöffnet.") and *Haltbar bis*.
   Each is a date button that opens Material's date picker, with *Entfernen*
@@ -1472,6 +1561,12 @@ v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)):
 │   Anpassen               ⌄   │  folded; unfolds sliders, note, Zurücksetzen
 ```
 
+- **Taste sets and the info (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)).** The sliders, the radar and
+  the folded line („Süße 3 · Frische 4") use the six axes of the tea's
+  taste set (JRN-03, 08 §4a); values outside the set are not shown.
+  `TasteInfo` (§3.8) sits above the sliders, inside *Anpassen*'s fold, and
+  is folded whenever the page opens or an infusion chip is tapped. The
+  action below the step table reads *So nochmal aufgießen*.
 - **GESCHMACK per infusion.** Without any value: the quiet row „Geschmack
   hinzufügen" as in v0.6.0; a tap shows the chips with the 1st infusion
   selected and unfolded. With values: a chip row (`FilterChip`s, scrolling
@@ -1975,13 +2070,32 @@ in place and recolours in one frame, also for the phone's own night switch
 under *System* (D-117 build note A-08), so the dialog
 never shows again after a pick (PO, 2026-11-12, motion review M21). The timer, the quick timer and the alert surface stay as they
 are (Steeping, washi/matcha); the status-bar icons follow D-069 on the
-chosen theme.
+chosen theme. **From v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128))** the timer and the quick timer follow
+the pick too (SET-05, §3.1); only the alert surface stays as it is.
+
+**Katalog, progress (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128); SET-23).** While a refresh runs, the
+row „Letzter Abruf" reads „Wird gerade aktualisiert …", *Jetzt
+aktualisieren* is disabled, and under it show a linear progress bar
+(indeterminate until the page count is known, then pages read of pages
+found) and one line with the same text as SCR-22's progress line. When the
+refresh ends, the line shows SCR-22's result text (e.g. the number of teas,
+or why it stopped) until the settings are left, and „Letzter Abruf" shows
+the new date. TalkBack announces the result once (a polite live region),
+never each count. The bar and line take their height with the fold's
+tokens (§3.6); reduce motion: they appear at once.
 
 ### SCR-26 Daten & Sicherung
 
 Device-backup explanation, *Sicherung erstellen* (BAK-01), (Could) CSV
 export, *Alle Daten löschen*. No in-app restore in 1.x (BAK-02 `Won't`,
 D-036).
+
+**Planned for v0.9.0 ([D-128](10-open-questions-and-decisions.md#d-128); amends D-036):** *Sicherung erstellen* and
+*Sicherung einspielen* (a replacing import with preview, the typed word
+„ERSETZEN", a full check of the file first, „Import rückgängig machen",
+refused while a timer is active), the line „Letzte Sicherung: … · N neue
+Sessions", *Journal als CSV*. The screen is specified in v0.9.0's specify
+session.
 
 ### SCR-27 Über
 

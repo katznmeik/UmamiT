@@ -1,6 +1,6 @@
 # UmamiT — Specifications
 
-> Status: **Draft v0.2 — for review** · Last updated: 2026-11-14 (v0.7.1 bullet, D-117; 2026-11-13: v0.7.0 bullet, D-115; 2026-11-12: v0.6.1 bullet, D-114; 2026-11-11: journal bullet, D-112)
+> Status: **Draft v0.2 — for review** · Last updated: 2026-11-17 (v0.8.0 and v0.9.0 bullets, D-128; 2026-11-14: v0.7.1 bullet, D-117; 2026-11-13: v0.7.0 bullet, D-115; 2026-11-12: v0.6.1 bullet, D-114; 2026-11-11: journal bullet, D-112)
 
 Product and technical specification of **UmamiT**, a personal Android app
 for brewing tea, focused on umami-rich Japanese green teas. It provides a
@@ -49,6 +49,7 @@ releases are dispatched and verified).
   - waits for your tap between infusions
   - Pause is the only control while running
   - pre-alert tick: global default 10 s, overridable per recipe
+  - dark until v0.7.2; from v0.8.0 it follows *Design* (D-128)
   - alert follows the ringer mode; full-screen alert turns the screen on
   - Live Update on lock screen (Now Bar best effort)
   - exact alarms plus a foreground service
@@ -81,8 +82,14 @@ releases are dispatched and verified).
     gets a Tee/Zubereitung switch, two Verlauf lines and Bestes Rezept by
     Zubereitung; a transition audit with a CI frame metric
     (NFR-PERF-12). — D-116, D-117
-- **Backup:** Android device backup plus a simple manual export; no in-app
-  restore in 1.x. — D-022, D-036
+  - v0.8.0 (planned, waiting for the PO's approval) says „Session" for
+    „Sitzung" and „aufgießen" / „Aufguss" for „brühen"; teas get one of
+    three taste sets of six sliders by kind, with a foldable info on the
+    sliders (umamit.db v9); the timer follows *Design*, so it has a light
+    version; refresh progress in the settings; the ⋮ menu fix. — D-128
+- **Backup:** Android device backup. A manual export **and a replacing
+  import** are planned for v0.9.0, with recipes shared as text plus a
+  file; 1.0 starts only on the PO's go. — D-022, D-036, D-128
 - **Navigation:** Start · Journal · Sammlung · Statistik. — D-018
 - **Stack:** Kotlin, Jetpack Compose, Material 3, Room, Hilt, OkHttp and
   Jsoup; min SDK 35. — D-003, D-023

@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.2** · Last updated: 2026-11-14 (Tee / Zubereitung ratings, D-117; 2026-11-13: Serie, Zeitraum, Tageszeit, D-115; 2026-11-12: catalog kind default, infusion taste, D-114; 2026-11-09: active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
+> Status: **Draft v0.2** · Last updated: 2026-11-17 (Session, Aufguss, aufgießen, taste set, D-128; 2026-11-14: Tee / Zubereitung ratings, D-117; 2026-11-13: Serie, Zeitraum, Tageszeit, D-115; 2026-11-12: catalog kind default, infusion taste, D-114; 2026-11-09: active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
 
 ## Tea terms
 
@@ -26,7 +26,7 @@
 | **Tamaryokucha** (玉緑茶) | Curly-leaf green tea from Kyushu. |
 | **Bancha** (番茶) | Later-harvest Japanese green tea; lighter, low in umami. |
 | **Kamairicha** (釜炒り茶) | Pan-fired (not steamed) Japanese green tea. |
-| **Aufguss** | German for infusion/steep. **Ziehzeit**: steep time. **Kaltaufguss**: cold brew. |
+| **Aufguss** | German for infusion/steep: **one** infusion of a session („2. Aufguss"). From v0.8.0 (D-128) the app says „aufgießen" and „Aufguss" where it said „brühen" (*Nochmal aufgießen*, *Aufguss & Vorrat*); a whole brew is a **Session**. **Ziehzeit**: steep time. **Kaltaufguss**: cold brew. |
 | **Kyusu** (急須) | Japanese teapot, typically with a side handle. |
 | **Houhin** (宝瓶) | Small handleless teapot, often used for gyokuro. |
 | **Shiboridashi** (絞り出し) | Handleless brewing vessel with a notched lid. |
@@ -75,7 +75,8 @@
 | **Brew profile** | A per-tea recipe: method, leaf, water, temperature, steps. |
 | **Step** | One timed part of a profile/session. Its kind is *Aufguss* (infusion), *Spülen* (rinse: poured away, not a brewed step) or *Aufschlagen* (whisking matcha). |
 | **Set time / measured time** | A step's set time is the duration it ran with (*geplant*, including Schritte-Sheet changes); its measured time runs until *Abgegossen* (*tatsächlich*, including any overtime). Brewing again uses set times. |
-| **Session** | One brewing occasion recorded in the journal; its detail page (SCR-16) opens from a journal entry. |
+| **Session** | One brewing occasion recorded in the journal; its detail page (SCR-16) opens from a journal entry. Also the German word in the app from v0.8.0 (D-128; „Sitzung" until v0.7.2): *Session starten*, *Session beenden*, the setup „Neue Session" / „Session anpassen". |
+| **Taste set (Geschmacksprofil)** | From v0.8.0 (D-128): the six taste sliders a tea has. Three sets: Grüntee; Schwarz · Oolong · Pu-Erh; Kräuter · Rotbusch · Früchte (08 §4a). From the tea's Kategorie unless its *Geschmacksprofil* names another (TEA-02). |
 | **Nochmal aufgießen / So nochmal aufgießen** | *Nochmal aufgießen* (Start, BRW-11) is the tap on one of the six teas under *Zuletzt aufgegossen* (v0.5.1, D-110; until v0.5.0 a section of three tiles): it starts the tea at once in READY with its last session's values. *So nochmal aufgießen* (on a session's detail page, from v0.4.0) opens the brew setup with that session's values as brewed, to check before *Start*. |
 | **Quick timer (Schnelltimer)** | A countdown without a tea; nothing is recorded (TMR-22). Not a session. |
 | **Active timer** | A brew session or a quick timer that is running, paused, waiting or alerting. At most **two** at the same time from v0.5.0: two brew sessions, or one brew session and one quick timer; a tea has at most one active session (D-108). v0.3.0–v0.4.1: one brew session and one quick timer; until then one active timer in total. |

@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.1, D-117: `brew_session.brewing_rating` and umamit.db v8, `statsRankingBy`, `brewingRating` in the backup's sessions; v0.7.0-rc.3, D-115 A2: `cupSizeMl` retired, no longer read, no migration; 2026-11-13: v0.7.0-rc.2, D-115 A1: `cupSizeMl`, `statsRange` custom months, `statsFolded`, no Room change; v0.7.0: settings `statsRange` values and `statsTab`, no schema change, D-115; 2026-11-12: v0.6.1: taste and a note per infusion in `session_step`, umamit.db v7, D-114; 2026-11-11: v0.6.0: tasting writes, `EditSession`, the recipe offer's flags, `session_descriptor` and umamit.db v6, session photos, no `custom_descriptor` and no `session_fts`, `offerRecipeUpdate` retired, D-112; 2026-10-22: session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
+> Status: **Draft v0.2** · Last updated: 2026-11-17 (v0.8.0, D-128: `tea.taste_set`, four more taste columns on `session_step`, `TasteSet` and `TasteAxis`, umamit.db v9, the backup's new fields; 2026-11-14: v0.7.1, D-117: `brew_session.brewing_rating` and umamit.db v8, `statsRankingBy`, `brewingRating` in the backup's sessions; v0.7.0-rc.3, D-115 A2: `cupSizeMl` retired, no longer read, no migration; 2026-11-13: v0.7.0-rc.2, D-115 A1: `cupSizeMl`, `statsRange` custom months, `statsFolded`, no Room change; v0.7.0: settings `statsRange` values and `statsTab`, no schema change, D-115; 2026-11-12: v0.6.1: taste and a note per infusion in `session_step`, umamit.db v7, D-114; 2026-11-11: v0.6.0: tasting writes, `EditSession`, the recipe offer's flags, `session_descriptor` and umamit.db v6, session photos, no `custom_descriptor` and no `session_fts`, `offerRecipeUpdate` retired, D-112; 2026-10-22: session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -62,6 +62,7 @@ Table `tea`
 | `style_key` | TEXT | | Built-in style; null = other |
 | `tea_type` | TEXT | | Display type, e.g. „Gyokuro" (from catalog *Sorte* or style) |
 | `category` | TEXT | ✓ | `TeaCategory` |
+| `taste_set` | TEXT | | **From v9 (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)):** `TasteSet` by name, null = from `category` (*Geschmacksprofil* „Automatisch", TEA-02). The table's last column |
 | `form` | TEXT | ✓ | `TeaForm` |
 | `umami_level` | TEXT | | `UmamiLevel`; null = style's |
 | `is_flavored` | INTEGER | ✓ | aromatisiert |
@@ -207,6 +208,18 @@ used for the infusion note. Every other write of a step row (the timer's
 of a partial entity without these seven columns (`SessionStepTimerColumns`),
 so it can never overwrite them; `ReplacePendingSteps` deletes and inserts
 only unstarted rows, which have none.
+
+**From schema v9 (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128))** four more taste columns for the other
+taste sets: `taste_roast`, `taste_acidity`, `taste_freshness`,
+`taste_spice` (INTEGER 0–5, null = unset; the row's last columns). They
+follow the rules of the six above: written only by the taste write on an
+ended row that is not *Spülen*, and left out of `SessionStepTimerColumns`,
+so no timer or editor write can touch them. Which six of the ten columns a
+screen shows is the tea's taste set (`TasteSet.axes`, 08 §4a): the tea's
+`taste_set`, else the set of its `category`; for a session whose tea is
+gone, the set of the session's snapshot `category` (null or `OTHER`:
+`GREEN`). A column outside the set shown keeps its value and is read by no
+radar or average. *Zurücksetzen* clears the six of the set shown only.
 
 `(session_id, position)` is unique; positions run 0…n−1.
 
@@ -612,6 +625,8 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | Enum | Values |
 |---|---|
 | `TeaCategory` | `GREEN`, `WHITE`, `YELLOW`, `OOLONG`, `BLACK`, `DARK`, `HERBAL`, `ROOIBOS`, `FRUIT`, `OTHER` (`ROOIBOS` and `FRUIT` from v0.5.0, #206: the shop's Rotbusch and Früchtetee; stored by name, so no schema change. A chai takes its base tea's category, else `OTHER`) |
+| `TasteSet` (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)) | `GREEN` (categories `GREEN`, `WHITE`, `YELLOW`, `OTHER`), `OXIDISED` (`OOLONG`, `BLACK`, `DARK`), `HERBAL` (`HERBAL`, `ROOIBOS`, `FRUIT`); stored by name in `tea.taste_set`; each has six `TasteAxis` in a fixed order (08 §4a) |
+| `TasteAxis` | `UMAMI`, `SWEETNESS`, `BITTERNESS`, `ASTRINGENCY`, `BODY`, `AROMA`; from v0.8.0 `ROAST`, `ACIDITY`, `FRESHNESS`, `SPICE` (not stored: each is a `session_step` column) |
 | `TeaForm` | `LOOSE_LEAF`, `POWDER`, `TEA_BAG`, `COMPRESSED` |
 | `UmamiLevel` | `NONE`, `LOW`, `MEDIUM`, `HIGH`, `VERY_HIGH` |
 | `HarvestSeason` | `FIRST_FLUSH`, `SECOND_FLUSH`, `SUMMER`, `AUTUMN`, `WINTER`, `UNKNOWN` |
@@ -717,7 +732,10 @@ Time rounding for derived recipes: nearest 5 s (half up).
   inventoryEvents, photos, and from v0.2.2 catalogBookmarks (camelCase
   fields mirroring §3). From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) sessions carry `rating` (Tee) and
   `brewingRating` (Zubereitung); `formatVersion` stays 1, since no export
-  file exists before BAK-01 (M5).
+  file exists before BAK-01. From v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128)) teas carry `tasteSet`
+  (absent or null = from the category) and sessionSteps `tasteRoast`,
+  `tasteAcidity`, `tasteFreshness`, `tasteSpice` beside the six. Export
+  and import are planned for **v0.9.0** (D-128), no longer M5.
 - **Restore (post-1.0, BAK-02 `Won't` for 1.x, D-036):** if built later,
   restore validation covers ZIP limits and zip-slip protection,
   manifest/version check, checksums, types/enums, constraints, referential
@@ -939,6 +957,27 @@ infusion, `MIGRATION_6_7` in `UMAMI_MIGRATIONS`:
   (`check-frozen-schemas.sh`). A device backup of a v7 database is migrated
   on open like any other (§8). The v0.7.1 rc checklist installs it over
   v0.7.0 (09 §4).
+
+**umamit.db v9 (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)).** One schema step for the taste sets,
+`MIGRATION_8_9` in `UMAMI_MIGRATIONS`:
+- `ALTER TABLE tea ADD COLUMN taste_set TEXT` (nullable, the last column).
+- `ALTER TABLE session_step ADD COLUMN taste_roast INTEGER`, then
+  `taste_acidity`, `taste_freshness`, `taste_spice` (nullable, in this
+  order, the last columns).
+- **No row is rewritten.** The six existing taste columns keep every value,
+  also on sessions of teas whose set no longer shows them (D-128 Q16);
+  `taste_set` starts null everywhere, so each tea takes its category's set.
+  Running timers keep their `active_brew` rows and alert on time (rule 8).
+- One transaction, never destructive. Tests: `Migration8To9Test` from a
+  populated v8 database (a green and a herbal tea, each with a finished
+  session that has all six taste values and an infusion note; a session of
+  a deleted tea; a session in progress with its `active_brew` row and a
+  quick timer); every row and value checked, the new columns null, then
+  opened with the production builder. `SchemaVersionsTest` opens v1–v9; the
+  v1–v8 JSON keep their version and identity hash
+  (`check-frozen-schemas.sh`). A device backup of a v8 database is migrated
+  on open like any other (§8). The v0.8.0 rc checklist installs it over
+  v0.7.2 (09 §4).
 
 **catalog.db and the black teas (v0.5.0, D-108, #203).** No schema change:
 a black tea is a `catalog_tea` row told apart by its style key (one of the

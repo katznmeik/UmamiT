@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-14 (v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-17 (v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -86,6 +86,15 @@ At most one brew session or quick timer is active at any time.
 **GEN-04 — German & metric** `Must`
 UI language German (`de-DE`) only; units °C, g, ml; German number, date and
 time formats (e.g. „21. Okt. 2026", „4,5 g").
+- **Wording (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)):** a brew from setup to *Session beenden* is a
+  **„Session"** (never „Sitzung"); **„Aufguss"** is one infusion. The app
+  does not say „brühen": actions use „aufgießen" (*Nochmal aufgießen*, *So
+  nochmal aufgießen*, „Zuletzt aufgegossen"), things about a whole session
+  use „Session" (*Session starten*, *Session anpassen*, the setup's title
+  „Neue Session"), the rest uses „Aufguss" (*Aufguss & Vorrat*, „Bildschirm
+  beim Aufguss anlassen", the channel „Aufguss-Timer"). The Start card stays
+  *Aufguss starten*; the taste word „Dashi / brühig" stays. The full list:
+  [03 §3.7](03-ux-ui.md#wording-v080).
 
 **GEN-05 — Undo for destructive actions** `Should`
 Deletions show a snackbar „Gelöscht · Rückgängig" for 5 s. Multi-object or
@@ -590,6 +599,10 @@ date, best before, storage note), *Notizen*.
   price only when a tea is added) and *Notizen*. Invalid values (an empty
   name, a harvest year in the future) show at the field and *Speichern*
   refuses them; ✕ with unsaved changes asks GEN-08's question.
+- **v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128)):** *Allgemein* gets **„Geschmacksprofil"** after the
+  Sorte: „Automatisch (nach Kategorie)" (the default) or one of the three
+  taste sets (JRN-03). It decides which six sliders the tea's sessions
+  show; changing it deletes no value.
 - **v0.4.1:** photos (TEA-05) and the opened and best-before dates
   (INV-06). Tags are not planned (TEA-07).
   - **Dates (#179):** a section *Frische* with *Geöffnet am* and *Haltbar
@@ -851,6 +864,17 @@ First duration + increment × count, optional +5 °C per step.
     the new catalog recipes at new positions, so a finished session's recipe
     link may point to a different catalog recipe after a reset.
 
+**PRF-08 — Share a recipe** `Should` (planned for v0.9.0, [D-128](10-open-questions-and-decisions.md#d-128))
+A recipe's ⋮ shares **one recipe** through the Android share sheet: a
+readable German text (tea, recipe name, leaf, water, vessel type, each
+infusion's temperature and time) with a small recipe file attached. The
+file carries the steps, leaf, water and vessel type, the tea's name and
+kind and, for a catalog tea, its shop link (the link only; never shop text
+or photos). An UmamiT install that opens the file offers „Rezept
+übernehmen": for the same tea if it is in the collection, else for a tea
+the user picks or creates; always as a new recipe. The app uses no network
+for it and needs no new permission. Details: v0.9.0's specify session.
+
 **PRF-07 — Learn from sessions** `Must` (v0.6.0, [D-112](10-open-questions-and-decisions.md#d-112))
 After a session with **deliberate changes**, *Zeiten ins Rezept übernehmen*
 offers to write them into the recipe used: on the „Gespeichert" sheet
@@ -1010,6 +1034,11 @@ from v0.4.0 on; an older session prefills only its stored steps, Q-19,
 D-100) with its kind,
 temperature and Vorwarnung; never the measured time. The recipe is changed
 only by *Im Rezept speichern*.
+- **v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128), #313):** a setup opened for a session whose tea no longer
+  exists (the session's tea reference is empty) shows the not-found state
+  and never fails. No path opens it today (*So nochmal aufgießen* is
+  disabled for a deleted tea; *Session anpassen* belongs to a running
+  session, whose tea cannot be deleted); the guard is for later changes.
 - **Recipe:** the session's recipe while it exists; otherwise *Ohne
   Rezept*, and *Im Rezept speichern* saves a new recipe. *Ohne Rezept* keeps
   the session's own Vorwarnung base B, and so does the new recipe (D-101).
@@ -1367,6 +1396,31 @@ radar chart on the session page and, as the average, on the tea detail.
     never delayed; values released before it are stored.
   - AC3: After the update a v0.6.0 session shows its taste under
     „1. Aufguss" and the tea's radar is unchanged.
+- **v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128)): three taste sets.** Which six sliders show depends on
+  the tea ([08 §4a](08-content.md#4a-taste-sets-and-the-slider-info)):
+  **Grüntee** (Grün, Weiß, Gelb, and *Sonstige*): the six above.
+  **Schwarz · Oolong · Pu-Erh:** Röstung/Malz, Süße, Bitterkeit,
+  Adstringenz, Körper, Aroma. **Kräuter · Rotbusch · Früchte:** Süße,
+  Säure, Frische, Würze, Bitterkeit, Körper. The set comes from the tea's
+  Kategorie unless its *Geschmacksprofil* names another (TEA-02). A session
+  shows the set its tea has **now**; a session whose tea was deleted takes
+  the Kategorie it stored. Everything above holds per set: the radar, the
+  average, *Zurücksetzen* (the six of the set shown), the timer's sheet.
+  - Values on sliders outside the set shown are kept and not shown; they
+    count in no radar or average. They show again when the tea's set has
+    that slider again. The update deletes and moves nothing (umamit.db v9
+    only adds columns, 05 §9).
+  - AC4: A herbal tea's session rated before the update with Umami 3,
+    Süße 2 and Körper 4 shows Süße 2 and Körper 4 and the other four unset.
+    With *Geschmacksprofil* „Grüntee" on that tea, Umami 3 shows again.
+  - AC5: A black tea's timer sheet offers Röstung/Malz first and no Umami;
+    its values are on the session page and in the tea's radar afterwards.
+- **v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128)): the slider info.** Above the sliders, in both places
+  where taste is entered (SCR-05's sheet, SCR-16), a foldable row „Was
+  bedeuten die Regler?" shows a short how-to and, per slider of the set
+  shown, one line and what 0 and 5 mean (texts: 08 §4a). It is folded
+  whenever the sheet or the page opens; nothing is stored. On the timer it
+  never delays an alert (AC2 holds with the info unfolded).
 
 **JRN-04 — Descriptors** `Should` (v0.6.0)
 Multi-select chips from the German vocabulary ([08 §4](08-content.md#4-tasting-descriptor-vocabulary));
@@ -1889,7 +1943,7 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 
 | ID | Setting (German label) | Values / default | Priority |
 |---|---|---|---|
-| SET-05 | Design (*System / Hell / Dunkel*; from v0.6.1 in the section *Darstellung*, D-114) | System | Must |
+| SET-05 | Design (*System / Hell / Dunkel*; from v0.6.1 in the section *Darstellung*, D-114; from v0.8.0 the timer screens follow it too, [D-128](10-open-questions-and-decisions.md#d-128)) | System | Must |
 | SET-06 | Hintergrundfarben verwenden (dynamic colour) | aus | Could |
 | SET-09 | Alarmton | Bundled tones (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft; synthesised, D-036) — Klangschale | Must |
 | SET-10 | Vorwarnung (pre-alert; the base B of TMR-23's automatic rule) | Aus, 5, 10, 15, 20, 25, 30 s — **10 s** | Must |
@@ -1909,7 +1963,7 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 | SET-19 | Wöchentliche Vorrats-Erinnerung (INV-07; freshness only from v0.3.0, D-098) | aus | Could |
 | SET-20 | Backup-Erinnerung (manual export) | Aus / Monatlich — Monatlich | Should |
 | SET-22 | Katalog: Fotos laden | an | Should |
-| SET-23 | Katalog: letzter Abruf, *Jetzt aktualisieren* | — | Must |
+| SET-23 | Katalog: letzter Abruf, *Jetzt aktualisieren*; from v0.8.0 the running refresh's progress and its result show under the button ([D-128](10-open-questions-and-decisions.md#d-128)) | — | Must |
 | SET-24 | Timer-Zuverlässigkeit (status of notification, Live Update, full-screen alert, battery, exact alarm, and from v0.3.0 the alarm volume, with *Beheben* links) | — | Must |
 
 **SET-30 — Sections** `Must`: *Timer & Alarm*, *Aufguss & Vorrat*, *Katalog*,
@@ -1917,6 +1971,30 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 Alle Daten löschen), *Über* (→ SCR-27). From v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114))
 *Darstellung* is the first section, below the *Timer-Zuverlässigkeit* card,
 and holds *Design* (SET-05).
+
+**SET-05, the timer (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128); supersedes D-012).** The timer screens
+(SCR-05, SCR-07, the sheets on them and the cover shown while a timer
+opens) use the app's theme: *Hell* gives a light timer, *Dunkel* a dark
+one, *System* follows the phone. The alert surface is the same in both
+(washi and matcha with ink content, D-046). The light colours are settled
+in an early design check on rendered screens (03 §3.1).
+- AC1: With *Design* „Hell", starting a session from Start shows no dark
+  screen at any moment: the setup, the cover, READY, RUNNING and the sheets
+  are light.
+- AC2: With *Design* „Dunkel" every timer golden is unchanged from v0.7.2.
+- AC3: Text and controls on the light timer meet NFR-A11Y-02 (4.5:1 text,
+  3:1 large text and components), the pre-alert state included.
+
+**SET-23, progress (v0.8.0, [D-128](10-open-questions-and-decisions.md#d-128)).** While a refresh runs, *Einstellungen*
+› *Katalog* shows under the disabled *Jetzt aktualisieren* a progress bar
+and the same progress line as the Katalog's refresh sheet (SCR-22); when
+it ends, the result line of that sheet (the number of teas, or why it
+stopped) until the settings are left. A refresh started elsewhere (the
+Katalog tab, Einrichtung) shows the same way. There is no *Abbrechen* here.
+- AC1: A tap on *Jetzt aktualisieren* shows the bar within one second and
+  the counts as they change, without leaving the settings.
+- AC2: Opening the settings while a refresh from the Katalog tab runs shows
+  the running progress, not „Noch nie" or the old date alone.
 
 **SET-31 — Test alert** `Must`: *Alarm testen* plays pre-alert tick + alert
 (the chosen *Vorwarnton*, SET-26, from v0.2.1; from v0.3.0 on the alarm
@@ -1933,19 +2011,32 @@ Database and settings participate in Android Auto Backup / Samsung & Google
 device backup and device-to-device transfer. Catalog photos and own photos are
 excluded (size limit; catalog photos can be re-downloaded).
 
-**BAK-01 — Manual export** `Should`
+**Planned for v0.9.0 ([D-128](10-open-questions-and-decisions.md#d-128); amends D-036):** export **and import** leave
+M5. The PO's answers: import **replaces** everything after a preview and a
+typed confirmation; the file holds everything personal with the own
+photos; the system file picker for both; the file is fully checked before
+anything changes; an automatic safety copy with „Import rückgängig machen"
+(until the next import or for 7 days); no import while a timer is active;
+the backup reminder, a „Letzte Sicherung" line and a journal CSV come with
+it. The requirements below get their final text in v0.9.0's specify
+session.
+
+**BAK-01 — Manual export** `Should` (v0.9.0)
 *Sicherung erstellen* writes a simple `.umamit` ZIP file (personal data and
 settings as JSON plus own photos; catalog excluded) via the system file
 picker. Format: [05 §8](05-data-model.md#8-backup-file-format).
 
-**BAK-02 — Restore** `Won't` (1.x; post-1.0 backlog as `Could`, D-036)
+**BAK-02 — Restore** `Should` (v0.9.0, [D-128](10-open-questions-and-decisions.md#d-128); `Won't` for 1.x until then,
+D-036)
 In-app restore of a `.umamit` file with validation, preview, safety backup
-and atomic replace. Until then, data comes back via Android device backup
+and atomic replace: *Sicherung einspielen* replaces all personal data and
+settings. Until it ships, data comes back via Android device backup
 (BAK-05); the export file is readable JSON.
 
-**BAK-04 — CSV export** `Could`
+**BAK-04 — CSV export** `Should` (v0.9.0, [D-128](10-open-questions-and-decisions.md#d-128)): the journal as CSV, one
+row per session; export only.
 
-**BAK-06 — Backup reminder** `Should`
+**BAK-06 — Backup reminder** `Should` (v0.9.0)
 Monthly low-importance reminder to create a manual export if there are ≥ 20
 new sessions since the last export.
 
