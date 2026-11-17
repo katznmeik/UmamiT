@@ -28,6 +28,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.abs
 
 /**
  * A theme change while a timer shows (*System* at night, *Design* changed in Timer-Einstellungen; SET-05, D-128 Q20)
@@ -143,7 +144,7 @@ class TimerThemeChangeTest {
     }
 
     private fun Color.distanceTo(other: Color): Float =
-        maxOf(kotlin.math.abs(red - other.red), kotlin.math.abs(green - other.green), kotlin.math.abs(blue - other.blue))
+        maxOf(abs(red - other.red), abs(green - other.green), abs(blue - other.blue))
 
     private companion object {
         const val ALERT_HALF_CYCLE_MILLIS = 750L

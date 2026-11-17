@@ -284,10 +284,10 @@ internal fun SettingsRepository.themeMode(): Flow<ThemeMode> =
     settings.map { it.theme }.catch { emit(ThemeMode.SYSTEM) }.distinctUntilChanged()
 
 /**
- * The app theme's choice as state, following the settings at once; null until the file is read, and the app
- * draws *System* until then. Nothing waits for it (rule 8: a start into the timer or the alert never blocks on
- * the theme; the timer, its cover and the window background follow the app's theme from v0.8.0, SET-05, D-128 Q20).
- * No flash of the other theme still: the settings hand the stored choice to the system too (`UiModeManager.setApplicationNightMode`,
+ * The app theme's choice as state, following the settings at once; null until the file is read, and the app draws
+ * *System* until then. Nothing waits for it (rule 8: a start into the timer or the alert never blocks on the theme; the
+ * timer, its cover and the window background follow the app's theme from v0.8.0, SET-05, D-128 Q20). No flash of the
+ * other theme still: the settings hand the stored choice to the system too (`UiModeManager.setApplicationNightMode`,
  * SET-05, D-114) when the *Design* dialog closes and whenever they show with no alert, so the starting window and the
  * configuration *System* reads are already in the chosen theme. The activity handles the night switch in place
  * (`configChanges="uiMode"`, D-117 build note A-08): Compose reads the new configuration and recolours in one frame.

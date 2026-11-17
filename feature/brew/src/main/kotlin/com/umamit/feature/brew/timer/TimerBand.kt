@@ -90,8 +90,8 @@ private const val SEAL_LEAF_FRACTION = 0.5f
 private const val BAND_FADE_START = 0.35f
 
 /**
- * Ink on washi (light timer, 03 §3.1 „Ink-wash band A13", D-128 item 34): the luma of A13's dark paper (≈ 30 of 255) becomes the
- * background, its brightest bamboo (≈ 140) [BAND_INK_STRENGTH] of the way to the ink.
+ * Ink on washi (light timer, 03 §3.1 „Ink-wash band A13", D-128 item 34): the luma of A13's dark paper (≈ 30 of
+ * 255) becomes the background, its brightest bamboo (≈ 140) [BAND_INK_STRENGTH] of the way to the ink.
  */
 private const val BAND_PAPER_LUMA = 30f
 private const val BAND_LEAF_LUMA = 140f

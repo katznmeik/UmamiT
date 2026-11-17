@@ -68,8 +68,8 @@ private val RemainingLineHeight = 32.sp
  * does a bar that arrives already alerting (rule 8).
  *
  * **ALERTING** ([ActiveBrew.alerting]): the bar turns static matcha (in the light app static sage,
- * [barAlertColors], D-128 item 38) on the next frame (`alertEnter`, no transition) with ink content, „Jetzt abgießen!" in
- * place of the step and the overtime counting up („+0:07"); the mini ring is
+ * [barAlertColors], D-128 item 38) on the next frame (`alertEnter`, no transition) with ink content,
+ * „Jetzt abgießen!" in place of the step and the overtime counting up („+0:07"); the mini ring is
  * full, in ink, without liquor. It does not pulse: the full alert is the timer
  * screen, which a tap on the bar opens. Rule 8: nothing in the bar delays or
  * softens that state.
