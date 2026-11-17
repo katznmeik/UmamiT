@@ -771,7 +771,8 @@ follows *Design* (SET-05): the dark „Steeping" scheme in the dark theme
 (§3.1) in the light one. That holds for this screen, SCR-07, the sheets on
 them (Geschmack, SCR-31, Timer-Einstellungen) and the cover shown while a
 timer opens; „the Steeping surface" below means the timer's surface in the
-theme in effect. The alert surface is the same in both. At the end of a
+theme in effect. The alert surface pulses washi ↔ matcha in the dark timer and washi ↔ sage in the light one
+(§3.1, D-128 item 36). At the end of a
 step it is brought up by the full-screen intent (TMR-06) and shown **over the
 lock screen** (`setShowWhenLocked(true)`, `setTurnScreenOn(true)`); unlocking
 is only needed to leave the timer.
@@ -791,7 +792,10 @@ route on top, never the screens themselves
 ([D-069](10-open-questions-and-decisions.md#d-069)). On the timer's own
 transitions they flip at the fade's midpoint (v0.7.1, D-117 build note A-16):
 150 ms into `fade` on setup → timer, 100 ms into `exitFade` on timer → shell;
-an alert flips them at once (`alertEnter`).
+an alert flips them at once (`alertEnter`). From v0.8.0 the timer is in the
+app's theme, so setup → timer and timer → shell no longer change them; the
+cover shown while a notification opens the timer is the timer's background
+in the app's theme too (washi with *Design* „Hell", SET-05 AC1).
 
 **Ink-wash band and tea seal (v0.2.1, [D-095](10-open-questions-and-decisions.md#d-095)).**
 The top is our own ink-wash picture A13 (`docs/design/assets.md`; a bamboo
