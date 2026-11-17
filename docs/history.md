@@ -11,6 +11,15 @@
 
 ## Releases and plans
 
+### v0.7.2: released (2026-11-17)
+
+- **PO approval (2026-11-17, in the session and on #312):** the checklist 09 §4 „v0.7.2" was ticked on the rc.1 comment of #312 (edited 06:43 UTC); the orchestrator found no reply with words, asked, and the PO answered „Yes, approved" (checklist and design review; the unchanged goldens stand in, plan §„Release"). No rc.2.
+- **Version:** `umamit.version=0.7.2` (versionCode 70299) in `a536b004`; CI green on the PR head (run 44036384159). Merged as PR #312 into `main` with a merge commit (`c5f19e8e`); CI green on it (run 44039016121).
+- **Accuracy on `c5f19e8e` (09 §4a, API 36, 50 steps, full SHA), all PASS on the first attempt:** standard (run 44039026445), alongside (run 44039030588), two-brews (run 44039033997).
+- **Release:** run 44048604027 with `RELEASE_TOKEN` (D-118), [`v0.7.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2) from `main` `c5f19e8e` (not a pre-release, tag on the merge commit; versionCode 70299, APK SHA-256 `efc2cca6…20fa` = the release digest of the downloaded APK). `scripts/verify-release-apk.sh` on that APK: signature valid, certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`, `com.umamit.app` 0.7.2 / 70299, not debuggable.
+- #296–#310 closed. Working branch restarted from `main`.
+- **Session 14 usage (Sonnet `medium` orchestrator, no subagents):** about 60 tool calls, mostly waiting on CI, accuracy and the release run; not measured from the transcript (the session had no usage readout).
+
 ### v0.7.2: #309 done, rc.1 published (2026-11-17)
 
 - **Session 13 (Opus `medium` orchestrator, no subagents):** `umamit.version=0.7.2-rc.1` (`a8f78d4f`, versionCode 70201); the proof on that commit, recorded on #312: goldens and `core/database/schemas` vs `main` empty (1085 tracked goldens, so the pathspec matched), DataStore keys = the #297 baseline (36 keys, `schemaVersion` 3), `check-frozen-schemas.sh` (179 files), `SchemaVersionsTest` (3 tests), `checkManifestPermissions`, `verifyRoborazziDebug`, the full local gate PASS, the 04 §12 timer tests 263 / 512 / 707 (1 skipped) counted from the result XMLs.
@@ -680,6 +689,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-17 | **v0.7.2 session 14 (#310: the PO's approval, merge, final):** the PO approved checklist and design review; PR #312 merged (`c5f19e8e`), CI and all three accuracy variants PASS on it; `v0.7.2` released (70299, certificate verified); #296–#310 closed. Next: the PO decides the next release. |
 | 2026-11-17 | **v0.7.2 session 13 (#309: the proof, accuracy, rc.1):** the proof on `a8f78d4f` all clean (recorded on #312), full local gate PASS, CI green, all three accuracy variants PASS; `v0.7.2-rc.1` released (70201, certificate verified), checklist to the PO on #312. Next: #310 after the PO's check. |
 | 2026-11-16 | **v0.7.2 session 11 (execution part 4, #308's alert-path group):** TMR-A-14, -01, -11, -12, -13 and D-126 (DAT-A-14, TMR-A-06) by seven T3 implementers, at most two at a time on disjoint files. Each step was verified (diff, proof; 04 §12 counts 263/512/707 unchanged on four landed heads) and pushed in three groups, each green on CI before the next. #308 is done. Usage: orchestrator 115 requests, 21.7 M cache read, 0.19 M cache write, 48 k output; seven implementers 77 requests, 5.7 M cache read, 0.93 M cache write, 39 k output (from the transcripts, before the final handover turn). Next: the T3 milestone review and the T4 timer review, then #309. |
 | 2026-11-16 | **v0.7.2 session 10 (execution part 3, #308 groups 1 and 2):** 20 timer-path steps by four T3 implementers in two lanes each, verified per step and on the combined head (diff, proof, 04 §12 test counts 263/512/707 unchanged), CI green (API 36 jank flake once, rerun green). PO answers as options, in #308: one `UnlockedDevice.kt` in a shared androidTest folder; UI-A-07's fix action generic in `core:ui`; DAT-A-03 via a public `FakeCollection.deleteTeaRows`. Possible crash filed as #313. Usage: orchestrator ≈ 105 requests, 20.5 M cache read, 0.21 M cache write, 46 k output; four implementers 317 requests, 44.0 M cache read, 2.42 M cache write, 167 k output (from the transcripts). Next: #308's alert-path group in one session. |
