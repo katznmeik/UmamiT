@@ -32,7 +32,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -71,6 +73,7 @@ import com.umamit.feature.brew.quick.QuickTimerSpace
 private val TimerPillMinHeight = 72.dp
 private val TimerPillMinWidth = 200.dp
 private val OvertimeDotSize = 10.dp
+private val OvertimeDotRingWidth = 1.dp
 private const val PAUSED_RING_ALPHA = 0.6f
 private const val PLACEHOLDER_TEMPERATURE = 100
 private const val PLACEHOLDER_STEP = 10
@@ -466,7 +469,17 @@ private fun TimerBelowRing(state: TimerUiState.Active, now: Long, leafAndWater: 
     }
 }
 
-/** „+0:07"; from 15 s on „+2:30 überzogen", large, in ink with a warm-accent dot (TMR-06, D-055). */
+/** The overtime dot's tag (SCR-05). */
+const val TIMER_OVERTIME_DOT_TAG = "timer_overtime_dot"
+
+/** Whether the overtime dot carries the ink ring: true on the light timer only (D-128 item 40). */
+internal val OvertimeDotRingKey = SemanticsPropertyKey<Boolean>("OvertimeDotRing")
+
+/**
+ * „+0:07"; from 15 s on „+2:30 überzogen", large, in ink with a warm-accent dot (TMR-06, D-055). On the light timer
+ * the dot gets a 1 dp ring in full ink outside it (the warm dot is about 1.1:1 on sage; D-128 item 40); the ring is
+ * drawn outside the dot's bounds, so the dot and the layout stay as they are. The dark timer's dot is unchanged.
+ */
 @Composable
 private fun Overtime(seconds: Int) {
     val description = stringResource(R.string.brew_timer_overtime_description, spokenDuration(seconds))
@@ -483,9 +496,23 @@ private fun Overtime(seconds: Int) {
             modifier = semantics.padding(horizontal = UmamiSpacing.SideMargin),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val ring = !UmamiTheme.isDark
+            val ink = UmamiTheme.extendedColors.alert.content
             Box(
                 modifier = Modifier
+                    .testTag(TIMER_OVERTIME_DOT_TAG)
+                    .semantics { this[OvertimeDotRingKey] = ring }
                     .size(OvertimeDotSize)
+                    .then(
+                        if (ring) {
+                            Modifier.drawBehind {
+                                val width = OvertimeDotRingWidth.toPx()
+                                drawCircle(ink, radius = size.minDimension / 2 + width / 2, style = Stroke(width))
+                            }
+                        } else {
+                            Modifier
+                        },
+                    )
                     .background(UmamiTheme.extendedColors.warmAccent, CircleShape),
             )
             Spacer(Modifier.size(UmamiSpacing.Small))

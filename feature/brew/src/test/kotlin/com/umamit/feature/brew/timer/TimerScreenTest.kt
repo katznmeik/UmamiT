@@ -4,6 +4,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -65,11 +67,11 @@ class TimerScreenTest {
     private var start = 0L
     private val clock: () -> Long = { NOW + compose.mainClock.currentTime - start }
 
-    private fun show(initial: TimerUiState.Active) {
+    private fun show(initial: TimerUiState.Active, darkTheme: Boolean? = null) {
         state = initial
         start = compose.mainClock.currentTime
         compose.setContent {
-            UmamiTheme(reduceMotion = true) {
+            UmamiTheme(darkTheme = darkTheme ?: isSystemInDarkTheme(), reduceMotion = true) {
                 TimerScreen(
                     state = state,
                     nowElapsedMs = clock,
@@ -146,6 +148,25 @@ class TimerScreenTest {
         compose.onNodeWithText("Abgegossen").performClick()
 
         assertThat(events).containsExactly(TimerEvent.Poured)
+    }
+
+    /** The ring flag of every overtime dot in the tree (the status line can be composed more than once). */
+    private fun overtimeDotRings(dark: Boolean): Set<Boolean> {
+        show(TimerStates.alerting(overtimeMs = 150_000), darkTheme = dark)
+        return compose.onAllNodesWithTag(TIMER_OVERTIME_DOT_TAG, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .map { it.config[OvertimeDotRingKey] }
+            .toSet()
+    }
+
+    @Test
+    fun `the prominent overtime dot has the ink ring on the light timer (SCR-05, D-128 item 40)`() {
+        assertThat(overtimeDotRings(dark = false)).containsExactly(true)
+    }
+
+    @Test
+    fun `the prominent overtime dot has no ring on the dark timer (SCR-05, SET-05)`() {
+        assertThat(overtimeDotRings(dark = true)).containsExactly(false)
     }
 
     @Test
