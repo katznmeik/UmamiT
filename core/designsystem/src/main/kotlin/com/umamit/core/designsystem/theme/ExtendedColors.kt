@@ -48,6 +48,9 @@ data class TeaTypeColors(
  * [matcha], and [content] stays readable on both (13.5:1 on washi, 4.55:1 on
  * matcha). Under reduce motion it is static [matcha]. The luminance swing
  * washi ↔ matcha is 2.97:1, so the pulse is strong, at 0.67 cycles per second.
+ *
+ * [matcha] is the pulse's strong phase: matcha `#6B9845` everywhere except in the light timer, where
+ * [TimerTheme] provides [LightTimerAlertColors] and it is sage `#AEBF8D` (D-128 item 36).
  */
 @Immutable
 data class AlertColors(val washi: Color, val matcha: Color, val content: Color)
@@ -98,5 +101,16 @@ val DefaultExtendedColors = UmamiExtendedColors(
         content = Color(0xFF1F271B),
     ),
 )
+
+/**
+ * The light timer's alert (03 §3.1 „Timer in the light theme", D-128 item 36): washi ↔ sage `#AEBF8D` with the
+ * same ink content, pill and circles. Ink on sage is 7.8:1; the swing washi ↔ sage is 1.73:1, a softer pulse than
+ * the dark timer's, accepted by the PO. Only [TimerTheme] in the light theme provides it; the dark timer and every
+ * surface outside the timer (the active-brew bar) keep [DefaultExtendedColors]' matcha (D-046).
+ */
+val LightTimerAlertColors = DefaultExtendedColors.alert.copy(matcha = Color(0xFFAEBF8D))
+
+/** The extended colours of the light timer: [DefaultExtendedColors] with [LightTimerAlertColors]. */
+internal val LightTimerExtendedColors = DefaultExtendedColors.copy(alert = LightTimerAlertColors)
 
 val LocalUmamiExtendedColors = staticCompositionLocalOf { DefaultExtendedColors }

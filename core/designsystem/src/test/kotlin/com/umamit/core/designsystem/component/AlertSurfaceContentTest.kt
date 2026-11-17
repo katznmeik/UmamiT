@@ -15,8 +15,10 @@ import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
+import com.umamit.core.designsystem.theme.LightTimerAlertColors
 import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.TEXT_CONTRAST
+import com.umamit.core.designsystem.theme.TimerTheme
 import com.umamit.core.designsystem.theme.UI_CONTRAST
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.designsystem.theme.contrast
@@ -88,6 +90,35 @@ class AlertSurfaceContentTest {
             assertWithMessage("no liquor inside the alert").that(resolved.ring.liquorAlpha).isEqualTo(0f)
         }
         assertThat(byTheme.keys).containsExactly(false, true)
+    }
+
+    @Test
+    fun `in the light timer the default ring, pill and text keep their contrast on washi and sage`() {
+        lateinit var resolved: Resolved
+        compose.setContent {
+            TimerTheme(darkTheme = false, reduceMotion = true) {
+                AlertSurface {
+                    resolved =
+                        Resolved(TimerRingDefaults.colors(), PillButtonDefaults.colors(), LocalContentColor.current)
+                }
+            }
+        }
+        compose.waitForIdle()
+        val sage = LightTimerAlertColors
+        assertThat(resolved.pill.containerColor).isEqualTo(sage.content)
+        assertThat(resolved.pill.contentColor).isEqualTo(sage.washi)
+        mapOf("washi" to sage.washi, "sage" to sage.matcha).forEach { (phase, surface) ->
+            assertWithMessage("text, $phase").that(contrast(resolved.contentColor, surface)).isAtLeast(TEXT_CONTRAST)
+            assertWithMessage("digits, $phase").that(contrast(resolved.ring.content, surface)).isAtLeast(TEXT_CONTRAST)
+            assertWithMessage("caption, $phase").that(contrast(resolved.ring.caption, surface)).isAtLeast(TEXT_CONTRAST)
+            assertWithMessage("ring, $phase").that(contrast(resolved.ring.progress, surface)).isAtLeast(UI_CONTRAST)
+            assertWithMessage("marker, $phase").that(contrast(resolved.ring.marker, surface)).isAtLeast(UI_CONTRAST)
+            assertWithMessage("pill, $phase").that(contrast(resolved.pill.containerColor, surface))
+                .isAtLeast(UI_CONTRAST)
+        }
+        assertWithMessage("pill label").that(contrast(resolved.pill.contentColor, resolved.pill.containerColor))
+            .isAtLeast(TEXT_CONTRAST)
+        assertWithMessage("no liquor inside the alert").that(resolved.ring.liquorAlpha).isEqualTo(0f)
     }
 
     @Test

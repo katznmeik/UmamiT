@@ -1,10 +1,16 @@
 package com.umamit.feature.brew.timer
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -16,6 +22,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import com.umamit.core.designsystem.component.ActiveBrew
+import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.motion.MotionTokens
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepTasting
@@ -40,7 +48,8 @@ import java.io.File
 
 /**
  * Record-only renders of the light timer for the PO's design check (v0.8.0-08 #323, D-128 Q23): every state in the
- * light app theme at 384 × 832 dp, the same states dark for comparison, and the alternatives of the two open rows of
+ * light app theme at 384 × 832 dp (the alarm at full sage and at its washi phase, and the active-brew bar's alert in
+ * the light app, #325), the same states dark for comparison, and the alternatives of the two open rows of
  * 03 §3.1 side by side (the band A13 in ink on washi against a plain washi top; the liquor fill as today against a
  * deeper one). The seal shows a synthetic tea photo (D-016). They are written to
  * `docs/design/review/v0.8.0/light-timer/` and are no goldens: skipped unless the Gradle property
@@ -59,6 +68,8 @@ class LightTimerDesignCheckTest(private val dark: Boolean) {
         fun parameters(): List<Array<Any>> = listOf(false, true).map { arrayOf<Any>(it) }
 
         private const val OUTPUT_PROPERTY = "umamit.designCheckOutputDir"
+        private const val ALERT_HALF_CYCLE_MILLIS = 750L
+        private const val BAR_SETTLED_MILLIS = 1_000L
     }
 
     @get:Rule
@@ -142,9 +153,55 @@ class LightTimerDesignCheckTest(private val dark: Boolean) {
         ) { Brew(state) }
     }
 
-    /** Unchanged in both themes (D-046, D-128 Q22): the matcha phase. */
+    /** The first frame, the strong phase: sage in the light timer (D-128 item 36), matcha in the dark (D-046). */
     @Test
     fun alarm() = render("alarm") { Brew(TimerStates.alerting(overtimeMs = 7_000)) }
+
+    /** Half a cycle later, the washi phase of the light timer's sage alarm (D-128 item 36). */
+    @Test
+    fun alarmWashi() {
+        assumeFalse("The re-render is for the light timer's sage alarm", dark)
+        render(
+            "alarm-washi",
+            afterFirstFrame = {
+                compose.mainClock.advanceTimeBy(ALERT_HALF_CYCLE_MILLIS)
+                compose.waitForIdle()
+            },
+        ) { Brew(TimerStates.alerting(overtimeMs = 7_000)) }
+    }
+
+    /**
+     * The active-brew bar's alert state in the light app, outside the timer: its colours are unchanged (static matcha
+     * with ink, `ActiveBrewBar`), shown beside the sage alarm for the PO (#325).
+     */
+    @Test
+    fun appBarAlert() {
+        assumeFalse("The bar is shown in the light app", dark)
+        render(
+            "app-bar-alert",
+            afterFirstFrame = {
+                compose.mainClock.advanceTimeBy(BAR_SETTLED_MILLIS)
+                compose.waitForIdle()
+            },
+        ) {
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                ActiveBrewBar(
+                    brew = ActiveBrew(
+                        title = "Gyokuro Asahi",
+                        step = "Aufguss 2/4",
+                        stepDescription = "Aufguss 2 von 4",
+                        remainingSeconds = 0,
+                        liquorColor = UmamiTheme.extendedColors.liquor.green,
+                        alerting = true,
+                        overtimeSeconds = 7,
+                    ),
+                    progress = { 1f },
+                    onClick = {},
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+        }
+    }
 
     @Test
     fun schnelltimerVorStart() = render("schnelltimer-bereit") {

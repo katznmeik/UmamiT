@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.AlertSurface
 import com.umamit.core.designsystem.theme.AlertColors
+import com.umamit.core.designsystem.theme.LightTimerAlertColors
 import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.TimerTheme
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -118,6 +119,28 @@ class TimerTopBarTest {
         assertThat(colors.icon).isEqualTo(alert.washi)
         listOf(alert.washi, alert.matcha).forEach { phase ->
             assertThat(contrast(colors.icon, colors.circle.compositeOver(phase))).isAtLeast(3.0)
+        }
+    }
+
+    @Test
+    fun `on the light timer's sage alarm the circles are ink with washi icons in both pulse phases`() {
+        lateinit var colors: TimerTopBarColors
+        lateinit var alert: AlertColors
+        compose.setContent {
+            UmamiTheme(darkTheme = false, reduceMotion = true) {
+                TimerTheme(reduceMotion = true) {
+                    alert = UmamiTheme.extendedColors.alert
+                    AlertSurface { colors = TimerTopBarDefaults.colors() }
+                }
+            }
+        }
+        compose.waitForIdle()
+        assertThat(alert).isEqualTo(LightTimerAlertColors)
+        assertThat(colors.circle).isEqualTo(alert.content)
+        assertThat(colors.icon).isEqualTo(alert.washi)
+        listOf(alert.washi, alert.matcha).forEach { phase ->
+            assertThat(contrast(colors.circle, phase)).isAtLeast(3.0)
+            assertThat(contrast(colors.icon, colors.circle.compositeOver(phase))).isAtLeast(4.5)
         }
     }
 

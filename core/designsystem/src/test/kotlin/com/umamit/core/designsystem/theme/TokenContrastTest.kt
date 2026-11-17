@@ -2,6 +2,7 @@ package com.umamit.core.designsystem.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
@@ -162,5 +163,33 @@ class TokenContrastTest {
         val alert = DefaultExtendedColors.alert
         assertWithMessage("ink on washi").that(contrast(alert.content, alert.washi)).isAtLeast(TEXT_CONTRAST)
         assertWithMessage("ink on matcha").that(contrast(alert.content, alert.matcha)).isAtLeast(TEXT_CONTRAST)
+    }
+
+    /**
+     * The light timer's sage alarm (D-128 item 36) meets D-055's thresholds in both pulse phases: ink text ≥ 4.5:1,
+     * the ink pill and ink circles ≥ 3:1 against the surface, their washi label and icons ≥ 4.5:1 on ink.
+     */
+    @Test
+    fun `the light timer's sage alarm is readable at both ends of the pulse`() {
+        val alert = LightTimerAlertColors
+        assertThat(alert.matcha).isEqualTo(Color(0xFFAEBF8D))
+        assertThat(alert.washi).isEqualTo(DefaultExtendedColors.alert.washi)
+        assertThat(alert.content).isEqualTo(Color(0xFF1F271B))
+        mapOf("washi" to alert.washi, "sage" to alert.matcha).forEach { (phase, surface) ->
+            assertWithMessage("ink text on $phase").that(contrast(alert.content, surface)).isAtLeast(TEXT_CONTRAST)
+            assertWithMessage("ink pill and circles on $phase").that(contrast(alert.content, surface))
+                .isAtLeast(UI_CONTRAST)
+        }
+        assertWithMessage("washi label and icons on ink").that(contrast(alert.washi, alert.content))
+            .isAtLeast(TEXT_CONTRAST)
+        assertWithMessage("ink on sage (03 §3.1)").that(contrast(alert.content, alert.matcha)).isWithin(0.05).of(7.8)
+    }
+
+    @Test
+    fun `the light timer's pulse swings 1,73 to 1, the dark timer's stays washi to matcha`() {
+        assertWithMessage("washi ↔ sage").that(contrast(LightTimerAlertColors.washi, LightTimerAlertColors.matcha))
+            .isWithin(RATIO_TOLERANCE).of(1.73)
+        assertWithMessage("the dark timer and the app keep matcha").that(DefaultExtendedColors.alert.matcha)
+            .isEqualTo(Color(0xFF6B9845))
     }
 }

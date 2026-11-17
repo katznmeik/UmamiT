@@ -17,7 +17,9 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
+import com.umamit.core.designsystem.theme.LightTimerAlertColors
 import com.umamit.core.designsystem.theme.SteepingTheme
+import com.umamit.core.designsystem.theme.TimerTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,6 +79,23 @@ class AlertAndGlowGuardrailTest(private val animatorScale: Float) {
         assertThat(alertColor().distanceTo(alert.washi)).isLessThan(SAME)
         compose.mainClock.advanceTimeBy(HALF_CYCLE_MILLIS)
         assertThat(alertColor().distanceTo(alert.matcha)).isLessThan(SAME)
+    }
+
+    @Test
+    fun `the light timer's sage pulse keeps its cycle whatever the animator scale`() {
+        val sage = LightTimerAlertColors
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            TimerTheme(darkTheme = false, reduceMotion = false) {
+                AlertSurface(modifier = Modifier.size(40.dp).testTag(TAG)) {}
+            }
+        }
+        assertThat(alertColor().distanceTo(sage.matcha)).isLessThan(SAME)
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeBy(HALF_CYCLE_MILLIS)
+        assertThat(alertColor().distanceTo(sage.washi)).isLessThan(SAME)
+        compose.mainClock.advanceTimeBy(HALF_CYCLE_MILLIS)
+        assertThat(alertColor().distanceTo(sage.matcha)).isLessThan(SAME)
     }
 
     private var tick by mutableStateOf<Long?>(null)
