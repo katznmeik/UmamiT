@@ -88,7 +88,9 @@ data class BrewSessionEntity(
  * step's pre-alert choice in this session: null *Automatisch*, 0 *Aus*, else 5–30 s. The `taste_*` columns and
  * `tasting_note` (schema v7, JRN-03, JRN-05, D-114) are the infusion's taste (0–5 each, null = unset) and its short
  * note (≤ 200, trimmed, never blank); only the column-level tasting writes set them, on an ended row that is not
- * *Spülen*. The timer's and the editor's row writes go through [SessionStepTimerColumns], which leaves them out.
+ * *Spülen*. `taste_roast`, `taste_acidity`, `taste_freshness` and `taste_spice` (schema v9, D-128, the row's last
+ * columns) follow the same rules. The timer's and the editor's row writes go through [SessionStepTimerColumns], which
+ * leaves all ten and the note out.
  */
 @Entity(
     tableName = "session_step",
@@ -127,6 +129,10 @@ data class SessionStepEntity(
     @ColumnInfo(name = "taste_body") val tasteBody: Int? = null,
     @ColumnInfo(name = "taste_aroma") val tasteAroma: Int? = null,
     @ColumnInfo(name = "tasting_note") val tastingNote: String? = null,
+    @ColumnInfo(name = "taste_roast") val tasteRoast: Int? = null,
+    @ColumnInfo(name = "taste_acidity") val tasteAcidity: Int? = null,
+    @ColumnInfo(name = "taste_freshness") val tasteFreshness: Int? = null,
+    @ColumnInfo(name = "taste_spice") val tasteSpice: Int? = null,
 ) {
     /** The columns the timer and the session editor write: every column but the infusion's taste and note. */
     fun timerColumns() = SessionStepTimerColumns(
@@ -152,8 +158,8 @@ data class SessionStepEntity(
 
 /**
  * A partial [SessionStepEntity] for `@Update(entity = SessionStepEntity::class)`: every column but the infusion's
- * taste and `tasting_note` (schema v7, D-114), so a timer or editor write of a row can never overwrite what the
- * tasting writes stored on it (05 §3.7 „Infusion tasting writes").
+ * ten taste columns and `tasting_note` (schema v7, D-114; v9, D-128), so a timer or editor write of a row can never
+ * overwrite what the tasting writes stored on it (05 §3.7 „Infusion tasting writes").
  */
 data class SessionStepTimerColumns(
     @ColumnInfo(name = "id") val id: String,

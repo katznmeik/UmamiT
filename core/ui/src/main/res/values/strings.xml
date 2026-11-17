@@ -124,6 +124,10 @@
     <string name="ui_taste_astringency">Adstringenz</string>
     <string name="ui_taste_body">Körper</string>
     <string name="ui_taste_aroma">Aroma</string>
+    <string name="ui_taste_roast">Röstung/Malz</string>
+    <string name="ui_taste_acidity">Säure</string>
+    <string name="ui_taste_freshness">Frische</string>
+    <string name="ui_taste_spice">Würze</string>
     <!-- The value of an untouched slider (unset is not 0). -->
     <string name="ui_taste_unset">–</string>
     <string name="ui_taste_not_set">nicht gesetzt</string>

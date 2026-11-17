@@ -35,7 +35,7 @@ fun tasteSliderTag(axis: TasteAxis): String = "taste_slider_${axis.name.lowercas
 private val LABEL_WIDTH = 104.dp
 private val VALUE_WIDTH = 32.dp
 
-/** The German name of [this] axis (JRN-03). */
+/** The German name of [this] axis (JRN-03, 08 §4a). */
 @Composable
 fun TasteAxis.tasteLabel(): String = stringResource(
     when (this) {
@@ -45,6 +45,10 @@ fun TasteAxis.tasteLabel(): String = stringResource(
         TasteAxis.ASTRINGENCY -> R.string.ui_taste_astringency
         TasteAxis.BODY -> R.string.ui_taste_body
         TasteAxis.AROMA -> R.string.ui_taste_aroma
+        TasteAxis.ROAST -> R.string.ui_taste_roast
+        TasteAxis.ACIDITY -> R.string.ui_taste_acidity
+        TasteAxis.FRESHNESS -> R.string.ui_taste_freshness
+        TasteAxis.SPICE -> R.string.ui_taste_spice
     },
 )
 

@@ -67,7 +67,7 @@ fun InfusionTasteEditor(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        TasteAxis.entries.forEach { axis ->
+        RADAR_AXES.forEach { axis ->
             TasteSlider(axis = axis, value = taste[axis], onChange = { onTasteChange(axis, it) })
         }
         InfusionNoteField(note = note, onSave = onNoteSave)
@@ -163,7 +163,7 @@ private fun InfusionNoteField(note: String?, onSave: (String) -> Unit) {
 fun tasteSummary(values: Map<TasteAxis, Double>): String {
     if (values.isEmpty()) return stringResource(R.string.ui_taste_summary_empty)
     val separator = stringResource(R.string.ui_taste_summary_separator)
-    return TasteAxis.entries.mapNotNull { axis ->
+    return RADAR_AXES.mapNotNull { axis ->
         values[axis]?.let {
             stringResource(R.string.ui_taste_summary_item, axis.tasteLabel(), TasteRadarShape.valueText(it))
         }

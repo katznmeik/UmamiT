@@ -41,8 +41,13 @@ class RoomSessionTasting @Inject constructor(private val db: UmamiDatabase, priv
         return infusionWrite(sessionId, position) { tasting.setInfusionTaste(sessionId, position, axis.name, value) }
     }
 
-    override suspend fun clearInfusionTaste(sessionId: String, position: Int): TastingWrite =
-        infusionWrite(sessionId, position) { tasting.clearInfusionTaste(sessionId, position) }
+    override suspend fun clearInfusionTaste(
+        sessionId: String,
+        position: Int,
+        axes: Collection<TasteAxis>,
+    ): TastingWrite = infusionWrite(sessionId, position) {
+        tasting.clearInfusionTaste(sessionId, position, axes.map { it.name }.distinct())
+    }
 
     override suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): TastingWrite {
         val trimmed = note?.trim()?.takeIf { it.isNotEmpty() }

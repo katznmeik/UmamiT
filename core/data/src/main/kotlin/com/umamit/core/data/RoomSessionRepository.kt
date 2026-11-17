@@ -155,7 +155,7 @@ class RoomSessionRepository @Inject constructor(
         .deductStock
 
     override suspend fun getSession(id: String): BrewSession? = db.withTransaction {
-        sessions.get(id)?.toModel(sessions.steps(id), tasting.descriptors(id))
+        sessions.get(id)?.let { it.toModel(sessions.steps(id), tasting.descriptors(id), tasteSetOf(db, it)) }
     }
 
     override suspend fun inProgressSessionIds(): List<String> = sessions.inProgressIds()
@@ -163,7 +163,7 @@ class RoomSessionRepository @Inject constructor(
     override fun observeRecentSessions(limit: Int): Flow<List<BrewSession>> = sessions.observeFinished().map { rows ->
         // The rows are small; only the shown ones load their steps and descriptors.
         db.withTransaction {
-            rows.take(limit).map { it.toModel(sessions.steps(it.id), tasting.descriptors(it.id)) }
+            rows.take(limit).map { it.toModel(sessions.steps(it.id), tasting.descriptors(it.id), tasteSetOf(db, it)) }
         }
     }
 }

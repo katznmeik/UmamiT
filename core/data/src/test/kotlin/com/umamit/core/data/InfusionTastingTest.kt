@@ -8,6 +8,7 @@ import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeClock
@@ -106,11 +107,11 @@ class InfusionTastingTest {
     @Test
     fun `every axis has its own column, Zuruecksetzen clears the six and keeps the note`() = runTest {
         runningAtSecondInfusion()
-        TasteAxis.entries.forEachIndexed { i, axis -> tasting.setInfusionTaste(SESSION_ID, 1, axis, i) }
+        TasteSet.GREEN.axes.forEachIndexed { i, axis -> tasting.setInfusionTaste(SESSION_ID, 1, axis, i) }
         tasting.setInfusionNote(SESSION_ID, 1, "Notiz")
 
         val taste = session().infusions.single().taste
-        assertThat(TasteAxis.entries.map { taste[it] }).containsExactly(0, 1, 2, 3, 4, 5).inOrder()
+        assertThat(TasteSet.GREEN.axes.map { taste[it] }).containsExactly(0, 1, 2, 3, 4, 5).inOrder()
 
         assertThat(tasting.clearInfusionTaste(SESSION_ID, 1)).isEqualTo(TastingWrite.SAVED)
         assertThat(session().infusions.single()).isEqualTo(Infusion(1, 1, TasteProfile.EMPTY, "Notiz"))

@@ -10,6 +10,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
@@ -57,10 +58,14 @@ internal fun SessionStart.toEntity(now: Long) = BrewSessionEntity(
     brewingRating = null,
 )
 
-/** This row as a session with [steps] and the keys of [descriptors] in the order ticked (05 §3.8). */
+/**
+ * This row as a session with [steps], the keys of [descriptors] in the order ticked (05 §3.8) and [tasteSet], the
+ * set it shows (JRN-03, D-128; [tasteSetOf]). Without one, the set of its snapshot category.
+ */
 internal fun BrewSessionEntity.toModel(
     steps: List<SessionStepEntity>,
     descriptors: List<SessionDescriptorEntity> = emptyList(),
+    tasteSet: TasteSet = TasteSet.of(category),
 ) = BrewSession(
     id = id,
     status = status,
@@ -94,6 +99,7 @@ internal fun BrewSessionEntity.toModel(
     descriptorKeys = descriptors.sortedWith(compareBy({ it.createdAt }, { it.descriptorKey })).map { it.descriptorKey },
     stepTastings = steps.mapNotNull { step -> step.tasting().takeUnless { it.isEmpty }?.let { step.position to it } }
         .toMap(),
+    tasteSet = tasteSet,
 )
 
 /**
@@ -107,6 +113,10 @@ internal fun SessionStepEntity.tasting() = stepTasting(
     astringency = tasteAstringency,
     body = tasteBody,
     aroma = tasteAroma,
+    roast = tasteRoast,
+    acidity = tasteAcidity,
+    freshness = tasteFreshness,
+    spice = tasteSpice,
     note = tastingNote,
 )
 

@@ -9,6 +9,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +58,7 @@ interface JournalRepository {
 
     /**
      * [teaId]'s tasting summary over its finished sessions (TEA-13, JRN-03); the taste averages over every infusion of
-     * them (D-114). [TeaTasting.EMPTY] without data.
+     * them (D-114), on the six axes of the tea's taste set only (D-128). [TeaTasting.EMPTY] without data.
      */
     fun observeTeaTasting(teaId: String): Flow<TeaTasting>
 }
@@ -91,7 +92,11 @@ class RoomJournalRepository @Inject constructor(private val db: UmamiDatabase, p
         tasting.observeStepTastings(sessionId).map { rows -> rows.associate { it.position to it.tasting() } }
 
     private fun JournalSessionRow.toJournalSession() = JournalSession(
-        session = session.toModel(steps.sortedBy { it.position }, descriptors),
+        session = session.toModel(
+            steps.sortedBy { it.position },
+            descriptors,
+            sessionTasteSet(teaCategory, teaTasteSet, session.category),
+        ),
         coverPhoto = teaCoverPhotoId?.let(photos::file),
     )
 
@@ -100,11 +105,14 @@ class RoomJournalRepository @Inject constructor(private val db: UmamiDatabase, p
         tasting.observeTasteAverages(teaId),
         tasting.observeDescriptorCounts(teaId),
         tasting.observeTeaBrewingRating(teaId),
-    ) { rating, taste, descriptors, brewing ->
+        tasting.observeTeaTasteSet(teaId),
+    ) { rating, taste, descriptors, brewing, set ->
+        // The tea's set's six axes only (D-128); without the tea, the Grüntee six.
+        val axes = (set?.let { TasteSet.effective(it.tasteSet, it.category) } ?: TasteSet.GREEN).axes
         TeaTasting(
             rating = rating?.let { TeaRating(it.average, it.count) },
             brewingRating = brewing?.let { TeaRating(it.average, it.count) },
-            tasteAverages = taste.byAxis(),
+            tasteAverages = taste.byAxis().filterKeys { it in axes },
             descriptorCounts = descriptors.map { DescriptorCount(it.descriptorKey, it.count) },
         )
     }
@@ -118,6 +126,10 @@ private fun TasteAveragesRow.byAxis(): Map<TasteAxis, Double> = buildMap {
     astringency?.let { put(TasteAxis.ASTRINGENCY, it) }
     body?.let { put(TasteAxis.BODY, it) }
     aroma?.let { put(TasteAxis.AROMA, it) }
+    roast?.let { put(TasteAxis.ROAST, it) }
+    acidity?.let { put(TasteAxis.ACIDITY, it) }
+    freshness?.let { put(TasteAxis.FRESHNESS, it) }
+    spice?.let { put(TasteAxis.SPICE, it) }
 }
 
 private fun StepTastingRow.tasting() = stepTasting(
@@ -127,5 +139,9 @@ private fun StepTastingRow.tasting() = stepTasting(
     astringency = tasteAstringency,
     body = tasteBody,
     aroma = tasteAroma,
+    roast = tasteRoast,
+    acidity = tasteAcidity,
+    freshness = tasteFreshness,
+    spice = tasteSpice,
     note = tastingNote,
 )

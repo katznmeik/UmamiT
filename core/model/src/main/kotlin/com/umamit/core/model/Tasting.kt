@@ -4,7 +4,11 @@ package com.umamit.core.model
 // without any of them is complete, and nothing marks it. From v0.6.1 (umamit.db v7, D-114) the taste and a short
 // note belong to each infusion; rating, notes and descriptors stay per session.
 
-/** The six taste axes of JRN-03, in the order the sliders and the radar show them; each a `taste_*` column. */
+/**
+ * The taste axes of JRN-03, each a `taste_*` column of `session_step`. The first six are v0.6.0's, in the order the
+ * Grüntee set shows them; `ROAST`, `ACIDITY`, `FRESHNESS` and `SPICE` from v0.8.0 (umamit.db v9, D-128) for the other
+ * sets. Which six a screen shows, and in which order, is a [TasteSet]'s [TasteSet.axes], never this enum's order.
+ */
 enum class TasteAxis {
     UMAMI,
     SWEETNESS,
@@ -12,9 +16,71 @@ enum class TasteAxis {
     ASTRINGENCY,
     BODY,
     AROMA,
+    ROAST,
+    ACIDITY,
+    FRESHNESS,
+    SPICE,
 }
 
-/** An infusion's taste values, 0–5 per [TasteAxis]; an axis left untouched is null, not 0 (JRN-03). */
+/**
+ * The three taste sets (JRN-03, TEA-02, 08 §4a, D-128 Q12–Q14): always six [axes], in the order of the sliders and the
+ * radar (clockwise from the top). Stored by name in `tea.taste_set` (umamit.db v9); null there means [of] the tea's
+ * category.
+ */
+enum class TasteSet(val axes: List<TasteAxis>) {
+    GREEN(
+        listOf(
+            TasteAxis.UMAMI,
+            TasteAxis.SWEETNESS,
+            TasteAxis.BITTERNESS,
+            TasteAxis.ASTRINGENCY,
+            TasteAxis.BODY,
+            TasteAxis.AROMA,
+        ),
+    ),
+    OXIDISED(
+        listOf(
+            TasteAxis.ROAST,
+            TasteAxis.SWEETNESS,
+            TasteAxis.BITTERNESS,
+            TasteAxis.ASTRINGENCY,
+            TasteAxis.BODY,
+            TasteAxis.AROMA,
+        ),
+    ),
+    HERBAL(
+        listOf(
+            TasteAxis.SWEETNESS,
+            TasteAxis.ACIDITY,
+            TasteAxis.FRESHNESS,
+            TasteAxis.SPICE,
+            TasteAxis.BITTERNESS,
+            TasteAxis.BODY,
+        ),
+    ),
+    ;
+
+    companion object {
+        /** The set of [category] (05 §5): *Sonstige* and an unknown category (null) take [GREEN]. */
+        fun of(category: TeaCategory?): TasteSet = when (category) {
+            TeaCategory.OOLONG, TeaCategory.BLACK, TeaCategory.DARK -> OXIDISED
+            TeaCategory.HERBAL, TeaCategory.ROOIBOS, TeaCategory.FRUIT -> HERBAL
+            TeaCategory.GREEN, TeaCategory.WHITE, TeaCategory.YELLOW, TeaCategory.OTHER, null -> GREEN
+        }
+
+        /**
+         * The set a tea's screens show (JRN-03, TEA-02): its *Geschmacksprofil* [override] (`tea.taste_set`), else
+         * the set of its [category]. For a session: its tea's now; for a session whose tea is gone, the set of its
+         * snapshot category (05 §3.7).
+         */
+        fun effective(override: TasteSet?, category: TeaCategory?): TasteSet = override ?: of(category)
+    }
+}
+
+/**
+ * An infusion's taste values, 0–5 per [TasteAxis]; an axis left untouched is null, not 0 (JRN-03). All ten are
+ * stored; a screen shows and averages only its [TasteSet]'s six, and a value outside them stays stored (D-128 Q16).
+ */
 data class TasteProfile(
     val umami: Int? = null,
     val sweetness: Int? = null,
@@ -22,6 +88,10 @@ data class TasteProfile(
     val astringency: Int? = null,
     val body: Int? = null,
     val aroma: Int? = null,
+    val roast: Int? = null,
+    val acidity: Int? = null,
+    val freshness: Int? = null,
+    val spice: Int? = null,
 ) {
     operator fun get(axis: TasteAxis): Int? = when (axis) {
         TasteAxis.UMAMI -> umami
@@ -30,10 +100,17 @@ data class TasteProfile(
         TasteAxis.ASTRINGENCY -> astringency
         TasteAxis.BODY -> body
         TasteAxis.AROMA -> aroma
+        TasteAxis.ROAST -> roast
+        TasteAxis.ACIDITY -> acidity
+        TasteAxis.FRESHNESS -> freshness
+        TasteAxis.SPICE -> spice
     }
 
-    /** How many axes are set. */
+    /** How many of the ten axes are set. */
     val setCount: Int get() = TasteAxis.entries.count { get(it) != null }
+
+    /** How many of [set]'s six axes are set. */
+    fun setCount(set: TasteSet): Int = set.axes.count { get(it) != null }
 
     /** This profile with [axis] set to [value] (null unsets it). */
     fun with(axis: TasteAxis, value: Int?): TasteProfile = when (axis) {
@@ -43,21 +120,30 @@ data class TasteProfile(
         TasteAxis.ASTRINGENCY -> copy(astringency = value)
         TasteAxis.BODY -> copy(body = value)
         TasteAxis.AROMA -> copy(aroma = value)
+        TasteAxis.ROAST -> copy(roast = value)
+        TasteAxis.ACIDITY -> copy(acidity = value)
+        TasteAxis.FRESHNESS -> copy(freshness = value)
+        TasteAxis.SPICE -> copy(spice = value)
     }
+
+    /** This profile with [axes] unset (*Zurücksetzen*, JRN-03: the six of the set shown); the others stay. */
+    fun without(axes: Collection<TasteAxis>): TasteProfile =
+        axes.fold(this) { profile, axis -> profile.with(axis, null) }
 
     companion object {
         val EMPTY = TasteProfile()
 
         /**
-         * The average per axis over [profiles], each axis over the profiles that set it (JRN-03); an axis none set
-         * is absent.
+         * The average per axis of [set] over [profiles], each axis over the profiles that set it (JRN-03); an axis
+         * none set is absent, and so is every axis outside [set] (D-128).
          */
-        fun averages(profiles: Collection<TasteProfile>): Map<TasteAxis, Double> = buildMap {
-            TasteAxis.entries.forEach { axis ->
-                val values = profiles.mapNotNull { it[axis] }
-                if (values.isNotEmpty()) put(axis, values.average())
+        fun averages(profiles: Collection<TasteProfile>, set: TasteSet = TasteSet.GREEN): Map<TasteAxis, Double> =
+            buildMap {
+                set.axes.forEach { axis ->
+                    val values = profiles.mapNotNull { it[axis] }
+                    if (values.isNotEmpty()) put(axis, values.average())
+                }
             }
-        }
     }
 }
 
@@ -117,10 +203,10 @@ data class DescriptorCount(val key: String, val count: Int)
 
 /**
  * A tea's tasting summary (TEA-13, JRN-03): [rating] (the tea's Ø, over the *Tee* rating only) null without a
- * rated session; [tasteAverages] per axis over every infusion of its finished sessions that set that axis (D-114; an
- * axis none set is absent); [descriptorCounts] every stored key, most frequent first (then by key), unknown keys
- * included: the UI shows only keys it knows; [brewingRating] the *Zubereitung* Ø over its finished sessions with a
- * *Zubereitung* rating (D-117), null without one.
+ * rated session; [tasteAverages] per axis of the tea's [TasteSet] over every infusion of its finished sessions that set
+ * that axis (D-114, D-128; an axis none set, or outside the set, is absent); [descriptorCounts] every stored key, most
+ * frequent first (then by key), unknown keys included: the UI shows only keys it knows; [brewingRating] the
+ * *Zubereitung* Ø over its finished sessions with a *Zubereitung* rating (D-117), null without one.
  */
 data class TeaTasting(
     val rating: TeaRating?,

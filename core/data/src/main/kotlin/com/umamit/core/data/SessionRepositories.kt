@@ -5,6 +5,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
@@ -133,11 +134,21 @@ interface SessionTasting {
      */
     suspend fun setBrewingRating(sessionId: String, rating: Double?): TastingWrite
 
-    /** One taste value of the infusion at [position], 0–5 (JRN-03), or null to unset that axis; the other five stay. */
+    /** One taste value of the infusion at [position], 0–5 (JRN-03), or null to unset that axis; the others stay. */
     suspend fun setInfusionTaste(sessionId: String, position: Int, axis: TasteAxis, value: Int?): TastingWrite
 
-    /** *Zurücksetzen* (JRN-03): the six taste values of the infusion at [position] unset; its note stays. */
-    suspend fun clearInfusionTaste(sessionId: String, position: Int): TastingWrite
+    /**
+     * *Zurücksetzen* (JRN-03) with the Grüntee six ([TasteSet.GREEN]), the sliders the screens show until they show
+     * the session's set; see the overload.
+     */
+    suspend fun clearInfusionTaste(sessionId: String, position: Int): TastingWrite =
+        clearInfusionTaste(sessionId, position, TasteSet.GREEN.axes)
+
+    /**
+     * *Zurücksetzen* (JRN-03, D-128): the taste values of [axes] (the six of the set shown) of the infusion at
+     * [position] unset; the other axes and its note stay. An empty [axes] changes no value.
+     */
+    suspend fun clearInfusionTaste(sessionId: String, position: Int, axes: Collection<TasteAxis>): TastingWrite
 
     /** The note of the infusion at [position] (JRN-05, D-114): trimmed, blank stored as null, at most 200 chars. */
     suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): TastingWrite

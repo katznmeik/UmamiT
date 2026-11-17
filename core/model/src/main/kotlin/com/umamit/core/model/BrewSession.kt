@@ -41,6 +41,9 @@ data class SessionSnapshot(
  * @property notes trimmed, never blank; null without notes (JRN-05).
  * @property descriptorKeys the ticked descriptor keys in the order ticked (JRN-04, 05 §3.8); keys the app does not
  * know are kept here and not shown.
+ * @property tasteSet the taste set the session shows (JRN-03, D-128): its tea's set now ([Tea.effectiveTasteSet]);
+ * for a session whose tea is gone, the set of its snapshot `category`. The session reads fill it; the default is the
+ * snapshot category's set.
  */
 data class BrewSession(
     val id: String,
@@ -59,6 +62,7 @@ data class BrewSession(
     val descriptorKeys: List<String> = emptyList(),
     val stepTastings: Map<Int, StepTasting> = emptyMap(),
     val brewingRating: Double? = null,
+    val tasteSet: TasteSet = TasteSet.of(snapshot.category),
 ) {
     /**
      * The infusions (JRN-03, D-114): the ended steps that are not *Spülen*, in position order, each numbered as the
