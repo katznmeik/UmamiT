@@ -11,6 +11,16 @@
 
 ## Releases and plans
 
+### v0.8.0: session 4, the PO's check of rc.1 (2026-11-17)
+
+- **The PO's check:** the design review is approved as built, with Claude's four details. The checklist passed except one item.
+- **The failing item, from the PO's screen recordings:**
+  - Tapping a tea in *Tee wählen* removes the sheet within one frame, so Start shows bare for ≈ 150–200 ms before *Neue Session* fades in.
+  - Frames at 30 fps showed that the longer view of Start in the same recording was the PO's own back tap and recent-row tap.
+- **The rest of the PO's answers:** the late tea photos on launch are kept as they are; the session hands over.
+- **Recorded:** D-129, 03 SCR-03 „Hand-over to the setup", a 09 §4 line for rc.2, ticket #331 (T3).
+- **What did not happen:** no merge, no version change; PR #328 stays a draft. Worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/sharp-einstein-te907a`).
+
 ### v0.8.0: build session 3, rc.1 published (2026-11-17)
 
 - **The PO's answers (in the session, as options):** the sage alarm as rendered; the active-brew bar's alarm static sage in the light app (D-128 item 38); the five open build notes kept as built (item 39); after the reviews, an ink ring on the light timer's overtime dot (item 40, #329) and the tabs' ⋮ alert gate as a v0.9.0 ticket (item 41, #330). #324 closed.

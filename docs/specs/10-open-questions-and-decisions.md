@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-17 (D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
+> Status: **Living document** · Last updated: 2026-11-17 (D-129 the rc.1 check: the picker's hand-over to the setup, the launch kept, the design review approved; D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -322,6 +322,27 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-129"></a>
+### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*
+
+**Context.** The PO checked `v0.8.0-rc.1` (PR #328) and named one failure from a screen recording (2026-11-17 21:58). Tapping a tea in *Tee wählen* (SCR-03) removes the sheet within one frame, so Start shows bare for ≈ 150–200 ms while *Neue Session* (SCR-04) fades in over it. A second recording (cold and warm start) felt „a tiny bit jumpy": the system's splash and window zoom are as usual, but the tea photos in Start's „Zuletzt aufgegossen" are missing for the first frames and pop in a moment later. The same recording's longer view of Start (setup → Start → timer) was two taps of the PO's (the setup's back arrow, then a recent row), not a fault.
+
+**Decision (the PO's answers, 2026-11-17, v0.8.0 session 4, as options).**
+
+1. **Only the picker's hand-over is fixed:** a tea row's tap in SCR-03. Every other way into the setup stays as it is.
+2. **The setup covers the sheet:** the sheet stays in place at full opacity until SCR-04's enter fade has finished over it, then leaves underneath without an animation of its own. Start is never seen between them. Not taken: the sheet sliding down while the setup fades in; the setup in one frame without a fade.
+3. **The launch stays as it is:** the late photos in „Zuletzt aufgegossen" on a cold or warm start are kept; no ticket.
+4. **The design review of v0.8.0 is approved as built** (`docs/design/review/v0.8.0/`), Claude's four details in its README included.
+5. **This session hands over:** the fix and `v0.8.0-rc.2` (80002) are built in a fresh session.
+
+The rest of the rc.1 checklist (09 §4 „v0.8.0") passed on the PO's phone: every box in the checklist comment on PR #328 is ticked, and the PO named only this failure.
+
+**Consequences.**
+
+- 03 SCR-03 „Hand-over to the setup"; 09 §4 „v0.8.0" has a line for rc.2.
+- Ticket #331 (T3: app navigation next to the alert gate, rule 8). An alert still wins at once (D-088, D-062), and nothing about the start is delayed.
+- `v0.8.0-rc.2` (80002) needs the timer tests, CI green and all three accuracy variants on its commit (09 §4a), then the PO checks the new line. The merge and the final follow as #327.
 
 <a id="d-128"></a>
 ### D-128 — v0.8.0 and v0.9.0 (planned): „Session" wording, taste sliders per kind of tea with an info section, the light timer, refresh progress in the settings, the Statistik ⋮ menu, #313; then export/import and shared recipes; 1.0 postponed (GEN-04, BRW-06, JRN-03, TEA-02, SET-05, SET-23, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; SCR-04, SCR-05, SCR-07, SCR-09, SCR-10, SCR-16, SCR-18, SCR-25, SCR-26; 03 §2.2, §3.1, §3.7, §3.8; 05 §3.1, §3.7, §5, §8, §9 v9; 08 §4a; supersedes D-012, amends D-036's „no in-app restore" and BAK-02/BAK-03/BAK-07) · *Accepted (PO, 2026-11-17)*: the PO's answers Q1–Q31 below; the spec #315, its tickets (#316–#327, #313) and `docs/plans/v0.8.0.md` approved by the PO on 2026-11-17 (build session 1). The details marked „Claude" stand as Claude's defaults inside the approved spec; the light timer's colours, band and fill are still the PO's to check in #324
