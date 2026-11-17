@@ -145,7 +145,7 @@ Answer the questions in order and take the first tier that matches:
 | Recipe editor (SCR-12: drag reorder, step kinds, several recipes; no series generator) | T2 (T3 where it changes the setup's save path) |
 | Teaware list and editor (SCR-13, SCR-14) and the settings entry | T2 |
 | Setup changes: ⋮ *Tee ansehen*, *Neues Gefäß …*, the archived vessel's label, BRW-08 | T3 |
-| Session page (SCR-16, read-only) and *So nochmal brühen* (BRW-06) | T3 |
+| Session page (SCR-16, read-only) and *So nochmal aufgießen* (BRW-06) | T3 |
 | Wording (*Archivieren*, step kinds) and the SET-15 row | T2 |
 | Accuracy test waits (timer test code) | T3 |
 | Milestone review | T3 |
@@ -175,7 +175,7 @@ Answer the questions in order and take the first tier that matches:
 | Session photos and hero | T3 |
 | Session editor (`EditSession`: stock, cost, times) | T3 |
 | Journal search and filters, A6 | T2 |
-| Ratings, GESCHMACK and LETZTE SITZUNGEN on the tea screens | T2 |
+| Ratings, GESCHMACK and LETZTE SESSIONS on the tea screens | T2 |
 | Milestone review | T3 |
 
 *v0.6.1 — Feedback on v0.6.0* (D-114; timer code: never below T3 for

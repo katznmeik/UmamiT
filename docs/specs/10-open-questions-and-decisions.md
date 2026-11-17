@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-16 (D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
+> Status: **Living document** · Last updated: 2026-11-17 (D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -112,7 +112,7 @@ Photo picker/camera intent, resized, EXIF stripped, app-private storage;
 excluded from device backup; own photos included in manual export.
 
 <a id="d-012"></a>
-### D-012 — Timer screen always dark · *Proposed*
+### D-012 — Timer screen always dark · *Superseded by [D-128](#d-128)* (v0.8.0: the timer follows *Design*)
 
 <a id="d-013"></a>
 ### D-013 — Personal app, sideloaded, no store · *Accepted* (PO, 2026-10-21)
@@ -322,6 +322,95 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-128"></a>
+### D-128 — v0.8.0 and v0.9.0 (planned): „Session" wording, taste sliders per kind of tea with an info section, the light timer, refresh progress in the settings, the Statistik ⋮ menu, #313; then export/import and shared recipes; 1.0 postponed (BRW-06, BRW-11, JRN-03, TEA-02, TMR-17, SET-05, SET-23, BAK-01, BAK-02, BAK-04, BAK-06; SCR-04, SCR-05, SCR-07, SCR-09, SCR-10, SCR-16, SCR-18, SCR-25, SCR-26; 03 §3.1, §3.8; 05 §3.1, §3.7, §5, §8, §9 v9; 08 §4a; supersedes D-012, amends D-036's „no in-app restore" and BAK-02/BAK-03/BAK-07) · *Proposed*: the PO's answers Q1–Q31 below are *Accepted (PO, 2026-11-17)*; the spec, tickets and plan wait for the PO's approval
+
+**Context.** After `v0.7.2` the PO asked for nine things (session of 2026-11-17): (1) „Brühen starten" becomes „Session starten"; (2) „Sitzung" becomes „Session" everywhere; (3) a small foldable info section on the taste sliders; (4) other sliders for teas that are not green tea, above all herbal tea; (5) recipes can be shared; (6) a display bug: on Statistik the ⋮ menu opens at the left, not below the three dots; (7) *Jetzt aktualisieren* in the settings shows its progress there; (8) a light version of the timer; (9) data export and import. Issue #313 (found in v0.7.2) was to be triaged with the next release.
+
+**How it was decided.** One grilling session, eight rounds of selectable options (Q1–Q31). Every answer below is the PO's; each recommended option was marked as such. Three answers are in the PO's own words (Q3, Q25, and the follow-up to Q25 in Q28–Q31). Details marked „Claude" are Claude's defaults and were **not** put to the PO; the PO sees them with the spec and can change any.
+
+#### Releases (Q1–Q3)
+
+1. **Q1, two releases.** **v0.8.0:** points 1–4 and 6–8 and #313. **v0.9.0:** points 5 and 9, which share one file format.
+2. **Q2, this session** writes the full spec, tickets and plan for v0.8.0 only. v0.9.0 is recorded here as planned, with the PO's answers; its spec, tickets and plan come in its own specify session (as D-116 did for v0.7.1).
+3. **Q3, 1.0 (the PO's words):** „1.0 will be started only when I give the go, for now postpone the 1.0 and keep the versioning as performed so far". So M5 stays in 09 §2 without a date and without a start; releases stay 0.x; the manual export leaves M5 for v0.9.0.
+
+#### v0.8.0 — wording (points 1 and 2; Q24, Q25, Q28–Q31)
+
+4. **Q24:** only the setup's „Brühen starten" becomes **„Session starten"**. The Start tab's card keeps „Aufguss starten".
+5. **Point 2:** „Sitzung" becomes **„Session"** in every text, notification and TalkBack label (plural „Sessions", compounds „Sencha-Session", headings „LETZTE SESSIONS"; „Claude" for the plural and compounds).
+6. **Q25 (the PO's words):** „rename brühen with "Aufguss" everywhere, except from the currently named "Brühen" screens where it says "Brühen starten" which should be named "Session starten"". Put back to the PO as a list with a proposal per text (Q28–Q31):
+   - **Q28, verb texts take „aufgießen":** *Nochmal aufgießen*; *So nochmal aufgießen*; *Weiter aufgießen*; *Zuletzt aufgegossen* (Start, the sort); „Zuletzt aufgegossen am …"; „Noch nie aufgegossen"; „Aufgegossen" and „Aufgegossen am …: … g verbraucht" (stock history); „nicht aufgegossen" (a step); „Jede Tasse, die du aufgießt, erscheint hier von selbst."; „Gieß deinen ersten Tee auf, dann wächst hier deine Tee-Reise."
+   - **Q29, „Session" where the whole session is meant,** because „Aufguss" already names one infusion („2. Aufguss", „Aufguss 2/4"): *Session anpassen* (the timer's ⋮); the tea detail's button *Session starten* (was *Brühen*); „Neue Sessions und die Teeauswahl nehmen dieses Rezept." The rest takes „Aufguss": „Bildschirm beim Aufguss anlassen", the settings section *Aufguss & Vorrat*, „… wird beim Aufguss nicht angeboten."
+   - **Q30:** the notification channel „Brühtimer" becomes **„Aufguss-Timer"** (the channel id stays, so the PO's notification settings stay); the taste word „Dashi / brühig" stays.
+   - **Q31, the setup's title:** **„Neue Session"** when a brew is started, **„Session anpassen"** when it was opened from a running timer's ⋮. The journal's session page is „Session".
+7. **Claude:** the channel „Sitzungen" becomes „Sessions" („Automatisch gespeicherte Sessions"), ids unchanged. Resource names, code identifiers and the English docs keep „brew" and „session". The specs' German copy was changed in 02, 03, 04, 05, 08, 11 and 12; this log, 09 §4's past checklists, `docs/history.md` and the old plans keep the wording of their time.
+
+#### v0.8.0 — taste sliders per kind of tea (point 4; Q12–Q16)
+
+8. **Q12, three sets, always six sliders** (the radar keeps its shape), in this order:
+
+   | Set | Kategorien | Sliders |
+   |---|---|---|
+   | Grüntee | Grün, Weiß, Gelb | Umami · Süße · Bitterkeit · Adstringenz · Körper · Aroma (as today) |
+   | Schwarz · Oolong · Pu-Erh | Schwarz, Oolong, Pu-Erh | Röstung/Malz · Süße · Bitterkeit · Adstringenz · Körper · Aroma |
+   | Kräuter · Rotbusch · Früchte | Kräuter, Rotbusch, Früchte | Süße · Säure · Frische · Würze · Bitterkeit · Körper |
+
+9. **Q13, the herbal set** as above. *Frische* is cooling, minty, lemony; *Würze* is warm and spicy. Smells (blumig, fruchtig) stay in the description chips (JRN-04).
+10. **Q14:** *Röstung/Malz* replaces Umami for black tea, oolong and Pu-Erh.
+11. **Q15, assignment:** the tea's Kategorie decides; the tea editor gets one field **„Geschmacksprofil"** to choose another set for that tea.
+12. **Q16, old values:** keep what fits, hide the rest. Sliders the new set shares keep their values; values on sliders the set no longer has are not shown but stay stored, and show again if the tea gets the old set back. Nothing is deleted.
+13. **Claude (not put to the PO):**
+    - Kategorie *Sonstige* (`OTHER`) and a session without a Kategorie keep the Grüntee set, so nothing changes where the PO did not ask.
+    - A session is shown with its tea's set as it is **now** (the field, else the Kategorie); a session whose tea was deleted takes its snapshot Kategorie. That is what makes Q16's „show again" work, and it needs no per-session copy.
+    - Storage: four new nullable columns on `session_step` (`taste_roast`, `taste_acidity`, `taste_freshness`, `taste_spice`) and `tea.taste_set` (null = from the Kategorie); **umamit.db v9**, columns added only, no row rewritten (05 §9). An axis table was not chosen: ten fixed axes, and every reader already goes by column.
+    - The field's choices: „Automatisch (nach Kategorie)", then the three sets by the names in the table. The tea's radar and the session's *Alle* radar average the six axes of the set in effect.
+    - The catalog's shop scales, the catalog filter and Statistik do not change (Statistik has had no taste since D-115 Amendment 1).
+
+#### v0.8.0 — info on the sliders (point 3; Q17–Q19)
+
+14. **Q17, form:** one foldable row **„Was bedeuten die Regler?"** above the sliders, in both places where taste is entered (the timer's taste sheet and the session page). Unfolded: a short how-to, then one entry per slider of this tea's set. The how-to, as the PO saw it: „0 = nicht wahrnehmbar, 5 = sehr stark. Bewerte, was du schmeckst – wie gut es dir gefällt, sagen die Sterne. Unberührte Regler zählen nicht mit."
+15. **Q18, depth:** one line per slider plus what 0 and 5 mean. The PO saw Umami, Adstringenz and Körper in that form; the other seven are Claude's drafts (all ten in 08 §4a, for the PO to change).
+16. **Q19:** always folded when the sheet or page opens; nothing is stored.
+
+#### v0.8.0 — light timer (point 8; Q20–Q23)
+
+17. **Q20:** the timer follows *Design* (SET-05): *Hell* gives a light timer, *Dunkel* a dark one, *System* follows the phone. No new setting. This **supersedes D-012** („Timer screen always dark").
+18. **Q21, all timer surfaces:** the brew timer, the quick timer, the sheets on them (Geschmack, Schritte, Timer-Einstellungen) and the cover shown while a timer opens.
+19. **Q22:** the alert is the same in both themes (washi ↔ matcha with ink content, D-046); no change to the alert code.
+20. **Q23, an early design check:** the first light-timer ticket builds the light colours from the washi palette and renders the states (bereit, läuft, pausiert, Vorwarnung, Alarm, Schnelltimer, Geschmack-Sheet); the PO approves or changes them on screenshots before the rest is built.
+21. **Claude:** the starting colours for that check are in 03 §3.1 („Timer in the light theme"); *Beim Ziehen abdunkeln* and *Bildschirm beim Aufguss anlassen* work as before in both themes; the Live Update, the notifications and the `ActiveBrewBar` do not change.
+
+#### v0.8.0 — the two fixes and #313 (points 6 and 7; Q26, Q27)
+
+22. **Point 6 (a bug, no question):** the ⋮ menu opens below the three dots on every tab. Cause: `OverflowSettingsAction` has no anchor of its own, so on Statistik, whose header is a full-width row, the menu anchors to that row's start.
+23. **Q26:** in *Einstellungen* › *Katalog*, a running refresh shows a progress bar and the counts under *Jetzt aktualisieren* (the same line as the Katalog's refresh sheet), and its result when it ends; the button is disabled while it runs. No *Abbrechen* there.
+24. **Q27, #313:** fixed in v0.8.0 although no path reaches it today (traced: *So nochmal aufgießen* is disabled for a deleted tea; *Session anpassen* belongs to a running session, whose tea cannot be deleted). A guard shows the not-found state, and the test uses the real case (a null `teaId`). No visible change.
+
+#### v0.9.0 (planned) — export and import (point 9; Q4–Q8)
+
+25. **Q4, import replaces everything:** a preview („142 Sessions, 23 Tees, vom 3. Nov. 2026"), a confirmation, then the app's data is replaced by the file's. Merge stays ruled out (BAK-03).
+26. **Q5, the file holds everything personal, with photos:** teas, recipes, vessels, sessions with taste and notes, stock history, bookmarks, settings and the own photos, in one `.umamit` file (a ZIP with readable JSON, 05 §8). The catalog is never in it.
+27. **Q6:** the system file picker for both export and import; no share sheet, no open-with for backups (BAK-07 stays `Won't`).
+28. **Q7, all four safeguards:** the whole file is checked before anything is touched (a broken file or one from a newer version is refused, nothing changes); the current data is saved to a private safety copy first, and „Import rückgängig machen" brings it back until the next import or for 7 days; import is refused while a timer is active; the replace needs a typed word („ERSETZEN").
+29. **Q8, extras, all three:** the backup reminder (BAK-06), a line „Letzte Sicherung: … · N neue Sessions" in *Daten & Sicherung*, and a CSV of the journal (BAK-04, export only).
+30. This **amends D-036**: in-app restore is no longer post-1.0; BAK-02 becomes planned for v0.9.0.
+
+#### v0.9.0 (planned) — shared recipes (point 5; Q9–Q11)
+
+31. **Q9:** the share sheet sends a readable German text (tea, recipe name, leaf, water, vessel, each infusion's temperature and time) and attaches a small recipe file; an UmamiT install opens the file and offers „Rezept übernehmen". No network use by the app, no new permission (a QR code was not chosen: scanning needs a camera permission).
+32. **Q10:** one recipe of a tea is shared, from the recipe's ⋮ menu: its steps, leaf, water and vessel type, with the tea's name, kind and, for a catalog tea, its shop link (the link only, never shop text or photos, rule 3).
+33. **Q11, receiving:** if the same tea is in the collection, the recipe is offered for it; if not, the PO chooses one of the teas or creates the tea (from the catalog when it is there, else without catalog). It is always added as a new recipe, never over an existing one.
+
+**Open for the v0.9.0 specify session (not asked yet):** how a received recipe file reaches the app (open-with for the recipe file type only, or an import entry in the app), the recipe file's format and version, the CSV's columns, where the safety copy lives and how its 7 days are counted, the export's progress and size note, whether shop photos copied to a tea are in the file, and the tiers (backup and import code is T3 or higher).
+
+**Consequences.**
+
+- Specs changed in this session: 02 (BRW-06, BRW-11, JRN-03, TEA-02, TEA-05, TMR-17 note, SET-05, SET-23, BAK-01–BAK-06, the Won't table), 03 (§1, §3.1, §3.8, SCR-04, SCR-05, SCR-07, SCR-09, SCR-10, SCR-16, SCR-18, SCR-25, SCR-26), 04 (German copy), 05 (§3.1, §3.7, §5, §8, §9 v9), 08 (§4a), 09 (§2, §4 „v0.8.0", §5), 11, the README.
+- **Timer code changes in v0.8.0** (the light timer, the taste sheet, the wording in `feature:brew` and `core:timer`, #313): those tickets are T3 or higher, the timer tests of 04 §12 pass, the T4 timer review runs, and all three accuracy variants run before the rc and the final (09 §4a).
+- **A migration in v0.8.0** (umamit.db v9): T3, tested, the rc installs over `v0.7.2`.
+- v0.9.0 gets its own decision for whatever its specify session adds.
 
 <a id="d-127"></a>
 ### D-127 — v0.7.2 restructuring: the accuracy report's tooling out of `core:timer`'s main sources (TMR-A-09; 09 §4a) · *Accepted (PO, 2026-11-16, triage #303)* for the pick; the design *Accepted (PO, 2026-11-16, #304)*
@@ -8254,7 +8343,7 @@ on-device checklist and the design review. Merge commits; the working branch
 is restarted from `main` afterwards. Recorded as rule 9 in `CLAUDE.md`.
 
 <a id="d-036"></a>
-### D-036 — Spec review fixes and PO decisions · *Accepted* (PO, 2026-10-21)
+### D-036 — Spec review fixes and PO decisions · *Accepted* (PO, 2026-10-21), its „no in-app restore in 1.x" amended by [D-128](#d-128) (import planned for v0.9.0)
 
 Result of an Opus `xhigh` review of spec v0.2 plus the PO's answers.
 
@@ -8340,6 +8429,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-17 | D-128: the PO's nine points after v0.7.2, grilled Q1–Q31. **v0.8.0:** „Session" for „Sitzung", „Session starten", „aufgießen"/„Aufguss" for „brühen", the setup titled „Neue Session" / „Session anpassen"; three taste sets of six sliders by kind of tea with a per-tea „Geschmacksprofil" (umamit.db v9), a foldable „Was bedeuten die Regler?"; the timer follows *Design* (supersedes D-012) with an early design check; refresh progress in the settings; the ⋮ menu anchored on every tab; #313 guarded. **v0.9.0 (planned):** export and a replacing import with four safeguards, backup reminder, „Letzte Sicherung", journal CSV; recipes shared as text plus a file (amends D-036). 1.0 starts only on the PO's go. |
 | 2026-11-16 | D-121–D-127: the v0.7.2 triage (#303). The PO picked all 60 audit findings (overlaps as one choice each); the seven restructurings get one decision each (CAT-A-05 `CatalogRefresher` split, CAT-A-07 shared fake shop, CAT-A-08 + UI-A-04 helpers and date picker in `core:ui`, CAT-A-14 link-sheet holder, UI-A-01 + UI-A-10 settings routes, DAT-A-14 + TMR-A-06 the session repositories and the timer's store, TMR-A-09 accuracy tooling); their designs wait for #304. |
 | 2026-11-15 | D-119: the v0.7.2 cleanup review (four steps, own release, Fable 5.2 for the timer and data audits and the restructuring design, catalog first). D-120: its plan details: Fable 5.2 at `medium`, findings files per group, the Dependency Analysis plugin from a local init script, the tier label „T4-F". |
 | 2026-11-15 | D-118: `release.yml` publishes with the PO's fine-grained `RELEASE_TOKEN` (Contents only, this repository) after `GITHUB_TOKEN` got HTTP 403 creating releases. D-117 build notes „Arrival fade" and „Lock screen" (rc.2). |

@@ -613,10 +613,10 @@ recipes, photos and stock events; the dialog offers *Stattdessen archivieren*.
 - **From the tea picker (v0.2.1, D-093):** a long press on a tea in SCR-03
   offers *Archivieren* (until v0.3.0 „Aus Sammlung entfernen"). It archives
   the tea and shows the snackbar „*Tanabata* archiviert" · *Rückgängig*. An
-  archived tea disappears from Start (*Nochmal brühen*, BRW-11) and from the
+  archived tea disappears from Start (*Nochmal aufgießen*, BRW-11) and from the
   tea picker; the journal keeps its entries with name and photo. Not
   possible for the tea of the active brew session: the item is greyed out
-  with „Erst die Sitzung beenden". Adding it again from the catalog (CAT-12)
+  with „Erst die Session beenden". Adding it again from the catalog (CAT-12)
   un-archives the same tea and records the package as a PURCHASE event
   (D-085); its earlier stock events stay (correct with INV-03). An archived
   tea's catalog row has no „im Besitz" badge and its detail offers *In
@@ -633,7 +633,7 @@ recipes, photos and stock events; the dialog offers *Stattdessen archivieren*.
     brings one back to the list and the pickers, without re-adding it from
     the catalog.
   - A tea of the active brew session can be neither archived nor deleted
-    until the session ends („Erst die Sitzung beenden").
+    until the session ends („Erst die Session beenden").
 
 **TEA-05 — Photos** `Should` (v0.4.1)
 Up to 10 photos per tea (catalog photo pre-attached as cover for catalog
@@ -702,7 +702,7 @@ Aromatisiert, *Archiviert* (only archived teas, each with
 *Wiederherstellen*) (D-100). From v0.5.0 (#206) *Kategorie* also offers Rotbusch and Früchtetee when present; a catalog chai counts under its base tea's Kategorie.
 
 **TEA-11 — Sorting** `Must`
-*Zuletzt gebrüht* (default), *Name*, *Zuletzt hinzugefügt*, *Vorrat*
+*Zuletzt aufgegossen* (default), *Name*, *Zuletzt hinzugefügt*, *Vorrat*
 (low → high). The choice is remembered (`collectionSort`); empty teas are
 last in every order (INV-05).
 - **v0.4.0 (D-100):** these four. *Bewertung* needs M4's ratings and
@@ -714,11 +714,11 @@ last in every order (INV-05).
 
 **TEA-13 — Tea detail** `Must`
 SCR-09: hero photo, names, rating „★ 4,5 (12)", type chip, umami meter,
-`StatTriplet`, primary *Brühen*, recipes, stock & cost, freshness, tasting
+`StatTriplet`, primary *Session starten*, recipes, stock & cost, freshness, tasting
 summary, recent sessions, notes, details, and for catalog teas the visible
 reorder link „Beim Tee-Kontor nachbestellen" (INV-09).
 - **v0.4.0 (D-100):** hero photo, names, Sorte chip, umami meter, a
-  `StatTriplet` of the tea's sessions, last brew and stock; sticky *Brühen*
+  `StatTriplet` of the tea's sessions, last brew and stock; sticky *Session starten*
   (setup with the default recipe); REZEPTE (a tap opens the setup with that
   recipe, its pencil the recipe editor; *Rezept hinzufügen* up to 10);
   VORRAT („38 g übrig" with *knapp*/*leer*, *Bestand korrigieren*, INV-09's
@@ -731,7 +731,7 @@ reorder link „Beim Tee-Kontor nachbestellen" (INV-09).
 - **v0.6.0 (D-112):** „★ 4,5 (12)" under the names (average and count of
   the rated sessions; hidden without a rating); **GESCHMACK** (the tea's
   average radar, JRN-03, and its five most frequent descriptors with their
-  counts; only with data); **LETZTE SITZUNGEN** (the last three sessions,
+  counts; only with data); **LETZTE SESSIONS** (the last three sessions,
   a tap opens the session page; with more, *Alle anzeigen* opens the
   Journal filtered to the tea).
 - **v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114)):** ⋮ starts with *Im Katalog ansehen* for a tea whose
@@ -740,7 +740,7 @@ reorder link „Beim Tee-Kontor nachbestellen" (INV-09).
   tap on the hero opens the photo viewer (TEA-05).
 - **v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)):** „★ 4,5 (12)" is the Ø and count of the *Tee* ratings;
   directly below, smaller, „Zubereitung Ø 3,8 (10)" (hidden without a
-  *Zubereitung* rating). LETZTE SITZUNGEN rows read as the journal row
+  *Zubereitung* rating). LETZTE SESSIONS rows read as the journal row
   (JRN-08).
 
 **TEA-14 — Duplicate** `Could` — **not planned** (D-100)
@@ -859,7 +859,7 @@ page (SCR-16).
 - **Deliberate changes:** an infusion ended early with *Aufguss jetzt
   beenden*, or steps edited or added in the Schritte-Sheet without *Im
   Rezept speichern*. Pouring late after the alarm (overtime) never counts.
-  A step that *Sitzung beenden* ended while it ran counts as ended early
+  A step that *Session beenden* ended while it ran counts as ended early
   too (PO, D-112 Q21); so does a rinse.
   Until D-112 any difference of more than max(5 s, 10 %) counted, late
   pouring included.
@@ -955,26 +955,26 @@ E.g. KYUSU → „Kyusu 180 ml".
 
 **BRW-01 — Start a brew** `Must`
 Entry points: Home *Aufguss starten* (tea picker → setup), tea detail
-*Brühen* and its recipes (→ setup, v0.4.0), the session page's *So nochmal
-brühen* (→ setup prefilled, BRW-06, v0.4.0), and Home
-*Nochmal brühen* (→ **directly to the timer**, BRW-11).
+*Session starten* and its recipes (→ setup, v0.4.0), the session page's *So nochmal
+aufgießen* (→ setup prefilled, BRW-06, v0.4.0), and Home
+*Nochmal aufgießen* (→ **directly to the timer**, BRW-11).
 
 **BRW-11 — One-tap brew again** `Must`
-Home *Zuletzt gebrüht* shows the **6 most recently brewed distinct teas**
+Home *Zuletzt aufgegossen* shows the **6 most recently brewed distinct teas**
 (non-archived), each with its last session's date, first-step duration and
-temperature (v0.5.1, D-110; until v0.5.0 three tiles under *Nochmal brühen*
+temperature (v0.5.1, D-110; until v0.5.0 three tiles under *Nochmal aufgießen*
 and, apart from them, the last three sessions). Tapping one (*Nochmal
-brühen*) starts a session immediately and opens the timer
+aufgießen*) starts a session immediately and opens the timer
 in READY with the parameters of that tea's last session (recipe, vessel, leaf,
 water, temperatures, step durations as planned). A session finished early
 starts again with its started steps only (D-062), though from v0.4.0 it keeps
 its never-started ones for BRW-06 (Q-19). The kettle hint shows the
-temperature. Timer ⋮ › *Brühen anpassen* opens the setup screen for this
+temperature. Timer ⋮ › *Session anpassen* opens the setup screen for this
 session (only while no step has started). A known tea starts in **2 taps**
 (tea → *Start*).
 - **Leaf and water on READY (v0.2.2, D-097).** Every READY state of a brew
   shows the session's leaf and water next to the kettle hint („4,0 g Tee ·
-  250 ml Wasser"), so a tea started from *Nochmal brühen* shows how much to
+  250 ml Wasser"), so a tea started from *Nochmal aufgießen* shows how much to
   weigh without opening the setup (SCR-05).
 - **Stock on READY (v0.3.0, D-098).** Under that line every READY of a brew
   shows the tea's stock as in the setup (INV-05): „38 g übrig", „14 g übrig ·
@@ -984,7 +984,7 @@ session (only while no step has started). A known tea starts in **2 taps**
 
 **BRW-02 — Setup screen** `Must`
 Shows tea, recipe chips, vessel, water, leaf, ratio lock, base temperature,
-step list, effective pre-alert, *Brühen starten*. Changes apply to this
+step list, effective pre-alert, *Session starten*. Changes apply to this
 session only unless *Im Rezept speichern* is tapped; this includes each
 step's pre-alert (TMR-23, D-093).
 - **Stock correction (v0.2.1, D-093):** a tap on „38 g übrig" opens a small
@@ -1002,7 +1002,7 @@ With ratio lock (default on), changing water or vessel rescales leaf (0,1 g);
 changing leaf rescales water (5 ml). Times and temperatures never scale.
 
 **BRW-06 — Brew from a past session** `Should` (v0.4.0, D-100)
-*So nochmal brühen* on a session's page (SCR-16) opens the setup prefilled
+*So nochmal aufgießen* on a session's page (SCR-16) opens the setup prefilled
 with the session as brewed: tea, vessel (shown „(archiviert)" if archived),
 leaf, water and every planned step at its **set time** (*geplant*, including
 Schritte-Sheet changes and steps never started, which a session keeps
@@ -1026,7 +1026,7 @@ only by *Im Rezept speichern*.
 - **v0.4.0 (D-100):** the warning ships. When the stock is known, above 0 g
   and below this brew's leaf, the stock line reads „Nur noch 3 g übrig"
   (with „· knapp" when *Knapp*) and follows leaf changes. It never blocks
-  *Brühen starten*. A *Leer* tea keeps „Leer".
+  *Session starten*. A *Leer* tea keeps „Leer".
 
 **BRW-09 — Freshness hint** `Could`
 
@@ -1042,7 +1042,7 @@ hint reads „Kaltes Wasser" (cold brew) or „Eiswürfel" (ice brew) instead.
 Full behaviour: [04 · Brew Timer](04-brew-timer.md).
 
 **TMR-01 — Start session** `Must`
-*Brühen starten* creates an IN_PROGRESS session and opens the timer in READY
+*Session starten* creates an IN_PROGRESS session and opens the timer in READY
 for the first step.
 
 **TMR-02 — Countdown** `Must`
@@ -1099,10 +1099,10 @@ Finishing early (e.g. after infusion 2 of 3) is a normal session; the
 journal shows „2 von 3 Aufgüssen". Planned steps that were never started are
 not recorded as skipped and do not count as a time difference for PRF-07.
 From v0.4.0 their rows are kept without an actual time (until v0.3.0 they
-were deleted at finish; 05 §3.7, Q-19, D-100), for *So nochmal brühen*
+were deleted at finish; 05 §3.7, Q-19, D-100), for *So nochmal aufgießen*
 (BRW-06).
 
-*Sitzung beenden* (FINISHED state or overflow) completes the session; it is
+*Session beenden* (FINISHED state or overflow) completes the session; it is
 saved to the journal automatically **without a summary screen**. A bottom
 sheet (SCR-06) appears for 10 s and stays reachable from the journal:
 „Gespeichert im Journal" with *Notizen hinzufügen* (opens SCR-17) and — only if
@@ -1127,12 +1127,12 @@ later at work).
   bereit" with *Start*).
 - At **midnight** — the first local midnight in the session's time zone at
   least 6 h after it became idle — a waiting session is finished and logged
-  (marked auto-finished) with the notification „Sitzung gespeichert"; a
+  (marked auto-finished) with the notification „Session gespeichert"; a
   session without any completed non-rinse step is discarded silently
   instead.
 - When another session is started with *Beenden & neu starten* (TMR-21), the
-  active session — waiting or not — is finished as by *Sitzung beenden* and
-  logged with the notification „Sitzung gespeichert" instead of the saved
+  active session — waiting or not — is finished as by *Session beenden* and
+  logged with the notification „Session gespeichert" instead of the saved
   sheet; without a completed non-rinse step it is discarded (04 §3.2,
   D-054).
 - **Per session (v0.5.0, D-108).** With two brew sessions each has its own
@@ -1172,15 +1172,15 @@ without keeping a service running; no pre-alert; the Live Update shows
 *Weggegossen*).
 
 **TMR-21 — Second session** `Must`
-Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
+Starting while another is active: „Erst die *Gyokuro*-Session beenden?"
 (*Beenden & neu starten* / *Abbrechen*).
 - **v0.3.0 (D-093, D-098):** one active brew session and one active quick
   timer (TMR-22) may run at the same time; either starts while the other
   runs, without this dialog. Only a second brew session asks as above; it
   never touches the quick timer. Until v0.3.0 one timer at a time.
-  - AC1: *Aufguss starten*, *Nochmal brühen* and the setup start a brew
+  - AC1: *Aufguss starten*, *Nochmal aufgießen* and the setup start a brew
     while a quick timer runs, without a question.
-  - AC2: *Sitzung beenden*, *Sitzung verwerfen* and every step action leave
+  - AC2: *Session beenden*, *Session verwerfen* and every step action leave
     the quick timer running; its *Abbrechen* leaves the brew running.
   - AC3: Both survive swiping the app away, process death, a reboot and an
     app update (04 §7).
@@ -1188,11 +1188,11 @@ Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
   while one brew session runs, without a question, as the second brew
   session (slot `BREW_2`, 04 §3.3); both keep their plan, leaf, vessel and
   step progress, and every action acts on its own session only. Starting a
-  tea that already has an active session (*Nochmal brühen*, the setup, a
+  tea that already has an active session (*Nochmal aufgießen*, the setup, a
   recipe) opens that session instead of a second one. While two timers are
   active, any start asks „Welchen Timer beenden?" with one button per active
   timer (the tea name or *Schnelltimer*) and *Abbrechen*; the timer chosen
-  ends as by *Beenden & neu starten* (a session logged with „Sitzung
+  ends as by *Beenden & neu starten* (a session logged with „Session
   gespeichert", or discarded silently without a completed non-rinse step;
   the quick timer as by *Abbrechen*), then the new one starts. A second
   quick timer still asks „Schnelltimer beenden und neu starten?" (TMR-22).
@@ -1206,11 +1206,11 @@ Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
   - **Screens (v0.5.0-03, #201).** A start of another tea while one timer
     is active opens the new session's timer (the second brew's, not the
     first's). A start of a tea with an active session opens that session,
-    asking nothing. „Welchen Timer beenden?" is asked by *Nochmal brühen*,
-    the setup's *Brühen starten* and SCR-07's *Start* (reached from Start's
+    asking nothing. „Welchen Timer beenden?" is asked by *Nochmal aufgießen*,
+    the setup's *Session starten* and SCR-07's *Start* (reached from Start's
     *Schnelltimer*); one full-width button per active timer in the slot
     order, *Abbrechen* keeps both. During an alert no question shows: the
-    alerting timer opens instead (rule 8). *Brühen anpassen* replaces the
+    alerting timer opens instead (rule 8). *Session anpassen* replaces the
     waiting session in its own slot.
 
 **TMR-22 — Quick timer** `Should`
@@ -1417,13 +1417,13 @@ rating if present. In-progress session pinned on top.
   active the in-progress session is not pinned.
 - AC1: smooth with 10 000 sessions (05 §10).
 
-**JRN-10 — Session detail** `Must` with *Bearbeiten*, *Löschen*, *So nochmal brühen*.
+**JRN-10 — Session detail** `Must` with *Bearbeiten*, *Löschen*, *So nochmal aufgießen*.
 - **v0.4.0 (D-100):** a tap on a past journal entry opens its page (SCR-16),
   read-only: the tea (tap → its detail), date and time, method, vessel,
   leaf / water / ratio, the step table (*geplant* / *tatsächlich* / °C) and
-  *So nochmal brühen* (BRW-06). *Bearbeiten*, rating and taste
+  *So nochmal aufgießen* (BRW-06). *Bearbeiten*, rating and taste
   follow in M4.
-- **v0.4.0-rc.2 (D-102):** ⋮ *Löschen* on the page asks „Sitzung löschen?"
+- **v0.4.0-rc.2 (D-102):** ⋮ *Löschen* on the page asks „Session löschen?"
   and deletes a finished session with its steps and its BREW stock event
   (the deducted leaf is back in the stock); a session in progress is never
   deleted. No undo.
@@ -1511,7 +1511,7 @@ history list (SCR-29).
   from `observeEvents`, newest first, each on its day in the phone's zone:
   purchases (INITIAL and PURCHASE, „Kauf", grams and the price when
   recorded), corrections („Bestand korrigiert", the signed difference) and
-  brews („Gebrüht", the grams used). A brew row opens its session page
+  brews („Aufgegossen", the grams used). A brew row opens its session page
   (SCR-16).
 - **Delete (v0.4.1, D-104, #185):** a purchase (INITIAL or PURCHASE) or a
   correction can be deleted after a confirmation
@@ -1590,7 +1590,7 @@ a whisk-only session counting its `water_ml` once; a session without water
 recorded, or whose every step was skipped, adds 0 ml. Cost per litre = Σ
 `cost_cents` ÷ Σ poured litres of the priced sessions that have a volume,
 cents rounded half up. Shown on tea detail („ca. 1,60 € pro Liter (Rezept)",
-„Ø 1,80 € pro Liter aus 5 Sitzungen") and in statistics. (Before rc.3: cups
+„Ø 1,80 € pro Liter aus 5 Sessions") and in statistics. (Before rc.3: cups
 by volume ÷ Tassengröße, „0,24 € pro Tasse"; rc.2 A1; before rc.2: one
 poured infusion = one cup.)
 - **Since v0.1.0:** the session's cost (`cost_cents`) is stored at
@@ -1607,11 +1607,11 @@ poured infusion = one cup.)
     rc.3: ÷ cups by volume ÷ Tassengröße; before rc.2: „pro Tasse" ÷ its
     non-rinse steps). A recipe without water, or whose steps are all
     rinses, or without a default recipe: no estimate.
-  - **Average:** „Ø 1,80 € pro Liter aus 5 Sitzungen" („aus 1 Sitzung"),
+  - **Average:** „Ø 1,80 € pro Liter aus 5 Sessions" („aus 1 Session"),
     from the first finished session with a `cost_cents`: Σ `cost_cents` ÷
     Σ poured litres of those sessions (volume as above). **rc.3 (D-115 A2):**
     a priced session without water (or all steps skipped) adds 0 ml: it is
-    left out of the average and of „aus N Sitzungen". Before rc.3: „Ø … €
+    left out of the average and of „aus N Sessions". Before rc.3: „Ø … €
     pro Tasse", cups = water ÷ Tassengröße. Sessions without a cost and the
     running one are left out. The stored `cost_cents` stays as it was at
     completion; a later purchase changes only the price and the estimate.
@@ -1761,7 +1761,7 @@ to 100 (largest remainder).
 
 **INS-02 — Ratings (Bewertungen)** `Must`
 **rc.2 (D-115 A1, R4, R11):** *Bewertungen* has four parts, in this order. The
-Ø headline („Ø 4,2 ★ · 18 von 25 Sitzungen bewertet"), the 5 ★–1 ★
+Ø headline („Ø 4,2 ★ · 18 von 25 Sessions bewertet"), the 5 ★–1 ★
 distribution and „Am besten bewertet" are gone (replaced by the first part).
 - **Tee-Rangliste:** every tea with **at least one rated session** in the
   range, best Ø first, each as „4,6 ★ · 5×" (the Ø over the range's rated
@@ -1825,9 +1825,9 @@ JRN-04).
   „Ø 0,27 € pro Tasse"): Σ `cost_cents` ÷ Σ poured litres over the sessions
   in the range that have a `cost_cents` and a volume; hidden without such a
   session (never „0 €"). Sessions without a `cost_cents` don't count:
-  „aus 20 Sitzungen mit Preis" (counting only the sessions in the average); a
+  „aus 20 Sessions mit Preis" (counting only the sessions in the average); a
   priced session without water counts in the total and the bars but not in
-  the average; without any: „Keine Sitzungen mit Preis".
+  the average; without any: „Keine Sessions mit Preis".
 - **Running out:** the non-archived teas whose stock is *Leer* or *Knapp*
   (INV-05) and whose stock warning is on (`low_stock_warning`), *Leer*
   first, then by remaining grams; „12 g · knapp" / „leer"; a tap opens the
@@ -1858,12 +1858,12 @@ JRN-04).
 
 **INS-08 — Interaction, motion and accessibility** `Must`
 - A tap on a bar, a line point or a donut slice shows its value in a small
-  label („KW 44 · 6 Sitzungen"; „Sencha · 42 % · 21 Sitzungen"); a second
+  label („KW 44 · 6 Sessions"; „Sencha · 42 % · 21 Sessions"); a second
   tap or a tap elsewhere hides it. No drill-down into the journal. **rc.2
   (R15):** the label fades (0,12 s in, 0,1 s out; reduce motion: at once).
 - **Foldable sections (rc.2, D-115 A1, R8):** on all three tabs sections are
   open at first; a tap on the heading folds the section to one line with its
-  key number („SITZUNGEN · 42"); folded sections stay folded across app
+  key number („SESSIONS · 42"); folded sections stay folded across app
   starts (`statsFolded`, 05 §6). The chevron turns; the body expands or
   collapses in ≈ 200 ms (reduce motion: at once); TalkBack announces
   „eingeklappt"/„ausgeklappt".
@@ -1873,11 +1873,11 @@ JRN-04).
   (≈ 300 ms, ease-out); a range change morphs the bars to the new values;
   with reduce motion only a fade (03 §3.6).
 - **Accessibility:** every chart is one TalkBack node that reads its data
-  as a list („Sitzungen pro Woche. KW 44: 6. KW 45: 4. …"); there is no
+  as a list („Sessions pro Woche. KW 44: 6. KW 45: 4. …"); there is no
   visible table toggle. Numerals and labels follow the font scale up to 2.0.
 - **Empty state:** with no finished session at all, the screen shows A9
-  (three stones and a leaf) with „Noch keine Statistik · Brühe deinen ersten
-  Tee, dann wächst hier deine Tee-Reise." and no tabs. With sessions but
+  (three stones and a leaf) with „Noch keine Statistik · Gieß deinen ersten
+  Tee auf, dann wächst hier deine Tee-Reise." and no tabs. With sessions but
   nothing in the range, each section says quietly „In diesem Zeitraum
   nichts".
 
@@ -1898,12 +1898,12 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
 | SET-32 | Bei „Nicht stören" klingeln (below *Alarmdauer*; v0.3.0, D-099) | **an**. On: while Do Not Disturb lets alarms through („Nur Alarme", or priority mode whose policy allows alarms), Vorwarnung and alarm ring even when the phone reports silent, as with the ringer on normal (sound, plus vibration per SET-11). Off: the reported ringer mode decides (as in `v0.3.0-rc.1`). *Alarm testen* and *Anhören* follow it (04 §9.1) | Must |
-| SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Brühen & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
-| SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
+| SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Aufguss & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
+| SET-16 | Schwelle „knapp" („Knapp ab", in *Aufguss & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
 | SET-34 | ~~Tassengröße~~ **removed in rc.3 (D-115 A2)**: the setting, its row and dialog are gone; Statistik and the tea detail count volume (INV-08, INS-05). Until rc.2 (D-115 A1, R2–R3): 50–500 ml in 10 ml steps, **150 ml** (`cupSizeMl`, retired, 05 §6) | — | — |
-| SET-28 | Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; a switch „Tägliche Vorrats-Erinnerung" in v0.3.0, D-098; from v0.5.0 *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich · Aus*, D-108) | Täglich | Should |
+| SET-28 | Vorrats-Erinnerung (INV-11, in *Aufguss & Vorrat*; a switch „Tägliche Vorrats-Erinnerung" in v0.3.0, D-098; from v0.5.0 *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich · Aus*, D-108) | Täglich | Should |
 | SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is not *Aus*; v0.3.0, D-098) | **18:00** | Should |
-| SET-17 | Bildschirm beim Brühen anlassen | an | Must |
+| SET-17 | Bildschirm beim Aufguss anlassen | an | Must |
 | SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | ~~Geänderte Zeiten anbieten (PRF-07)~~ — **retired** (v0.6.0, D-112): the offer has no setting | — | Won't |
 | SET-19 | Wöchentliche Vorrats-Erinnerung (INV-07; freshness only from v0.3.0, D-098) | aus | Could |
@@ -1912,7 +1912,7 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 | SET-23 | Katalog: letzter Abruf, *Jetzt aktualisieren* | — | Must |
 | SET-24 | Timer-Zuverlässigkeit (status of notification, Live Update, full-screen alert, battery, exact alarm, and from v0.3.0 the alarm volume, with *Beheben* links) | — | Must |
 
-**SET-30 — Sections** `Must`: *Timer & Alarm*, *Brühen & Vorrat*, *Katalog*,
+**SET-30 — Sections** `Must`: *Timer & Alarm*, *Aufguss & Vorrat*, *Katalog*,
 *Teegeschirr* (→ SCR-13; v0.4.0, D-100), *Darstellung*, *Daten* (→ SCR-26,
 Alle Daten löschen), *Über* (→ SCR-27). From v0.6.1 ([D-114](10-open-questions-and-decisions.md#d-114))
 *Darstellung* is the first section, below the *Timer-Zuverlässigkeit* card,
@@ -1953,13 +1953,13 @@ new sessions since the last export.
 
 ## 15. Notifications & Live Update (NOT)
 
-**NOT-01 — Channels** `Must`: Brühtimer (live/ongoing, silent), Aufguss
-fertig (high), Sitzungen (low), Erinnerungen (low), Katalog (low, refresh
+**NOT-01 — Channels** `Must`: Aufguss-Timer (live/ongoing, silent), Aufguss
+fertig (high), Sessions (low), Erinnerungen (low), Katalog (low, refresh
 progress/result); from v0.3.0 (D-098) Weiterer Timer (low, silent: the
 active timer not shown as the Live Update) and Vorrat (low, silent: INV-11).
 
 **NOT-02 — Actions** `Must`: READY → *Start*; RUNNING → *Pause*; PAUSED →
-*Weiter*; ALERTING → *Abgegossen*; FINISHED → *Sitzung beenden*. Tapping opens
+*Weiter*; ALERTING → *Abgegossen*; FINISHED → *Session beenden*. Tapping opens
 SCR-05.
 
 **NOT-03 — Lock screen** `Must`: timer notifications public.

@@ -98,7 +98,7 @@ stateDiagram-v2
 | `Running(i)` | deadline (monotonic + wall), pre-alert time, `preAlertPlayed`, step start, paused total | Counting down. |
 | `Paused(i)` | remaining ms, `pausedSince` (monotonic + wall), `preAlertPlayed`, step start, paused total | Frozen. |
 | `Alerting(i)` | deadline (monotonic + wall), `alertPlayed`, step start, paused total | Step done; alert playing; waiting for *Abgegossen*. |
-| `Finished` | `readySince` | All planned steps done; waiting for *Sitzung beenden* or *Weiterer Aufguss*. |
+| `Finished` | `readySince` | All planned steps done; waiting for *Session beenden* or *Weiterer Aufguss*. |
 
 Every active state also carries the session: plan, pre-alert settings, zone,
 last interaction, boot count, `demoted` and `longStepsOnly` (05 §3.12). Active
@@ -122,8 +122,8 @@ time is derived from the deadline, not stored (D-048).
 | `editSteps(list, preAlertChoice)` | any except Idle | From the Schritte-Sheet (SCR-31): the whole plan plus *Wie Einstellung* / *Aus* / N s. Replaces only the pending steps and sets or clears the session's pre-alert override. Rejected unchanged if it changes, removes or reorders a started or ended step (`StartedStepChanged`) or leaves no non-rinse step (`NoBrewStepLeft`). Ready re-points to the first pending step, or goes to Finished; Finished with new steps goes to Ready. The running step's pre-alert follows the new N, but one that is already due stays due unless the edit leaves the step without a pre-alert (*Aus*, §5, D-054). Session-only unless *Im Rezept speichern*. **From v0.2.1 (D-093):** `editSteps(list)` — each step carries its own `PreAlertChoice` (*Automatisch* / *Aus* / N s) and the session-wide choice goes; the running step may change only its choice (else `StartedStepChanged`), and its pre-alert follows its new N by the same rules. Like every step change, the choices stay in the session; only *Im Rezept speichern* writes them to the recipe's steps (TMR-23, PO). An added step (`addStep`) starts as *Automatisch*. |
 | `finishSession` | any except Idle | A RUNNING/PAUSED step is completed as `endStepNow`, an ALERTING step as `poured`; then COMPLETED if ≥ 1 non-rinse step completed, else discard (UI confirms) → Idle; show SCR-06 sheet. |
 | `discard` | any except Idle | Delete session and stock deduction → Idle. |
-| `idleDemote` | Ready, Paused, Finished of a brew session, not yet demoted; 30 min after it became idle (`dueTimes.idleDemoteAt`) | Sets `demoted`, no other change: `StopForeground`, then the Live Update is posted again as a regular silent ongoing notification (with *Start*/*Weiter*/*Sitzung beenden*). Any user event clears `demoted` and ensures the FGS (notification action exemption; D-053). |
-| `midnightTimeout` | Ready, Paused, Finished of a brew session, demoted or not; the first local midnight in the session's zone at least 6 h after it became idle (`dueTimes.midnightAt`; inexact alarm, also checked on recovery §7.2) | As `finishSession` without confirmation: if ≥ 1 non-rinse step completed (a paused step counts), COMPLETED with `auto_finished` (`CompleteSession(autoFinished = true)`, D-054) and the notification „Sitzung gespeichert" (`NotifySessionSaved`, no saved sheet); otherwise discarded silently. A paused step ends where its pause began; the open pause is not recorded. Not an interaction. |
+| `idleDemote` | Ready, Paused, Finished of a brew session, not yet demoted; 30 min after it became idle (`dueTimes.idleDemoteAt`) | Sets `demoted`, no other change: `StopForeground`, then the Live Update is posted again as a regular silent ongoing notification (with *Start*/*Weiter*/*Session beenden*). Any user event clears `demoted` and ensures the FGS (notification action exemption; D-053). |
+| `midnightTimeout` | Ready, Paused, Finished of a brew session, demoted or not; the first local midnight in the session's zone at least 6 h after it became idle (`dueTimes.midnightAt`; inexact alarm, also checked on recovery §7.2) | As `finishSession` without confirmation: if ≥ 1 non-rinse step completed (a paused step counts), COMPLETED with `auto_finished` (`CompleteSession(autoFinished = true)`, D-054) and the notification „Session gespeichert" (`NotifySessionSaved`, no saved sheet); otherwise discarded silently. A paused step ends where its pause began; the open pause is not recorded. Not an interaction. |
 | `recover` | any except Idle | Sent once on every process start with the persisted state (§7.2). Not an interaction. |
 
 There are **no** ±10 s adjust events in v0.2 (TMR-04 dropped).
@@ -174,7 +174,7 @@ Engine rules (D-047):
   timer, then the new start. A brew session ends with `finishSession` (the
   TMR-21 dialog is the confirmation, so a session without a completed
   non-rinse step is discarded without a second question); the controller
-  shows no saved sheet for it and posts „Sitzung gespeichert"
+  shows no saved sheet for it and posts „Session gespeichert"
   (notification 3) instead, i.e. it executes `ShowSavedSheet(id)` of this
   finish as `NotifySessionSaved(id)` (TMR-14). The session is not
   `auto_finished`: the user chose to end it. A quick timer ends with `cancel`
@@ -212,7 +212,7 @@ uses the request codes 301–307 (§6.2).
 
   *Beenden & neu starten* names the slot to end (`finishActiveAndStart(…,
   ending)`, `startQuickTimer(…, ending)`): in one turn that timer ends, a
-  session as by *Sitzung beenden* with „Sitzung gespeichert" (or discarded
+  session as by *Session beenden* with „Session gespeichert" (or discarded
   silently without a completed non-rinse step), the quick timer as by
   *Abbrechen* (*Fertig* while alerting), then the start follows the rules
   above.
@@ -235,14 +235,14 @@ uses the request codes 301–307 (§6.2).
   10 min from its release, as the quick timer does (D-108). *Abgegossen* on
   a released brew records its overtime from its own deadline; the step is
   the overtime timeout's auto-ack only once that timeout has come. Leaving
-  a held alert (*Abgegossen*, *Fertig*, *Sitzung beenden*, *verwerfen*)
+  a held alert (*Abgegossen*, *Fertig*, *Session beenden*, *verwerfen*)
   sends no `StopAlert`: it played nothing. `deadlineReached` at or after
   deadline + 10 min applies `overtimeTimeout` only for a timer that could
   have rung; a timer reaching its deadline while it must wait is held
   instead, however late. A brew row stored without `ringingSince` is held;
   only one reported played (a row an interim build of v0.3.0 wrote) rings
   since its deadline.
-- **Independence.** *Sitzung beenden*, *Sitzung verwerfen*, *Pause*, every
+- **Independence.** *Session beenden*, *Session verwerfen*, *Pause*, every
   step action and the brew's idle and midnight rules act on their brew slot
   only; *Abbrechen*, *Pause* and the 30-min cancel of the quick timer on the
   quick slot only. With two brew sessions (D-108) each slot has its own idle
@@ -320,7 +320,7 @@ flowchart LR
   `restore` throws only `IllegalArgumentException`; the controller then logs
   it (06 §5.6) and clears `active_brew` instead of running a wrong timer.
 - ***Beenden & neu starten* (TMR-21).** One turn ends the active timer
-  (*Sitzung beenden*; the quick timer *Abgegossen* or *Abbrechen*) and starts
+  (*Session beenden*; the quick timer *Abgegossen* or *Abbrechen*) and starts
   the new session; the finish's `ShowSavedSheet` is posted as
   `NotifySessionSaved` (D-054, D-063).
 - **Alert.** `StartAlert` means "ensure the alert of the alerting step is
@@ -644,7 +644,7 @@ idle demote (D-053).
 | Persisted phase | Behaviour (same boot uses monotonic values; after reboot wall-clock values) |
 |---|---|
 | READY / PAUSED / FINISHED | Restore; try to restart the FGS now (§6.3), else re-post a plain ongoing notification and restart the FGS on the next interaction. |
-| READY / PAUSED / FINISHED, past the midnight timeout (TMR-14) | `midnightTimeout` applied silently (with „Sitzung gespeichert" if logged), also after a reboot (wall clock). |
+| READY / PAUSED / FINISHED, past the midnight timeout (TMR-14) | `midnightTimeout` applied silently (with „Session gespeichert" if logged), also after a reboot (wall clock). |
 | READY / PAUSED / FINISHED, demoted or idle for 30 min | Restored without the FGS: a regular ongoing notification; a not yet demoted session is demoted now (`StopForeground`). |
 | RUNNING long step, deadline in future | Restored without the FGS (§6.1); the deadline alarm restarts it for the alert. |
 | RUNNING, deadline in future | Restore; reschedule alarms from `dueTimes`; try to restart the FGS (§6.3). An unplayed pre-alert stays due even if its time has passed, so a pre-alert alarm that restarted the process still reaches `preAlertReached`, whose rules decide whether a late tick plays. |
@@ -777,9 +777,9 @@ time is still ahead, else skipped without a late tick (§5, D-098).
 
 | Channel ID | Name | Importance | Sound / vibration | Purpose |
 |---|---|---|---|---|
-| `brew_timer` | Brühtimer | DEFAULT, silent (promotion only needs importance above MIN) | none | Live Update / ongoing (not while ALERTING, §8.2) |
+| `brew_timer` | Aufguss-Timer | DEFAULT, silent (promotion only needs importance above MIN) | none | Live Update / ongoing (not while ALERTING, §8.2) |
 | `steep_finished` | Aufguss fertig | HIGH | none (played by `AlertPlayer`) | Full-screen intent / heads-up „Jetzt abgießen!" |
-| `sessions` | Sitzungen | LOW | none | Auto-finished session, reboot notice |
+| `sessions` | Sessions | LOW | none | Auto-finished session, reboot notice |
 | `reminders` | Erinnerungen | LOW | none | Backup, stock reminders |
 | `catalog` | Katalog | LOW | none | Refresh progress and result |
 | `timer_other` | Weiterer Timer (v0.3.0, D-098) | LOW | none | The active timer that is not the Live Update (notification 5); never promoted |
@@ -794,9 +794,9 @@ time is still ahead, else skipped without a late tick (§5, D-098).
 | RUNNING after pre-alert | Gyokuro · Aufguss 2 von 3 | Gleich fertig … | *Pause* |
 | PAUSED | Gyokuro · Aufguss 2 von 3 | Pausiert · noch 0:12 | *Weiter* |
 | ALERTING (separate notification on `steep_finished` with `setFullScreenIntent(SCR-05)`, `CATEGORY_ALARM`) | Jetzt abgießen! | Gyokuro · Aufguss 2 | *Abgegossen* |
-| FINISHED | Gyokuro · Alle Aufgüsse fertig | Tippen zum Beenden | *Sitzung beenden* |
+| FINISHED | Gyokuro · Alle Aufgüsse fertig | Tippen zum Beenden | *Session beenden* |
 | Long step (notification 4) | Gyokuro · Aufguss 1 von 1 | Fertig um 14:30 | *Pause* |
-| Demoted (notification 4, TMR-14) | as the phase | as the phase | *Start* / *Weiter*, *Sitzung beenden* |
+| Demoted (notification 4, TMR-14) | as the phase | as the phase | *Start* / *Weiter*, *Session beenden* |
 | Quick timer | Schnelltimer | as the phase | as the phase, plus *Abbrechen*; *Fertig* while alerting |
 
 Actions → non-exported receiver → controller (source NOTIFICATION).
@@ -809,10 +809,10 @@ slot in its actions and content intent. Content intent → SCR-05 through the ap
 launcher activity, named explicitly with `com.umamit.action.OPEN_TIMER`, which opens the timer route; the
 same intent is the alert's full-screen intent (D-064). Actions: *Start*,
 *Pause*/*Weiter*, *Abgegossen* (*Weggegossen* for a rinse, *Fertig* for the
-quick timer), *Sitzung beenden* (FINISHED, demoted; not where it would
+quick timer), *Session beenden* (FINISHED, demoted; not where it would
 discard the session, TMR-12 AC1), *Abbrechen* (quick timer).
 Going to Idle removes notifications 1, 2 and 4 through `StopForeground`, whether
-or not the service runs; the midnight timeout's „Sitzung gespeichert" is
+or not the service runs; the midnight timeout's „Session gespeichert" is
 notification 3 (`NotifySessionSaved`, D-053).
 
 **While ALERTING the alert (ID 2) is the app's only notification of
@@ -840,7 +840,7 @@ reliability banner deep-link to `Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTE
 **Two timers (v0.3.0, D-098).** The timer that ends next owns notification 1
 (or 4) as in the table above; the other active timer is notification 5 on
 `timer_other`, with the same title and text per phase and its own actions
-(*Start*, *Pause*/*Weiter*, *Abbrechen* for the quick timer, *Sitzung
+(*Start*, *Pause*/*Weiter*, *Abbrechen* for the quick timer, *Session
 beenden* where the table offers it). While a slot alerts, notification 2 is
 that slot's alert and the other slot shows only as notification 5, so the
 alert stays the app's only notification of importance DEFAULT or higher
@@ -1097,8 +1097,8 @@ always cuts a pre-alert sound that still rings (§9.1). On time, a pre-alert
 comes at least 5 s before the deadline (E7), so a sound of about 3 s has
 rung out by then; a late one plays while at least 1 s is left (§5, D-053),
 and the alert then cuts it at the deadline. A pre-alert sound still ringing
-after *Pause*, *Aufguss jetzt beenden*, *Schritt überspringen*, *Sitzung
-beenden* or *Sitzung verwerfen* rings out (at most about 3.5 s: the sound,
+after *Pause*, *Aufguss jetzt beenden*, *Schritt überspringen*, *Session
+beenden* or *Session verwerfen* rings out (at most about 3.5 s: the sound,
 then the audio focus 250 ms later), since only an alert stops it.
 
 Each pre-alert sound starts with its strike in the first milliseconds (no
@@ -1157,7 +1157,7 @@ first's other end), then rings with its overtime („+0:12").
 | Both deadlines in the same turn (or while the brew alert sounds) | Brew alerts; quick goes ALERTING **held** (`alertHold`): no sound, no notification 2, no full-screen intent, no overtime timeout. |
 | Quick deadline while the brew alerts, its sound ended (D-109) | Quick alerts at once, as without a brew; it takes the screen; the brew stays „Jetzt abgießen!" as notification 5. |
 | Brew deadline while the quick alert sounds | **Preemption**, same turn: the quick sound stops, the brew alert starts, the quick slot goes back to held. The quick alert is not reported completed. |
-| Brew's alert sound ends (D-109), or the brew leaves ALERTING (*Abgegossen*, *Sitzung beenden*, *verwerfen*, its overtime timeout), with quick held | **Release**, same turn: `alertRingStart`; the quick alert rings with its overtime from its own deadline („+12:00"); its overtime timeout is 10 min from now; its full-screen intent brings SCR-07 to the front. |
+| Brew's alert sound ends (D-109), or the brew leaves ALERTING (*Abgegossen*, *Session beenden*, *verwerfen*, its overtime timeout), with quick held | **Release**, same turn: `alertRingStart`; the quick alert rings with its overtime from its own deadline („+12:00"); its overtime timeout is 10 min from now; its full-screen intent brings SCR-07 to the front. |
 | Brew deadline while the other brew's alert sounds (v0.5.0) | The new deadline is **held**; the sounding brew keeps the sound. |
 | Brew deadline while the other brew alerts, its sound ended (D-109) | The new deadline rings at once and takes the screen. |
 | A sounding brew's sound ends or it leaves ALERTING, with the other brew held (v0.5.0, D-109) | **Release**, same turn, as for the quick alert: it rings with its overtime from its own deadline, its overtime timeout 10 min from now; the first, if still alerting, is notification 5. |
@@ -1262,10 +1262,10 @@ after 10 min of ringing stay; it has no idle demote or midnight timeout.
 | E5 | *Abgegossen* tapped in app and notification at once | Second event ignored. |
 | E6 | Pause during pre-alert window, then resume | Pre-alert not repeated if already played; an unplayed one is rescheduled from the new deadline, or skipped if `deadline − N ≤ now` after the resume (§5). |
 | E7 | Planned step < N + 5 s | No pre-alert for that step. From v0.2.1 only an explicit per-step value can meet this; the automatic N is at most a third of the step (§5, D-093). |
-| E15 | *Archivieren* (until v0.3.0 *Aus Sammlung entfernen*) on the tea of the active brew session, in the picker (v0.2.1) or on the tea detail (v0.4.0) | Not possible: the item is greyed out with „Erst die Sitzung beenden" (TEA-04, PO, D-093, D-100). The same holds for *Rezept löschen* on the active session's recipe in the recipe editor (v0.4.0, D-101): *Brühen anpassen* keeps its recipe. |
+| E15 | *Archivieren* (until v0.3.0 *Aus Sammlung entfernen*) on the tea of the active brew session, in the picker (v0.2.1) or on the tea detail (v0.4.0) | Not possible: the item is greyed out with „Erst die Session beenden" (TEA-04, PO, D-093, D-100). The same holds for *Rezept löschen* on the active session's recipe in the recipe editor (v0.4.0, D-101): *Session anpassen* keeps its recipe. |
 | E8 | Phone call during alert | Vibration only. |
 | E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
-| E10 | Tea deleted, or its vessel archived, while its session is active (v0.4.0) | Not possible: *Löschen* and the vessel's *Archivieren* are greyed out („Erst die Sitzung beenden", D-100). Edits to the tea, its recipes or the vessel never reach the running session, which keeps its snapshot. |
+| E10 | Tea deleted, or its vessel archived, while its session is active (v0.4.0) | Not possible: *Löschen* and the vessel's *Archivieren* are greyed out („Erst die Session beenden", D-100). Edits to the tea, its recipes or the vessel never reach the running session, which keeps its snapshot. |
 | E11 | Device restore (new phone or reset) | `active_brew` is cleared on the first start after the restore (05 §8); no session is resumed. The first recovery ends every session left `IN_PROGRESS`: saved with `auto_finished` when it has a completed infusion, else discarded (§7.2, D-063). |
 | E12 | Catalog refresh during a session | Allowed; never affects the session (it uses a recipe snapshot). |
 | E13 | Session spans midnight | Belongs to the local date of `startedAt`. |
@@ -1281,7 +1281,7 @@ after 10 min of ringing stay; it has no idle demote or midnight timeout.
 | Unit | **v0.5.0 fix round (D-109, #194):** the arbitration's „sounds" (an alert whose sound ended holds nothing; the held alert behind it is released; a deadline behind it rings), the invariant test checking that at most one slot sounds and a held alert waits only while another sounds; the log's handled events and recoveries naming the slot (`event BREW2.Poured …`, parsed alike with or without it). **v0.5.0 (D-108, #200):** the diagnostics names of `BREW_2` parsed back (`BREW2.DEADLINE`, its sound start). **v0.5.0 (D-108, #196):** the arbitration rules over three slots (the alert that rang first keeps the sound, a release to the held slot whose deadline came first, a brew never preempting a brew, a brew before the quick timer, a pre-alert waiting for any other slot); the held brew in the engine (held at its deadline however late, its overtime timeout from `ringingSince`, its recorded overtime from its deadline, no `StopAlert` when leaving it, its snapshot round trip and `recoverHeld`); the seeded invariant test over the v0.3.0 pair and over all three slots; the names and request codes of `BREW_2` (301–307, `BREW2.`) beside the unchanged ones. **v0.3.0 (D-098):** the long-step rule at 599/600/3599/3600 s for hot steps and any length for cold and ice brew; a 20-min hot step's automatic and explicit pre-alert scheduled and played, a 60-min one none; a running 15-min hot step stored by v0.2.2 as a long step recovered with its pre-alert while it is still ahead (#127); the held alert (overtime from the deadline, timeout from `ringingSince`, preemption and release) and its snapshot round trip; the seeded invariant test extended to two slots with arbitration (never two sounds, the brew never held, a held quick alert always rings before its silent end, every slot's due event handled). Every transition in §3.2; pre-alert computation and skip rules (from v0.2.1 per step: the automatic rule at the boundaries 14/15/19/20/30/45 s and B = 0, 5, 30 s, explicit values, the running step's choice changed, D-093; the quick timer's
 choice *Automatisch*, *Aus* and explicit, through snapshot and recovery,
 D-097); idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
-| Robolectric | **v0.5.0 fix round (D-109, #194):** a held brew, and a held quick alert, ringing once the first alert's sound has ended, the first still alerting as notification 5 and *Abgegossen* on it never cutting the released sound; a deadline after that sound ringing at once; a recovered alert whose sound had ended holding nothing; two brews due in one turn, and past their deadlines after a death, the earlier deadline ringing; an answer to „Welchen Timer beenden?" ending only the session it named; a session whose row was unreadable at recovery matched by its stored session's tea; the dialog labelling a brew without its tea „Aufguss"; the timer's pending intents (alarms 301–307 beside notification intents 301–309) never meeting in one; the update from v0.4.1 through `MIGRATION_4_5`, also during the brew's alert with the quick alert held. **v0.5.0 (D-108, #200):** two brews of different teas waiting and steeping side by side, each in its own slot, row and alarms (301–307), the Live Update on the one due next; the first deadline ringing, the other brew held (no overtime timeout) and ringing after *Abgegossen* with its overtime, its silent end 10 min after its release; the second brew before a quick timer due at the same instant; a start of a tea with an active session refused naming that session, in either slot; a third start (brew or quick) refused as `TwoTimersActive` and the chosen timer ended as *Beenden & neu starten* (logged with „Sitzung gespeichert", or discarded silently), also beside a quick timer; idle demote and midnight per session; two journal entries with their own stock deduction and cost; process death with two brews running, with one ringing and one held, and with a deadline passed while dead beside a brew already ringing (that one keeps the sound); a reboot with two brews (one notice naming both); a brew in `BREW_2` and a quick timer restored; the update from v0.4.1 with a brew and a quick timer running (codes 101–107 and 201–207 kept, a second brew then on 301–307); `active_brew` rows `BREW` and `BREW_2` side by side, stored by name; the archive guard for the teas of both sessions. **v0.3.0 (D-098):** a brew with a running quick timer; both due within 1 s; the brew preempting a ringing quick alert; a quick alert held for 12 min, then ringing with „+12:00"; *Beenden & neu starten* only within a slot; process death with both active, incl. a held alert; a pre-alert during the other slot's alert; the slots' request codes never colliding and a v0.2.2 quick timer's old codes recovered; the Live Update following the next due slot (promotion switching after a pause and when one ends, notification 5 never promoted, no orphan after either ends or after a process death, a long step ending next shown by the service, a demoted brew giving way); a new alert while another alert is notification 2 (preemption, a quick alert released when the brew session ends during its alert) posted as a new notification, whose full-screen intent System UI launches (a shadow rule: only an added notification launches one); a 15-min hot step with service, countdown Live Update and Vorwarnung, also after a process death, beside a quick timer and after the update from v0.2.2 (#127); `USAGE_ALARM`, gain at 10/50/100 %, the ringer-mode and DND matrix, the alarm-volume-0 check; from `v0.3.0-rc.2` (D-099) the DND policy read in priority mode (alarms allowed, blocked, none to read) and the matrix with SET-32 on and off for every cue, every cycle, *Alarm testen* and *Anhören*. Controller + Room; notification content per phase; alarm scheduling (from v0.2.2 also a quick timer's pre-alert alarm, its mark in the UI state and the pre-alert sound played, D-097); ringer-mode matrix of `AlertPlayer`; the takeover of a stale foreground notification, with shadows that add AOSP's notification rules (D-084). |
+| Robolectric | **v0.5.0 fix round (D-109, #194):** a held brew, and a held quick alert, ringing once the first alert's sound has ended, the first still alerting as notification 5 and *Abgegossen* on it never cutting the released sound; a deadline after that sound ringing at once; a recovered alert whose sound had ended holding nothing; two brews due in one turn, and past their deadlines after a death, the earlier deadline ringing; an answer to „Welchen Timer beenden?" ending only the session it named; a session whose row was unreadable at recovery matched by its stored session's tea; the dialog labelling a brew without its tea „Aufguss"; the timer's pending intents (alarms 301–307 beside notification intents 301–309) never meeting in one; the update from v0.4.1 through `MIGRATION_4_5`, also during the brew's alert with the quick alert held. **v0.5.0 (D-108, #200):** two brews of different teas waiting and steeping side by side, each in its own slot, row and alarms (301–307), the Live Update on the one due next; the first deadline ringing, the other brew held (no overtime timeout) and ringing after *Abgegossen* with its overtime, its silent end 10 min after its release; the second brew before a quick timer due at the same instant; a start of a tea with an active session refused naming that session, in either slot; a third start (brew or quick) refused as `TwoTimersActive` and the chosen timer ended as *Beenden & neu starten* (logged with „Session gespeichert", or discarded silently), also beside a quick timer; idle demote and midnight per session; two journal entries with their own stock deduction and cost; process death with two brews running, with one ringing and one held, and with a deadline passed while dead beside a brew already ringing (that one keeps the sound); a reboot with two brews (one notice naming both); a brew in `BREW_2` and a quick timer restored; the update from v0.4.1 with a brew and a quick timer running (codes 101–107 and 201–207 kept, a second brew then on 301–307); `active_brew` rows `BREW` and `BREW_2` side by side, stored by name; the archive guard for the teas of both sessions. **v0.3.0 (D-098):** a brew with a running quick timer; both due within 1 s; the brew preempting a ringing quick alert; a quick alert held for 12 min, then ringing with „+12:00"; *Beenden & neu starten* only within a slot; process death with both active, incl. a held alert; a pre-alert during the other slot's alert; the slots' request codes never colliding and a v0.2.2 quick timer's old codes recovered; the Live Update following the next due slot (promotion switching after a pause and when one ends, notification 5 never promoted, no orphan after either ends or after a process death, a long step ending next shown by the service, a demoted brew giving way); a new alert while another alert is notification 2 (preemption, a quick alert released when the brew session ends during its alert) posted as a new notification, whose full-screen intent System UI launches (a shadow rule: only an added notification launches one); a 15-min hot step with service, countdown Live Update and Vorwarnung, also after a process death, beside a quick timer and after the update from v0.2.2 (#127); `USAGE_ALARM`, gain at 10/50/100 %, the ringer-mode and DND matrix, the alarm-volume-0 check; from `v0.3.0-rc.2` (D-099) the DND policy read in priority mode (alarms allowed, blocked, none to read) and the matrix with SET-32 on and off for every cue, every cycle, *Alarm testen* and *Anhören*. Controller + Room; notification content per phase; alarm scheduling (from v0.2.2 also a quick timer's pre-alert alarm, its mark in the UI state and the pre-alert sound played, D-097); ringer-mode matrix of `AlertPlayer`; the takeover of a stale foreground notification, with shadows that add AOSP's notification rules (D-084). |
 | Instrumented (CI emulator job, API 35 and 36) | **v0.5.0 (D-108, D-109, #194):** two brews, the second due 12 s after the first, killed during the first's alert while the second runs: a new process (the second's alarm 302 or guard 307, the first's watchdog, or the service's restart) replays the first's alert and restores the second held (notification 5, no full-screen intent); the second rings once the replayed sound has ended, unpoured first as notification 5; the log's alert sounds the first's first, the second's once and last. **v0.3.0 (D-098):** process death during a brew step with a quick timer running: both restored, both alert on time, the brew first when both are due (#137: a brew step and a quick timer due together, killed while both run and again during the brew's alert with the quick timer's held; the brew's alert on time and replayed, the quick timer's deadline handled on time and held without a full-screen intent, then ringing at once after *Abgegossen*; the log's alert sounds brew first, the quick timer's once and last); promotion of the Live Update for the next due slot. Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery. The runner's instrumentation lets Android allow every foreground start of the app's uid, so a refused start cannot show here: the refused-start paths (§6.3) rest on the Robolectric tests and the PO's device; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). A test that fails only now and then is repeated by the manually dispatched workflow `timer-stress.yml` (`scripts/stress-instrumented.sh`; for the kill during a step it can sweep the moment of the kill, D-084). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
 | Accuracy | 50 × 60 s steps with the screen off on the CI emulator, in the manually dispatched workflow `accuracy.yml` that must pass before each release candidate (`AccuracyRunTest`, skipped in the regular emulator job; [09 §4a](09-release-plan.md#4a-accuracy-run-before-each-release-candidate), D-067); on the device the diagnostics log (06 §5.6) records scheduled vs actual times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert, measured up to the moment the player started the sound (the „alert" entry), not the handling of the event (D-068). **From v0.3.0 (D-098):** a second variant `alongside` runs the same brew steps with a quick timer running alongside, restarted so it overlaps the steps, and measures both timers' pre-alerts and alerts against the same targets; every v0.3.0 rc and the final release need both variants (09 §4a). **From v0.5.0 (D-108, #202):** a third variant `two-brews` runs two overlapping brew sessions; both pre-alerts and the first brew's alerts are measured against the same targets, the second's alert, held behind the first's until the first's sound has ended by design (§9.3, D-109), is reported apart and not gated; every v0.5.0 rc and the final need all three variants. |

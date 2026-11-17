@@ -232,9 +232,9 @@ effect of the timer engine, 04 §4; D-052):
   when `actual_seconds` is set.
 - **Complete** (`CompleteSession`, TMR-12): rows that were never started are
   **kept** without `actual_seconds` from v0.4.0 on (Q-19, D-100; until
-  v0.3.0 they were deleted), so *So nochmal brühen* (BRW-06) can prefill
-  them and the session page shows them as „nicht gebrüht"; journal counts,
-  cost and statistics count only ended rows, and Start's *Nochmal brühen*
+  v0.3.0 they were deleted), so *So nochmal aufgießen* (BRW-06) can prefill
+  them and the session page shows them as „nicht aufgegossen"; journal counts,
+  cost and statistics count only ended rows, and Start's *Nochmal aufgießen*
   (BRW-11) brews only those again, as before (D-062). `brew_session.planned_step_count`
   keeps the planned total so the journal can show „2 von 3 Aufgüssen". Skipped steps (TMR-09) stay with
   `skipped = 1`. It also sets `cost_cents` and `ended_at`, adds the BREW stock
@@ -659,7 +659,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lastManualBackupAt` | Long? | null | BAK-01 |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
 | `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 (v0.4.0, D-100): the *Sammlung* segment used last |
-| `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK/RATING | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100; `RATING` v0.6.0, D-112): *Zuletzt gebrüht*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*, *Bewertung* (highest average first, unrated after rated); empty teas last in each |
+| `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK/RATING | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100; `RATING` v0.6.0, D-112): *Zuletzt aufgegossen*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*, *Bewertung* (highest average first, unrated after rated); empty teas last in each |
 | `statsRange` | DAYS_30/DAYS_90/MONTHS_12/ALL/CUSTOM | DAYS_90 | INS-07 (v0.7.0, D-115): the range used last. rc.2 (D-115 A1, R7): `CUSTOM` is the *Monate* segment, with `statsRangeFrom` and `statsRangeTo` below |
 | `statsRangeFrom`, `statsRangeTo` | String? (month, `yyyy-MM`) | null | INS-07 (v0.7.0-rc.2, D-115 A1, R7): the *Von* and *Bis* months of the custom range; read only while `statsRange` is `CUSTOM` |
 | `statsFolded` | Set<String> | ∅ | INS-08 (v0.7.0-rc.2, D-115 A1, R8): the keys of the folded Statistik sections (all three tabs); open sections are not stored |
