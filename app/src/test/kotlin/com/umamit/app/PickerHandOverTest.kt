@@ -1,6 +1,7 @@
 package com.umamit.app
 
 import androidx.activity.ComponentActivity
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
@@ -30,6 +31,7 @@ import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.testing.FakeTimerReliability
+import com.umamit.core.ui.SHEET_STAND_IN_TAG
 import com.umamit.feature.brew.picker.TEA_PICKER_TAG
 import com.umamit.feature.brew.picker.TeaPickerViewModel
 import com.umamit.feature.brew.setup.BrewSetupViewModel
@@ -43,6 +45,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 
 /**
@@ -53,6 +56,8 @@ import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
+// Real graphics: the frozen frame is drawn from the sheet's window as on a device.
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PickerHandOverTest {
 
     @get:Rule
@@ -85,6 +90,7 @@ class PickerHandOverTest {
                     alertKey = alertKey,
                     startScreen = { tab -> Start(tab, photos) },
                     setupScreen = { host -> Setup(host.onBack, host.onOpenTimer) },
+                    timerScreen = { _, _, _, _ -> Text("Timer") },
                 )
             }
         }
@@ -163,13 +169,21 @@ class PickerHandOverTest {
         openPickerAndScrollTo(TEA)
         compose.mainClock.autoAdvance = false
 
-        compose.onNode(hasText(TEA) and hasAnyAncestor(hasTestTag(TEA_PICKER_TAG))).performClick()
+        tapTea()
         var frames = 0
         var setupSeenAt = -1
+        var standInFrames = 0
+        var sheetGoneAt = -1
         while (startComposed()) {
             assertWithMessage("frame $frames after the tap: the sheet or its stand-in covers Start")
                 .that(sheetOrStandIn())
                 .isTrue()
+            if (sheetGoneAt < 0 && !exists(hasTestTag(TEA_PICKER_TAG))) {
+                sheetGoneAt = frames
+                // Two windows never change in one frame: the stand-in was drawn below the sheet before it went.
+                assertWithMessage("frames the stand-in was drawn below the sheet").that(standInFrames).isAtLeast(2)
+            }
+            if (sheetGoneAt < 0 && exists(hasTestTag(STAND_IN_TAG))) standInFrames++
             compose.mainClock.advanceTimeByFrame()
             frames++
             if (setupSeenAt < 0 && exists(hasText(SETUP_TITLE))) setupSeenAt = frames
@@ -177,12 +191,74 @@ class PickerHandOverTest {
         }
         // Navigation is never delayed (rule 8): the setup is composed in the frames right after the tap.
         assertWithMessage("frame the setup was first composed").that(setupSeenAt).isIn(1..2)
+        assertWithMessage("frame the sheet went").that(sheetGoneAt).isAtLeast(0)
 
         compose.mainClock.autoAdvance = true
         compose.waitForIdle()
         compose.onNodeWithText(SETUP_TITLE).assertIsDisplayed()
         compose.onNodeWithTag(TEA_PICKER_TAG).assertDoesNotExist()
         compose.onNodeWithTag(STAND_IN_TAG).assertDoesNotExist()
+
+        // Back from the setup returns to Start; the picker is not reopened.
+        back()
+        compose.onNodeWithText(START_BREW).assertIsDisplayed()
+        compose.onNodeWithTag(TEA_PICKER_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(STAND_IN_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert during the hand-over removes the sheet and its stand-in in its first frame (rule 8, D-088)`() {
+        show()
+        openPickerAndScrollTo(TEA)
+        compose.mainClock.autoAdvance = false
+        tapTea()
+        compose.mainClock.advanceTimeByFrame()
+        assertWithMessage("the stand-in is drawn").that(exists(hasTestTag(STAND_IN_TAG))).isTrue()
+        assertWithMessage("the sheet is still held").that(exists(hasTestTag(TEA_PICKER_TAG))).isTrue()
+
+        alertKey.value = "s1:0:1"
+        compose.mainClock.advanceTimeByFrame()
+        assertWithMessage("the sheet in the alert's first frame").that(exists(hasTestTag(TEA_PICKER_TAG))).isFalse()
+        assertWithMessage("the stand-in in the alert's first frame").that(exists(hasTestTag(STAND_IN_TAG))).isFalse()
+
+        // Nothing comes back, neither after the alert nor on Start.
+        compose.mainClock.autoAdvance = true
+        compose.waitForIdle()
+        alertKey.value = null
+        compose.waitForIdle()
+        compose.onNodeWithTag(TEA_PICKER_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(STAND_IN_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `back during the setup's enter returns to Start without the sheet or its stand-in (SCR-03)`() {
+        show()
+        openPickerAndScrollTo(TEA)
+        compose.mainClock.autoAdvance = false
+        tapTea()
+        repeat(HALF_FADE_FRAMES) { compose.mainClock.advanceTimeByFrame() }
+        assertWithMessage("the stand-in mid-fade").that(exists(hasTestTag(STAND_IN_TAG))).isTrue()
+
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+        assertWithMessage("the stand-in once back pops the setup").that(exists(hasTestTag(STAND_IN_TAG))).isFalse()
+
+        compose.mainClock.autoAdvance = true
+        compose.waitForIdle()
+        compose.onNodeWithText(START_BREW).assertIsDisplayed()
+        compose.onNodeWithText(SETUP_TITLE).assertDoesNotExist()
+        compose.onNodeWithTag(TEA_PICKER_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(STAND_IN_TAG).assertDoesNotExist()
+    }
+
+    private fun tapTea() {
+        compose.onNode(hasText(TEA) and hasAnyAncestor(hasTestTag(TEA_PICKER_TAG))).performClick()
+    }
+
+    private fun back() {
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
     }
 
     private companion object {
@@ -191,9 +267,12 @@ class PickerHandOverTest {
         const val TEA = "Bio Sencha Hisui"
 
         /** The frozen frame of the sheet in the activity's window (D-129). */
-        const val STAND_IN_TAG = "sheet_stand_in"
+        const val STAND_IN_TAG = SHEET_STAND_IN_TAG
 
         /** Far more than the 300 ms fade at 16 ms per frame. */
         const val MAX_FRAMES = 120
+
+        /** About half of the setup's 300 ms fade. */
+        const val HALF_FADE_FRAMES = 9
     }
 }

@@ -11,8 +11,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination.Companion.hasRoute
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.ui.SheetHandOver
+import com.umamit.core.ui.SheetStandIn
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.brew.picker.TeaPickerHost
 import com.umamit.feature.brew.picker.TeaPickerViewModel
@@ -35,6 +39,11 @@ internal class StartNavigation(
     val openTimerOf: (TimerSlot) -> Unit = { openTimer() },
     /** *So nochmal aufgießen* on a session's page (SCR-16, BRW-06): the setup prefilled with that past session. */
     val openSetupFromSession: (sessionId: String) -> Unit = {},
+    /**
+     * Whether a route above the shell covers it now, from the back stack (it changes when navigation starts): the
+     * picker's frozen frame stays below that route only while it does (D-129).
+     */
+    val shellCovered: () -> Boolean = { false },
 )
 
 /**
@@ -46,6 +55,7 @@ internal class StartNavigation(
  * @property pickerReturn the picker flow was left without a save: Start opens the picker again,
  *   unless an alert plays ([onPickerReturned] confirms it was seen).
  * @property brewBarHold where Start tells the shell that it hands off to the timer (D-111).
+ * @property pickerHandOver the picker's hand-over to the setup, whose stand-in the shell draws (D-129); null: none.
  */
 internal class StartTab(
     val openSettings: () -> Unit,
@@ -58,6 +68,7 @@ internal class StartTab(
     val pickerReturn: Boolean = false,
     val onPickerReturned: () -> Unit = {},
     val brewBarHold: BrewBarHold = BrewBarHold(),
+    val pickerHandOver: SheetHandOver? = null,
 )
 
 /**
@@ -107,6 +118,11 @@ internal fun StartTabContent(
             if (tab.alertKey == null) picker.open()
         }
     }
+    // An alert ends a hand-over: the sheet and its stand-in are already gone in its first frame (rule 8, D-088).
+    val handOver = tab.pickerHandOver
+    LaunchedEffect(tab.alertKey, handOver) {
+        if (tab.alertKey != null) handOver?.clear()
+    }
     val hold = tab.brewBarHold
     DisposableEffect(hold, homeViewModel) {
         hold.source = homeViewModel.handOff.handingOff
@@ -129,7 +145,9 @@ internal fun StartTabContent(
     )
     TeaPickerHost(
         gate = picker,
-        // The setup opens in the tap's frame and its fade covers the closing sheet (D-062).
+        // The setup opens in the tap's frame (D-062). The sheet stays until its frozen frame stands in for it below the
+        // setup, which fades in over that frame, so Start never shows between them (D-129); during an alert there is
+        // no hand-over, and the alerting timer opens instead.
         onPickTea = {
             picker.close()
             navigation.openSetup(it)
@@ -143,9 +161,23 @@ internal fun StartTabContent(
             picker.close()
             tab.openCatalogForBrew()
         },
+        handOver = handOver.takeIf { tab.alertKey == null },
         viewModel = pickerViewModel,
     )
 }
+
+/**
+ * The picker's frozen frame (D-129) while [handOver] runs, below a route opened above the shell ([covered]); never
+ * during an alert (rule 8), so it is gone in the alert's first frame, as the sheet is.
+ */
+@Composable
+internal fun PickerStandIn(handOver: SheetHandOver, alertKey: String?, covered: () -> Boolean) {
+    if (alertKey == null) SheetStandIn(handOver, covered)
+}
+
+/** A route above a shell (no route yet: false): the picker's frozen frame stays below it (D-129). */
+internal fun NavBackStackEntry?.coversShell(): Boolean =
+    this != null && !destination.hasRoute<ShellRoute>() && !destination.hasRoute<CatalogRefreshRoute>()
 
 /** A calm Start without data, for tests and previews of the shell: the empty state. */
 @Composable

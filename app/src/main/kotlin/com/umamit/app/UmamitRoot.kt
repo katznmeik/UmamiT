@@ -275,6 +275,8 @@ internal fun UmamitRoot(
             }
         },
         openTimerOf = openTimerOf,
+        // From the back stack, so it changes when navigation starts, and back from that route ends it (D-129).
+        shellCovered = { entry.coversShell() },
         // A route above the shell like the setup: it gives way to a new alert (rule 8). During an alert,
         // *Schnelltimer* and *Ohne Tee (Schnelltimer)* open the alerting timer instead (D-062 S3, D-065).
         openQuickTimer = {
