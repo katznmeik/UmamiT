@@ -79,8 +79,5 @@ enum class TasteDescriptor(val group: DescriptorGroup, slug: String) {
 
         /** The descriptor for a stored key; an unknown key yields null (kept in the database, not shown). */
         fun fromKey(key: String): TasteDescriptor? = byKey[key]
-
-        /** The descriptors of [group] in display order. */
-        fun inGroup(group: DescriptorGroup): List<TasteDescriptor> = entries.filter { it.group == group }
     }
 }

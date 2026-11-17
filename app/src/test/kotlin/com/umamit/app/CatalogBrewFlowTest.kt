@@ -21,7 +21,6 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -108,11 +107,7 @@ class CatalogBrewFlowTest {
     private val add = FakeAddFromCatalog(collection)
     private val prices = FakeExactPrices()
     private val alertKey = MutableStateFlow<String?>(null)
-    private val clock = object : MonotonicClock {
-        override fun elapsedMs() = 0L
-
-        override fun bootCount() = 1
-    }
+    private val clock = FakeClock(elapsed = 0L)
 
     @Before
     fun seed() = runBlocking {

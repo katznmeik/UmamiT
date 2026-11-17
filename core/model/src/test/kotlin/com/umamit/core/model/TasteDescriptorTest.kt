@@ -104,15 +104,4 @@ class TasteDescriptorTest {
         assertThat(TasteDescriptor.fromKey("marine.unknown")).isNull()
         assertThat(TasteDescriptor.fromKey("")).isNull()
     }
-
-    @Test
-    fun `descriptors of a group keep the table order`() {
-        assertThat(TasteDescriptor.inGroup(DescriptorGroup.SPICE_HERB).map { it.key })
-            .containsExactly(
-                "spice_herb.minze",
-                "spice_herb.kiefer",
-                "spice_herb.zimt",
-                "spice_herb.kraeuter",
-            ).inOrder()
-    }
 }

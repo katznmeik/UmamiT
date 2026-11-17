@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.umamit.core.timer.UnlockedDeviceRule
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

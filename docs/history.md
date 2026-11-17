@@ -11,6 +11,78 @@
 
 ## Releases and plans
 
+### v0.7.2: #309 done, rc.1 published (2026-11-17)
+
+- **Session 13 (Opus `medium` orchestrator, no subagents):** `umamit.version=0.7.2-rc.1` (`a8f78d4f`, versionCode 70201); the proof on that commit, recorded on #312: goldens and `core/database/schemas` vs `main` empty (1085 tracked goldens, so the pathspec matched), DataStore keys = the #297 baseline (36 keys, `schemaVersion` 3), `check-frozen-schemas.sh` (179 files), `SchemaVersionsTest` (3 tests), `checkManifestPermissions`, `verifyRoborazziDebug`, the full local gate PASS, the 04 §12 timer tests 263 / 512 / 707 (1 skipped) counted from the result XMLs.
+  - **CI** green on `a8f78d4f` (run 44020292963, both emulator jobs). **Accuracy on `a8f78d4f` (09 §4a, API 36, 50 steps), all PASS on the first attempt:** standard (run 44020476878), alongside (run 44020480260), two-brews (run 44020482994).
+  - **`v0.7.2-rc.1`** published by `release.yml` run 44028380084 (pre-release, tag on `a8f78d4f`). The orchestrator downloaded the APK and ran `scripts/verify-release-apk.sh` on it: APK SHA-256 `dd1cbdd8…aab1c` as in the notes, certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`, 0.7.2-rc.1 / 70201, not debuggable. Checklist 09 §4 „v0.7.2" on #312, push notification sent.
+  - **Environment:** the mirror init script written again as PROJECT_STATE describes; it worked first time. Maven Central answered 429 on the SDK 36 Robolectric jar's `.sha512` once and served it on retry.
+  - **Usage (from the transcript, before the final handover turn):** orchestrator 56 requests, 8.0 M cache read, 0.13 M cache write, 25 k output.
+
+### v0.7.2: milestone and timer review done (2026-11-16)
+
+- **Session 12 (Opus `medium` orchestrator):** the T3 milestone review (Opus `medium`, `git diff main`) and the T4 timer review (Opus `high`, `d9e79cbe..c0116fc7` plus `d2eee004`) found **no Block**. The orchestrator reread the two untested paths (D-125 `SettingsNav.alertKey`, TMR-A-07 `slotSession` on a failed read) and both hold.
+  - **Fixes, one commit each:** R-1 – R-4 dead imports (T1, Sonnet `low`), R-5/R-6 formatting (T1), T-4 stale `AlertPlayer` KDoc in `core:timer`/`core:timer-engine` (T3, Opus `medium`, comments only). The doc pass `f167499d` covers the stale `ControllerBrewTimer`/`finishActive` prose (10, evidence).
+  - **Verified:** the diffs read (imports and comments only, besides R-5/R-6), `spotlessCheck detekt :app:assembleDebug :app:assembleDebugAndroidTest` and the touched modules' test compiles, the 04 §12 timer tests 263 / 512 / 707 (1 skipped) on `f167499d` and `1da1e5fb`, no golden/schema diff, no assert line removed. CI green on `f167499d` (43946236160) and on `1da1e5fb` (43953846325, both emulator jobs).
+  - **Notes left open (no change):** R-7, R-8, T-1, T-2, T-3 (PROJECT_STATE „Reviews").
+  - **Usage (from the transcripts, before the final handover turn):** orchestrator 59 requests, 8.4 M cache read, 0.11 M cache write, 25 k output; T3 reviewer 71 requests, 15.0 M / 0.30 M / 31 k; T4 reviewer 64 requests, 10.0 M / 0.22 M / 31 k; two fix implementers 37 requests, 2.8 M / 0.41 M / 19 k.
+
+### v0.7.2: #308 done (2026-11-16)
+
+- **Execution part 4, session 11 (Opus `medium` orchestrator, `/implement-spec #296`):**
+  - **What:** #308's alert-path group as seven T3 implementers (Opus `medium`), at most two at a time on disjoint files: TMR-A-14 `d7acfb17`, TMR-A-01 `568446cf`, TMR-A-11 `dfb1fa31`, TMR-A-12 `778e282a`, TMR-A-13 `d3fee39f`, D-126 step 1 (DAT-A-14) `bb08bebc`, step 2 (TMR-A-06) `c0116fc7`.
+  - **How it was verified:**
+    - the orchestrator read each diff and ran the 04 §12 timer tests on four landed heads, `568446cf` (14 + 01), `778e282a` (11 + 12), `bb08bebc` (13 + DAT-A-14) and `c0116fc7`, while each implementer ran its own scoped tests (263 / 512 / 707, 1 skipped, unchanged from the baseline; `core:data` 656);
+    - DAT-A-14 got a mechanical line-multiset check (the non-blank, non-import lines are equal);
+    - `ActiveBrewSlotStore` was read first and found to be a pure forward;
+    - pushes went in three groups (A: 14, 01, 11; B: 12, 13; C: D-126), each waiting for a green CI run (43926091785, 43929989903, 43933873414; emulator jobs included).
+  - **Proof:** over the group's diff, no golden, schema, `strings.xml`, DataStore or 06 change. Only `AlertArbitrationTest`, `TimerSlotsTest` and `TimerTestActivity` changed among the tests (TMR-A-14, PO-approved), and no `@Test`, `@Ignore` or `assume` line went.
+  - **Deviations, no behaviour change:**
+    - TMR-A-14's non-null `settle` asserts compare `SlotEvent(QUICK, …)`;
+    - TMR-A-11 is longer (+44/−28, ktlint);
+    - TMR-A-12 left `PersistedTimer.guarded` (it returns a value);
+    - TMR-A-13's `handOver` uses one shared scope of the same kind.
+  - **Usage:** orchestrator 115 requests, 21.7 M cache read, 0.19 M cache write, 48 k output; seven implementers 77 requests, 5.7 M cache read, 0.93 M cache write, 39 k output (from the transcripts, before the final handover turn).
+- **Execution part 3, session 10 (#308 groups 1 and 2, 20 steps; CI green on the code head `ec0d7001`, run 43912284383, both emulator jobs included):**
+  - **PO answers (2026-11-16, as options, recorded in #308):** one `UnlockedDevice.kt` in `core/timer/src/sharedAndroidTest/`, a source folder that `app` and `core:timer` both add (no dependency); UI-A-07's fix action `rememberReliabilityFixAction` in `core:ui`, generic over the check type (it takes the notification check as a value, not a predicate: the permission dialog's „denied for good" path needs it without a check in hand); DAT-A-03 through a public test helper `FakeCollection.deleteTeaRows` (sessions keep their tea id, as the old fake did).
+  - **Found, out of scope:** #313 (`needs-triage`): `BrewSetupViewModel` throws when a session's tea id is null after a real delete.
+  - **Build-file pattern:** `android { sourceSets }` throws a ClassCastException in these modules; use `extensions.configure<LibraryExtension|ApplicationExtension> { sourceSets.getByName(…).kotlin.directories.add(…) }` (D-127's `src/sharedTest` too) and add the folder to `detekt { source.from(…) }`.
+  - **Helpers changed shape:** `rememberExpandedSheetState` has `saveable` (the steps sheet); `core:ui` `Stepper` has `valueMinWidth`; `StartQuestions` (`core:timer` `controller/`) holds the refused-start question for setup, quick timer and Start; `ReliabilityChecks` (`core:timer` `reliability/`).
+  - **For the T4 timer review (also in #308):** the D-125 `SettingsNav.alertKey` path no test covers; TMR-A-07's `slotSession` (no test fails `getSession`: the seal's silent fallback and the stock's logged retry hold by construction); TMR-A-04's „any alert closes the question" (`openedIn` was null at every site).
+  - **CI:** `TransitionJankTest.savedSheetInAndOut` (API 36) failed once on `e0057946` and passed on rerun (comment on #312).
+  - **Stale prose:** `docs/specs/10-open-questions-and-decisions.md` (≈ l. 6898, 7154) and `docs/plans/v0.7.2-evidence.md:356` still say `ControllerBrewTimer` implements both seams; fix in the milestone review's doc pass.
+  - **Usage (session 10):** orchestrator ≈ 105 requests, 20.5 M cache read, 0.21 M cache write, 46 k output; four implementers 317 requests, 44.0 M cache read, 2.42 M cache write, 167 k output (from the transcripts).
+
+### v0.7.2: #307 done (2026-11-16)
+
+- **Execution part 2 (Opus `medium` orchestrator, `/implement-spec #296`):** #307's 12 steps and one follow-up fix on #312, by nine T3 implementers (Opus `medium`, at most two at a time; D-123 beside D-125 step 4, since D-123 and D-124 share `CatalogScreen.kt`). D-123 `teaTypePlaceholderColor`, `openInBrowser`, `PastDatePickerDialog` in `core:ui`; D-124 `TeaLinkHolder` (`TooManyFunctions` suppression kept: 12 functions); D-125 `NavOnTop.kt` (eight sites, `UmamitApp.kt:588` untouched), `settingsRoutes<S>` with `SettingsNav` (two deviations from the design: an `openVesselResumedOnly` flag, because `resumedOnly` is composable and needs the destination's lifecycle; `SettingsNav` sits in `SettingsScreens.kt` for Detekt's `MatchingDeclarationName`), tab then root graph; a follow-up fix makes `SettingsNav.alertKey` a `() -> String?` read in each screen's content, as the root's destinations read `alert` before step 6 (found in the orchestrator's review; no test covers a settings dialog above the timer following the current alert, so the milestone and timer reviews should look at it); D-121 `CatalogRowMappers.kt`, `CatalogRefreshFailureText.kt`, `CatalogRefreshRun.kt` (`MAX_LISTED` moved with the run; moved blocks diffed against the old file); D-122 `FakeShop.kt` and `catalogRefresher(…)`, 13 of 14 classes moved (`CatalogRefreshRunnerTest` keeps its latch dispatcher), `:core:data` 656 tests before and after, no assertion line changed. Proof: fence and fenced `app`/data files untouched, no golden, schema, string, DataStore key or 06 change. CI runs on the PR are cancelled by each new push, so only the head is gated. Usage: orchestrator 110 requests, 23.0 M cache read, 0.22 M cache write, 52 k output; nine implementers 208 requests, 20.7 M cache read, 1.24 M cache write, 120 k output (summed from the transcripts, before the final handover turn).
+
+### v0.7.2: #305 and #306 done (2026-11-16)
+
+- **Execution part 1 (Opus `medium` orchestrator, `/implement-spec #296`):** #305 (5 deletions; DAT-A-03 moved to #308, DAT-A-05's DAO query too) and #306 (all 26 simplifications, in three batches: low data/catalog T3, UI T2, medium/high data/catalog T3) on #312, head `2cab854f`. Fenced remainders of DAT-A-09, -11, -15 routed to #308. Proof after each batch: fence empty, golden digest `cbe41c94…` unchanged, schemas frozen, DataStore unchanged, `strings.xml` lost only the 19 unused refresh copies (checked byte-identical), no test weakened. Usage: 112 orchestrator requests, 22.0 M cache read, 65 k output; implementers about 0.89 M tokens.
+
+### v0.7.2: restructuring design done (2026-11-16)
+
+- **Design (#304, Fable 5.2 `medium`, in the session):** `docs/plans/v0.7.2-restructuring.md` for D-121 – D-127: target files and types, steps in a build-green order (all T3), the module rules and 06 before and after (no section changes), the risk per decision. The PO approved variant A of each in eight questions as options, recorded in the decisions. Found against the triage: `Run` in `CatalogRefresher.kt` is an inner class (about 15 changed lines, not 5); the two settings registrations differ in gating, `launchSingleTop` and the settings route type. Steps written into #307 (12) and #308 (3). Usage: 28 requests, 3.9 M cache read, 45 k output. No code change.
+
+### v0.7.2: triage done (2026-11-16)
+
+- **Triage (#303, Opus `medium`, in the session):** the PO picked all 60 audit findings in 15 multi-select questions over the four groups (overlaps as one choice each; DAT-A-04 follow-up: `VesselDao.delete` goes too, a raw `DELETE` in `SessionEditorTest`). „pick?" filled in the four audit files; the seven restructurings are D-121 – D-127 (#304); #305 (6 IDs), #306 (26), #307 (5), #308 (21, the fence) list them. Usage: 25 requests, 3.39 M cache read, 30 k output. No code change.
+
+### v0.7.2: UI audit done (2026-11-16)
+
+- **UI audit (#302, Opus `medium`, in the session, full scope):** `docs/plans/v0.7.2-audit-ui.md`, 15 findings (UI-A-01 … UI-A-15: the settings routes registered twice, two intent-request holders and their consumers, the undo snackbar three times, the past-only date picker three times (widens CAT-A-08), the leaf/water/temperature input rules of two editors, the session-zone fallback six times, the reliability-check wiring twice, the pill stepper twice, small copies; UI-A-15 is the group's share of TMR-A-03). Scope 31 665 main lines plus the six `feature:brew` screen files for #308; about 14 900 + 2 040 read in full (scope table). No dead code found through R8. Correction to the data audit's `WallClock.today()` note (one of the four places uses the session's zone). No code change.
+
+### v0.7.2: catalog audit done (2026-11-16)
+
+- **Catalog audit (#298, Opus `medium`, in the session):** `docs/plans/v0.7.2-audit-catalog.md`, 15 findings (CAT-A-01 … CAT-A-15: duplicated refresh strings and mappings, the image job in two near-twins and a variant, the allow-list URL check four times, page-to-row mapping twice, `CatalogRefresher.kt` split, cover copy twice, the refresh tests' fake shop eight times, three cross-feature UI helpers, the green-type tables twice in the parser, five small ones). Scope 13 668 main lines (the three modules plus the catalog parts of `core:data`/`core:database`), read in full in part (scope table). No dead code found through R8. No code change.
+- **#299 (PO):** data, timer-path and UI audits all kept as planned (D-119 build note „Remaining audits").
+
+### v0.7.2: step 1 done (2026-11-15)
+
+- **Approval:** the PO approved plan, spec #296 and tickets #297–#310 with Claude's two proposals (audits in the session itself; unchanged goldens instead of a design review). Tickets relabelled: #299, #303 `ready-for-human`, the other twelve `ready-for-agent`.
+- **Step 1 (#297, Sonnet `medium`):** `docs/plans/v0.7.2-evidence.md` on `main` `f0ffaf1a`: R8 usage (noisy; candidates only), Lint unused resources/ids **0**, Dependency Analysis (61 unused, mostly convention-plugin entries; plugin outside its AGP range, needed build-file lines instead of an init script), 30 largest files, duplicated test fixtures, baseline (1 085 goldens with per-module digests, schemas 1–8 and 1, 36 settings keys, `schemaVersion` 3). Nothing of the tooling committed. Draft PR #312.
+
 ### v0.7.2: specified (2026-11-15)
 
 - **Grilling (one round, Q1–Q4):** D-120: Fable 5.2 at `medium` (Claude had recommended `high`), findings files per group, the Dependency Analysis plugin from a local init script, the tier label T4-F.
@@ -608,6 +680,17 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-17 | **v0.7.2 session 13 (#309: the proof, accuracy, rc.1):** the proof on `a8f78d4f` all clean (recorded on #312), full local gate PASS, CI green, all three accuracy variants PASS; `v0.7.2-rc.1` released (70201, certificate verified), checklist to the PO on #312. Next: #310 after the PO's check. |
+| 2026-11-16 | **v0.7.2 session 11 (execution part 4, #308's alert-path group):** TMR-A-14, -01, -11, -12, -13 and D-126 (DAT-A-14, TMR-A-06) by seven T3 implementers, at most two at a time on disjoint files. Each step was verified (diff, proof; 04 §12 counts 263/512/707 unchanged on four landed heads) and pushed in three groups, each green on CI before the next. #308 is done. Usage: orchestrator 115 requests, 21.7 M cache read, 0.19 M cache write, 48 k output; seven implementers 77 requests, 5.7 M cache read, 0.93 M cache write, 39 k output (from the transcripts, before the final handover turn). Next: the T3 milestone review and the T4 timer review, then #309. |
+| 2026-11-16 | **v0.7.2 session 10 (execution part 3, #308 groups 1 and 2):** 20 timer-path steps by four T3 implementers in two lanes each, verified per step and on the combined head (diff, proof, 04 §12 test counts 263/512/707 unchanged), CI green (API 36 jank flake once, rerun green). PO answers as options, in #308: one `UnlockedDevice.kt` in a shared androidTest folder; UI-A-07's fix action generic in `core:ui`; DAT-A-03 via a public `FakeCollection.deleteTeaRows`. Possible crash filed as #313. Usage: orchestrator ≈ 105 requests, 20.5 M cache read, 0.21 M cache write, 46 k output; four implementers 317 requests, 44.0 M cache read, 2.42 M cache write, 167 k output (from the transcripts). Next: #308's alert-path group in one session. |
+| 2026-11-16 | **v0.7.2 session 9 (execution part 2):** #307's 12 steps (D-121 – D-125) by eight T3 implementers plus one follow-up fix (`SettingsNav.alertKey` read lazily), verified per step (diff, fence, proof), CI green. Next: #308 on its own (Opus `medium` orchestrator). |
+| 2026-11-16 | **v0.7.2 session 7:** restructuring design #304 (Fable 5.2 `medium`): `docs/plans/v0.7.2-restructuring.md`, the PO approved variant A of all seven designs (recorded in D-121 – D-127), 06 unchanged, steps in #307 and #308, pushed to draft PR #312. Next: the execution, #305 first (Opus `medium` orchestrator). |
+| 2026-11-16 | **v0.7.2 session 6:** triage #303 with the PO (Opus `medium`): all 60 findings picked, D-121 – D-127 for the seven restructurings, #304–#308 bodies updated, pushed to draft PR #312. Next: restructuring design #304 (Fable 5.2 `medium`). |
+| 2026-11-16 | **v0.7.2 session 5:** UI audit #302 (Opus `medium`, full scope), `docs/plans/v0.7.2-audit-ui.md` (15 findings UI-A-01 … 15: settings routes twice, request holders, undo snackbar and date picker three times each, the editors' input rules, the session-zone fallback six times; brew parts marked for #308; no code change), pushed to draft PR #312. Next: triage #303 with the PO (Opus `medium`). |
+| 2026-11-16 | **v0.7.2 session 4:** timer-path audit #301 (Fable 5.2 `medium`, full scope), `docs/plans/v0.7.2-audit-timer.md` (15 findings TMR-A-01 … 15: the dead `AlertPlayer` interface and factory, the pass-through `TimerSlotStore`, the start question in three view models, the sheet state eight times, the accuracy report in main sources; the app's timer wiring files named for the #308 fence; no code change), pushed to draft PR #312. Next: UI audit #302 (Opus `medium`). |
+| 2026-11-16 | **v0.7.2 session 3:** data audit #300 (Fable 5.2 `medium`, full scope), `docs/plans/v0.7.2-audit-data.md` (15 findings DAT-A-01 … 15, four of them deletions found through R8, no code change), pushed to draft PR #312. Next: timer-path audit #301 (Fable 5.2 `medium`). |
+| 2026-11-16 | **v0.7.2 session 2:** catalog audit #298, `docs/plans/v0.7.2-audit-catalog.md` (15 findings, no code change), pushed to draft PR #312; #299: the PO keeps all three remaining audits. Next: data audit #300 (Fable 5.2 `medium`). |
+| 2026-11-15 | **v0.7.2 step 1:** the PO approved the plan and tickets; relabelled #297–#310; evidence file `docs/plans/v0.7.2-evidence.md` (R8, Lint 0 unused, Dependency Analysis, largest files, fixtures, proof baseline); draft PR #312. Next: catalog audit #298 (Opus `medium`). |
 | 2026-11-15 | **v0.7.2 specified:** one grilling round (D-120: Fable 5.2 `medium`, findings files per group, Dependency Analysis plugin locally, T4-F); plan `docs/plans/v0.7.2.md`, spec #296, tickets #297–#310, 09 §2/§4 „v0.7.2", 12 §2/§3.2; docs PR merged. Waiting for the PO's approval. |
 | 2026-11-15 | **v0.7.1 done:** the PO approved rc.2 („all approved"); 0.7.1 bump, #290 merged (`6192bff5`), CI on `main` green (rerun of the known `ProcessDeathTest` flake), all three accuracy variants PASS, `v0.7.1` released with `RELEASE_TOKEN` (70199, certificate verified); #289, #291–#294 closed. v0.7.2 grilling: D-119. Next: the v0.7.2 specify session. |
 | 2026-11-14 | **v0.7.0 done:** the PO reviewed rc.2 (all but „Tassen") → D-115 Amendment 2 (V1–V9, volume instead of cups), #274/#275/#277, `v0.7.0-rc.3` (70003); the PO approved rc.3 („All changes approved"); 0.7.0 bump, #266 merged (`f3582466`), all three accuracy variants PASS, `v0.7.0` released (70099, certificate verified); #264 closed. Next: the v0.7.1 specify session (D-116). |

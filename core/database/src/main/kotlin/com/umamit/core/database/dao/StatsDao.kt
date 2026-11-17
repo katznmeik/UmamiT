@@ -8,17 +8,14 @@ import androidx.room.Relation
 import androidx.room.Transaction
 import com.umamit.core.database.entity.BrewSessionEntity
 import com.umamit.core.database.entity.InventoryEventEntity
-import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.database.entity.SessionStepEntity
 import kotlinx.coroutines.flow.Flow
 
-/** A finished session row with its step rows and descriptor rows, both in any order (INS-01–INS-05). */
+/** A finished session row with its step rows in any order (INS-01–INS-05). */
 data class StatsSessionRow(
     @Embedded val session: BrewSessionEntity,
     @Relation(parentColumn = "id", entityColumn = "session_id")
     val steps: List<SessionStepEntity>,
-    @Relation(parentColumn = "id", entityColumn = "session_id")
-    val descriptors: List<SessionDescriptorEntity>,
 )
 
 /** A tea as the statistics read it; [remainingGrams] is the Σ of its stock events, null without any event. */
@@ -38,9 +35,9 @@ data class StatsTeaRow(
 @Dao
 interface StatsDao {
     /**
-     * Every finished session (`COMPLETED` or `MANUAL`) with its steps and descriptors, also those of a deleted tea
-     * (`tea_id` null) or an archived one; a session in progress is left out. Emits again on every write to the
-     * sessions, their steps or their descriptors.
+     * Every finished session (`COMPLETED` or `MANUAL`) with its steps, also those of a deleted tea (`tea_id`
+     * null) or an archived one; a session in progress is left out. Emits again on every write to the sessions or
+     * their steps.
      */
     @Transaction
     @Query("SELECT * FROM brew_session WHERE status != 'IN_PROGRESS' ORDER BY started_at")

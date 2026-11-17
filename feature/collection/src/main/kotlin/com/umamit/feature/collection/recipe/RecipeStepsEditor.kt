@@ -4,8 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,11 +13,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -56,34 +52,29 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
-import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.DurationPicker
-import com.umamit.core.ui.RepeatingIconButton
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import com.umamit.core.ui.Stepper as PillStepper
 
 /**
  * The steps of Rezept bearbeiten (SCR-12, PRF-04): each with its drag handle (TalkBack: move up / down), its kind,
@@ -468,9 +459,10 @@ private fun StepPreAlertRow(
 }
 
 /**
- * A value between − and + that repeat while held ([RepeatingIconButton], as the Schritte-Sheet's); with
- * [onValueClick] the value is a button too (the duration opens „Dauer wählen"). [canStep] says whether a step up or
- * down changes anything (at a bound the button is greyed out and a hold stops); [onStep] applies one.
+ * The shared pill stepper ([PillStepper], as the Schritte-Sheet's) with the editor's 56 dp value box: a value
+ * between − and + that repeat while held; with [onValueClick] the value is a button too (the duration opens
+ * „Dauer wählen"). [canStep] says whether a step up or down changes anything (at a bound the button is greyed out
+ * and a hold stops); [onStep] applies one.
  */
 @Suppress("LongParameterList") // a stepper's parts
 @Composable
@@ -486,52 +478,19 @@ internal fun Stepper(
 ) {
     val canDecrease = canStep(false)
     val canIncrease = canStep(true)
-    Surface(
+    PillStepper(
+        value = value,
+        valueDescription = valueDescription,
+        decreaseDescription = decreaseDescription,
+        increaseDescription = increaseDescription,
+        canDecrease = canDecrease,
+        canIncrease = canIncrease,
+        onDecrease = { canDecrease.also { if (it) onStep(false) } },
+        onIncrease = { canIncrease.also { if (it) onStep(true) } },
+        valueMinWidth = StepperValueMinWidth,
         modifier = modifier,
-        shape = UmamiShape.Pill,
-        border = BorderStroke(UmamiSpacing.Hairline, MaterialTheme.colorScheme.outlineVariant),
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RepeatingIconButton(
-                icon = painterResource(UmamiIcons.Remove),
-                contentDescription = decreaseDescription,
-                enabled = canDecrease,
-                onStep = { canDecrease.also { if (it) onStep(false) } },
-            )
-            Box(
-                modifier = Modifier
-                    .heightIn(min = UmamiSpacing.MinTouchTarget)
-                    .widthIn(min = 56.dp)
-                    .then(
-                        if (onValueClick ==
-                            null
-                        ) {
-                            Modifier
-                        } else {
-                            Modifier.clickable(role = Role.Button) { onValueClick() }
-                        },
-                    )
-                    .semantics {
-                        contentDescription = valueDescription
-                        liveRegion = LiveRegionMode.Polite
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "lnum, tnum"),
-                    textAlign = TextAlign.Center,
-                )
-            }
-            RepeatingIconButton(
-                icon = painterResource(UmamiIcons.Add),
-                contentDescription = increaseDescription,
-                enabled = canIncrease,
-                onStep = { canIncrease.also { if (it) onStep(true) } },
-            )
-        }
-    }
+        onValueClick = onValueClick,
+    )
 }
 
 /** „70 °C", or „10 °C · kalt" at 10 °C and below (PRF-03). */
@@ -558,6 +517,9 @@ private val KIND_ORDER = listOf(StepKind.INFUSION, StepKind.RINSE, StepKind.WHIS
 private val HandleIndent = UmamiSpacing.MinTouchTarget
 
 private val DraggedElevation = 6.dp
+
+/** The stepper values' minimum width (the Schritte-Sheet's is 64 dp). */
+private val StepperValueMinWidth = 56.dp
 
 /** The dragged step grows a little as it lifts (E1). */
 private const val DRAGGED_SCALE = 1.02f

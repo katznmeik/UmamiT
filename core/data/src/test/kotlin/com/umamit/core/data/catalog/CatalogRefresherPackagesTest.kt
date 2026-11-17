@@ -4,22 +4,19 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticShop
 import com.umamit.core.catalog.parser.SyntheticShop.Size
+import com.umamit.core.data.catalog.FakeShop.Companion.ROBOTS
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP
+import com.umamit.core.data.catalog.FakeShop.Companion.text
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.database.entity.CatalogPackageEntity
-import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import mockwebserver3.Dispatcher
-import mockwebserver3.MockResponse
-import mockwebserver3.MockWebServer
-import mockwebserver3.RecordedRequest
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -28,7 +25,6 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Package sizes and prices against a simulated shop (#67; 08 §2.4 items 6–7, D-076, D-081):
@@ -44,7 +40,7 @@ class CatalogRefresherPackagesTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private val server = MockWebServer()
+    private val shop = FakeShop()
     private val db = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CatalogDatabase::class.java)
         .allowMainThreadQueries()
@@ -52,21 +48,15 @@ class CatalogRefresherPackagesTest {
     private val dao = db.catalogDao()
     private val settings = FakeSettingsRepository()
 
-    private val routes = mutableMapOf<String, () -> MockResponse>()
-    private val requests = CopyOnWriteArrayList<RecordedRequest>()
+    private val routes get() = shop.routes
+    private val requests get() = shop.requests
     private val listed = mutableListOf<String>()
-    private val base get() = server.url("/").toString().removeSuffix("/")
+    private val base get() = shop.base
 
     @Before
     fun setUp() {
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                requests += request
-                return routes[request.url.encodedPath]?.invoke() ?: MockResponse.Builder().code(404).build()
-            }
-        }
-        server.start()
-        routes[ROBOTS] = { text(SyntheticShop.robotsTxt()) }
+        shop.start()
+        // This shop's sitemap is the url set itself, not an index.
         routes[SITEMAP] = { text(SyntheticShop.urlSet(listed.map { "$base$it" })) }
         product(
             SENCHA,
@@ -83,7 +73,7 @@ class CatalogRefresherPackagesTest {
 
     @After
     fun tearDown() {
-        server.close()
+        shop.close()
         db.close()
     }
 
@@ -109,14 +99,13 @@ class CatalogRefresherPackagesTest {
 
     private suspend fun refresh(): CatalogRefreshOutcome {
         settings.update { it.copy(catalogDownloadPhotos = false) }
-        return CatalogRefresher(
-            client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+        return catalogRefresher(
+            shop = shop,
             dao = dao,
             clock = FakeClock(),
             diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
             settings = settings,
             photos = CatalogPhotoFiles(folder.newFolder("catalog")),
-            sanity = SanityCheck(firstImportMinimum = 1),
         ).refresh()
     }
 
@@ -180,12 +169,7 @@ class CatalogRefresherPackagesTest {
         ).inOrder()
     }
 
-    private fun text(body: String) =
-        MockResponse.Builder().addHeader("Content-Type", "text/html; charset=utf-8").body(body).build()
-
     private companion object {
-        const val ROBOTS = "/robots.txt"
-        const val SITEMAP = "/sitemap.xml"
         const val SENCHA = "/morgennebel-sencha/XY0100"
         const val MATCHA_30 = "/abendrot-matcha-30g/XY0868"
         const val MATCHA_100 = "/abendrot-matcha-100g/XY0869"

@@ -6,6 +6,7 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.ForegroundStart
 import com.umamit.core.testing.ServiceStarted
 import com.umamit.core.testing.ServiceStopped
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.test.runTest
 import org.junit.After

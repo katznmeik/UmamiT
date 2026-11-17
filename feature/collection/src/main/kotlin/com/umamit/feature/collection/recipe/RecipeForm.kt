@@ -55,10 +55,10 @@ data class RecipeForm(
     val isDefault: Boolean = false,
 ) : Serializable {
     /** The leaf in grams, or null while it is not 0,1–100 g in 0,1 g. */
-    val leafGrams: Double? get() = parseLeaf(leaf)
+    val leafGrams: Double? get() = BrewScaling.parseLeaf(leaf)
 
     /** The water in ml, or null while it is not 10–3000 ml in 5 ml steps. */
-    val waterMl: Int? get() = parseWater(water)
+    val waterMl: Int? get() = BrewScaling.parseWater(water)
 
     /** Leaf per 100 ml („1,6 g / 100 ml", PRF-03 AC1), or null while leaf or water is not valid. */
     val ratioPer100Ml: Double?
@@ -97,14 +97,14 @@ data class RecipeForm(
     }
 
     /** The base temperature one 5 °C step warmer or cooler, within 5–100 °C (PRF-03, GEN-12). */
-    fun withBaseStep(up: Boolean): RecipeForm = copy(baseTempC = tempStep(baseTempC, up))
+    fun withBaseStep(up: Boolean): RecipeForm = copy(baseTempC = BrewScaling.tempStepped(baseTempC, up))
 
     /** The temperature step [index] shows: its own, else the base. */
     fun shownTempC(index: Int): Int = steps[index].tempC ?: baseTempC
 
     /** Step [index] one 5 °C step warmer or cooler; it then has its own temperature. */
     fun withStepTemp(index: Int, up: Boolean): RecipeForm =
-        withStep(index) { it.copy(tempC = tempStep(shownTempC(index), up)) }
+        withStep(index) { it.copy(tempC = BrewScaling.tempStepped(shownTempC(index), up)) }
 
     /** Step [index]'s duration one stepper increment longer or shorter (PRF-04). */
     fun withStepDuration(index: Int, up: Boolean): RecipeForm =
@@ -201,17 +201,10 @@ data class RecipeForm(
         /** 1–30 steps (PRF-03). */
         const val MAX_STEPS = 30
 
-        /** Base and step temperatures: 5–100 °C in 5 °C steps (PRF-03, GEN-12). */
-        const val MIN_TEMP_C = 5
-        const val MAX_TEMP_C = 100
-        private const val TEMP_UNIT = 5
         private const val DEFAULT_TEMP_C = 70
 
         /** At or below this, the temperature reads „kalt" (PRF-03). */
         const val COLD_UP_TO_C = 10
-
-        private const val WATER_UNIT = 5
-        private val LEAF = Regex("""\d{1,3}(?:[.,]\d)?""")
 
         /** The fields of [recipe]. */
         fun of(recipe: Recipe): RecipeForm = RecipeForm(
@@ -228,25 +221,6 @@ data class RecipeForm(
             notes = recipe.notes.orEmpty(),
             isDefault = recipe.isDefault,
         )
-
-        /** „4,5" → 4.5 g within 0,1–100 g; null otherwise. */
-        fun parseLeaf(text: String): Double? = text.trim().takeIf(LEAF::matches)
-            ?.replace(',', '.')?.toDouble()
-            ?.takeIf { it >= BrewScaling.MIN_LEAF_GRAMS && it <= BrewScaling.MAX_LEAF_GRAMS }
-
-        /** „250" → 250 ml within 10–3000 ml in 5 ml steps; null otherwise. */
-        fun parseWater(text: String): Int? = text.trim().takeIf { it.isNotEmpty() && it.all(Char::isDigit) }
-            ?.toIntOrNull()
-            ?.takeIf { it in BrewScaling.MIN_WATER_ML..BrewScaling.MAX_WATER_ML && it % WATER_UNIT == 0 }
-
-        private fun tempStep(tempC: Int, up: Boolean): Int {
-            val next = if (up) {
-                Math.floorDiv(tempC, TEMP_UNIT) * TEMP_UNIT + TEMP_UNIT
-            } else {
-                Math.floorDiv(tempC - 1, TEMP_UNIT) * TEMP_UNIT
-            }
-            return next.coerceIn(MIN_TEMP_C, MAX_TEMP_C)
-        }
     }
 }
 

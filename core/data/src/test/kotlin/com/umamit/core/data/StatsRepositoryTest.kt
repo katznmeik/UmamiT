@@ -2,7 +2,6 @@ package com.umamit.core.data
 
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
-import com.umamit.core.common.WallClock
 import com.umamit.core.database.entity.BrewSessionEntity
 import com.umamit.core.database.entity.PhotoEntity
 import com.umamit.core.database.entity.SessionStepEntity
@@ -16,6 +15,7 @@ import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -32,7 +32,6 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.ZoneId
 import java.time.ZoneOffset
 
 /**
@@ -162,7 +161,7 @@ class StatsRepositoryTest {
         data.teas.saveTea(tea("t2", "Gyokuro Alt").copy(isArchived = true))
         session("s1", teaId = "t1")
         session("s2", teaId = "t2")
-        data.teas.deleteTea("t1")
+        data.db.teaDao().delete("t1")
 
         val input = input()
 
@@ -261,11 +260,7 @@ class StatsRepositoryTest {
     fun `the use case computes the tabs from the input with the clock's day`() = runTest {
         data.teas.saveTea(tea("t1"))
         session("s1")
-        val clock = object : WallClock {
-            override fun nowMs(): Long = 1_000L
-
-            override fun zone(): ZoneId = ZoneOffset.UTC
-        }
+        val clock = FakeClock(wall = 1_000L, zone = ZoneOffset.UTC)
         val observe = ObserveStats(stats, clock, Dispatchers.Default)
 
         val calculator = observe.calculator().first()

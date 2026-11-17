@@ -36,7 +36,9 @@ import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.core.ui.rememberSheetClose
+import com.umamit.core.data.R as DataR
 
 /** The sheet of a tea from a shop link (SCR-19, CAT-17). */
 const val TEA_LINK_SHEET_TAG = "tea_link_sheet"
@@ -93,7 +95,7 @@ fun TeaLinkSheet(
     onLoad: () -> Unit,
     onDismissRequest: () -> Unit,
 ) {
-    val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion)
+    val sheetState = rememberExpandedSheetState(UmamiTheme.reduceMotion)
     // *Schließen* slides the sheet out like a drag, then closes it (A-13).
     val close = rememberSheetClose(sheetState, onDismissRequest)
     ModalBottomSheet(
@@ -208,13 +210,13 @@ internal fun TeaLinkOutcome.messageRes(): Int = when (this) {
 
     TeaLinkOutcome.Unreadable -> R.string.tea_link_unreadable
 
-    TeaLinkOutcome.Offline -> R.string.catalog_refresh_offline
+    TeaLinkOutcome.Offline -> DataR.string.data_catalog_result_offline
 
-    TeaLinkOutcome.Blocked -> R.string.catalog_refresh_blocked
+    TeaLinkOutcome.Blocked -> DataR.string.data_catalog_result_blocked
 
-    TeaLinkOutcome.ShopUnavailable -> R.string.catalog_refresh_unavailable
+    TeaLinkOutcome.ShopUnavailable -> DataR.string.data_catalog_result_unavailable
 
-    TeaLinkOutcome.StorageFailed -> R.string.catalog_refresh_storage
+    TeaLinkOutcome.StorageFailed -> DataR.string.data_catalog_result_storage
 
     // Never a message: the detail opens.
     is TeaLinkOutcome.Opened -> R.string.tea_link_loading

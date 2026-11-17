@@ -2,6 +2,7 @@ package com.umamit.feature.brew.steps
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.StepKind
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.StepStatus
 import org.junit.Test
 
@@ -9,7 +10,7 @@ import org.junit.Test
 class StepsSheetSetDurationTest {
 
     private fun state(status: StepStatus = StepStatus.PENDING) = StepsSheetState(
-        StepsSheetInput(listOf(StepsSheetStep(StepKind.INFUSION, 300, 60, status)), true, 60, 10),
+        StepsSheetInput(listOf(TimerUiStep(StepKind.INFUSION, 300, 60, status)), true, 60, 10),
     )
 
     private fun set(seconds: Int): Int = state().apply { setDuration(0, seconds) }.steps.single().plannedSeconds

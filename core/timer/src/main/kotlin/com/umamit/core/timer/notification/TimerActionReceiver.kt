@@ -8,10 +8,7 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.EventSource
 import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.engine.TimerEvent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import com.umamit.core.timer.handOver
 
 /**
  * The actions of the timer's notifications and Live Update (04 §8.2; TMR-07, TMR-41;
@@ -40,15 +37,10 @@ class TimerActionReceiver : BroadcastReceiver() {
             Log.e(TAG, "Notification action $event dropped: the app does not hand over its timer controller")
             return
         }
-        val pending = goAsync()
-        scope.launch {
-            try {
-                // Within the tap's exemption the controller's turn also sends a start Android
-                // refused earlier once more, built from the state of now (D-063).
-                inputs.send(slot, event, EventSource.NOTIFICATION)
-            } finally {
-                pending.finish()
-            }
+        handOver {
+            // Within the tap's exemption the controller's turn also sends a start Android
+            // refused earlier once more, built from the state of now (D-063).
+            inputs.send(slot, event, EventSource.NOTIFICATION)
         }
     }
 
@@ -57,9 +49,6 @@ class TimerActionReceiver : BroadcastReceiver() {
         private const val ACTION_PREFIX = "com.umamit.core.timer.action.NOTIFICATION."
         private const val ACTION_DISMISSED = "com.umamit.core.timer.action.LIVE_UPDATE_DISMISSED"
         private const val EXTRA_KEY = "com.umamit.core.timer.extra.NOTIFICATION_KEY"
-
-        /** Runs the controller turns of the actions; they outlive `onReceive` (`goAsync`). */
-        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
         /** The events a notification offers, by the name in their action. */
         private val EVENTS: Map<String, TimerEvent> = mapOf(

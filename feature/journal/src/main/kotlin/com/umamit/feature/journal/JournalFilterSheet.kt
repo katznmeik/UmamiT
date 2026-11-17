@@ -16,8 +16,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,23 +27,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.rememberExpandedSheetState
 import kotlinx.coroutines.launch
 
 /** The journal's filter sheet (SCR-15, JRN-09). */
 const val JOURNAL_FILTER_SHEET_TAG = "journal_filter_sheet"
 
 private const val CHIP_BORDER_ALPHA = 0.6f
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp
 
 /**
  * *Filter* (JRN-09, D-112): *Tee* (the teas that have sessions, [teas]; one at a time), *Bewertung* (*ab 3 ★* ·
@@ -62,7 +57,7 @@ internal fun JournalFilterSheet(
     onDismissRequest: () -> Unit,
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
-    val sheetState = rememberJournalSheetState(reduceMotion)
+    val sheetState = rememberExpandedSheetState(reduceMotion)
     val scope = rememberCoroutineScope()
     val scroll = rememberScrollState()
     // Set by *Fertig*: the sheet is on its way out, so a second tap does nothing.
@@ -189,19 +184,4 @@ private fun SheetChip(label: String, selected: Boolean, description: String? = n
             borderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = CHIP_BORDER_ALPHA),
         ),
     )
-}
-
-/** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun rememberJournalSheetState(reduceMotion: Boolean): SheetState {
-    val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-        )
-    }
 }

@@ -8,6 +8,8 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.testing.infusion
+import com.umamit.core.testing.rinse
 import com.umamit.core.timer.TimerStateNotifications
 import com.umamit.core.timer.controller.ControllerHarness
 import com.umamit.core.timer.controller.EventSource
@@ -16,8 +18,6 @@ import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.controller.TimerInputs
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.brewStart
-import com.umamit.core.timer.controller.infusion
-import com.umamit.core.timer.controller.rinse
 import com.umamit.core.timer.controller.send
 import com.umamit.core.timer.controller.state
 import com.umamit.core.timer.engine.TimerEvent

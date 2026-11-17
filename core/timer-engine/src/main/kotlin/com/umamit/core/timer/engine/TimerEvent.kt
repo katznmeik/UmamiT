@@ -117,7 +117,7 @@ sealed interface TimerEvent {
     data object OvertimeTimeout : TimerEvent
 
     /**
-     * The AlertPlayer finished its alert cycle (SET-14) for the alerting step.
+     * The alert player finished its alert cycle (SET-14) for the alerting step.
      * Sets [TimerState.Alerting.alertPlayed]; not a user interaction.
      */
     data object AlertCompleted : TimerEvent

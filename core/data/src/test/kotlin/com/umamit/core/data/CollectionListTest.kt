@@ -1,7 +1,6 @@
 package com.umamit.core.data
 
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.WallClock
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.Photo
@@ -10,7 +9,9 @@ import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TeaRating
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.infusion
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -18,7 +19,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.ZoneId
 import java.time.ZoneOffset
 
 /**
@@ -31,12 +31,7 @@ import java.time.ZoneOffset
 class CollectionListTest {
     private val settings = FakeSettingsRepository(UserSettings(lowStockGrams = 20.0))
     private val data = TestDatabase(settings = settings)
-    private var now = 1_000L
-    private val clock = object : WallClock {
-        override fun nowMs(): Long = now
-
-        override fun zone(): ZoneId = ZoneOffset.UTC
-    }
+    private val clock = FakeClock(wall = 1_000L, zone = ZoneOffset.UTC)
     private val teas = RoomTeaRepository(data.db.teaDao(), clock)
     private val list = RoomCollectionListRepository(data.db.teaDao(), data.db.tastingDao(), settings)
 
@@ -57,12 +52,12 @@ class CollectionListTest {
 
     @Test
     fun `every tea comes with when it was added, archived ones too`() = runTest {
-        now = 5_000L
+        clock.wall = 5_000L
         teas.saveTea(tea("a", "Asamushi"))
-        now = 9_000L
+        clock.wall = 9_000L
         teas.saveTea(tea("b", "Bancha").copy(isArchived = true))
         // A later edit keeps the time it was added.
-        now = 12_000L
+        clock.wall = 12_000L
         teas.saveTea(tea("a", "Asamushi Superior"))
 
         val rows = rows()

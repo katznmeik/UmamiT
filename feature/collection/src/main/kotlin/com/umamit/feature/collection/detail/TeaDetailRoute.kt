@@ -1,8 +1,6 @@
 package com.umamit.feature.collection.detail
 
-import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.Intent
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -10,11 +8,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.ui.PhotoPicker
 import com.umamit.core.ui.SystemPhotoPicker
+import com.umamit.core.ui.openInBrowser
 import com.umamit.core.ui.rememberPhotoPicker
 import com.umamit.feature.collection.R
 
@@ -63,7 +61,7 @@ fun TeaDetailRoute(
             delete = viewModel::delete,
             correctStock = viewModel::correctStock,
             recordPurchase = viewModel::recordPurchase,
-            openShop = context::openInBrowser,
+            openShop = { context.openInBrowser(it, R.string.collection_tea_no_browser) },
             addPhoto = pickPhoto,
             deleteStockEntry = viewModel::deleteStockEntry,
             openSession = host.onOpenSession,
@@ -81,12 +79,3 @@ fun TeaDetailRoute(
 }
 
 private fun Context.toast(message: Int) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-
-/** Opens [url] in the browser; without one, says so. */
-private fun Context.openInBrowser(url: String) {
-    try {
-        startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addCategory(Intent.CATEGORY_BROWSABLE))
-    } catch (_: ActivityNotFoundException) {
-        toast(R.string.collection_tea_no_browser)
-    }
-}

@@ -10,8 +10,6 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
-import com.umamit.core.model.StepTasting
-import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
@@ -102,15 +100,13 @@ internal fun BrewSessionEntity.toModel(
  * The row's taste and note (umamit.db v7, D-114). The session's own `taste_*` columns are never read: from v7 they
  * are never written, and the migration moved their values to a step row (05 §3.6).
  */
-internal fun SessionStepEntity.tasting() = StepTasting(
-    taste = TasteProfile(
-        umami = tasteUmami,
-        sweetness = tasteSweetness,
-        bitterness = tasteBitterness,
-        astringency = tasteAstringency,
-        body = tasteBody,
-        aroma = tasteAroma,
-    ),
+internal fun SessionStepEntity.tasting() = stepTasting(
+    umami = tasteUmami,
+    sweetness = tasteSweetness,
+    bitterness = tasteBitterness,
+    astringency = tasteAstringency,
+    body = tasteBody,
+    aroma = tasteAroma,
     note = tastingNote,
 )
 

@@ -15,12 +15,12 @@ import androidx.work.WorkerParameters
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.WallClock
 import com.umamit.core.data.LowStockRepository
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.LowStockTea
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -55,13 +55,7 @@ class LowStockReminderTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val zone = ZoneId.of("Europe/Berlin")
     private val today = LocalDate.of(2026, 10, 30)
-    private val clock = object : WallClock {
-        var now = at(10, 0)
-
-        override fun nowMs(): Long = now
-
-        override fun zone(): ZoneId = zone
-    }
+    private val clock = FakeClock(wall = at(10, 0), zone = zone)
     private val settings = FakeSettingsRepository()
     private val lowStock = FakeLowStockRepository()
     private val scheduler = LowStockReminderScheduler(context, settings, clock)
@@ -126,7 +120,7 @@ class LowStockReminderTest {
 
     /** The job's time has come, at [nowMs] on the wall clock. */
     private fun runJobAt(nowMs: Long) {
-        clock.now = nowMs
+        clock.wall = nowMs
         val job = requireNotNull(pending()) { "no reminder scheduled" }
         WorkManagerTestInitHelper.getTestDriver(context)!!.setInitialDelayMet(job.id)
     }
@@ -181,7 +175,7 @@ class LowStockReminderTest {
         assertThat(pending()).isNull()
         assertThat(shadowOf(notifications).allNotifications).isEmpty()
 
-        clock.now = at(19, 0)
+        clock.wall = at(19, 0)
         settings.update { it.copy(lowStockReminderInterval = LowStockReminderInterval.DAILY) }
         runCurrent()
         // Today had its reminder: the next one is tomorrow at 18:00.
@@ -194,7 +188,7 @@ class LowStockReminderTest {
         val first = pending()!!
 
         // The process again, an hour later (an update, a restart): the waiting job stays as it is.
-        clock.now = at(11, 0)
+        clock.wall = at(11, 0)
         val again = LowStockReminderScheduler(context, settings, clock)
         backgroundScope.launch { again.follow() }
         runCurrent()

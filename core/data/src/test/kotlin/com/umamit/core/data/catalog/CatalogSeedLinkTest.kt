@@ -13,7 +13,6 @@ import com.umamit.core.data.SeedData
 import com.umamit.core.data.SeedDataSeeder
 import com.umamit.core.data.SessionStart
 import com.umamit.core.data.TestDatabase
-import com.umamit.core.data.infusion
 import com.umamit.core.data.snapshotOf
 import com.umamit.core.data.syntheticJpeg
 import com.umamit.core.database.CatalogDatabase
@@ -26,6 +25,7 @@ import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.Tea
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.infusion
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

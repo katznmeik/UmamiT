@@ -47,25 +47,4 @@ class AddSheetStateTest {
         assertThat(sheet.price).isEqualTo("1010,00")
         assertThat(sheet.priceValid).isTrue()
     }
-
-    @Test
-    fun germanThousandsSeparatorsAreRead() {
-        assertThat(AddSheetState.parseCents("1.234,50")).isEqualTo(123_450)
-        assertThat(AddSheetState.parseCents("1.234")).isEqualTo(123_400)
-        assertThat(AddSheetState.parseCents("1.234,50 €")).isEqualTo(123_450)
-        assertThat(AddSheetState.parseGrams("1.000")).isEqualTo(1000.0)
-        assertThat(AddSheetState.parseGrams("10.000")).isEqualTo(10_000.0)
-    }
-
-    @Test
-    fun decimalsStayAsTheyWere() {
-        assertThat(AddSheetState.parseCents("12,40")).isEqualTo(1240)
-        assertThat(AddSheetState.parseCents("12.4")).isEqualTo(1240)
-        assertThat(AddSheetState.parseCents("1.23")).isEqualTo(123)
-        assertThat(AddSheetState.parseCents("12")).isEqualTo(1200)
-        assertThat(AddSheetState.parseGrams("37,5")).isEqualTo(37.5)
-        assertThat(AddSheetState.parseCents("1.23.4")).isNull()
-        assertThat(AddSheetState.parseCents("12.345,6.7")).isNull()
-        assertThat(AddSheetState.parseGrams("10.001")).isNull()
-    }
 }

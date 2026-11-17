@@ -11,6 +11,8 @@ import com.umamit.core.database.entity.VesselEntity
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeStep
+import com.umamit.core.model.StepTasting
+import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.Vessel
@@ -206,4 +208,26 @@ internal fun InventoryEvent.toEntity(createdAt: Long, updatedAt: Long) = Invento
     note = note,
     createdAt = createdAt,
     updatedAt = updatedAt,
+)
+
+/** A step row's six `taste_*` columns and its `tasting_note` as a [StepTasting] (umamit.db v7, D-114). */
+@Suppress("LongParameterList")
+internal fun stepTasting(
+    umami: Int?,
+    sweetness: Int?,
+    bitterness: Int?,
+    astringency: Int?,
+    body: Int?,
+    aroma: Int?,
+    note: String?,
+) = StepTasting(
+    taste = TasteProfile(
+        umami = umami,
+        sweetness = sweetness,
+        bitterness = bitterness,
+        astringency = astringency,
+        body = body,
+        aroma = aroma,
+    ),
+    note = note,
 )

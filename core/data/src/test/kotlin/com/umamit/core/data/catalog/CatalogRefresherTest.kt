@@ -9,13 +9,16 @@ import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticShop
 import com.umamit.core.catalog.parser.SyntheticShop.Stock
 import com.umamit.core.data.SendTimes
+import com.umamit.core.data.catalog.FakeShop.Companion.ROBOTS
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP_GZ
+import com.umamit.core.data.catalog.FakeShop.Companion.text
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogSkipReason
 import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.UserSettings
-import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.CancellationException
@@ -25,10 +28,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
-import mockwebserver3.MockWebServer
-import mockwebserver3.RecordedRequest
 import mockwebserver3.SocketEffect
 import okio.Buffer
 import org.junit.After
@@ -39,7 +39,6 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 
@@ -59,7 +58,8 @@ class CatalogRefresherTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private val server = MockWebServer()
+    private val shop = FakeShop()
+    private val server get() = shop.server
     private val db = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CatalogDatabase::class.java)
         .allowMainThreadQueries()
@@ -68,34 +68,22 @@ class CatalogRefresherTest {
     private val clock = FakeClock()
 
     /** What the synthetic shop answers per path; unknown paths are 404 (read on the server's thread). */
-    private val routes = ConcurrentHashMap<String, () -> MockResponse>()
+    private val routes get() = shop.routes
 
     /** Every request the shop saw, in order. */
-    private val requests = CopyOnWriteArrayList<RecordedRequest>()
+    private val requests get() = shop.requests
 
     /** When the client wrote each request onto its socket (System.nanoTime), in order. */
     private val sent = CopyOnWriteArrayList<Long>()
 
     /** The product URLs (paths) the sitemap lists (read on the server's thread). */
-    private val listed = CopyOnWriteArrayList<String>()
+    private val listed get() = shop.listed
 
-    private val base get() = server.url("/").toString().removeSuffix("/")
+    private val base get() = shop.base
 
     @Before
     fun setUp() {
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                requests += request
-                return routes[request.url.encodedPath]?.invoke() ?: MockResponse.Builder().code(404).build()
-            }
-        }
-        server.start()
-        routes[ROBOTS] = { text(SyntheticShop.robotsTxt()) }
-        routes[SITEMAP] = { text(SyntheticShop.sitemapIndex("$base$SITEMAP_GZ")) }
-        routes[SITEMAP_GZ] = {
-            MockResponse.Builder().addHeader("Content-Type", "application/x-gzip")
-                .body(Buffer().write(SyntheticShop.gzip(SyntheticShop.urlSet(listed.map { "$base$it" })))).build()
-        }
+        shop.start()
         product(
             SENCHA,
             "Morgennebel Sencha – 100g",
@@ -124,7 +112,7 @@ class CatalogRefresherTest {
 
     @After
     fun tearDown() {
-        server.close()
+        shop.close()
         db.close()
     }
 
@@ -167,22 +155,20 @@ class CatalogRefresherTest {
     }
 
     private fun refresher(sanity: SanityCheck = SanityCheck(firstImportMinimum = 1), realRateLimit: Boolean = false) =
-        CatalogRefresher(
-            client = ShopClient.forTesting(
-                baseUrl = server.url("/"),
-                socketFactory = SendTimes(sent),
-                requestIntervalMillis = if (realRateLimit) null else 0,
-            ),
+        catalogRefresher(
+            shop = shop,
             dao = dao,
             clock = clock,
             diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
             // The photos have their own tests (CatalogRefresherDetailTest); here they would only add requests.
             settings = FakeSettingsRepository(UserSettings(catalogDownloadPhotos = false)),
             photos = CatalogPhotoFiles(folder.newFolder()),
+            socketFactory = SendTimes(sent),
+            requestIntervalMillis = if (realRateLimit) null else 0,
             sanity = sanity,
         )
 
-    private fun paths() = requests.map { it.url.encodedPath }
+    private fun paths() = shop.paths()
 
     private suspend fun names() = dao.observeList().first().map { it.name }
 
@@ -394,14 +380,13 @@ class CatalogRefresherTest {
     fun anErrorInTheRunStillCleansUpAndLogsIt() = runTest {
         // A stack overflow or similar Error must not skip the cleanup and the log (D-090); rule 8 as before.
         previousCatalog()
-        val refresher = CatalogRefresher(
-            client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+        val refresher = catalogRefresher(
+            shop = shop,
             dao = dao,
             clock = clock,
             diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
             settings = FakeSettingsRepository(UserSettings(catalogDownloadPhotos = false)),
             photos = CatalogPhotoFiles(folder.newFolder()),
-            sanity = SanityCheck(firstImportMinimum = 1),
             owned = OwnedCatalogKeys { throw StackOverflowError("deeply nested") },
         )
 
@@ -583,13 +568,7 @@ class CatalogRefresherTest {
         assertThat(seen.map { it.pagesDone }).isInOrder()
     }
 
-    private fun text(body: String) =
-        MockResponse.Builder().addHeader("Content-Type", "text/html; charset=utf-8").body(body).build()
-
     private companion object {
-        const val ROBOTS = "/robots.txt"
-        const val SITEMAP = "/sitemap.xml"
-        const val SITEMAP_GZ = "/sitemap/synthetic-1.xml.gz"
         const val SENCHA = "/morgennebel-sencha/XY0100"
         const val GYOKURO = "/tautropfen-gyokuro/XY0200"
         const val BLACK = "/abendglut-assam/XY0300"

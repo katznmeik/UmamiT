@@ -17,20 +17,20 @@ import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
+import com.umamit.core.timer.controller.StartQuestions
 import com.umamit.core.timer.controller.StartRefusal
+import com.umamit.core.timer.controller.StartReply
 import com.umamit.core.timer.controller.TimerToEnd
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.activeSessionIds
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.controller.brewAgainStart
-import com.umamit.core.timer.controller.refusalOf
 import com.umamit.core.timer.controller.startedSlot
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.timer.reliability.TimerReliability
 import com.umamit.core.timer.reliability.firstMissingIntents
 import com.umamit.core.timer.reliability.problem
-import com.umamit.core.ui.alertCovers
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -44,7 +44,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 import javax.inject.Inject
@@ -127,7 +126,10 @@ class HomeViewModel @Inject constructor(
     private val reliability: TimerReliability,
     private val lowStock: LowStockRepository,
 ) : ViewModel() {
-    private val pending = MutableStateFlow<Pending?>(null)
+    /** „Welchen Timer beenden?" only: a brew start is never refused for a quick timer of its own (D-098). */
+    private val questions = StartQuestions<HomeQuestion, BrewStart>(starter) { refusal ->
+        (refusal as? StartRefusal.ChooseTimer)?.let { HomeQuestion(it.timers) }
+    }
 
     /**
      * Start holds still while *Nochmal brühen* opens the timer (D-111); its route calls [StartHandOff.startLeft] when
@@ -152,7 +154,7 @@ class HomeViewModel @Inject constructor(
         ) { front, brew, brew2, quick ->
             Timers(front, brew ?: brew2, active = listOfNotNull(brew, brew2, quick).size)
         },
-        pending,
+        questions.question,
         reliabilityProblem,
     ) { overviews, recentSessions, timers, question, problem ->
         val owned = overviews.filter { !it.tea.isArchived }
@@ -169,7 +171,7 @@ class HomeViewModel @Inject constructor(
             favorites = owned.filter {
                 it.tea.isFavorite
             }.map { HomeTea(it.tea.id, it.tea.name, it.coverPhoto?.path()) },
-            question = question?.question,
+            question = question,
             // Either timer's alert: no question over it (rule 8).
             alertKey = timers.front.alertKey(),
             reliabilityProblem = problem,
@@ -193,7 +195,7 @@ class HomeViewModel @Inject constructor(
             starter.state.collect { timer ->
                 val alert = timer.alertKey()
                 handOff.alertChanged(alert)
-                pending.update { it?.takeUnless { p -> alertCovers(alert, p.openedIn) } }
+                questions.alertChanged(alert)
             }
         }
     }
@@ -256,23 +258,18 @@ class HomeViewModel @Inject constructor(
 
     /** An answer of „Welchen Timer beenden?" (TMR-21, D-108): the timer of [slot] ends, then the brew starts. */
     fun endTimerAndStart(slot: TimerSlot) {
-        val asked = pending.value ?: return
-        // The session the answer named: one that started in its slot meanwhile is not ended (#194).
-        val session = asked.question.timers.firstOrNull { it.slot == slot }?.sessionId
-        pending.value = null
+        val answer = questions.answer(slot) ?: return
         viewModelScope.launch {
             val before = starter.activeSessionIds()
             val outcome = handOff.holdingStill(state.value, starter.state.value.alertKey()) {
-                starter.finishActiveAndStart(asked.request, ending = slot, endingSession = session)
+                starter.finishActiveAndStart(answer.request, ending = slot, endingSession = answer.endingSession)
             }
-            handle(outcome, asked.request, before)
+            handle(outcome, answer.request, before)
         }
     }
 
     /** *Abbrechen*: both active timers stay. */
-    fun dismissQuestion() {
-        pending.value = null
-    }
+    fun dismissQuestion() = questions.dismiss()
 
     private suspend fun handle(outcome: TransitionOutcome, request: BrewStart, before: List<String>) {
         when (outcome) {
@@ -282,22 +279,16 @@ class HomeViewModel @Inject constructor(
                 navigation.send(HomeEvent.OpenTimer(slot))
             }
 
-            is TransitionOutcome.Rejected -> when (val refusal = starter.refusalOf(outcome.reason)) {
-                // The tea's own session (a tea has at most one, D-108): open it, also during an alert, where the
-                // timer shows the ringing alert first (rule 8).
-                is StartRefusal.OpenSession -> if (!isDoubleTap(refusal.slot)) {
-                    navigation.send(HomeEvent.OpenTimer(refusal.slot))
+            is TransitionOutcome.Rejected -> when (val reply = questions.refused(outcome.reason, request)) {
+                // The tea's own session: open it, also during an alert, where the timer shows the ringing alert
+                // first (rule 8); not for a double tap on the session just started.
+                is StartReply.OpenSession -> if (!isDoubleTap(reply.slot)) {
+                    navigation.send(HomeEvent.OpenTimer(reply.slot))
                 }
 
-                is StartRefusal.ChooseTimer -> if (starter.state.value.alertKey() != null) {
-                    // No question over an alert (rule 8): the alerting timer is where to go now.
-                    navigation.send(HomeEvent.OpenTimer(null))
-                } else {
-                    pending.value = Pending(request, HomeQuestion(refusal.timers), null)
-                }
+                StartReply.OpenAlerting -> navigation.send(HomeEvent.OpenTimer(null))
 
-                // A brew start is never refused for a quick timer of its own (D-098).
-                StartRefusal.RestartQuick, null -> Unit
+                StartReply.Stay -> Unit
             }
 
             TransitionOutcome.Ignored -> Unit
@@ -331,8 +322,6 @@ class HomeViewModel @Inject constructor(
             infusions = brewed.size,
         )
     }
-
-    private class Pending(val request: BrewStart, val question: HomeQuestion, val openedIn: String?)
 
     /** The timer in front of the controller (its alert first) and the first active brew session (D-108). */
     private class Timers(val front: TimerUiState, val brew: TimerUiState.Active?, val active: Int)

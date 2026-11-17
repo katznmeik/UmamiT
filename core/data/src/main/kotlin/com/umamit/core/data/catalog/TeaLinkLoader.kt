@@ -10,7 +10,6 @@ import com.umamit.core.catalog.parser.ProductParse
 import com.umamit.core.catalog.parser.TeaLink
 import com.umamit.core.catalog.parser.TeaLinkResult
 import com.umamit.core.catalog.parser.TeaLinks
-import com.umamit.core.catalog.parser.TeeKontorParser
 import com.umamit.core.common.WallClock
 import com.umamit.core.data.CatalogPhoto
 import com.umamit.core.data.PhotoTranscoder
@@ -38,7 +37,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.IOException
 import javax.inject.Inject
 
@@ -258,7 +256,7 @@ class ShopTeaLinkLoader internal constructor(
 
         /** The product page in [answer]; any other answer ends the job. */
         private suspend fun page(answer: ShopFetch): ProductPage = when (answer) {
-            is ShopFetch.Fetched -> when (val parsed = parse(answer.body)) {
+            is ShopFetch.Fetched -> when (val parsed = parseProduct(parseDispatcher, answer.body, url.toString())) {
                 is ProductParse.Parsed -> parsed.page
                 is ProductParse.Failed -> noTeaPage("shows no product")
             }
@@ -273,9 +271,6 @@ class ShopTeaLinkLoader internal constructor(
             is ShopFetch.TooLarge -> unreadable("over the size limit")
         }
 
-        private suspend fun parse(body: ByteArray): ProductParse =
-            withContext(parseDispatcher) { TeeKontorParser.parseProduct(body, url.toString()) }
-
         /**
          * Stores the tea as a regular entry with its packages (05 §4.1–4.2) and its photo; a stop
          * on the photo stores nothing. Kept from a tea already in the catalog: its first sighting
@@ -284,10 +279,7 @@ class ShopTeaLinkLoader internal constructor(
         private suspend fun store(session: ShopSession, page: ProductPage): TeaLinkOutcome {
             val group = ProductGroup(base = link.base, pageUrl = url.toString(), variantUrls = emptyMap())
             val entry = CatalogEntry.of(group, page)
-            val packages = entry.packages.map { it.toEntity(entry.key) }
-            val fresh = entry.page.toEntity(entry.key, clock.nowMs()).let {
-                it.copy(contentHash = CatalogContentHash.of(it, packages))
-            }
+            val (fresh, packages) = entry.rows(clock.nowMs())
             val before = dao.tea(entry.key)
             val photo = photo(session, fresh, before)
             return withContext(NonCancellable) {
@@ -322,7 +314,7 @@ class ShopTeaLinkLoader internal constructor(
          */
         private suspend fun photo(session: ShopSession, fresh: CatalogTeaEntity, before: CatalogTeaEntity?): Photo {
             val photoUrl = fresh.photoUrl
-            val shopUrl = photoUrl?.toHttpUrlOrNull()?.takeIf(client::isAllowed)
+            val shopUrl = photoUrl?.let(client::allowedUrl)
             return if (photoUrl != null && shopUrl != null && wanted(photoUrl, fresh.key, before)) {
                 photo(photoUrl, session.fetch(shopUrl, BodyLimit.IMAGE))
             } else {

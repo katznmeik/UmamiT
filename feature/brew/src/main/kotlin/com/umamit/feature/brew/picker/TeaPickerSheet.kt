@@ -20,12 +20,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalAccessibilityManager
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -57,9 +52,10 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.AlertGate
 import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.core.ui.rememberPhotoPainter
+import com.umamit.core.ui.showUndo
 import com.umamit.feature.brew.R
-import kotlinx.coroutines.withTimeoutOrNull
 
 const val TEA_PICKER_TAG = "tea_picker"
 
@@ -135,7 +131,7 @@ fun TeaPickerSheet(
     onRemovedDismiss: () -> Unit = {},
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
-    val sheetState = rememberPickerSheetState(reduceMotion)
+    val sheetState = rememberExpandedSheetState(reduceMotion)
     val snackbarHostState = remember { SnackbarHostState() }
     RemovedSnackbar(state.removed, snackbarHostState, onUndoRemove, onRemovedDismiss)
     ModalBottomSheet(
@@ -177,16 +173,7 @@ private fun RemovedSnackbar(
     val currentOnDismiss by rememberUpdatedState(onDismiss)
     LaunchedEffect(removed) {
         if (message == null) return@LaunchedEffect
-        val timeoutMs = accessibility?.calculateRecommendedTimeoutMillis(
-            UNDO_TIMEOUT_MS,
-            containsIcons = false,
-            containsText = true,
-            containsControls = true,
-        ) ?: UNDO_TIMEOUT_MS
-        val result = withTimeoutOrNull(timeoutMs) {
-            hostState.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Indefinite)
-        }
-        if (result == SnackbarResult.ActionPerformed) currentOnUndo() else currentOnDismiss()
+        if (hostState.showUndo(message, undo, accessibility)) currentOnUndo() else currentOnDismiss()
     }
 }
 
@@ -368,9 +355,6 @@ private fun TeaRow(tea: PickerTea, actions: TeaRowActions, showDivider: Boolean)
 /** The menu opens under the tea's name, past its thumbnail (03 §3.8). */
 private val MenuInset = UmamiSpacing.SideMargin + 48.dp + UmamiSpacing.Medium
 
-/** About 8 s for *Rückgängig* (D-093 Q21). */
-private const val UNDO_TIMEOUT_MS = 8_000L
-
 @Composable
 private fun Hint(text: String) {
     Text(
@@ -385,22 +369,3 @@ private fun Hint(text: String) {
         ),
     )
 }
-
-/** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun rememberPickerSheetState(reduceMotion: Boolean): SheetState {
-    val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-        )
-    }
-}
-
-// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp

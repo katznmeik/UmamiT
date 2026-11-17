@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.umamit.core.common.sessionZone
 import com.umamit.core.designsystem.component.ChooseTimerToEndDialog
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.PrimaryActionCard
@@ -48,7 +49,6 @@ import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.core.ui.rememberStartsAfterStop
 import kotlinx.coroutines.delay
 import java.time.Instant
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -299,7 +299,7 @@ private const val SECONDS_PER_HOUR = 3_600
 /** „8. Juni · 1 Min. · 65 °C" (03 §3.8, 05 §7: whole hours „4 Std.", whole minutes „3 Min." in lists, else „0:45"). */
 @Composable
 private fun recentMeta(brew: RecentBrew): String {
-    val date = GermanFormat.dayMonthLong(Instant.ofEpochMilli(brew.startedAtMs).atZone(zoneOf(brew.zoneId)))
+    val date = GermanFormat.dayMonthLong(Instant.ofEpochMilli(brew.startedAtMs).atZone(sessionZone(brew.zoneId)))
     val seconds = brew.firstStepSeconds
     val duration = when {
         seconds == null -> null
@@ -314,5 +314,3 @@ private fun recentMeta(brew: RecentBrew): String {
         else -> stringResource(R.string.home_recent_meta, date, duration, temp)
     }
 }
-
-private fun zoneOf(id: String): ZoneId = runCatching { ZoneId.of(id) }.getOrDefault(ZoneId.systemDefault())

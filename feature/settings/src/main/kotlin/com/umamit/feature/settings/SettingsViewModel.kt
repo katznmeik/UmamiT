@@ -10,6 +10,7 @@ import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.alert.AlertTester
 import com.umamit.core.timer.alert.TonePreview
 import com.umamit.core.timer.reliability.ReliabilityCheck
+import com.umamit.core.timer.reliability.ReliabilityChecks
 import com.umamit.core.timer.reliability.ReliabilityStatus
 import com.umamit.core.timer.reliability.TimerReliability
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +35,7 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val tester: AlertTester,
-    private val reliability: TimerReliability,
+    reliability: TimerReliability,
     private val preview: TonePreview,
     private val nightMode: AppNightMode,
 ) : ViewModel() {
@@ -42,17 +43,15 @@ class SettingsViewModel @Inject constructor(
     /** The stored settings; null until the file is read. */
     val current: StateFlow<UserSettings?> = settings.settings.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    private val checks = MutableStateFlow(reliability.status())
+    private val checks = ReliabilityChecks(reliability)
 
     /** The checks as last read; [refresh] reads them again on every resume. */
-    val status: StateFlow<ReliabilityStatus> = checks.asStateFlow()
+    val status: StateFlow<ReliabilityStatus> = checks.status
 
-    fun refresh() {
-        checks.value = reliability.status()
-    }
+    fun refresh() = checks.refresh()
 
     /** A row's *Beheben*: the check's pages, for the screen to start. */
-    fun open(check: ReliabilityCheck): List<Intent> = reliability.settingsIntents(check)
+    fun open(check: ReliabilityCheck): List<Intent> = checks.open(check)
 
     /** *Alarm testen* and the tone's *Anhören*: the tick, then the alert, with the stored settings. */
     fun testAlert() = tester.testAlert()

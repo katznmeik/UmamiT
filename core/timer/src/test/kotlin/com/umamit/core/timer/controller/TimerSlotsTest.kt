@@ -7,6 +7,7 @@ import com.umamit.core.testing.AlarmRetried
 import com.umamit.core.testing.AlarmsReconciled
 import com.umamit.core.testing.AlertWatchdogSet
 import com.umamit.core.testing.PortCall
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
@@ -170,7 +171,7 @@ class TimerSlotsTest {
         val brew = h.controller.state(TimerSlot.BREW).value
         h.controller.startQuickTimer(90, run = true)
 
-        val outcome = h.controller.startQuickTimer(30, run = true, finishActive = true)
+        val outcome = h.controller.startQuickTimer(30, run = true, ending = TimerSlot.QUICK)
 
         assertThat(outcome).isEqualTo(TransitionOutcome.Accepted)
         assertThat((h.controller.state(TimerSlot.QUICK).value as TimerUiState.Active).steps.single().plannedSeconds)

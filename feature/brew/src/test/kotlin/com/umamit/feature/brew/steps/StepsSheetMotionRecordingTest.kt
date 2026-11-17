@@ -23,6 +23,7 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.StepStatus
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -60,9 +61,9 @@ class StepsSheetMotionRecordingTest {
 
     private val input = StepsSheetInput(
         steps = listOf(
-            StepsSheetStep(StepKind.INFUSION, 90, 55, StepStatus.DONE),
-            StepsSheetStep(StepKind.INFUSION, 30, 60, StepStatus.PENDING),
-            StepsSheetStep(StepKind.INFUSION, 20, 60, StepStatus.PENDING),
+            TimerUiStep(StepKind.INFUSION, 90, 55, StepStatus.DONE),
+            TimerUiStep(StepKind.INFUSION, 30, 60, StepStatus.PENDING),
+            TimerUiStep(StepKind.INFUSION, 20, 60, StepStatus.PENDING),
         ),
         hasRecipe = true,
         baseTempC = 60,

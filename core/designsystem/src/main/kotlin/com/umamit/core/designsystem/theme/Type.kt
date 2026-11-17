@@ -38,6 +38,9 @@ private val GERMAN = LocaleList("de-DE")
 /** Lining, tabular figures: every digit has the same advance, so the timer never jitters (03 §3.2). */
 const val TIMER_DIGIT_FEATURES = "lnum, tnum"
 
+/** Lining, tabular figures: the digits do not jitter while they change. */
+fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = TIMER_DIGIT_FEATURES)
+
 /**
  * The 03 §3.2 type scale mapped onto the Material 3 roles: the display sans
  * (Alegreya Sans, D-110) for display, headline and the two larger title roles;

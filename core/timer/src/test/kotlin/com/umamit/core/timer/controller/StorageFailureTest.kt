@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.AlertStarted
 import com.umamit.core.testing.NotificationShown
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.test.runTest

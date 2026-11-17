@@ -33,6 +33,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.tabular
 import java.util.Locale
 
 /** Test tag of the picker's total, „1:30". */
@@ -136,6 +137,3 @@ private fun PickerRow(field: PickerField, seconds: Int, onChange: (Int) -> Unit)
         }
     }
 }
-
-/** Lining, tabular figures: the digits do not jitter while they change. */
-private fun androidx.compose.ui.text.TextStyle.tabular() = copy(fontFeatureSettings = "lnum, tnum")

@@ -340,7 +340,7 @@ class BrewSetupFromSessionTest {
     @Test
     fun `a session whose tea is gone shows the not-found state`() = runTest {
         brewed(profileId = STRONG)
-        collection.teas.deleteTea(TEA)
+        collection.deleteTeaRows(TEA)
 
         assertThat(viewModel().state.value).isEqualTo(BrewSetupUiState.NotFound)
     }

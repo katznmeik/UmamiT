@@ -24,8 +24,14 @@ object BrewScaling {
     const val MIN_WATER_ML = 10
     const val MAX_WATER_ML = 3000
 
+    /** Brew temperatures: 5–100 °C in 5 °C steps (PRF-03, GEN-12). */
+    const val MIN_TEMP_C = 5
+    const val MAX_TEMP_C = 100
+    private const val TEMP_UNIT = 5
+
     private val LEAF_UNIT = BigDecimal("0.1")
     private const val WATER_UNIT = 5
+    private val LEAF_TEXT = Regex("""\d{1,3}(?:[.,]\d)?""")
 
     /** The leaf for [waterMl] at [ratio], to 0,1 g. */
     fun leafFor(ratio: Ratio, waterMl: Int): Double {
@@ -55,6 +61,30 @@ object BrewScaling {
         }
         return next.coerceIn(MIN_WATER_ML, MAX_WATER_ML)
     }
+
+    /** The temperature stepper: to the next multiple of 5 °C up or down, within 5–100 °C. */
+    fun tempStepped(tempC: Int, up: Boolean): Int {
+        val next = if (up) {
+            Math.floorDiv(tempC, TEMP_UNIT) * TEMP_UNIT + TEMP_UNIT
+        } else {
+            Math.floorDiv(tempC - 1, TEMP_UNIT) * TEMP_UNIT
+        }
+        return next.coerceIn(MIN_TEMP_C, MAX_TEMP_C)
+    }
+
+    /** „4,5" → 4.5 g within 0,1–100 g; null otherwise. */
+    fun parseLeaf(text: String): Double? = text.trim().takeIf(LEAF_TEXT::matches)
+        ?.replace(',', '.')?.toDouble()
+        ?.takeIf { it >= MIN_LEAF_GRAMS && it <= MAX_LEAF_GRAMS }
+
+    /**
+     * „250" → 250 ml within 10–3000 ml in 5 ml steps; null otherwise. The [stored] value of a recorded brew stays valid
+     * as it is.
+     */
+    fun parseWater(text: String, stored: Int? = null): Int? = text.trim()
+        .takeIf { it.isNotEmpty() && it.all(Char::isDigit) }
+        ?.toIntOrNull()
+        ?.takeIf { it == stored || (it in MIN_WATER_ML..MAX_WATER_ML && it % WATER_UNIT == 0) }
 
     /** Leaf per 100 ml, to 0,1 g half up: the ratio „1,6 g / 100 ml" (PRF-03 AC1). */
     fun per100Ml(leafGrams: Double, waterMl: Int): Double = (leafGrams.toBigDecimal() * HUNDRED)

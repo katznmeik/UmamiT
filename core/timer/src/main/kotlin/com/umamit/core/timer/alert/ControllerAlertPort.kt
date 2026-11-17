@@ -5,7 +5,7 @@ import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.StepAlert
 import com.umamit.core.timer.controller.TimerAlertPort
-import kotlinx.coroutines.CancellationException
+import com.umamit.core.timer.controller.attempt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -47,16 +47,11 @@ class ControllerAlertPort internal constructor(
 
     override fun keepReady(ready: Boolean) = playback.keepReady(ready)
 
-    @Suppress("TooGenericExceptionCaught") // a failed report is logged; recovery replays the alert (D-047)
+    // A failed report is logged; recovery replays the alert (D-047).
     private fun report(alert: StepAlert) {
         scope.launch {
-            try {
-                controller.get().alertCompleted(alert)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e("UmamiTAlert", "AlertCompleted for $alert failed", e)
-            }
+            attempt { controller.get().alertCompleted(alert) }
+                ?.let { e -> Log.e("UmamiTAlert", "AlertCompleted for $alert failed", e) }
         }
     }
 }

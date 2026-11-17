@@ -4,7 +4,7 @@ import android.util.Log
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerDiagnosticsPort
-import kotlinx.coroutines.CancellationException
+import com.umamit.core.timer.controller.attempt
 import javax.inject.Inject
 
 /**
@@ -16,15 +16,10 @@ import javax.inject.Inject
  * here throws (rule 8): an entry that cannot be formatted is lost.
  */
 class LogTimerDiagnostics @Inject constructor(private val log: DiagnosticsLog) : TimerDiagnosticsPort {
-    @Suppress("TooGenericExceptionCaught") // a broken entry must never reach the timer (rule 8)
+    // A broken entry must never reach the timer (rule 8).
     override fun record(entry: TimerDiagnostic) {
-        try {
-            log.append(entry.at.wallMs, entry.at.zone, TimerDiagnosticFormat.message(entry))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "Diagnostics entry lost: ${entry::class.simpleName}", e)
-        }
+        attempt { log.append(entry.at.wallMs, entry.at.zone, TimerDiagnosticFormat.message(entry)) }
+            ?.let { e -> Log.w(TAG, "Diagnostics entry lost: ${entry::class.simpleName}", e) }
     }
 
     private companion object {

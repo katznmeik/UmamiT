@@ -65,7 +65,7 @@ import com.umamit.core.timer.reliability.ReliabilityCheck
 import com.umamit.core.timer.reliability.ReliabilityStatus
 import com.umamit.core.timer.reliability.samsungAutoRestartIntents
 import com.umamit.core.timer.reliability.startFirstIntent
-import com.umamit.core.ui.rememberNotificationPermissionAction
+import com.umamit.core.ui.rememberReliabilityFixAction
 
 /** The pages of SCR-01: welcome (ONB-01), reliability (ONB-02), catalog (ONB-03). */
 enum class OnboardingPage { Welcome, Reliability, Catalog }
@@ -121,9 +121,10 @@ fun OnboardingRoute(
     BackHandler(enabled = page != OnboardingPage.Welcome) {
         page = if (page == OnboardingPage.Catalog) OnboardingPage.Reliability else OnboardingPage.Welcome
     }
-    val requestNotifications = rememberNotificationPermissionAction(
+    val openCheck = rememberReliabilityFixAction(
+        notifications = ReliabilityCheck.Notifications,
+        openPage = { check: ReliabilityCheck -> context.startFirstIntent(viewModel.open(check)) },
         onResult = viewModel::refresh,
-        openSettings = { context.startFirstIntent(viewModel.open(ReliabilityCheck.Notifications)) },
     )
     OnboardingScreen(
         page = page,
@@ -133,13 +134,7 @@ fun OnboardingRoute(
         catalogLoad = catalogLoad,
         actions = OnboardingActions(
             start = { page = OnboardingPage.Reliability },
-            openCheck = { check ->
-                if (check == ReliabilityCheck.Notifications) {
-                    requestNotifications()
-                } else {
-                    context.startFirstIntent(viewModel.open(check))
-                }
-            },
+            openCheck = openCheck,
             openAutoRestart = { context.startFirstIntent(samsungAutoRestartIntents()) },
             skipPhotos = viewModel::skipPhotos,
             next = { page = OnboardingPage.Catalog },

@@ -4,7 +4,6 @@ import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.DeleteResult
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.VesselArchive
-import com.umamit.core.model.TimerSlot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -19,10 +18,6 @@ class FakeTeaArchive(private val s: FakeSessions) : TeaArchive {
     val archived = mutableListOf<String>()
 
     val deleted = mutableListOf<String>()
-
-    override fun observeActiveTeaId(): Flow<String?> = combine(s.activeRows, s.sessionRows) { active, sessions ->
-        active[TimerSlot.BREW]?.activeBrew?.sessionId?.let { sessions[it] }?.snapshot?.teaId
-    }.distinctUntilChanged()
 
     override fun observeActiveTeaIds(): Flow<Set<String>> = combine(s.activeRows, s.sessionRows) { active, sessions ->
         active.values.mapNotNull { sessions[it.activeBrew.sessionId]?.snapshot?.teaId }.toSet()
@@ -64,7 +59,7 @@ class FakeTeaArchive(private val s: FakeSessions) : TeaArchive {
                     )
                 }
             }
-            s.collection.teas.deleteTea(teaId)
+            s.collection.deleteTeaRows(teaId)
             deleted += teaId
             DeleteResult.Deleted
         }

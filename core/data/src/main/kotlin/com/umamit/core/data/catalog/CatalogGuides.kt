@@ -11,11 +11,9 @@ import com.umamit.core.data.PhotoTarget
 import com.umamit.core.data.PhotoTranscoder
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.entity.CatalogGuideEntity
-import com.umamit.core.database.entity.CatalogImageFailureReason
 import com.umamit.core.database.entity.StagedCatalogGuideEntity
 import com.umamit.core.domain.guide.GuideMarkdown
 import com.umamit.core.model.GuideBlock
-import com.umamit.core.network.BodyLimit
 import com.umamit.core.network.ShopClient
 import com.umamit.core.network.ShopFetch
 import com.umamit.core.network.ShopSession
@@ -214,11 +212,7 @@ internal class CatalogGuides(
             }
         }
         // The next image is fetched while this one is re-encoded and written (D-091).
-        fetchOverlapped(
-            items = toFetch,
-            fetch = { (source, _) -> source.shopUrl()?.let { session.fetch(it, BodyLimit.IMAGE) } },
-            isLast = { it is ShopFetch.Stopped },
-        ) { (source, name), answer ->
+        fetchImagesOverlapped(session, client, toFetch, url = { it.first }) { (source, name), answer ->
             if (storeImage(source, name, answer, download.failures, stop)) {
                 files[source] = name
                 counts.imagesFetched++
@@ -228,9 +222,6 @@ internal class CatalogGuides(
         }
         return files
     }
-
-    /** Only the shop's own host: an image elsewhere is never fetched (rule 7). */
-    private fun String.shopUrl() = toHttpUrlOrNull()?.takeIf { client.isAllowed(it) }
 
     /**
      * Re-encodes and writes one image from its [answer] (null: not on the shop's host, never
@@ -243,30 +234,17 @@ internal class CatalogGuides(
         answer: ShopFetch?,
         failures: ImageFailures,
         stop: (StopCause, String) -> Nothing,
-    ): Boolean = when (answer) {
-        null -> false
-
-        is ShopFetch.Fetched -> {
-            val photo = withContext(parseDispatcher) { PhotoTranscoder.transcode(answer.body, PhotoTarget.CATALOG) }
-            if (photo != null) {
-                withContext(fileDispatcher) { images.write(name, photo.bytes) }
-            } else {
-                failures.failed(source, CatalogImageFailureReason.UNREADABLE)
-            }
+    ): Boolean = answer.storeImageAnswer(
+        url = { requireNotNull(client.allowedUrl(source)) },
+        store = { body ->
+            val photo = withContext(parseDispatcher) { PhotoTranscoder.transcode(body, PhotoTarget.CATALOG) }
+            photo?.let { withContext(fileDispatcher) { images.write(name, it.bytes) } }
             photo != null
-        }
-
-        is ShopFetch.Stopped -> stop(answer.cause, requireNotNull(source.shopUrl()).encodedPath)
-
-        ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
-
-        // Over the image limit: only this image is left out, no stop (D-090, D-091).
-        is ShopFetch.TooLarge -> {
-            log("catalog refresh: ${answer.line(requireNotNull(source.shopUrl()))}")
-            failures.failed(source, CatalogImageFailureReason.TOO_LARGE)
-            false
-        }
-    }
+        },
+        failed = { failures.failed(source, it) },
+        stop = stop,
+        log = log,
+    )
 
     /** Deletes every guide image the catalog's guides don't show (after every run, like the photos). */
     suspend fun keepImagesOfGuides() {

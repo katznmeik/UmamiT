@@ -15,7 +15,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
@@ -24,6 +23,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.testing.FakeBrewStarter
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeCollectionList
 import com.umamit.core.testing.FakeLowStockRepository
@@ -63,11 +63,7 @@ class RemoveTeaFlowTest {
     private val collection = FakeCollection()
     private val sessions = FakeSessions(collection)
     private val archive = FakeTeaArchive(sessions)
-    private val clock = object : MonotonicClock {
-        override fun elapsedMs() = 0L
-
-        override fun bootCount() = 1
-    }
+    private val clock = FakeClock(elapsed = 0L)
 
     /** The seed teas, Hisui brewed once. */
     private fun seed() = runBlocking {

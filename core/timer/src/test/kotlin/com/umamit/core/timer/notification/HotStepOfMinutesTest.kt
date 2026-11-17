@@ -13,6 +13,7 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeTimerDiagnostics
 import com.umamit.core.testing.FakeTimerWakeUp
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.TimerNotifications
 import com.umamit.core.timer.TimerStateNotifications
 import com.umamit.core.timer.controller.BrewStart
@@ -21,7 +22,6 @@ import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.brewStart
-import com.umamit.core.timer.controller.infusion
 import com.umamit.core.timer.controller.state
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.TimerEvent

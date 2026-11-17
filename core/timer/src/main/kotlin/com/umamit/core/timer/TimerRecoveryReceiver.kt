@@ -6,10 +6,6 @@ import android.content.Intent
 import android.util.Log
 import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.TimerHost
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 
 /**
  * Recovers the timer after a reboot and after an update of the app (04 §7.3, §7.5; #46):
@@ -38,20 +34,10 @@ class TimerRecoveryReceiver : BroadcastReceiver() {
             Log.i(TAG, "$trigger: the app runs no timer controller yet, nothing to recover")
             return
         }
-        val pending = goAsync()
-        scope.launch {
-            try {
-                inputs.recover(trigger)
-            } finally {
-                pending.finish()
-            }
-        }
+        handOver { inputs.recover(trigger) }
     }
 
     private companion object {
         const val TAG = "UmamiTRecovery"
-
-        /** Runs the controller turns of the broadcasts; they outlive `onReceive` (`goAsync`). */
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 }

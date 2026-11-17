@@ -43,30 +43,8 @@ object StyleMapper {
         Regex("tamaryokucha") to "tamaryokucha",
     )
 
-    /**
-     * Name keywords, the more specific first: „Gyokuro Karigane" is a karigane, „Genmaicha mit
-     * Matcha" a genmaicha.
-     */
-    private val KEYWORDS: List<Pair<Regex, String>> = listOf(
-        "genmaicha" to "genmaicha",
-        "houjicha|hojicha|hōjicha" to "hojicha",
-        "kukicha|karigane|shiraore" to "karigane",
-        "kabuse" to "kabusecha",
-        "gyokuro" to "gyokuro",
-        "fukamushi" to "fukamushi_sencha",
-        "shincha" to "shincha",
-        "bancha" to "bancha",
-        "kamairicha" to "kamairicha",
-        "tamaryokucha" to "tamaryokucha",
-        "matcha" to "matcha",
-        "sencha" to "sencha",
-        "long\\s*jing|lung\\s*ching" to "longjing",
-        // The shop writes „Bi Lo Chun" and „Pi Lo Chun" (live sample 2, D-089).
-        "[bp]i\\s*lu?o\\s*chun" to "bi_luo_chun",
-        "anji" to "anji_bai_cha",
-        // Korea's grades by picking time: Ujeon (Woojeon), Sejak, Jungjak (Joongjak), Daejak.
-        "ujeon|woojeon|sejak|joongjak|jungjak|daejak" to "korean_green",
-    ).map { (pattern, key) -> Regex(pattern, RegexOption.IGNORE_CASE) to key }
+    /** Name keywords and their style ([GREEN_TYPES_BY_NAME]), the more specific first. */
+    private val KEYWORDS = GREEN_TYPES_BY_NAME.mapNotNull { type -> type.styleKey?.let { type.pattern to it } }
 
     private const val MIZUDASHI = "mizudashi-kaltaufgussbeutel"
     private const val FLAVOURED_SECTION = "aromatisierter-gruentee"

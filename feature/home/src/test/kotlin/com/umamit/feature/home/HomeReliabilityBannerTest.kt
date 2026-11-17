@@ -7,10 +7,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.testing.FakeBrewStarter
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSessions
@@ -78,11 +78,7 @@ class HomeReliabilityBannerTest {
             collection.teas,
             FakeSessions(collection).sessions,
             FakeBrewStarter(),
-            object : MonotonicClock {
-                override fun elapsedMs() = 0L
-
-                override fun bootCount() = 1
-            },
+            FakeClock(elapsed = 0L),
             PhotoFiles(folder.newFolder("photos")),
             reliability,
             FakeLowStockRepository(),

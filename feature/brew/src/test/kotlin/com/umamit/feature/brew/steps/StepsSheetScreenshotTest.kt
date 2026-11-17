@@ -17,6 +17,7 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.StepStatus
 import org.junit.Rule
 import org.junit.Test
@@ -187,5 +188,5 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
         tempC: Int?,
         status: StepStatus = StepStatus.PENDING,
         preAlert: Int? = null,
-    ) = StepsSheetStep(kind, seconds, tempC, status, preAlert)
+    ) = TimerUiStep(kind, seconds, tempC, status, preAlert)
 }

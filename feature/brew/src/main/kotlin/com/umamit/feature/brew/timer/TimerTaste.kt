@@ -17,8 +17,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -57,6 +54,7 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.ui.InfusionTasteEditor
+import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.feature.brew.R
 import kotlinx.coroutines.launch
 
@@ -282,7 +280,7 @@ private fun TimerTasteSheet(
     onDismissRequest: () -> Unit,
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
-    val sheetState = rememberTasteSheetState(reduceMotion)
+    val sheetState = rememberExpandedSheetState(reduceMotion)
     val scope = rememberCoroutineScope()
     // Set by *Fertig*: the sheet is on its way out, so a second tap does nothing.
     var leaving by remember { mutableStateOf(false) }
@@ -369,22 +367,3 @@ private fun TasteSheetTitle(title: String, onDone: () -> Unit) {
         }
     }
 }
-
-/** Fully expanded, no half-open stop; under reduce motion it opens expanded, without the slide. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun rememberTasteSheetState(reduceMotion: Boolean): SheetState {
-    val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-        )
-    }
-}
-
-// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp

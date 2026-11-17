@@ -48,6 +48,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.GuideDetail
 import com.umamit.core.model.GuideLink
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.openInBrowser
 import com.umamit.core.ui.rememberPhotoPainter
 import java.net.URI
 import java.net.URISyntaxException
@@ -162,7 +163,7 @@ fun GuideArticleRoute(
         onBack = onBack,
         onOpenTea = onOpenTea,
         onOpenGuide = onOpenGuide,
-        onOpenWeb = context::openInBrowser,
+        onOpenWeb = { context.openInBrowser(it, R.string.catalog_tea_no_browser) },
         modifier = modifier,
     )
 }

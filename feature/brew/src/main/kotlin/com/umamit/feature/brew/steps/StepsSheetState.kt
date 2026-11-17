@@ -7,33 +7,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.umamit.core.domain.brew.BrewScaling
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
-import com.umamit.core.timer.engine.TimerSession
+import com.umamit.core.ui.DurationSteps
 
 /**
- * One step of the session plan as the Schritte-Sheet shows it (SCR-31): its
- * planned values, its [status] and its own pre-alert [preAlertSeconds] (null
- * *Automatisch*, 0 *Aus*; TMR-23, D-093). Only PENDING steps are editable.
+ * The planned values of a Schritte-Sheet step (SCR-31), as the engine takes them, its own pre-alert included. The
+ * sheet's steps are the timer's [TimerUiStep]s: planned values, status and pre-alert; only PENDING steps are editable.
  */
-data class StepsSheetStep(
-    val kind: StepKind,
-    val plannedSeconds: Int,
-    val tempC: Int?,
-    val status: StepStatus,
-    val preAlertSeconds: Int? = null,
-) {
-    /** The planned values, as the engine takes them, the step's own pre-alert included. */
-    val planned: PlannedStep get() = PlannedStep(kind, plannedSeconds, tempC, preAlertSeconds)
+val TimerUiStep.planned: PlannedStep get() = PlannedStep(kind, plannedSeconds, tempC, preAlertSeconds)
 
-    /** The step's own pre-alert choice: *Automatisch*, *Aus* or a lead. */
-    val preAlert: PreAlertChoice get() = PreAlertChoice.of(preAlertSeconds)
-}
+/** The step's own pre-alert choice (TMR-23, D-093): *Automatisch*, *Aus* or a lead. */
+val TimerUiStep.preAlert: PreAlertChoice get() = PreAlertChoice.of(preAlertSeconds)
 
 /**
  * What the Schritte-Sheet opens with: the session's [steps] with their status
@@ -45,25 +37,12 @@ data class StepsSheetStep(
  * [longStepsOnly] for a cold or ice brew, whose steps never have one (TMR-18).
  */
 data class StepsSheetInput(
-    val steps: List<StepsSheetStep>,
+    val steps: List<TimerUiStep>,
     val hasRecipe: Boolean,
     val baseTempC: Int?,
     val preAlertBaseSeconds: Int,
     val longStepsOnly: Boolean = false,
-) {
-    companion object {
-        /** The input for the active [session] (SCR-04, SCR-05 hosts). */
-        fun of(session: TimerSession, hasRecipe: Boolean, baseTempC: Int?): StepsSheetInput = StepsSheetInput(
-            steps = session.steps.map {
-                StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, it.status, it.preAlertSeconds)
-            },
-            hasRecipe = hasRecipe,
-            baseTempC = baseTempC,
-            preAlertBaseSeconds = session.preAlert.inheritedSeconds,
-            longStepsOnly = session.longStepsOnly,
-        )
-    }
-}
+)
 
 /**
  * *Im Rezept speichern* (BRW-02, SCR-31): the whole plan as the sheet shows it,
@@ -123,7 +102,7 @@ class StepsSheetState(input: StepsSheetInput) {
     val longStepsOnly: Boolean = input.longStepsOnly
 
     /** The plan as edited so far, each step with its own pre-alert. */
-    var steps: List<StepsSheetStep> by mutableStateOf(input.steps)
+    var steps: List<TimerUiStep> by mutableStateOf(input.steps)
         private set
 
     /** *Im Rezept speichern* was tapped and its confirmation has not been shown yet (a one-shot event). */
@@ -188,7 +167,7 @@ class StepsSheetState(input: StepsSheetInput) {
      */
     fun setDuration(index: Int, seconds: Int) {
         if (isEditable(index)) {
-            val duration = roundedDuration(seconds)
+            val duration = DurationSteps.rounded(seconds)
             steps = steps.mapIndexed { i, old -> if (i == index) old.copy(plannedSeconds = duration) else old }
         }
     }
@@ -201,7 +180,7 @@ class StepsSheetState(input: StepsSheetInput) {
     fun addStep() {
         val added = BrewTimerEngine.defaultAddedStep(steps.map { it.planned })
         steps = steps +
-            StepsSheetStep(added.kind, added.plannedSeconds, added.tempC, StepStatus.PENDING, added.preAlertSeconds)
+            TimerUiStep(added.kind, added.plannedSeconds, added.tempC, StepStatus.PENDING, added.preAlertSeconds)
     }
 
     /** The confirmation of the last save is on screen; a reopened sheet does not show it again. */
@@ -232,10 +211,10 @@ class StepsSheetState(input: StepsSheetInput) {
 }
 
 /** These steps with the planned values of [planned], pre-alerts included, keeping each step's status by position. */
-private fun List<StepsSheetStep>.withPlanned(planned: List<PlannedStep>): List<StepsSheetStep> =
+private fun List<TimerUiStep>.withPlanned(planned: List<PlannedStep>): List<TimerUiStep> =
     planned.mapIndexed { i, step ->
         val status = getOrNull(i)?.status ?: StepStatus.PENDING
-        StepsSheetStep(step.kind, step.plannedSeconds, step.tempC, status, step.preAlertSeconds)
+        TimerUiStep(step.kind, step.plannedSeconds, step.tempC, status, step.preAlertSeconds)
     }
 
 /** A [StepsSheetState] for [input] that survives configuration changes; a new input starts over. */
@@ -244,7 +223,7 @@ fun rememberStepsSheetState(input: StepsSheetInput): StepsSheetState =
     rememberSaveable(input, saver = StepsSheetState.Saver) { StepsSheetState(input) }
 
 /** This step after one stepper tap; unchanged at a bound or without any temperature. */
-private fun StepsSheetStep.edited(edit: StepEdit, shownTempC: Int?): StepsSheetStep = when (edit) {
+private fun TimerUiStep.edited(edit: StepEdit, shownTempC: Int?): TimerUiStep = when (edit) {
     StepEdit.LENGTHEN -> copy(plannedSeconds = longer(plannedSeconds))
 
     StepEdit.SHORTEN -> copy(plannedSeconds = shorter(plannedSeconds))
@@ -267,43 +246,18 @@ private fun StepsSheetStep.edited(edit: StepEdit, shownTempC: Int?): StepsSheetS
 }
 
 // Editing rules (PRF-04, GEN-12): durations 5 s – 24 h in 5 s steps below 10 min and
-// 1 min steps from 10 min on; temperatures 5–100 °C in 5 °C steps (05 §3.2). The 10-min
-// boundary is the duration rounding only: whether a step is a long step (no Vorwarnung,
+// 1 min steps from 10 min on ([DurationSteps]); temperatures 5–100 °C in 5 °C steps (05 §3.2).
+// The 10-min boundary is the duration rounding only: whether a step is a long step (no Vorwarnung,
 // TMR-18) is the engine's `BrewTimerEngine.isLongStep`, from 60 min since v0.3.0 (D-098).
-private const val MIN_SECONDS = 5
-private const val MAX_SECONDS = 86_400
-private const val MINUTE_STEPS_FROM_SECONDS = 600
-private const val SECONDS_UNIT = 5
-private const val MINUTES_UNIT = 60
-private const val TEMP_UNIT = 5
-private const val MIN_TEMP_C = 5
-private const val MAX_TEMP_C = 100
 
-/** The next longer duration: the next multiple of 5 s below 10 min, of 1 min from 10 min on. */
-internal fun longer(seconds: Int): Int {
-    val unit = if (seconds < MINUTE_STEPS_FROM_SECONDS) SECONDS_UNIT else MINUTES_UNIT
-    return nextMultiple(seconds, unit).coerceIn(MIN_SECONDS, MAX_SECONDS).coerceAtLeast(seconds)
-}
+/** The next longer duration ([DurationSteps.stepped]); a stored duration over 24 h is never shortened. */
+internal fun longer(seconds: Int): Int = DurationSteps.stepped(seconds, up = true).coerceAtLeast(seconds)
 
-/** The next shorter duration: the previous multiple of 1 min above 10 min, of 5 s from 10 min down. */
-internal fun shorter(seconds: Int): Int {
-    val unit = if (seconds > MINUTE_STEPS_FROM_SECONDS) MINUTES_UNIT else SECONDS_UNIT
-    return previousMultiple(seconds, unit).coerceIn(MIN_SECONDS, MAX_SECONDS).coerceAtMost(seconds)
-}
+/** The next shorter duration ([DurationSteps.stepped]); a stored duration under 5 s is never lengthened. */
+internal fun shorter(seconds: Int): Int = DurationSteps.stepped(seconds, up = false).coerceAtMost(seconds)
 
-/** [seconds] within 5 s – 24 h, rounded down to the PRF-04 increment. */
-internal fun roundedDuration(seconds: Int): Int {
-    val bounded = seconds.coerceIn(MIN_SECONDS, MAX_SECONDS)
-    val unit = if (bounded < MINUTE_STEPS_FROM_SECONDS) SECONDS_UNIT else MINUTES_UNIT
-    return (bounded / unit * unit).coerceAtLeast(MIN_SECONDS)
-}
+/** One 5 °C step up ([BrewScaling.tempStepped]); a temperature above 100 °C is never lowered. */
+internal fun warmer(tempC: Int): Int = BrewScaling.tempStepped(tempC, up = true).coerceAtLeast(tempC)
 
-internal fun warmer(tempC: Int): Int =
-    nextMultiple(tempC, TEMP_UNIT).coerceIn(MIN_TEMP_C, MAX_TEMP_C).coerceAtLeast(tempC)
-
-internal fun cooler(tempC: Int): Int =
-    previousMultiple(tempC, TEMP_UNIT).coerceIn(MIN_TEMP_C, MAX_TEMP_C).coerceAtMost(tempC)
-
-private fun nextMultiple(value: Int, unit: Int): Int = Math.floorDiv(value, unit) * unit + unit
-
-private fun previousMultiple(value: Int, unit: Int): Int = Math.floorDiv(value - 1, unit) * unit
+/** One 5 °C step down ([BrewScaling.tempStepped]); a temperature below 5 °C is never raised. */
+internal fun cooler(tempC: Int): Int = BrewScaling.tempStepped(tempC, up = false).coerceAtMost(tempC)

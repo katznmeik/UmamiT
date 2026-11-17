@@ -10,8 +10,8 @@ import com.umamit.core.model.RecipeTemplate
  * zurücksetzen* (PRF-06, CAT-13) derive the description and the recipes the same way.
  */
 internal object CatalogDerivation {
-    /** A collection description's limit (05 §3.1). */
-    private const val DESCRIPTION_MAX = 10_000
+    /** A collection description's limit (05 §3.1); the seed link cuts to it too. */
+    const val DESCRIPTION_MAX = 10_000
 
     /** The derived recipes (CAT-04), else the style's; exactly one is the default, the default first. */
     fun templates(entry: CatalogTeaEntity): List<RecipeTemplate> {

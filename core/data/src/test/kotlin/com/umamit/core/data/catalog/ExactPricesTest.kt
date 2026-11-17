@@ -10,10 +10,7 @@ import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
-import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
-import mockwebserver3.MockWebServer
-import mockwebserver3.RecordedRequest
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -22,8 +19,6 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * The exact price fetch when a package is added (CAT-12, network use (c) of GEN-01, D-074,
@@ -41,31 +36,25 @@ class ExactPricesTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private val server = MockWebServer()
-    private val routes = ConcurrentHashMap<String, () -> MockResponse>()
-    private val requests = CopyOnWriteArrayList<RecordedRequest>()
-    private val base get() = server.url("/").toString().removeSuffix("/")
+    private val shop = FakeShop()
+    private val server get() = shop.server
+    private val routes get() = shop.routes
+    private val base get() = shop.base
     private lateinit var diagnostics: DiagnosticsLog
 
     @Before
     fun setUp() {
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                requests += request
-                return routes[request.url.encodedPath]?.invoke() ?: MockResponse.Builder().code(404).build()
-            }
-        }
-        server.start()
+        shop.start()
         diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO)
         routes["/robots.txt"] = { text(SyntheticShop.robotsTxt("Disallow: /verboten/")) }
         routes[VARIANT] = { text(variantPage()) }
     }
 
     @After
-    fun tearDown() = server.close()
+    fun tearDown() = shop.close()
 
     private fun prices(parse: (ByteArray, String) -> ProductParse = TeeKontorParser::parseProduct) = ShopExactPrices(
-        client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+        client = ShopClient.forTesting(baseUrl = shop.url, requestIntervalMillis = 0),
         diagnostics = diagnostics,
         clock = FakeClock(),
         parse = parse,
@@ -74,7 +63,7 @@ class ExactPricesTest {
     /** What the price session logged, for the assertion messages. */
     private suspend fun logged() = diagnostics.entries().map { it.message }
 
-    private fun paths() = requests.map { it.url.encodedPath }
+    private fun paths() = shop.paths()
 
     private fun variantPage(unitContent: String = "0.25 kg") = SyntheticShop.productPage(
         baseUrl = base,

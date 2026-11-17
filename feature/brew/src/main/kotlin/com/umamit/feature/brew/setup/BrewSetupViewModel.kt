@@ -26,18 +26,18 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.Vessel
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
+import com.umamit.core.timer.controller.StartQuestions
 import com.umamit.core.timer.controller.StartRefusal
+import com.umamit.core.timer.controller.StartReply
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.activeSessionIds
 import com.umamit.core.timer.controller.alertKey
-import com.umamit.core.timer.controller.refusalOf
 import com.umamit.core.timer.controller.startedSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
-import com.umamit.core.ui.alertCovers
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -57,7 +57,6 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -103,7 +102,11 @@ class BrewSetupViewModel @Inject constructor(
      * second one.
      */
     private var newRecipeId: String = savedState[NEW_RECIPE_ID] ?: reserveNewRecipeId()
-    private val pending = MutableStateFlow<PendingStart?>(null)
+
+    /** „Welchen Timer beenden?" only: a brew start is never refused for a quick timer of its own (D-098). */
+    private val questions = StartQuestions<StartQuestion, BrewStart>(starter) { refusal ->
+        (refusal as? StartRefusal.ChooseTimer)?.let { StartQuestion.ChooseTimer(it.timers) }
+    }
     private val navigation = Channel<BrewSetupEvent>(Channel.BUFFERED)
 
     /** One-shot requests to the host: open the timer. */
@@ -119,13 +122,14 @@ class BrewSetupViewModel @Inject constructor(
         }
     }
 
-    val state: StateFlow<BrewSetupUiState> = combine(source, edits, pending, starter.state) { s, e, p, timer ->
-        when {
-            s == null -> BrewSetupUiState.NotFound
-            e == null -> BrewSetupUiState.Loading
-            else -> uiState(s, e, p, timer)
-        }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, BrewSetupUiState.Loading)
+    val state: StateFlow<BrewSetupUiState> =
+        combine(source, edits, questions.question, starter.state) { s, e, q, timer ->
+            when {
+                s == null -> BrewSetupUiState.NotFound
+                e == null -> BrewSetupUiState.Loading
+                else -> uiState(s, e, q, timer)
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, BrewSetupUiState.Loading)
 
     init {
         viewModelScope.launch {
@@ -135,10 +139,7 @@ class BrewSetupViewModel @Inject constructor(
         }
         // Alerts first (rule 8): a new alert closes the question.
         viewModelScope.launch {
-            starter.state.collect { timer ->
-                val alert = timer.alertKey()
-                pending.update { it?.takeUnless { p -> alertCovers(alert, p.openedIn) } }
-            }
+            starter.state.collect { timer -> questions.alertChanged(timer.alertKey()) }
         }
     }
 
@@ -223,40 +224,27 @@ class BrewSetupViewModel @Inject constructor(
 
     /** An answer of „Welchen Timer beenden?" (TMR-21, D-108): the timer of [slot] ends, then the brew starts. */
     fun endTimerAndStart(slot: TimerSlot) {
-        val asked = pending.value ?: return
-        // The session the answer named: one that started in its slot meanwhile is not ended (#194).
-        val session = (asked.question as? StartQuestion.ChooseTimer)?.timers?.firstOrNull { it.slot == slot }?.sessionId
-        pending.value = null
+        val answer = questions.answer(slot) ?: return
         viewModelScope.launch {
             val before = starter.activeSessionIds()
-            val outcome = starter.finishActiveAndStart(asked.request, ending = slot, endingSession = session)
-            handle(outcome, asked.request, before)
+            val outcome =
+                starter.finishActiveAndStart(answer.request, ending = slot, endingSession = answer.endingSession)
+            handle(outcome, answer.request, before)
         }
     }
 
     /** *Abbrechen*: both active timers stay. */
-    fun dismissQuestion() {
-        pending.value = null
-    }
+    fun dismissQuestion() = questions.dismiss()
 
     private suspend fun handle(outcome: TransitionOutcome, request: BrewStart, before: List<String>) {
         when (outcome) {
             // The slot the brew started in: the second brew's timer, not the first's (D-108).
             TransitionOutcome.Accepted -> navigation.send(BrewSetupEvent.OpenTimer(starter.startedSlot(before)))
 
-            is TransitionOutcome.Rejected -> when (val refusal = starter.refusalOf(outcome.reason)) {
-                // The tea's own session (a tea has at most one, D-108): it opens, showing a ringing alert first.
-                is StartRefusal.OpenSession -> navigation.send(BrewSetupEvent.OpenTimer(refusal.slot))
-
-                is StartRefusal.ChooseTimer -> if (starter.state.value.alertKey() != null) {
-                    // No question over an alert (rule 8): the alerting timer is where to go now.
-                    navigation.send(BrewSetupEvent.OpenTimer(null))
-                } else {
-                    pending.value = PendingStart(request, StartQuestion.ChooseTimer(refusal.timers), null)
-                }
-
-                // A brew start is never refused for a quick timer of its own (D-098).
-                StartRefusal.RestartQuick, null -> Unit
+            is TransitionOutcome.Rejected -> when (val reply = questions.refused(outcome.reason, request)) {
+                is StartReply.OpenSession -> navigation.send(BrewSetupEvent.OpenTimer(reply.slot))
+                StartReply.OpenAlerting -> navigation.send(BrewSetupEvent.OpenTimer(null))
+                StartReply.Stay -> Unit
             }
 
             TransitionOutcome.Ignored -> Unit
@@ -332,7 +320,7 @@ class BrewSetupViewModel @Inject constructor(
             }
         }
 
-    private fun uiState(s: Source, e: SetupEdits, p: PendingStart?, timer: TimerUiState): BrewSetupUiState.Ready {
+    private fun uiState(s: Source, e: SetupEdits, q: StartQuestion?, timer: TimerUiState): BrewSetupUiState.Ready {
         val recipe = s.recipe(e.recipeId)
         val firstTemp = e.steps.firstOrNull()?.tempC ?: e.baseTempC
         val selected = s.vessels.firstOrNull { it.id == e.vesselId }
@@ -371,7 +359,7 @@ class BrewSetupViewModel @Inject constructor(
                 s.withoutRecipe && s.recipes.size < Recipe.MAX_PER_TEA
             },
             withoutRecipe = s.withoutRecipe,
-            question = p?.question,
+            question = q,
             alertKey = timer.alertKey(),
             sessionLeafGrams = s.sessionLeafGrams,
             catalogKey = s.catalogKey,
@@ -495,8 +483,6 @@ class BrewSetupViewModel @Inject constructor(
             )
         }
     }
-
-    private data class PendingStart(val request: BrewStart, val question: StartQuestion, val openedIn: String?)
 
     companion object {
         /** Navigation arguments (the route's property names). */

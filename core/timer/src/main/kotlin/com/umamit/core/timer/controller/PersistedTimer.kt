@@ -1,6 +1,7 @@
 package com.umamit.core.timer.controller
 
 import com.umamit.core.common.ClockReading
+import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
@@ -19,7 +20,7 @@ import kotlinx.coroutines.delay
  * its tea for the UI. Read inside the controller's event lock.
  */
 internal class PersistedTimer(
-    private val store: TimerSlotStore,
+    private val store: ActiveBrewStore,
     private val sessions: SessionRepository,
     private val ports: TimerPorts,
     private val effects: TransitionEffects,
@@ -89,20 +90,15 @@ internal class PersistedTimer(
      * (`auto_finished`), else discarded; nothing resumes. A failure is logged; the next process
      * start tries again.
      */
-    @Suppress("TooGenericExceptionCaught") // a storage failure of any kind is logged, never fatal (rule 8)
     suspend fun endOrphans(activeSessionIds: Set<String>, now: ClockReading) {
-        try {
+        attempt {
             sessions.inProgressSessionIds().filter { it !in activeSessionIds }.forEach { id ->
                 val session = sessions.getSession(id) ?: return@forEach
                 val saved = session.steps.any { it.kind != StepKind.RINSE && it.actualSeconds != null && !it.skipped }
                 if (saved) sessions.completeSession(id, autoFinished = true) else sessions.discardSession(id)
                 effects.record(TimerDiagnostic.OrphanSessionEnded(now, saved))
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            effects.record(TimerDiagnostic.OrphanSessionsFailed(now, e))
-        }
+        }?.let { e -> effects.record(TimerDiagnostic.OrphanSessionsFailed(now, e)) }
     }
 
     /** The snapshot of a brew session, from its session row; null for the quick timer, idle or an unreadable row. */

@@ -81,13 +81,13 @@ data class AddSheetState(
     val selectedSize: AddSheetSize? get() = sizes.getOrNull(selected)
 
     /** The grams to record, or null while the custom amount is no valid number. */
-    val grams: Double? get() = selectedSize?.grams ?: parseGrams(customGrams)
+    val grams: Double? get() = selectedSize?.grams ?: GermanNumber.parseGrams(customGrams)
 
     /** The price is empty or a valid amount. */
-    val priceValid: Boolean get() = price.isBlank() || parseCents(price) != null
+    val priceValid: Boolean get() = price.isBlank() || GermanNumber.parseCents(price) != null
 
     /** The price to record: null when empty. */
-    val priceCents: Long? get() = parseCents(price)
+    val priceCents: Long? get() = GermanNumber.parseCents(price)
 
     /** Saving never waits for a price fetch (GEN-01 (c)). */
     val canSave: Boolean get() = !saving && grams != null && priceValid
@@ -179,11 +179,5 @@ data class AddSheetState(
                 today = today,
             ).select(selected)
         }
-
-        /** „12,40", „12.4", „12", „1.234,50" → cents; null when blank or no amount (shared rule, F14). */
-        fun parseCents(text: String): Long? = GermanNumber.parseCents(text)
-
-        /** „250", „37,5", „1.000" → grams in (0, 10 000]; null otherwise (shared rule, F14). */
-        fun parseGrams(text: String): Double? = GermanNumber.parseGrams(text)
     }
 }

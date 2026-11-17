@@ -1,26 +1,24 @@
 package com.umamit.core.data.catalog
 
 import androidx.room.withTransaction
+import com.umamit.core.data.CoverFile
 import com.umamit.core.data.EncodedPhoto
 import com.umamit.core.data.PhotoFiles
-import com.umamit.core.data.PhotoTranscoder
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.data.coverCopy
+import com.umamit.core.data.saveCover
+import com.umamit.core.data.withCoverFile
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.datastore.SettingsDataSource
-import com.umamit.core.model.Photo
-import com.umamit.core.model.PhotoOrigin
-import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.Tea
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -114,7 +112,7 @@ class RoomCatalogSeedLinker @Inject constructor(
     /** Gives [tea] what [todo] asks for and the catalog has; returns its catalog key when it wrote. */
     private suspend fun link(tea: Tea, todo: Set<Part>): String? {
         val entry = tea.catalogKey?.let { catalog.tea(it) } ?: return null
-        val description = entry.descriptionText?.takeIf { it.isNotBlank() }?.take(DESCRIPTION_MAX)
+        val description = entry.descriptionText?.takeIf { it.isNotBlank() }?.take(CatalogDerivation.DESCRIPTION_MAX)
             ?.takeIf { Part.DESCRIPTION in todo && tea.description.isNullOrBlank() }
         val cover = if (Part.COVER in todo && tea.coverPhotoId == null) cover(entry) else null
         // Once the photo is re-encoded, file and rows are written without interruption.
@@ -124,27 +122,14 @@ class RoomCatalogSeedLinker @Inject constructor(
     }
 
     /** The catalog photo as the collection's JPEG (D-076), or null without a usable photo file. */
-    private suspend fun cover(entry: CatalogTeaEntity): EncodedPhoto? {
-        val bytes = entry.photoFile?.let { withContext(Dispatchers.IO) { readPhoto(entry.key) } }
-        return bytes?.let { withContext(Dispatchers.Default) { PhotoTranscoder.transcodeCatalogCopy(it) } }
-    }
-
-    private fun readPhoto(key: String): ByteArray? = try {
-        catalogPhotos.photo(key).takeIf { it.isFile }?.readBytes()
-    } catch (_: IOException) {
-        null
-    }
+    private suspend fun cover(entry: CatalogTeaEntity): EncodedPhoto? = catalogPhotos.coverCopy(entry)
 
     /** Writes [description] and [cover] to tea [teaId] where it still has none; false when nothing was written. */
     private suspend fun write(teaId: String, description: String?, cover: EncodedPhoto?): Boolean {
-        val file = cover?.let { CoverFile(UUID.randomUUID().toString(), it) }
-        file?.let { photoFiles.write(it.id, it.photo.bytes) }
-        var written = Written.NOTHING
-        try {
-            written = db.withTransaction { writeRows(teaId, description, file) }
-        } finally {
-            // Only a committed cover keeps its file.
-            if (file != null && written != Written.WITH_COVER) photoFiles.delete(file.id)
+        val file = cover?.let(::CoverFile)
+        // Only a committed cover keeps its file.
+        val written = photoFiles.withCoverFile(file, kept = { it == Written.WITH_COVER }) {
+            db.withTransaction { writeRows(teaId, description, file) }
         }
         return written != Written.NOTHING
     }
@@ -155,19 +140,7 @@ class RoomCatalogSeedLinker @Inject constructor(
         val withDescription = description != null && tea.description.isNullOrBlank()
         if (withDescription) teas.saveTea(tea.copy(description = description))
         val withCover = file != null && tea.coverPhotoId == null
-        if (file != null && withCover) {
-            teas.savePhoto(
-                Photo(
-                    id = file.id,
-                    owner = PhotoOwner.OfTea(teaId),
-                    origin = PhotoOrigin.CATALOG_COPY,
-                    widthPx = file.photo.width,
-                    heightPx = file.photo.height,
-                    byteSize = file.photo.bytes.size.toLong(),
-                ),
-            )
-            teas.setCoverPhoto(teaId, file.id)
-        }
+        if (file != null && withCover) teas.saveCover(teaId, file)
         return when {
             withCover -> Written.WITH_COVER
             withDescription -> Written.DESCRIPTION
@@ -184,15 +157,9 @@ class RoomCatalogSeedLinker @Inject constructor(
         fun of(teaId: String) = "$teaId/$stored"
     }
 
-    /** A cover's re-encoded photo and the id of its file `photos/<id>.jpg`. */
-    private class CoverFile(val id: String, val photo: EncodedPhoto)
-
     private enum class Written { NOTHING, DESCRIPTION, WITH_COVER }
 
     private companion object {
         val SEED_TEA_IDS = listOf(SeedData.TANABATA_TEA_ID, SeedData.HISUI_TEA_ID)
-
-        /** 05 §3.1's limit of `tea.description`. */
-        const val DESCRIPTION_MAX = 10_000
     }
 }

@@ -106,7 +106,7 @@ internal fun resume(state: TimerState.Paused, now: ClockReading): TimerTransitio
 }
 
 /**
- * The alert needs the service (the AlertPlayer lives there), so it is ensured first. It rings since the
+ * The alert needs the service (the alert player lives there), so it is ensured first. It rings since the
  * deadline, as every alert did before v0.3.0, so its silent end stays 10 min after the deadline (D-098).
  */
 internal fun deadlineReached(state: TimerState.Running): TimerTransition = accepted(

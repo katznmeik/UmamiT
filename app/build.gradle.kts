@@ -20,6 +20,12 @@ android {
     }
 }
 
+// UnlockedDevice.kt is shared with :core:timer's device tests and lives there (TMR-A-15, #308): a source
+// folder only, no dependency. :core:timer's Detekt checks it.
+extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
+    sourceSets.getByName("androidTest").kotlin.directories.add("$rootDir/core/timer/src/sharedAndroidTest/kotlin")
+}
+
 dependencies {
     // DI root: the app wires every feature and the core modules it hosts.
     listOf("onboarding", "home", "brew", "collection", "catalog", "journal", "stats", "teaware", "settings")

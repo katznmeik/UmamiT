@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-15 (D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
+> Status: **Living document** · Last updated: 2026-11-16 (D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -323,6 +323,97 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-127"></a>
+### D-127 — v0.7.2 restructuring: the accuracy report's tooling out of `core:timer`'s main sources (TMR-A-09; 09 §4a) · *Accepted (PO, 2026-11-16, triage #303)* for the pick; the design *Accepted (PO, 2026-11-16, #304)*
+
+**Context.** `AccuracyReport.kt` (491 lines) and `FireTime.kt` (146 lines) are in `core:timer`'s main sources, but only unit and instrumented tests use them (`docs/plans/v0.7.2-audit-timer.md` TMR-A-09). R8 already drops them from the release.
+
+**Decision (the PO's answer).** Picked: move them to a source folder that `core:timer`'s `test` and `androidTest` both compile; 637 lines move, none changes. Runs in **#308** (the timer module).
+
+**Left to the design (#304), not decided here.** How the shared test source folder is set up in `core/timer/build.gradle.kts` and whether the 06 §3 module rules or `build-logic` need a note; that `TimerDiagnosticFormat` stays in main and the pairing tests (`AccuracyReportTest`, `TwoBrewsAccuracyReportTest`) keep pinning it; that `accuracy.yml` and its `AccuracyRunTest` still build. The PO approves the design in #304 before #308 starts.
+
+**Design (#304; PO, 2026-11-16, as options).** Approved, variant A: both files move unchanged to `core/timer/src/sharedTest/kotlin/` (same package), which the `test` and `androidTest` source sets both compile; the folder is wired in `core/timer/build.gradle.kts` only (the two source sets and Detekt's sources; Spotless already covers it), `build-logic` untouched. Not taken: a `build-logic` convention for every Android library. One step in #308, T3; checks: the module's unit tests, `:core:timer:assembleDebugAndroidTest` (what `accuracy.yml` builds), `:core:timer:detekt`, `:app:assembleRelease`; if AGP does not accept one folder in both source sets, the step stops and is answered in #308. 06 and the module rules: unchanged (PO). Details: `docs/plans/v0.7.2-restructuring.md`.
+
+**Consequences.** #304, #308; 06 only if #304 finds a section that names these files (the audit found none).
+
+<a id="d-126"></a>
+### D-126 — v0.7.2 restructuring: `RoomSessionRepositories.kt` split by class, with `TimerSlotStore` removed (DAT-A-14 + TMR-A-06; rule 8) · *Accepted (PO, 2026-11-16, triage #303)* for the pick; the design *Accepted (PO, 2026-11-16, #304)*
+
+**Context.** One file in `core:data` holds four classes (session lifecycle, tasting writes, the timer's snapshot store `RoomActiveBrewStore`, the transaction wrapper; DAT-A-14). On the other side, `core:timer`'s internal `TimerSlotStore` is a one-implementation bridge to `ActiveBrewStore` left from before umamit.db v4 (TMR-A-06). The PO took both as one choice.
+
+**Decision (the PO's answer).** Picked as one ticket: one file per class in the same package (lines move only) and the bridge removed, so `PersistedTimer` and `TransitionEffects` take `ActiveBrewStore` directly. Runs in **#308** (the timer's persistence and recovery), with its tests (`SessionLifecycleTest`, `ActiveBrewStoreTest`, `StorageFailureTest`, `ProcessRestartTest`, `RecoveryTableTest`, `TwoBrewsRecoveryTest`, `ProcessDeathTest`).
+
+**Left to the design (#304), not decided here.** The order of the two parts and of the steps, each leaving the build green; the risk to the recovery path; whether 06 names any of it (the audit found no section).
+
+**Design (#304; PO, 2026-11-16, as options).** Approved, variant A: `RoomSessionRepository.kt`, `RoomSessionTasting.kt`, `RoomActiveBrewStore.kt`, `RoomDatabaseTransactions.kt` in the same package; the finish helpers (stock deduction, opened date, cost) stay `private` in `RoomSessionRepository.kt`, so no line changes in `core:data`. Not taken: the helpers in their own file with six `private` made `internal`. Then `TimerSlotStore.kt` is deleted and `PersistedTimer` and `TransitionEffects` take `ActiveBrewStore`. Order (PO): the split first (it changes no line, so the timer tests it leaves green are the baseline), the bridge second; both last in #308, T3. 06: unchanged (PO). Details: `docs/plans/v0.7.2-restructuring.md`.
+
+**Consequences.** #304, #308.
+
+<a id="d-125"></a>
+### D-125 — v0.7.2 restructuring: the settings destinations registered once, and „close if on top" in one place (UI-A-01 + UI-A-10) · *Accepted (PO, 2026-11-16, triage #303)* for the pick; the design *Accepted (PO, 2026-11-16, #304)*
+
+**Context.** `app` registers the five settings destinations twice with the same host objects, in the root graph and in each tab's graph (UI-A-01), and spells „close only if this entry is still on top" out eight times (UI-A-10). The PO took both as one choice.
+
+**Decision (the PO's answer).** Picked as one ticket: one `NavGraphBuilder.settingsRoutes(…)` in `app` that takes how each graph navigates, and one `NavHostController.isOnTop(entry)` / `popIfOnTop(entry)`. The routes and their order stay. Outside the timer path (no fenced `app` timer-wiring file is touched); runs in **#307**.
+
+**Left to the design (#304), not decided here.** The parameters of `settingsRoutes` (`navigateAbove` and the alert it opened over, `resumedOnly`, the scroll-to-top request, „Erneut einrichten"), the steps and their order, and the navigation tests that pin each step (`ShellNavigationTest`, `TeawareNavigationTest`, `TimerNavigationTest`, `ThemeModeFlowTest`, `UnreadableSettingsStartTest`).
+
+**Design (#304; PO, 2026-11-16, as options).** #304 found that the two registrations differ in more than navigation (the settings route type, the vessel editor's gating and `launchSingleTop`, scroll-to-top, „Erneut einrichten"), so each graph passes its own lambdas in a `SettingsNav` and none of that changes. Approved, variant A: `settingsRoutes<S>(settings, nav)` registers all five destinations, the settings route as a type parameter (`TimerSettingsRoute` in the root, `SettingsRoute` in a tab). Not taken: only the four destinations with the same route. Three steps in #307, T3: `isOnTop` / `popIfOnTop` and the eight sites; the tab graph; the root graph on its own (rule 8, `TimerNavigationTest`, `TwoTimersNavigationTest`). 06: unchanged (PO). Details: `docs/plans/v0.7.2-restructuring.md`.
+
+**Consequences.** #304, #307; 06 only if #304 says so.
+
+<a id="d-124"></a>
+### D-124 — v0.7.2 restructuring: the *Link einfügen* sheet's state out of `CatalogViewModel` (CAT-A-14; CAT-17) · *Accepted (PO, 2026-11-16, triage #303)* for the pick; the design *Accepted (PO, 2026-11-16, #304)*
+
+**Context.** `CatalogViewModel` carries the list, the folds, the refresh pass-throughs and the whole *Link einfügen* sheet (its state flow, job, share token and clipboard rule; `@Suppress("TooManyFunctions")`; CAT-A-14).
+
+**Decision (the PO's answer).** Picked: a small state holder for the link sheet inside `feature:catalog`; about 90 lines move; the screen API stays. Runs in **#307**.
+
+**Left to the design (#304), not decided here.** The holder's shape (a plain class owned by the view model or its own scope), how its job and share token survive as today, and the tests that pin it.
+
+**Design (#304; PO, 2026-11-16, as options).** Approved, variant A: an internal `TeaLinkHolder(links, scope)` in `feature:catalog`, created by `CatalogViewModel` with `viewModelScope` (the job and the share token live as long as today) and exposed as `viewModel.linkSheet`; the view model's seven link functions go and `CatalogScreen.kt`'s nine call sites change; `CatalogRoute`'s parameters stay. Not taken: one-line pass-throughs in the view model; the sheet's own `@HiltViewModel`. One step in #307, T3; pinned by `TeaLinkSheetTest` and the app's `TeaLinkFlowTest` and `ShareTargetTest`. 06: unchanged (PO). Details: `docs/plans/v0.7.2-restructuring.md`.
+
+**Consequences.** #304, #307.
+
+<a id="d-123"></a>
+### D-123 — v0.7.2 restructuring: three helpers and the past-only date picker shared through `core:ui` (CAT-A-08 + UI-A-04; 06 §3) · *Accepted (PO, 2026-11-16, triage #303)* for the pick; the design *Accepted (PO, 2026-11-16, #304)*
+
+**Context.** `placeholderColor`, `openInBrowser` and the UTC-midnight conversion are copied between `feature:catalog`, `feature:collection` and `feature:journal` (CAT-A-08); the whole „no day after *latest*" date picker is copied three times (UI-A-04, which widens CAT-A-08's third helper). The PO took both as one choice.
+
+**Decision (the PO's answer).** Picked as one ticket: the helpers and one `PastDatePickerDialog` move into `core:ui` (06 §3 „Shared composables", which every feature already uses); labels and the „no browser" text stay each feature's own strings, passed in; same colours. Runs in **#307**.
+
+**Left to the design (#304), not decided here.** The picker's parameters (a nullable *latest*, no clamp of the catalog sheet's initial day), the steps, and the check that 06 §3 stays unchanged.
+
+**Design (#304; PO, 2026-11-16, as options).** Approved, variant A: `PastDatePickerDialog(initial, latest, confirmLabel, cancelLabel, onPick, onDismiss)` with a nullable *latest* always clamps its initial day, with no flag (`AddSheetState.pickDate` already keeps the catalog sheet's date at or before today, so nothing changes there). Not taken: a `clampInitial` parameter. Also `teaTypePlaceholderColor` (named apart from the Journal's own `placeholderColor`) and `Context.openInBrowser(url, noBrowserMessage)`; the UTC-midnight conversion becomes private to the dialog's file. `core/ui/build.gradle.kts` gains `androidx.core.ktx`; no project dependency, so 06 §3 and the module rules are unchanged (PO). Two steps in #307, T3. Details: `docs/plans/v0.7.2-restructuring.md`.
+
+**Consequences.** #304, #307.
+
+<a id="d-122"></a>
+### D-122 — v0.7.2 restructuring: one shared fake shop for the catalog refresh tests (CAT-A-07; D-016) · *Accepted (PO, 2026-11-16, triage #303)* for the pick; the design *Accepted (PO, 2026-11-16, #304)*
+
+**Context.** The routed fake shop (recording dispatcher, routes, robots.txt, sitemap index, gzipped url set from `SyntheticShop`), the `text()` helper and the refresher builders are copied into 8 to 13 test classes of `core:data` (CAT-A-07). Tests only.
+
+**Decision (the PO's answer).** Picked: one shared helper in `core:data`'s test sources; the `SyntheticShop` pages stay in `core:catalog-parser`'s test fixtures (D-016); no assertion changes (plan „Proof" 6). Runs in **#307**.
+
+**Left to the design (#304), not decided here.** The helper's shape and where it lives (a file in `core:data`'s tests, or `core:testing` if a second module needs it), and the order in which the test classes move.
+
+**Design (#304; PO, 2026-11-16, as options).** Approved, variant A: `FakeShop` (a plain class each test starts in its `@Before` and closes in its `@After`, as today) and a `catalogRefresher(…)` builder in `core/data/src/test/…/catalog/FakeShop.kt`; `core:testing` gets nothing, because no second module needs it. Not taken: a JUnit rule. Three steps in #307, T3, smallest classes first, `CatalogRefresherTest` and `TeaLinkLoaderTest` last; no assertion changes, the test count equal before and after each step; a class whose dispatcher differs keeps it. 06: unchanged (PO). Details: `docs/plans/v0.7.2-restructuring.md`.
+
+**Consequences.** #304, #307.
+
+<a id="d-121"></a>
+### D-121 — v0.7.2 restructuring: `CatalogRefresher.kt` split into the pipeline and its helpers (CAT-A-05; 06 §5.3) · *Accepted (PO, 2026-11-16, triage #303)* for the pick; the design *Accepted (PO, 2026-11-16, #304)*
+
+**Context.** `CatalogRefresher.kt` (1 112 lines, the largest main file) mixes the refresh pipeline with the run's counters and details text, the page and package row mappers (also used by `TeaLinkLoader`, CAT-A-04) and the parse-back of logged failures (CAT-A-05).
+
+**Decision (the PO's answer).** Picked: move those three parts into their own files in `core:data` `catalog/` and fold the two `toEntity` overloads into one; about 300 lines move, about 5 change. The text written to `catalog_refresh_log` and parsed back by `failureOf` and *Details kopieren* does not change. Runs in **#307**.
+
+**Left to the design (#304), not decided here.** The target files, the order against CAT-A-02, -03 and -04 in #306 (which touch the same file), and the check that 06 §5.3 names no files (the audit found none).
+
+**Design (#304; PO, 2026-11-16, as options).** #304 found that the run's counters and details text are an inner class (`Run`) reading the refresher's clock and user agent, so that part does not move as lines only: about 15 lines change, not 5. Approved, variant A: `CatalogRefreshRun.kt` (`Run` as the internal class `CatalogRefreshRun(startedAt, onProgress, clock, userAgent)`, with `RunStopped`, `Summary`, `StagedTea`), `CatalogRowMappers.kt` (the two `toEntity` overloads as one, the package mapper, CAT-A-04's function) and `CatalogRefreshFailureText.kt` (`DETAILS_PREFIX`, `summary()`, `failureOf`); `CatalogRefresher.kt` keeps the pipeline (≈ 800 lines). Not taken: `Run` left as an inner class. Three steps in #307, T3, after #306's CAT-A-02, -03, -04; the log text stays byte for byte. 06: unchanged, §5.3 names no file (PO). Details: `docs/plans/v0.7.2-restructuring.md`.
+
+**Consequences.** #304, #307.
+
 <a id="d-120"></a>
 ### D-120 — v0.7.2 plan: Fable 5.2 effort, findings files, the unused-dependency tool, the tier label „T4-F" (D-119) · *Accepted (PO, 2026-11-15, one grilling round Q1–Q4 as options)*
 
@@ -348,6 +439,8 @@ personal data or shop content).
 - **Q4, pacing: the catalog group first.** Audit it, read what it consumed, then decide on the other three groups; one group per session and per 5-hour window; the audits in one week, the execution in a later week with no other milestone work beside it.
 
 **Consequences.** Not yet a spec: the next session writes `docs/plans/v0.7.2.md` and the tickets (a parent issue with sub-issues) for the PO's approval, as for every release; step 1 and the audits start only after that.
+
+**Build note „Remaining audits" (PO, 2026-11-16, #299, three questions as options after the catalog audit).** After reading `docs/plans/v0.7.2-audit-catalog.md` (15 findings, mostly duplicates, no dead code through R8; 63 requests, ≈ 35 k output tokens) the PO **kept all three remaining audits as planned**: data (#300, Fable 5.2 `medium`), timer path (#301, Fable 5.2 `medium`), UI (#302, Opus `medium`), full scope each, one group per session. None is closed.
 
 <a id="d-118"></a>
 ### D-118 — A release token for publishing (`RELEASE_TOKEN`) · *Accepted (PO, 2026-11-15)*
@@ -6498,7 +6591,8 @@ building it:
   flight is ignored. *Beenden & neu starten* into the quick timer is one
   turn too (`finishActiveAndStartQuickTimer`, through the controller's
   `startQuickTimer(finishActive = true)`, the quick-timer variant of D-063's
-  operation): the active timer ends, the finish's sheet becomes
+  operation; since v0.7.2 the flag is gone, TMR-A-14: `startQuickTimer`'s
+  `ending` names the slot to end, D-108, `TimerSlot.QUICK` for the old flag): the active timer ends, the finish's sheet becomes
   „Sitzung gespeichert" (D-054), and the quick timer starts and runs. Opening SCR-07
   starts nothing, so it never blocks another session (TMR-21).
 - **On the timer.** The quick timer has its title and no step label, dots or
@@ -6615,7 +6709,7 @@ Decided while building them:
   binds `ControllerBrewTimer` instead of `NoBrewTimer` (removed), and
   `UmamitApplication` is the `TimerHost` with the injected controller (`Lazy`,
   built on first use; D-056, D-057). `ControllerBrewTimer` is also the
-  `BrewStarter` (D-062), so Start, *Nochmal brühen* and the setup start real
+  `BrewStarter` (D-062; `ControllerBrewStarter` alone since v0.7.2, TMR-A-05), so Start, *Nochmal brühen* and the setup start real
   brews. *Beenden & neu starten* still runs as two turns (`finishSession`,
   then `startSession`); the one-turn form of 04 §7.2 (D-054) is #46's.
   *Amended by D-063:* it is one turn since #46.
@@ -6802,7 +6896,9 @@ over (R2-1, R2-2, R2-3). Decided while building it:
   (06 §3), so Start (`feature:home`) and the setup (`feature:brew`) start a
   brew through `BrewStarter` (`state`, `startSession`,
   `finishActiveAndStart`); `ControllerBrewStarter` is the controller behind
-  it, and `ControllerBrewTimer` implements both seams. The app binds
+  it, and `ControllerBrewTimer` implements both seams (*since v0.7.2,
+  TMR-A-05*: `ControllerBrewTimer` implements only `BrewTimer`, and the app
+  binds `BrewStarter` to `ControllerBrewStarter` directly). The app binds
   `BrewStarter` to whatever `BrewTimer` is bound to, so it follows the
   controller when #47 binds it; until then `NoBrewTimer` ignores starts and
   the screen stays. *Beenden & neu starten* runs as two controller turns
@@ -7059,7 +7155,7 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
 
 - **One seam to the controller.** `BrewTimer` (`state`, `send`) is all the
   screen, its view model and the active brew bar use; `ControllerBrewTimer`
-  is the controller behind it. Until #42 binds the remaining ports the
+  is the controller behind it (only `BrewTimer` since v0.7.2, TMR-A-05). Until #42 binds the remaining ports the
   controller cannot be injected (D-056), so the app binds `NoBrewTimer`
   (always idle, events ignored): nothing runs, the bar stays hidden and the
   timer route closes at once. Switching is one `@Binds` line in
@@ -8244,6 +8340,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-16 | D-121–D-127: the v0.7.2 triage (#303). The PO picked all 60 audit findings (overlaps as one choice each); the seven restructurings get one decision each (CAT-A-05 `CatalogRefresher` split, CAT-A-07 shared fake shop, CAT-A-08 + UI-A-04 helpers and date picker in `core:ui`, CAT-A-14 link-sheet holder, UI-A-01 + UI-A-10 settings routes, DAT-A-14 + TMR-A-06 the session repositories and the timer's store, TMR-A-09 accuracy tooling); their designs wait for #304. |
 | 2026-11-15 | D-119: the v0.7.2 cleanup review (four steps, own release, Fable 5.2 for the timer and data audits and the restructuring design, catalog first). D-120: its plan details: Fable 5.2 at `medium`, findings files per group, the Dependency Analysis plugin from a local init script, the tier label „T4-F". |
 | 2026-11-15 | D-118: `release.yml` publishes with the PO's fine-grained `RELEASE_TOKEN` (Contents only, this repository) after `GITHUB_TOKEN` got HTTP 403 creating releases. D-117 build notes „Arrival fade" and „Lock screen" (rc.2). |
 | 2026-11-14 | D-117: v0.7.1 grilled with the PO (Q1–Q20): „Tee ★ · Zubereitung ★" in rows, two labelled star rows on the sheet and the session page, Meine Tees on the Tee Ø, the tea detail with a Zubereitung line, a Tee/Zubereitung switch on the Tee-Rangliste, two lines in the Verlauf, Bestes Rezept by Zubereitung, umamit.db v8 (`brewing_rating`, copied); transition audit of all four groups by a motion-skill code audit and a JankStats metric on the CI emulator (≤ 1 janky frame, none over 50 ms), done with the PO's rc check; one rc. |

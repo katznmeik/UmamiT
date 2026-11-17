@@ -1,5 +1,6 @@
 package com.umamit.core.domain.stats
 
+import java.io.File
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -43,22 +44,36 @@ internal fun List<DatedSession>.teaName(names: Map<String, String>): String {
     return latest.teaId?.let(names::get) ?: latest.teaName
 }
 
+/** Which tea a group of one tea's sessions is: its id, [teaName], its cover and its style. */
+internal class GroupTea(val teaId: String?, val teaName: String, val coverPhoto: File?, val styleKey: String?)
+
+/** The tea of a group of one tea's sessions: the tea's cover and style, else (no style) its latest session's style. */
+internal fun List<DatedSession>.groupTea(names: Map<String, String>, teas: Map<String, StatsTea>): GroupTea {
+    val teaId = first().session.teaId
+    val tea = teaId?.let(teas::get)
+    return GroupTea(
+        teaId = teaId,
+        teaName = teaName(names),
+        coverPhoto = tea?.coverPhoto,
+        styleKey = tea?.styleKey ?: maxBy { it.session.startedAtMs }.session.styleKey,
+    )
+}
+
 internal fun mostBrewed(
     sessions: List<DatedSession>,
     names: Map<String, String>,
-    teas: Map<String, StatsTea> = emptyMap(),
+    teas: Map<String, StatsTea>,
 ): List<TeaSessions> = sessions
     .groupBy { it.session.teaKey() }
     .values
     .map { group ->
-        val teaId = group.first().session.teaId
-        val tea = teaId?.let(teas::get)
+        val tea = group.groupTea(names, teas)
         TeaSessions(
-            teaId = teaId,
-            teaName = group.teaName(names),
+            teaId = tea.teaId,
+            teaName = tea.teaName,
             sessions = group.size,
-            coverPhoto = tea?.coverPhoto,
-            styleKey = tea?.styleKey ?: group.maxBy { it.session.startedAtMs }.session.styleKey,
+            coverPhoto = tea.coverPhoto,
+            styleKey = tea.styleKey,
         )
     }
     .sortedWith(compareByDescending<TeaSessions> { it.sessions }.thenBy { it.teaName })

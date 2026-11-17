@@ -13,7 +13,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionTasting
@@ -23,6 +22,7 @@ import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
@@ -62,11 +62,7 @@ class TimerRouteTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private val clock = object : MonotonicClock {
-        override fun elapsedMs() = TimerStates.NOW
-
-        override fun bootCount() = 1
-    }
+    private val clock = FakeClock(elapsed = TimerStates.NOW)
 
     private var closed = 0
     private val shownOther = mutableListOf<TimerSlot>()

@@ -1,7 +1,6 @@
 package com.umamit.feature.home
 
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.LowStockRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
@@ -17,6 +16,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeBrewStarter
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSessions
@@ -67,12 +67,7 @@ class HomeViewModelTest {
     private val starter = FakeBrewStarter()
     private val reliability = FakeTimerReliability()
     private val lowStock = FakeLowStockRepository()
-    private var now = 5_000L
-    private val clock = object : MonotonicClock {
-        override fun elapsedMs() = now
-
-        override fun bootCount() = 1
-    }
+    private val clock = FakeClock(elapsed = 5_000L)
 
     @Before
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -327,9 +322,9 @@ class HomeViewModelTest {
         val vm = viewModel()
 
         vm.brewAgain(SeedData.HISUI_TEA_ID)
-        now += 200
+        clock.elapsed += 200
         vm.brewAgain(SeedData.HISUI_TEA_ID)
-        now += 200
+        clock.elapsed += 200
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
 
         assertThat(starter.starts).hasSize(1)
@@ -367,7 +362,7 @@ class HomeViewModelTest {
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
         assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
         vm.handOff.startLeft()
-        now += LATER_MS
+        clock.elapsed += LATER_MS
 
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         vm.handOff.startLeft()
@@ -388,11 +383,11 @@ class HomeViewModelTest {
         brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
         val vm = viewModel()
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
-        now += LATER_MS
+        clock.elapsed += LATER_MS
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         vm.events.first()
         vm.events.first()
-        now += LATER_MS
+        clock.elapsed += LATER_MS
 
         vm.brewAgain(SeedData.HISUI_TEA_ID)
 
@@ -410,7 +405,7 @@ class HomeViewModelTest {
         val vm = viewModel()
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
         vm.events.first()
-        now += LATER_MS
+        clock.elapsed += LATER_MS
 
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         assertThat(vm.state.value.question).isEqualTo(
@@ -441,7 +436,7 @@ class HomeViewModelTest {
         val vm = viewModel()
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
         vm.events.first()
-        now += LATER_MS
+        clock.elapsed += LATER_MS
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         // While the question is open, Tanabata's session ends and another session takes the brew slot.
         val tanabata = checkNotNull(starter.activeIn(TimerSlot.BREW))
@@ -463,9 +458,9 @@ class HomeViewModelTest {
         brewed("s3", KAMAIRICHA_TEA_ID, "Kamairicha", at = 3_000, 30)
         val vm = viewModel()
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
-        now += LATER_MS
+        clock.elapsed += LATER_MS
         vm.brewAgain(SeedData.HISUI_TEA_ID)
-        now += LATER_MS
+        clock.elapsed += LATER_MS
         vm.brewAgain(KAMAIRICHA_TEA_ID)
         assertThat(vm.state.value.question?.timers?.map { it.teaName })
             .containsExactly("Bio Sencha Tanabata", "Bio Sencha Hisui").inOrder()
@@ -523,7 +518,7 @@ class HomeViewModelTest {
         assertThat(vm.state.value.twoTimersActive).isFalse()
 
         // Two brews: no third start from the card; *Nochmal brühen* asks „Welchen Timer beenden?".
-        now += LATER_MS
+        clock.elapsed += LATER_MS
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
         vm.handOff.startLeft()
         assertThat(starter.activeIn(TimerSlot.BREW_2)).isNotNull()
@@ -588,7 +583,7 @@ class HomeViewModelTest {
         starter.state.value = FakeBrewStarter.quickRunningState(90)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
-        now += LATER_MS
+        clock.elapsed += LATER_MS
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
         assertThat(vm.state.value.question).isNotNull()
 
@@ -611,7 +606,7 @@ class HomeViewModelTest {
         assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
         val active = starter.state.value as TimerUiState.Active
         starter.state.value = active.copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
-        now += LATER_MS
+        clock.elapsed += LATER_MS
 
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
 
@@ -629,7 +624,7 @@ class HomeViewModelTest {
         starter.state.value = FakeBrewStarter.quickRunningState(90)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
-        now += LATER_MS
+        clock.elapsed += LATER_MS
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
         assertThat(vm.state.value.question).isNotNull()
         val active = starter.state.value as TimerUiState.Active
@@ -705,7 +700,7 @@ class HomeViewModelTest {
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         vm.handOff.startLeft()
         val card = vm.state.value.active
-        now += LATER_MS
+        clock.elapsed += LATER_MS
 
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
 
@@ -734,7 +729,7 @@ class HomeViewModelTest {
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         vm.events.first()
         vm.handOff.startLeft()
-        now += LATER_MS
+        clock.elapsed += LATER_MS
 
         // The tea's own session: refused, the timer opens, nothing is held.
         vm.brewAgain(SeedData.HISUI_TEA_ID)
@@ -767,7 +762,7 @@ class HomeViewModelTest {
         starter.state.value = FakeBrewStarter.quickRunningState(90)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
-        now += LATER_MS
+        clock.elapsed += LATER_MS
 
         // The first start is still held (the timer never covered Start); the third start asks.
         vm.brewAgain(SeedData.TANABATA_TEA_ID)

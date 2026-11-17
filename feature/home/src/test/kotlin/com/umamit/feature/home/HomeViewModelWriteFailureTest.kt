@@ -1,13 +1,13 @@
 package com.umamit.feature.home
 
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.LowStockRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.model.LowStockCard
 import com.umamit.core.model.LowStockTea
 import com.umamit.core.testing.FakeBrewStarter
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeTimerReliability
@@ -43,11 +43,7 @@ class HomeViewModelWriteFailureTest {
 
     private val collection = FakeCollection()
     private val sessions = FakeSessions(collection)
-    private val clock = object : MonotonicClock {
-        override fun elapsedMs() = 5_000L
-
-        override fun bootCount() = 1
-    }
+    private val clock = FakeClock(elapsed = 5_000L)
 
     @Before
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())

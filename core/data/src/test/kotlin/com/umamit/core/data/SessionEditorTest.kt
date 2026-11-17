@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.WallClock
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
@@ -14,7 +13,9 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
@@ -26,7 +27,6 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.ZoneId
 import java.time.ZoneOffset
 
 /**
@@ -139,7 +139,7 @@ class SessionEditorTest {
         completedSession()
         data.vessels.saveVessel(Vessel("v1", "Shiboridashi", VesselType.SHIBORIDASHI, 120))
         editor.editSession("done", SessionEdit(vessel = VesselChange("v1")))
-        data.vessels.deleteVessel("v1")
+        data.db.openHelper.writableDatabase.execSQL("DELETE FROM vessel WHERE id = 'v1'")
         assertThat(session().snapshot.vesselId).isNull()
         assertThat(session().snapshot.vesselName).isEqualTo("Shiboridashi")
 
@@ -154,10 +154,7 @@ class SessionEditorTest {
         completedSession()
         val clockSetBack = RoomSessionEditor(
             data.db,
-            object : WallClock {
-                override fun nowMs(): Long = START
-                override fun zone(): ZoneId = ZoneOffset.UTC
-            },
+            FakeClock(wall = START, zone = ZoneOffset.UTC),
         )
 
         assertThat(clockSetBack.editSession("done", SessionEdit(waterMl = 300))).isEqualTo(SessionEditResult.SAVED)
@@ -216,7 +213,7 @@ class SessionEditorTest {
     @Test
     fun `for a tea that is gone the cost scales with the leaf and no stock event is made`() = runTest {
         completedSession()
-        data.teas.deleteTea("t1")
+        data.db.teaDao().delete("t1")
         assertThat(session().snapshot.teaId).isNull()
 
         assertThat(editor.editSession("done", SessionEdit(leafGrams = 5.0))).isEqualTo(SessionEditResult.SAVED)

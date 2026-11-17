@@ -5,17 +5,19 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
-import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticShop
 import com.umamit.core.catalog.parser.SyntheticShop.Stock
 import com.umamit.core.data.SendTimes
 import com.umamit.core.data.TestDatabase
+import com.umamit.core.data.catalog.FakeShop.Companion.ROBOTS
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP
+import com.umamit.core.data.catalog.FakeShop.Companion.SITEMAP_GZ
+import com.umamit.core.data.catalog.FakeShop.Companion.text
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.data.syntheticJpeg
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogSkipReason
-import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -23,10 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
-import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
-import mockwebserver3.MockWebServer
-import mockwebserver3.RecordedRequest
 import mockwebserver3.SocketEffect
 import okio.Buffer
 import org.junit.After
@@ -38,7 +37,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.minutes
@@ -62,7 +60,7 @@ class CatalogRecheckTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private val server = MockWebServer()
+    private val shop = FakeShop()
     private val db = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CatalogDatabase::class.java)
         .allowMainThreadQueries()
@@ -76,28 +74,16 @@ class CatalogRecheckTest {
     private val owned = MutableStateFlow(emptySet<String>())
 
     /** What the synthetic shop answers per path; unknown paths are 404 (read on the server's thread). */
-    private val routes = ConcurrentHashMap<String, () -> MockResponse>()
-    private val requests = CopyOnWriteArrayList<RecordedRequest>()
-    private val listed = CopyOnWriteArrayList<String>()
-    private val base get() = server.url("/").toString().removeSuffix("/")
+    private val routes get() = shop.routes
+    private val requests get() = shop.requests
+    private val listed get() = shop.listed
+    private val base get() = shop.base
 
     @Before
     fun setUp() {
         photos = CatalogPhotoFiles(folder.newFolder("catalog"))
         diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO)
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                requests += request
-                return routes[request.url.encodedPath]?.invoke() ?: MockResponse.Builder().code(404).build()
-            }
-        }
-        server.start()
-        routes[ROBOTS] = { text(SyntheticShop.robotsTxt()) }
-        routes[SITEMAP] = { text(SyntheticShop.sitemapIndex("$base$SITEMAP_GZ")) }
-        routes[SITEMAP_GZ] = {
-            MockResponse.Builder().addHeader("Content-Type", "application/x-gzip")
-                .body(Buffer().write(SyntheticShop.gzip(SyntheticShop.urlSet(listed.map { "$base$it" })))).build()
-        }
+        shop.start()
         product(SENCHA, "Morgennebel Sencha – 100g")
         product(GYOKURO, "Tautropfen Gyokuro – 100g", breadcrumb = GYOKURO_PATH)
         product(SOLD_OUT, "Nebelhang Sencha – 100g")
@@ -105,7 +91,7 @@ class CatalogRecheckTest {
 
     @After
     fun tearDown() {
-        server.close()
+        shop.close()
         db.close()
     }
 
@@ -142,19 +128,18 @@ class CatalogRecheckTest {
         routes[photo.substringBefore('?')] = { jpeg() }
     }
 
-    private fun refresher(bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE) = CatalogRefresher(
-        client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+    private fun refresher(bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE) = catalogRefresher(
+        shop = shop,
         dao = dao,
         clock = clock,
         diagnostics = diagnostics,
         settings = FakeSettingsRepository(),
         photos = photos,
-        sanity = SanityCheck(firstImportMinimum = 1),
         owned = OwnedCatalogKeys { owned },
         bookmarks = bookmarks,
     )
 
-    private fun paths() = requests.map { it.url.encodedPath }
+    private fun paths() = shop.paths()
 
     /** The first refresh with all [teas] in the sitemap, then the shop leaves the sold-out one out a day later. */
     private suspend fun TestScope.soldOutSinceTheFirstRefresh(teas: Int = 3) {
@@ -662,15 +647,16 @@ class CatalogRecheckTest {
         soldOutSinceTheFirstRefresh()
         product(SOLD_OUT, "Nebelhang Sencha – 100g", stock = Stock.OUT_OF_STOCK, list = false)
         val sent = CopyOnWriteArrayList<Long>()
-        val refresher = CatalogRefresher(
-            client = ShopClient.forTesting(baseUrl = server.url("/"), socketFactory = SendTimes(sent)),
+        val refresher = catalogRefresher(
+            shop = shop,
             dao = dao,
             clock = clock,
             diagnostics = diagnostics,
             settings = FakeSettingsRepository(),
             photos = photos,
-            sanity = SanityCheck(firstImportMinimum = 1),
             owned = OwnedCatalogKeys { owned },
+            socketFactory = SendTimes(sent),
+            requestIntervalMillis = null,
         )
 
         refresher.refresh()
@@ -682,16 +668,10 @@ class CatalogRecheckTest {
         gapsMs.forEach { assertWithMessage("send gaps $gapsMs ms").that(it).isAtLeast(MIN_GAP_MS) }
     }
 
-    private fun text(body: String) =
-        MockResponse.Builder().addHeader("Content-Type", "text/html; charset=utf-8").body(body).build()
-
     private fun jpeg() = MockResponse.Builder().addHeader("Content-Type", "image/jpeg")
         .body(Buffer().write(syntheticJpeg(400, 300))).build()
 
     private companion object {
-        const val ROBOTS = "/robots.txt"
-        const val SITEMAP = "/sitemap.xml"
-        const val SITEMAP_GZ = "/sitemap/synthetic-1.xml.gz"
         const val SENCHA_KEY = "XY0100"
         const val GYOKURO_KEY = "XY0200"
         const val SOLD_OUT_KEY = "XY0170"

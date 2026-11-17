@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.catalog.AddFromCatalog
 import com.umamit.core.data.catalog.AddFromCatalogResult
@@ -15,7 +16,6 @@ import com.umamit.core.data.catalog.ExactPrices
 import com.umamit.core.data.catalog.ShopLink
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.InventoryEvent
-import com.umamit.core.model.InventoryEventType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -36,7 +36,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -132,7 +131,7 @@ class CatalogTeaViewModel @Inject constructor(
         val current = state.value
         val tea = current.tea ?: return
         if (sheetState.value != null || savingClosed != null) return
-        val today = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
+        val today = clock.today()
         prices = exactPrices.session()
         sheetState.value = AddSheetState.open(
             teaName = tea.name,
@@ -235,11 +234,9 @@ class CatalogTeaViewModel @Inject constructor(
 
         private const val STOP_TIMEOUT_MS = 5_000L
 
-        private val BOUGHT = setOf(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
-
         /** The latest INITIAL or PURCHASE event (D-072), the later one of the same moment. */
         private fun List<InventoryEvent>.lastBought(): InventoryEvent? = withIndex()
-            .filter { it.value.type in BOUGHT }
+            .filter { it.value.type.isPackage }
             .maxWithOrNull(compareBy({ it.value.occurredAtMillis }, { it.index }))
             ?.value
     }

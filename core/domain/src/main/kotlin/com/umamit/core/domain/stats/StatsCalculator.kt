@@ -2,7 +2,6 @@ package com.umamit.core.domain.stats
 
 import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.domain.collection.LiterAverage
-import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StatsRankingBy
@@ -12,7 +11,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
-import kotlin.math.roundToLong
 
 /**
  * The figures of the Statistik screen (02 §12, INS-01–INS-07, D-115 and its Amendment 1), one function per tab.
@@ -87,7 +85,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
         val window = window(range, custom)
         val inRange = sessions.filter { it.day in window }
         val purchases = input.inventoryEvents
-            .filter { it.type in PRICED_TYPES && it.priceCents != null }
+            .filter { it.type.isPackage && it.priceCents != null }
             .map { DatedPrice(dayOf(it.occurredAtMillis), it.priceCents ?: 0L) }
             .filter { it.day in window }
         return ConsumptionStats(
@@ -115,10 +113,7 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
 
     private fun costPerLiter(inRange: List<DatedSession>): LiterAverage? {
         val priced = inRange.filter { it.session.costCents != null && it.volumeMl > 0 }
-        if (priced.isEmpty()) return null
-        val cents = priced.sumOf { it.session.costCents ?: 0L }
-        val ml = priced.sumOf { it.volumeMl }
-        return LiterAverage(literCents = (cents * ML_PER_LITER / ml).roundToLong(), sessionCount = priced.size)
+        return LiterAverage.of(priced.sumOf { it.session.costCents ?: 0L }, priced.sumOf { it.volumeMl }, priced.size)
     }
 
     private fun runningOut(): List<RunningOutTea> = input.teas
@@ -131,11 +126,6 @@ class StatsCalculator(private val input: StatsInput, clock: Clock) {
         .map { RunningOutTea(it.id, it.name, it.remainingGrams, it.stockLevel, it.coverPhoto, it.styleKey) }
 
     private class DatedPrice(val day: LocalDate, val cents: Long)
-
-    private companion object {
-        const val ML_PER_LITER = 1000.0
-        val PRICED_TYPES = setOf(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
-    }
 }
 
 /** A session with its day and local start time in its own zone, and its volume in ml. */

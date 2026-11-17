@@ -57,6 +57,18 @@ class FakeCollection {
      */
     internal var activeRecipeId: Flow<String?> = flowOf(null)
 
+    /**
+     * The tea row goes and with it, as by Room's cascade, its recipes, photo rows and stock events (05 §3).
+     * Sessions keep their tea id, unlike Room's; for tests that need a tea gone without [FakeTeaArchive.delete],
+     * which is the user's *Löschen*.
+     */
+    fun deleteTeaRows(id: String) {
+        recipeRows.update { map -> map.filterValues { it.teaId != id } }
+        photoRows.update { map -> map.filterValues { it.owner.id != id } }
+        eventRows.update { map -> map.filterValues { it.teaId != id } }
+        teaRows.update { it - id }
+    }
+
     /** „Rezept prüfen" of [teaId] goes (CAT-05, TEA-17); a tea that is gone is ignored. */
     internal fun clearRecipeCheck(teaId: String) = teaRows.update { map ->
         map[teaId]?.let { map + (teaId to it.copy(recipeCheckReason = null)) } ?: map
@@ -86,13 +98,6 @@ class FakeTeaRepository internal constructor(private val c: FakeCollection) : Te
     override suspend fun getTea(id: String): Tea? = c.teaRows.value[id]
 
     override suspend fun saveTea(tea: Tea) = c.teaRows.update { it + (tea.id to tea) }
-
-    override suspend fun deleteTea(id: String) {
-        c.recipeRows.update { map -> map.filterValues { it.teaId != id } }
-        c.photoRows.update { map -> map.filterValues { it.owner.id != id } }
-        c.eventRows.update { map -> map.filterValues { it.teaId != id } }
-        c.teaRows.update { it - id }
-    }
 
     override suspend fun savePhoto(photo: Photo) = c.photoRows.update { it + (photo.id to photo) }
 
@@ -175,11 +180,6 @@ class FakeVesselRepository internal constructor(private val c: FakeCollection) :
     override suspend fun getVessel(id: String): Vessel? = c.vesselRows.value[id]
 
     override suspend fun saveVessel(vessel: Vessel) = c.vesselRows.update { it + (vessel.id to vessel) }
-
-    override suspend fun deleteVessel(id: String) {
-        c.recipeRows.update { map -> map.mapValues { (_, r) -> if (r.vesselId == id) r.copy(vesselId = null) else r } }
-        c.vesselRows.update { it - id }
-    }
 }
 
 /** Fake [StockRepository]; create it through [FakeCollection]. */

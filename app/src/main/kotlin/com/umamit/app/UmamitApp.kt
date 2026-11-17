@@ -654,7 +654,7 @@ private fun TabHost(
         // above the shell, which opens the alerting timer instead during an alert (rule 8).
         // The session page (SCR-16): *Löschen* closes it, only while it is on top (D-090, D-102).
         composable<JournalSessionRoute> { entry ->
-            val close = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            val close = { navController.popIfOnTop(entry) }
             journal.screens.session(
                 SessionPageHost(
                     onBack = dropUnlessResumed { navController.popBackStack() },
@@ -671,7 +671,7 @@ private fun TabHost(
         // Sitzung bearbeiten (SCR-17, JRN-11): ✕ and *Speichern* return to the session page, which shows the new
         // values.
         composable<JournalSessionEditorRoute> { entry ->
-            val closeIfOnTop = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            val closeIfOnTop = { navController.popIfOnTop(entry) }
             journal.screens.sessionEditor(
                 SessionEditorHost(
                     onClose = dropUnlessResumed { navController.popBackStack() },
@@ -707,7 +707,7 @@ private fun TabHost(
         composable<CollectionTeaRoute> { entry ->
             val teaId = entry.toRoute<CollectionTeaRoute>().teaId
             // Only while this detail is on top: a late outcome never pops another screen.
-            val close = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            val close = { navController.popIfOnTop(entry) }
             collection.screens.tea(
                 TeaDetailHost(
                     onBack = dropUnlessResumed { navController.popBackStack() },
@@ -737,7 +737,7 @@ private fun TabHost(
         }
         // Rezept bearbeiten (SCR-12): *Speichern* and *Löschen* return to the tea's detail.
         composable<CollectionRecipeEditorRoute> { entry ->
-            val closeIfOnTop = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            val closeIfOnTop = { navController.popIfOnTop(entry) }
             collection.screens.recipeEditor(
                 RecipeEditorHost(
                     onClose = dropUnlessResumed { navController.popBackStack() },
@@ -759,7 +759,7 @@ private fun TabHost(
         }
         // Tee bearbeiten (SCR-10): after an add, the new tea's detail replaces it; after an edit, back to the detail.
         composable<CollectionTeaEditorRoute> { entry ->
-            val onTop = { navController.currentBackStackEntry?.id == entry.id }
+            val onTop = { navController.isOnTop(entry) }
             collection.screens.teaEditor(
                 TeaEditorHost(
                     onClose = dropUnlessResumed { navController.popBackStack() },
@@ -808,48 +808,22 @@ private fun TabHost(
                 ),
             )
         }
-        composable<SettingsRoute> {
-            settings.screen(
-                SettingsHost(
-                    onBack = dropUnlessResumed { navController.popBackStack() },
-                    onOpenAbout = { navController.navigate(AboutRoute) },
-                    alertKey = alertKey,
-                    scrollToTopRequest = scrollToTopRequest,
-                    onOpenTeaware = dropUnlessResumed { navController.navigate(TeawareRoute) },
-                ),
-            )
-        }
-        composable<AboutRoute> {
-            settings.about(
-                AboutHost(
-                    onBack = dropUnlessResumed { navController.popBackStack() },
-                    onRerunSetup = settings.onRerunSetup,
-                    onOpenDiagnostics = { navController.navigate(DiagnosticsRoute) },
-                ),
-            )
-        }
-        composable<DiagnosticsRoute> { settings.diagnostics(dropUnlessResumed { navController.popBackStack() }) }
-        composable<TeawareRoute> { entry ->
-            settings.teaware(
-                TeawareHost(
-                    onBack = dropUnlessResumed { navController.popBackStack() },
-                    onOpenVessel = resumedOnly { navController.navigate(VesselEditorRoute(it)) },
-                    onAddVessel = dropUnlessResumed { navController.navigate(VesselEditorRoute()) },
-                    archived = entry.archivedVessel(),
-                    onArchivedSnackbarEnd = entry::forgetArchivedVessel,
-                ),
-            )
-        }
-        composable<VesselEditorRoute> {
-            settings.vesselEditor(
-                VesselEditorHost(
-                    onClose = dropUnlessResumed { navController.popBackStack() },
-                    onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
-                    onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
-                    alertKey = alertKey,
-                ),
-            )
-        }
+        settingsRoutes<SettingsRoute>(
+            settings,
+            SettingsNav(
+                back = { navController.popBackStack() },
+                open = { route -> navController.navigate(route) },
+                openVessel = { id -> navController.navigate(VesselEditorRoute(id)) },
+                openVesselResumedOnly = true,
+                addVessel = { navController.navigate(VesselEditorRoute()) },
+                closeVesselEditor = { id, archived ->
+                    navController.closeVesselEditor(savedVesselId = id, archived = archived)
+                },
+                alertKey = { alertKey },
+                scrollToTopRequest = scrollToTopRequest,
+                rerunSetup = settings.onRerunSetup,
+            ),
+        )
     }
 }
 
@@ -877,7 +851,7 @@ private fun NavHostController.popToRoot(tab: Tab) {
  * for a callback with an argument): a quick double tap on a row or link navigates once (D-090).
  */
 @Composable
-private fun <T> resumedOnly(action: (T) -> Unit): (T) -> Unit {
+internal fun <T> resumedOnly(action: (T) -> Unit): (T) -> Unit {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     return { if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) action(it) }
 }

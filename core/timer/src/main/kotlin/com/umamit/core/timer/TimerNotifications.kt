@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -18,7 +19,7 @@ object TimerNotifications {
     /** Live Update / ongoing notification: importance DEFAULT, silent (promotion needs more than MIN). */
     const val CHANNEL_BREW_TIMER = "brew_timer"
 
-    /** Alert with the full-screen intent: importance HIGH, no sound (the AlertPlayer plays it, 04 §9). */
+    /** Alert with the full-screen intent: importance HIGH, no sound (`AlertPlayback` plays it, 04 §9). */
     const val CHANNEL_STEEP_FINISHED = "steep_finished"
 
     /** „Sitzung gespeichert" and the reboot notice: importance LOW, silent (04 §8.1). */
@@ -78,37 +79,52 @@ object TimerNotifications {
         val manager = NotificationManagerCompat.from(context)
         manager.createNotificationChannelsCompat(
             listOf(
-                NotificationChannelCompat.Builder(CHANNEL_BREW_TIMER, NotificationManagerCompat.IMPORTANCE_DEFAULT)
-                    .setName(context.getString(R.string.timer_channel_brew_timer_name))
-                    .setDescription(context.getString(R.string.timer_channel_brew_timer_description))
-                    .setSound(null, null)
-                    .setVibrationEnabled(false)
-                    .setShowBadge(false)
-                    .build(),
-                NotificationChannelCompat.Builder(CHANNEL_STEEP_FINISHED, NotificationManagerCompat.IMPORTANCE_HIGH)
-                    .setName(context.getString(R.string.timer_channel_steep_finished_name))
-                    .setDescription(context.getString(R.string.timer_channel_steep_finished_description))
-                    .setSound(null, null)
-                    .setVibrationEnabled(false)
-                    .setShowBadge(false)
-                    .build(),
-                NotificationChannelCompat.Builder(CHANNEL_SESSIONS, NotificationManagerCompat.IMPORTANCE_LOW)
-                    .setName(context.getString(R.string.timer_channel_sessions_name))
-                    .setDescription(context.getString(R.string.timer_channel_sessions_description))
-                    .setSound(null, null)
-                    .setVibrationEnabled(false)
-                    .setShowBadge(false)
-                    .build(),
-                NotificationChannelCompat.Builder(CHANNEL_TIMER_OTHER, NotificationManagerCompat.IMPORTANCE_LOW)
-                    .setName(context.getString(R.string.timer_channel_other_name))
-                    .setDescription(context.getString(R.string.timer_channel_other_description))
-                    .setSound(null, null)
-                    .setVibrationEnabled(false)
-                    .setShowBadge(false)
-                    .build(),
+                channel(
+                    context,
+                    CHANNEL_BREW_TIMER,
+                    NotificationManagerCompat.IMPORTANCE_DEFAULT,
+                    R.string.timer_channel_brew_timer_name,
+                    R.string.timer_channel_brew_timer_description,
+                ),
+                channel(
+                    context,
+                    CHANNEL_STEEP_FINISHED,
+                    NotificationManagerCompat.IMPORTANCE_HIGH,
+                    R.string.timer_channel_steep_finished_name,
+                    R.string.timer_channel_steep_finished_description,
+                ),
+                channel(
+                    context,
+                    CHANNEL_SESSIONS,
+                    NotificationManagerCompat.IMPORTANCE_LOW,
+                    R.string.timer_channel_sessions_name,
+                    R.string.timer_channel_sessions_description,
+                ),
+                channel(
+                    context,
+                    CHANNEL_TIMER_OTHER,
+                    NotificationManagerCompat.IMPORTANCE_LOW,
+                    R.string.timer_channel_other_name,
+                    R.string.timer_channel_other_description,
+                ),
             ),
         )
     }
+
+    /** One timer channel: no sound (`AlertPlayback` plays the alert, 04 §9), no vibration, no badge. */
+    private fun channel(
+        context: Context,
+        id: String,
+        importance: Int,
+        @StringRes name: Int,
+        @StringRes description: Int,
+    ): NotificationChannelCompat = NotificationChannelCompat.Builder(id, importance)
+        .setName(context.getString(name))
+        .setDescription(context.getString(description))
+        .setSound(null, null)
+        .setVibrationEnabled(false)
+        .setShowBadge(false)
+        .build()
 
     /**
      * Posts [notification] when notifications are allowed; returns whether it was posted. Each post counts against

@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticShop
+import com.umamit.core.data.catalog.FakeShop.Companion.text
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.data.syntheticJpeg
 import com.umamit.core.database.CatalogDatabase
@@ -13,15 +13,11 @@ import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogSkipEntity
 import com.umamit.core.database.entity.CatalogSkipReason
-import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
-import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
-import mockwebserver3.MockWebServer
-import mockwebserver3.RecordedRequest
 import okio.Buffer
 import org.junit.After
 import org.junit.Before
@@ -32,7 +28,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 
 /**
@@ -48,7 +43,7 @@ class CatalogHerbalRefreshTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    private val server = MockWebServer()
+    private val shop = FakeShop()
     private val db = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), CatalogDatabase::class.java)
         .allowMainThreadQueries()
@@ -57,28 +52,16 @@ class CatalogHerbalRefreshTest {
     private val clock = FakeClock()
     private lateinit var photos: CatalogPhotoFiles
     private lateinit var diagnostics: DiagnosticsLog
-    private val routes = mutableMapOf<String, () -> MockResponse>()
-    private val requests = CopyOnWriteArrayList<RecordedRequest>()
-    private val listed = mutableListOf<String>()
-    private val base get() = server.url("/").toString().removeSuffix("/")
+    private val routes get() = shop.routes
+    private val requests get() = shop.requests
+    private val listed get() = shop.listed
+    private val base get() = shop.base
 
     @Before
     fun setUp() {
         photos = CatalogPhotoFiles(folder.newFolder("catalog"))
         diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO)
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                requests += request
-                return routes[request.url.encodedPath]?.invoke() ?: MockResponse.Builder().code(404).build()
-            }
-        }
-        server.start()
-        routes[ROBOTS] = { text(SyntheticShop.robotsTxt()) }
-        routes[SITEMAP] = { text(SyntheticShop.sitemapIndex("$base$SITEMAP_GZ")) }
-        routes[SITEMAP_GZ] = {
-            MockResponse.Builder().addHeader("Content-Type", "application/x-gzip")
-                .body(Buffer().write(SyntheticShop.gzip(SyntheticShop.urlSet(listed.map { "$base$it" })))).build()
-        }
+        shop.start()
         product(SENCHA, "Morgennebel Sencha – 100g", SyntheticShop.SENCHA_PATH)
         product(
             HERBAL,
@@ -93,7 +76,7 @@ class CatalogHerbalRefreshTest {
 
     @After
     fun tearDown() {
-        server.close()
+        shop.close()
         db.close()
     }
 
@@ -125,17 +108,16 @@ class CatalogHerbalRefreshTest {
         }
     }
 
-    private fun refresher() = CatalogRefresher(
-        client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+    private fun refresher() = catalogRefresher(
+        shop = shop,
         dao = dao,
         clock = clock,
         diagnostics = diagnostics,
         settings = FakeSettingsRepository(),
         photos = photos,
-        sanity = SanityCheck(firstImportMinimum = 1),
     )
 
-    private fun paths() = requests.map { it.url.encodedPath }
+    private fun paths() = shop.paths()
 
     @Test
     fun theRefreshStoresTheKraeuterteesAsHerbalNextToTheGreenTeas() = runTest {
@@ -241,9 +223,6 @@ class CatalogHerbalRefreshTest {
         /** v0.2.0's parser (D-091), the last without Kräutertees. */
         const val PARSER_BEFORE_HERBAL = 6
 
-        const val ROBOTS = "/robots.txt"
-        const val SITEMAP = "/sitemap.xml"
-        const val SITEMAP_GZ = "/sitemap/synthetic-1.xml.gz"
         const val SENCHA_KEY = "XY0100"
         const val HERBAL_KEY = "XK0200"
         const val FRUIT_KEY = "XF0300"
@@ -254,8 +233,5 @@ class CatalogHerbalRefreshTest {
         const val FRUIT = "/beerenwolke/$FRUIT_KEY"
         const val BLACK = "/abendglut-assam/$BLACK_KEY"
         const val HERBAL_SET = "/kraeuter-probierset/$HERBAL_SET_KEY"
-
-        fun text(body: String) =
-            MockResponse.Builder().addHeader("Content-Type", "text/html; charset=utf-8").body(body).build()
     }
 }

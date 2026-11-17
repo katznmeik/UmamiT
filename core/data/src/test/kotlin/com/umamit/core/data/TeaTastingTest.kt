@@ -7,6 +7,7 @@ import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

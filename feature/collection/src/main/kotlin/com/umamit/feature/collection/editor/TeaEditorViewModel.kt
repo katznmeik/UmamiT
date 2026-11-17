@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
 import com.umamit.core.data.AddWithoutCatalog
 import com.umamit.core.data.AddWithoutCatalogResult
 import com.umamit.core.data.TeaRepository
@@ -20,7 +21,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -70,7 +70,7 @@ class TeaEditorViewModel @Inject constructor(
     private val clock: WallClock,
 ) : ViewModel() {
     private val teaId: String? = savedState[TEA_ID]
-    private val today: LocalDate = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
+    private val today: LocalDate = clock.today()
 
     /** The stored tea, or a new one; null while loading. */
     private val base = MutableStateFlow<Base?>(null)

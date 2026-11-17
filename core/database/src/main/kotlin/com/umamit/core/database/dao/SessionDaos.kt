@@ -333,18 +333,13 @@ interface ActiveBrewDao {
     @Query("DELETE FROM active_brew")
     suspend fun clear()
 
-    /** The tea of the active brew session; null without one, for the quick timer or a session without a tea (E15). */
-    @Query(ACTIVE_TEA_ID)
-    fun observeActiveTeaId(): Flow<String?>
-
     /** The teas of the active brew sessions, in either brew slot (E15, D-108); a session without a tea adds none. */
     @Query("$ACTIVE_TEA_ID WHERE brew_session.tea_id IS NOT NULL")
     fun observeActiveTeaIds(): Flow<List<String>>
 
     /** Whether [teaId] is the tea of an active brew session, in either brew slot (E15, D-108). */
     @Query(
-        "SELECT EXISTS(SELECT 1 FROM active_brew JOIN brew_session ON brew_session.id = active_brew.session_id " +
-            "WHERE brew_session.tea_id = :teaId)",
+        "SELECT EXISTS(SELECT 1 $ACTIVE_SESSIONS WHERE brew_session.tea_id = :teaId)",
     )
     suspend fun isActiveTea(teaId: String): Boolean
 
@@ -354,14 +349,17 @@ interface ActiveBrewDao {
 
     /** Whether [vesselId] is the vessel of an active brew session, in either brew slot (WARE-01, D-108). */
     @Query(
-        "SELECT EXISTS(SELECT 1 FROM active_brew JOIN brew_session ON brew_session.id = active_brew.session_id " +
-            "WHERE brew_session.vessel_id = :vesselId)",
+        "SELECT EXISTS(SELECT 1 $ACTIVE_SESSIONS WHERE brew_session.vessel_id = :vesselId)",
     )
     suspend fun isActiveVessel(vesselId: String): Boolean
 }
 
-private const val ACTIVE_TEA_ID = "SELECT brew_session.tea_id FROM active_brew " +
-    "JOIN brew_session ON brew_session.id = active_brew.session_id"
+/**
+ * The active brew sessions, in either brew slot (D-108): `active_brew` joined with its session. Shared with
+ * [RecipeDao]'s active-recipe queries; Room gets the same SQL text as when it was written out.
+ */
+internal const val ACTIVE_SESSIONS = "FROM active_brew JOIN brew_session ON brew_session.id = active_brew.session_id"
 
-private const val ACTIVE_VESSEL_ID = "SELECT brew_session.vessel_id FROM active_brew " +
-    "JOIN brew_session ON brew_session.id = active_brew.session_id"
+private const val ACTIVE_TEA_ID = "SELECT brew_session.tea_id $ACTIVE_SESSIONS"
+
+private const val ACTIVE_VESSEL_ID = "SELECT brew_session.vessel_id $ACTIVE_SESSIONS"

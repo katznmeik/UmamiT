@@ -1,10 +1,11 @@
 package com.umamit.core.data
 
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.WallClock
 import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.TasteDescriptor
+import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -13,7 +14,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.ZoneId
 import java.time.ZoneOffset
 
 /**
@@ -26,12 +26,7 @@ import java.time.ZoneOffset
 @Config(sdk = [36])
 class SessionTastingTest {
     private val data = TestDatabase()
-    private var now = WRITE_AT
-    private val clock = object : WallClock {
-        override fun nowMs(): Long = now
-
-        override fun zone(): ZoneId = ZoneOffset.UTC
-    }
+    private val clock = FakeClock(wall = WRITE_AT, zone = ZoneOffset.UTC)
     private val tasting = RoomSessionTasting(data.db, clock)
 
     @Before
@@ -87,7 +82,7 @@ class SessionTastingTest {
     @Test
     fun `a Zubereitung rating off the half steps or out of bounds writes nothing`() = runTest {
         tasting.setBrewingRating("done", 4.0)
-        now += 1_000
+        clock.wall += 1_000
 
         listOf(0.0, 0.25, 3.3, 5.5, -1.0, Double.NaN).forEach { rating ->
             assertThat(tasting.setBrewingRating("done", rating)).isEqualTo(TastingWrite.INVALID)
@@ -157,7 +152,7 @@ class SessionTastingTest {
     @Test
     fun `descriptors are ticked in order, ticked twice once, and unticked`() = runTest {
         listOf("vegetal.spinat", "marine.nori", "vegetal.spinat").forEach {
-            now += 1_000
+            clock.wall += 1_000
             assertThat(tasting.setDescriptor("done", it, ticked = true)).isEqualTo(TastingWrite.SAVED)
         }
         assertThat(session().descriptorKeys).containsExactly("vegetal.spinat", "marine.nori").inOrder()

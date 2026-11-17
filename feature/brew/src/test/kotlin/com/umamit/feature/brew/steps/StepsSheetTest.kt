@@ -21,6 +21,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
+import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.StepStatus
@@ -43,7 +44,7 @@ class StepsSheetTest {
     private val saveRequests = mutableListOf<SaveToRecipeRequest>()
 
     private fun show(
-        steps: List<StepsSheetStep>,
+        steps: List<TimerUiStep>,
         hasRecipe: Boolean = true,
         baseTempC: Int? = 60,
         preAlertBase: Int = 10,
@@ -231,8 +232,8 @@ class StepsSheetTest {
         show(
             listOf(
                 doneStep(seconds = 90, tempC = 55),
-                StepsSheetStep(StepKind.INFUSION, 30, 60, StepStatus.SKIPPED),
-                StepsSheetStep(StepKind.INFUSION, 20, 60, StepStatus.STARTED),
+                TimerUiStep(StepKind.INFUSION, 30, 60, StepStatus.SKIPPED),
+                TimerUiStep(StepKind.INFUSION, 20, 60, StepStatus.STARTED),
                 pending(),
             ),
         )
@@ -259,8 +260,8 @@ class StepsSheetTest {
         show(
             listOf(
                 doneStep(seconds = 90),
-                StepsSheetStep(StepKind.INFUSION, 30, 60, StepStatus.SKIPPED),
-                StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.STARTED),
+                TimerUiStep(StepKind.INFUSION, 30, 60, StepStatus.SKIPPED),
+                TimerUiStep(StepKind.INFUSION, 60, 60, StepStatus.STARTED),
                 pending(seconds = 20),
                 pending(seconds = 10),
             ),
@@ -387,7 +388,7 @@ class StepsSheetTest {
 
     @Test
     fun `a step set back to Automatisch keeps no value of its own`() {
-        show(listOf(StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.PENDING, preAlertSeconds = 20)))
+        show(listOf(TimerUiStep(StepKind.INFUSION, 60, 60, StepStatus.PENDING, preAlertSeconds = 20)))
 
         choosePreAlert(1, "20 Sekunden vorher", "Automatisch · 10 s")
 
@@ -399,8 +400,8 @@ class StepsSheetTest {
         show(
             listOf(
                 doneStep(seconds = 90, preAlert = 20),
-                StepsSheetStep(StepKind.INFUSION, 30, 60, StepStatus.SKIPPED, preAlertSeconds = 25),
-                StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.STARTED, preAlertSeconds = 15),
+                TimerUiStep(StepKind.INFUSION, 30, 60, StepStatus.SKIPPED, preAlertSeconds = 25),
+                TimerUiStep(StepKind.INFUSION, 60, 60, StepStatus.STARTED, preAlertSeconds = 15),
                 pending(seconds = 45),
             ),
         )
@@ -494,8 +495,8 @@ class StepsSheetTest {
     }
 
     private fun pending(kind: StepKind = StepKind.INFUSION, seconds: Int = 30, tempC: Int? = 60) =
-        StepsSheetStep(kind, seconds, tempC, StepStatus.PENDING)
+        TimerUiStep(kind, seconds, tempC, StepStatus.PENDING)
 
     private fun doneStep(seconds: Int = 60, tempC: Int? = 60, preAlert: Int? = null) =
-        StepsSheetStep(StepKind.INFUSION, seconds, tempC, StepStatus.DONE, preAlertSeconds = preAlert)
+        TimerUiStep(StepKind.INFUSION, seconds, tempC, StepStatus.DONE, preAlertSeconds = preAlert)
 }

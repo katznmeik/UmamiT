@@ -3,7 +3,6 @@ package com.umamit.core.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.umamit.core.common.WallClock
 import com.umamit.core.data.catalog.RoomCatalogBookmarkRepository
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.model.BrewMethod
@@ -13,8 +12,8 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
-import java.time.ZoneId
 import java.time.ZoneOffset
 
 /** An in-memory database (or [db]) with all repositories on top of it. */
@@ -26,11 +25,7 @@ class TestDatabase(
         .build(),
     val settings: SettingsRepository = FakeSettingsRepository(),
 ) {
-    val time = object : WallClock {
-        override fun nowMs(): Long = now
-
-        override fun zone(): ZoneId = ZoneOffset.UTC
-    }
+    val time = FakeClock(wall = now, zone = ZoneOffset.UTC)
     val teas = RoomTeaRepository(db.teaDao(), time)
     val recipes = RoomRecipeRepository(db.recipeDao(), time)
     val vessels = RoomVesselRepository(db.vesselDao(), time)

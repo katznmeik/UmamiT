@@ -183,13 +183,13 @@ class ShopClientTest {
 
     @Test
     fun bodiesOverTheLimitAreRefusedUnread() = runTest {
-        val tooBig = Buffer().write(ByteArray(MAX_BODY_BYTES.toInt() + 1))
+        val tooBig = Buffer().write(ByteArray(BodyLimit.PAGE.maxBytes.toInt() + 1))
         server.enqueue(MockResponse.Builder().body(tooBig.copy()).build())
         server.enqueue(MockResponse.Builder().chunkedBody(tooBig.copy(), CHUNK_BYTES).build())
         server.enqueue(MockResponse.Builder().code(404).body(tooBig).build())
         val client = testClient()
 
-        assertThat(client.get(server.url("/declared"))).isEqualTo(ShopResponse.TooLarge(MAX_BODY_BYTES + 1))
+        assertThat(client.get(server.url("/declared"))).isEqualTo(ShopResponse.TooLarge(BodyLimit.PAGE.maxBytes + 1))
         assertThat(client.get(server.url("/chunked"))).isEqualTo(ShopResponse.TooLarge(declaredBytes = null))
         // Not a 2xx: the status counts, whatever the body.
         assertThat(client.get(server.url("/gone"))).isEqualTo(ShopResponse.HttpError(404))

@@ -52,7 +52,7 @@ sealed interface TimerEffect {
     /**
      * Ensure the alert of the alerting step is playing (04 §9), idempotent: if
      * it already plays for that step, nothing restarts (a deadline event and a
-     * `recover` may both ask). The AlertPlayer answers with [TimerEvent.AlertCompleted].
+     * `recover` may both ask). The alert player answers with [TimerEvent.AlertCompleted].
      */
     data object StartAlert : TimerEffect
 

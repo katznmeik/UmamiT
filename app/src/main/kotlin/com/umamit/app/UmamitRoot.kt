@@ -290,6 +290,33 @@ internal fun UmamitRoot(
             navigateAbove(PhotoViewerRoute(owner, sources, index)) { launchSingleTop = true }
         }
     }
+
+    // The shell and the shell of a catalog refresh differ only in how they open and which start tap they show.
+    val shell: @Composable (opening: ShellOpening, startRequest: Long) -> Unit = { opening, startRequest ->
+        UmamitApp(
+            activeBrewSource = activeBrewSource,
+            journalSources = journalSources,
+            alerting = alert != null,
+            onOpenTimer = openTimer,
+            onOpenTimerOf = openTimerOf,
+            startNavigation = startNavigation,
+            alertKey = alert,
+            startScreen = startScreen,
+            statsScreen = statsScreen,
+            catalogScreen = catalogScreen,
+            catalogScreens = catalogScreens,
+            collectionSegments = collectionSegments,
+            collectionScreens = collectionScreens,
+            journalScreens = journalScreens,
+            settings = settings.withRerunSetup(rerunSetup),
+            teaLinkShare = share,
+            onTakeTeaLinkShare = onTakeTeaLinkShare,
+            opening = opening,
+            startRequest = startRequest,
+            archivedTea = archivedTea,
+            onArchivedTeaChange = { archivedTea = it },
+        )
+    }
     CompositionLocalProvider(LocalPhotoViewer provides photoViewer) {
         Box(modifier) {
             NavHost(
@@ -328,55 +355,13 @@ internal fun UmamitRoot(
                 },
             ) {
                 composable<ShellRoute> {
-                    UmamitApp(
-                        activeBrewSource = activeBrewSource,
-                        journalSources = journalSources,
-                        alerting = alert != null,
-                        onOpenTimer = openTimer,
-                        onOpenTimerOf = openTimerOf,
-                        startNavigation = startNavigation,
-                        alertKey = alert,
-                        startScreen = startScreen,
-                        statsScreen = statsScreen,
-                        catalogScreen = catalogScreen,
-                        catalogScreens = catalogScreens,
-                        collectionSegments = collectionSegments,
-                        collectionScreens = collectionScreens,
-                        journalScreens = journalScreens,
-                        settings = settings.withRerunSetup(rerunSetup),
-                        teaLinkShare = share,
-                        onTakeTeaLinkShare = onTakeTeaLinkShare,
-                        startRequest = showStart,
-                        archivedTea = archivedTea,
-                        onArchivedTeaChange = { archivedTea = it },
-                    )
+                    shell(ShellOpening.Start, showStart)
                 }
                 // A shell of its own above what was shown (D-097): back leaves it, its tabs work as the shell's.
                 composable<CatalogRefreshRoute> { entry ->
                     // The token this entry shows, never a later tap's (#121).
                     val sheetToken = entry.toRoute<CatalogRefreshRoute>().sheetToken
-                    UmamitApp(
-                        activeBrewSource = activeBrewSource,
-                        journalSources = journalSources,
-                        alerting = alert != null,
-                        onOpenTimer = openTimer,
-                        onOpenTimerOf = openTimerOf,
-                        startNavigation = startNavigation,
-                        alertKey = alert,
-                        startScreen = startScreen,
-                        statsScreen = statsScreen,
-                        catalogScreen = catalogScreen,
-                        catalogScreens = catalogScreens,
-                        collectionSegments = collectionSegments,
-                        collectionScreens = collectionScreens,
-                        journalScreens = journalScreens,
-                        settings = settings.withRerunSetup(rerunSetup),
-                        teaLinkShare = share,
-                        onTakeTeaLinkShare = onTakeTeaLinkShare,
-                        opening = ShellOpening.CatalogRefresh(sheetToken),
-                        archivedTea = archivedTea,
-                        onArchivedTeaChange = { archivedTea = it },
-                    )
+                    shell(ShellOpening.CatalogRefresh(sheetToken), 0L)
                 }
                 composable<OnboardingRoute> { onboardingScreen(finishSetup) }
                 composable<TimerRoute> { timerEntry ->
@@ -496,54 +481,24 @@ internal fun UmamitRoot(
                         },
                     )
                 }
-                composable<TimerSettingsRoute> {
-                    settings.screen(
-                        SettingsHost(
-                            onBack = dropUnlessResumed { navController.popBackStack() },
-                            onOpenAbout = { navigateAbove(AboutRoute) {} },
-                            alertKey = alert,
-                            onOpenTeaware = dropUnlessResumed { navigateAbove(TeawareRoute) {} },
-                        ),
-                    )
-                }
-                // Teegeschirr above the timer (from *Timer-Einstellungen*), and the vessel editor above it or above
-                // the setup (*Neues Gefäß …*, WARE-02); both give way to a new alert like every route above the
-                // shell (rule 8).
-                composable<TeawareRoute> { entry ->
-                    settings.teaware(
-                        TeawareHost(
-                            onBack = dropUnlessResumed { navController.popBackStack() },
-                            onOpenVessel = { id -> navigateAbove(VesselEditorRoute(id)) { launchSingleTop = true } },
-                            onAddVessel = dropUnlessResumed {
-                                navigateAbove(VesselEditorRoute()) { launchSingleTop = true }
-                            },
-                            archived = entry.archivedVessel(),
-                            onArchivedSnackbarEnd = entry::forgetArchivedVessel,
-                        ),
-                    )
-                }
-                composable<VesselEditorRoute> {
-                    settings.vesselEditor(
-                        VesselEditorHost(
-                            onClose = dropUnlessResumed { navController.popBackStack() },
-                            onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
-                            onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
-                            alertKey = alert,
-                        ),
-                    )
-                }
-                composable<AboutRoute> {
-                    settings.about(
-                        AboutHost(
-                            onBack = dropUnlessResumed { navController.popBackStack() },
-                            onRerunSetup = rerunSetup,
-                            onOpenDiagnostics = { navigateAbove(DiagnosticsRoute) {} },
-                        ),
-                    )
-                }
-                composable<DiagnosticsRoute> {
-                    settings.diagnostics(dropUnlessResumed { navController.popBackStack() })
-                }
+                // Timer-Einstellungen and what it opens (Über, Diagnose, Teegeschirr), and the vessel editor above
+                // Teegeschirr or above the setup (*Neues Gefäß …*, WARE-02): all give way to a new alert like every
+                // route above the shell (rule 8), since navigateAbove records the alert.
+                settingsRoutes<TimerSettingsRoute>(
+                    settings,
+                    SettingsNav(
+                        back = { navController.popBackStack() },
+                        open = { route -> navigateAbove(route) {} },
+                        openVessel = { id -> navigateAbove(VesselEditorRoute(id)) { launchSingleTop = true } },
+                        openVesselResumedOnly = false,
+                        addVessel = { navigateAbove(VesselEditorRoute()) { launchSingleTop = true } },
+                        closeVesselEditor = { id, archived ->
+                            navController.closeVesselEditor(savedVesselId = id, archived = archived)
+                        },
+                        alertKey = { alert },
+                        rerunSetup = rerunSetup,
+                    ),
+                )
                 // The photo viewer (SCR-28): fades in and out with the root's transitions; back closes it on the photo
                 // last shown, which the hero follows.
                 composable<PhotoViewerRoute> { viewerEntry ->
@@ -587,19 +542,8 @@ private fun CatalogRefreshTaps(
     onConsume: (Long) -> Unit,
     navigateAbove: (route: Any, options: NavOptionsBuilder.() -> Unit) -> Unit,
 ) {
-    var handled by rememberSaveable { mutableLongStateOf(0L) }
-    val token by request.collectAsStateWithLifecycle()
-    val currentOnConsume by rememberUpdatedState(onConsume)
-    val currentNavigateAbove by rememberUpdatedState(navigateAbove)
-    LaunchedEffect(token, alert, setupDone) {
-        if (token == 0L || token == handled) return@LaunchedEffect
-        val inSetup = navController.currentDestination?.hasRoute<OnboardingRoute>() == true
-        if (setupDone && !inSetup) {
-            if (alert != null) return@LaunchedEffect
-            navController.openCatalogRefresh(CatalogRefreshRoute(token), currentNavigateAbove)
-        }
-        handled = token
-        currentOnConsume(token)
+    RequestTaps(navController, alert, setupDone, request, onConsume) { token ->
+        navController.openCatalogRefresh(CatalogRefreshRoute(token), navigateAbove)
     }
 }
 
@@ -619,20 +563,10 @@ private fun startTaps(
     request: StateFlow<Long>,
     onConsume: (Long) -> Unit,
 ): Long {
-    var handled by rememberSaveable { mutableLongStateOf(0L) }
     var shown by rememberSaveable { mutableLongStateOf(0L) }
-    val token by request.collectAsStateWithLifecycle()
-    val currentOnConsume by rememberUpdatedState(onConsume)
-    LaunchedEffect(token, alert, setupDone) {
-        if (token == 0L || token == handled) return@LaunchedEffect
-        val inSetup = navController.currentDestination?.hasRoute<OnboardingRoute>() == true
-        if (setupDone && !inSetup) {
-            if (alert != null) return@LaunchedEffect
-            navController.popBackStack<ShellRoute>(inclusive = false)
-            shown = token
-        }
-        handled = token
-        currentOnConsume(token)
+    RequestTaps(navController, alert, setupDone, request, onConsume) { token ->
+        navController.popBackStack<ShellRoute>(inclusive = false)
+        shown = token
     }
     return shown
 }
@@ -669,7 +603,7 @@ private fun NavGraphBuilder.setupEditorRoutes(
     alert: String?,
 ) {
     composable<SetupTeaEditorRoute> { entry ->
-        val onTop = { navController.currentBackStackEntry?.id == entry.id }
+        val onTop = { navController.isOnTop(entry) }
         collectionScreens.teaEditor(
             TeaEditorHost(
                 onClose = dropUnlessResumed { navController.popBackStack() },
@@ -679,7 +613,7 @@ private fun NavGraphBuilder.setupEditorRoutes(
         )
     }
     composable<SetupRecipeEditorRoute> { entry ->
-        val closeIfOnTop = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+        val closeIfOnTop = { navController.popIfOnTop(entry) }
         collectionScreens.recipeEditor(
             RecipeEditorHost(
                 onClose = dropUnlessResumed { navController.popBackStack() },
@@ -707,7 +641,7 @@ private fun setupTeaHost(
     onArchived: (ArchivedTea) -> Unit,
 ): TeaDetailHost {
     val teaId = entry.toRoute<SetupTeaRoute>().teaId
-    val onTop = { navController.currentBackStackEntry?.id == entry.id }
+    val onTop = { navController.isOnTop(entry) }
     val resumed = { entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
     val closeWithSetup = { if (onTop()) navController.popBackStack<BrewSetupRoute>(inclusive = true) }
     return TeaDetailHost(

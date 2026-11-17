@@ -11,7 +11,6 @@ import com.umamit.core.model.SessionStepRow
 import com.umamit.core.ui.GermanFormat
 import java.io.Serializable
 import java.math.RoundingMode
-import java.time.DateTimeException
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -21,18 +20,10 @@ import java.time.ZonedDateTime
 /** A brewed step's fields in the session editor (SCR-17): the recorded time as typed („1:35") and the °C. */
 data class SessionEditorStepForm(val position: Int, val time: String, val tempC: Int) : Serializable {
     /** The step with the temperature one 5 °C step up or down, within the Schritte-Sheet's range (GEN-12). */
-    fun withTempStep(up: Boolean): SessionEditorStepForm {
-        val next = if (up) {
-            Math.floorDiv(tempC, TEMP_UNIT) * TEMP_UNIT + TEMP_UNIT
-        } else {
-            Math.floorDiv(tempC - 1, TEMP_UNIT) * TEMP_UNIT
-        }
-        return copy(tempC = next.coerceIn(SessionEditLimits.TEMP_C.first, SessionEditLimits.TEMP_C.last))
-    }
+    fun withTempStep(up: Boolean): SessionEditorStepForm = copy(tempC = BrewScaling.tempStepped(tempC, up))
 
     private companion object {
         private const val serialVersionUID = 1L
-        const val TEMP_UNIT = 5
     }
 }
 
@@ -112,7 +103,7 @@ internal class SessionEditorCheck(private val session: BrewSession, private val 
         form.vesselId == null && !form.keepsVesselName && stored.vesselId == null && stored.vesselName != null
 
     /** The parsed leaf; null when the field is not valid. An empty field is valid only for a session without leaf. */
-    val leaf: Double? = parseLeaf(form.leaf)
+    val leaf: Double? = BrewScaling.parseLeaf(form.leaf)
     private val leafValid = leaf != null || (form.leaf.isBlank() && stored.leafGrams == null)
 
     private val water: Int? = parseWater(form.water, stored.waterMl)
@@ -170,24 +161,13 @@ internal class SessionEditorCheck(private val session: BrewSession, private val 
         startedAtMs == null && vessel == null && leafGrams == null && waterMl == null && steps.isEmpty()
 
     companion object {
-        private val LEAF = Regex("""\d{1,3}(?:[.,]\d)?""")
-        private const val WATER_UNIT = 5
         private val CLOCK = Regex("""(?:(\d{1,2}):)?(\d{1,4}):(\d{2})""")
         private const val SECONDS_PER_MINUTE = 60
         private const val SECONDS_PER_HOUR = 3_600
 
-        /** „4,5" → 4.5 g within the setup's 0,1–100 g (BrewScaling); null otherwise. */
-        fun parseLeaf(text: String): Double? = text.trim().takeIf(LEAF::matches)
-            ?.replace(',', '.')?.toDouble()
-            ?.takeIf { it >= BrewScaling.MIN_LEAF_GRAMS && it <= BrewScaling.MAX_LEAF_GRAMS }
-
         /** „250" → 250 ml within 10–3000 ml in 5-ml steps (the setup's); the recorded [stored] value stays valid. */
-        fun parseWater(text: String, stored: Int?): Int? = text.trim()
-            .takeIf { it.isNotEmpty() && it.length <= WATER_DIGITS && it.all(Char::isDigit) }
-            ?.toIntOrNull()
-            ?.takeIf {
-                it == stored || (it in BrewScaling.MIN_WATER_ML..BrewScaling.MAX_WATER_ML && it % WATER_UNIT == 0)
-            }
+        fun parseWater(text: String, stored: Int?): Int? =
+            text.trim().takeIf { it.length <= WATER_DIGITS }?.let { BrewScaling.parseWater(it, stored) }
 
         /** „1:35", „0:07", „75:00" or „1:15:00" → seconds within 1 s – 24 h; null otherwise. */
         fun parseClock(text: String): Int? = clockTotal(text)?.takeIf { it in SessionEditLimits.STEP_SECONDS }
@@ -207,10 +187,3 @@ internal class SessionEditorCheck(private val session: BrewSession, private val 
 /** |[a] − [b]| to 0,1 g, exact („2", „0,5"). */
 internal fun gramsDifference(a: Double, b: Double): Double =
     (a.toBigDecimal() - b.toBigDecimal()).abs().setScale(1, RoundingMode.HALF_UP).toDouble()
-
-/** The session's zone; one this device doesn't know counts as the device's (as on the page, D-054). */
-internal fun sessionZone(id: String): ZoneId = try {
-    ZoneId.of(id)
-} catch (_: DateTimeException) {
-    ZoneId.systemDefault()
-}

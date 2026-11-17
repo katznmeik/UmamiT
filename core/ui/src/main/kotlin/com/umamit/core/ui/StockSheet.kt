@@ -17,19 +17,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -73,7 +69,7 @@ fun StockSheet(
     sessionLeafGrams: Double? = null,
     hideOnClose: Boolean = false,
 ) {
-    val sheetState = rememberStockSheetState(UmamiTheme.reduceMotion)
+    val sheetState = rememberExpandedSheetState(UmamiTheme.reduceMotion)
     val close = rememberSheetClose(sheetState, onDismissRequest)
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -225,25 +221,6 @@ object StockInput {
         return next.takeIf { it >= BigDecimal.ZERO && it.toDouble() <= MAX_GRAMS }?.let { format(it.toDouble()) }
     }
 }
-
-/** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun rememberStockSheetState(reduceMotion: Boolean): SheetState {
-    val density = LocalDensity.current
-    return remember(reduceMotion) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-        )
-    }
-}
-
-// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp
 
 /** Centres a 48 dp stepper on the 56 dp field below the outlined field's 8 dp label space. */
 private val STEPPER_TOP = 12.dp

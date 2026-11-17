@@ -24,6 +24,7 @@ import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogTeaSummary
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.teaTypePlaceholderColor
 
 /**
  * The list's teas (SCR-19): under a header per *Sorte* when grouped (D-073), else one flat list
@@ -211,7 +212,7 @@ private fun TeaRow(
         meta = listOfNotNull(tea.teaType?.takeIf { showType }, tea.originCountry, price).joinToString(separator),
         onClick = onClick,
         thumbnail = thumbnail,
-        placeholderColor = placeholderColor(tea.teaType),
+        placeholderColor = teaTypePlaceholderColor(tea.teaType),
         showDivider = showDivider,
         badges = if (badges.isEmpty() && !check) {
             null

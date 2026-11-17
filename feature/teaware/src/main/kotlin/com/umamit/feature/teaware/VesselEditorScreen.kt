@@ -82,6 +82,7 @@ import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.core.ui.rememberPhotoPicker
 import com.umamit.core.ui.rememberPhotoViewerOpener
 import com.umamit.core.ui.rememberPickedPhotoPainter
+import com.umamit.core.ui.then
 
 /** Test tags of SCR-14. */
 object VesselEditorTags {
@@ -563,8 +564,6 @@ private fun <T> ChoiceField(
 private fun OptionIcon(@DrawableRes icon: Int) {
     Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
 }
-
-private fun Boolean.then(value: Int): Int? = if (this) value else null
 
 private const val NOTES_MIN_LINES = 3
 

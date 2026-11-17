@@ -33,7 +33,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -50,7 +49,6 @@ import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
-import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
@@ -143,22 +141,22 @@ fun CatalogRoute(
         showing = viewModel::refreshShowing,
     ) { sheetOpen = it }
     // A tea from a shop link (CAT-17). Its sheet takes the refresh sheet's place; the refresh goes on.
-    val link by viewModel.link.collectAsStateWithLifecycle()
+    val link by viewModel.linkSheet.state.collectAsStateWithLifecycle()
     val clipboard = LocalClipboard.current
     var handledPaste by remember { mutableIntStateOf(pasteLinkRequest) }
     LaunchedEffect(pasteLinkRequest) {
         if (pasteLinkRequest > handledPaste) {
             handledPaste = pasteLinkRequest
             sheetOpen = false
-            viewModel.openLinkSheet()
-            viewModel.fillLinkFromClipboard(clipboard.plainText())
+            viewModel.linkSheet.open()
+            viewModel.linkSheet.fillFromClipboard(clipboard.plainText())
         }
     }
     val currentOnTakeSharedLink by rememberUpdatedState(onTakeSharedLink)
     LaunchedEffect(sharedLink) {
         val share = sharedLink ?: return@LaunchedEffect
         sheetOpen = false
-        viewModel.loadSharedLink(share)
+        viewModel.linkSheet.loadShared(share)
         currentOnTakeSharedLink(share.token)
     }
     // Shown once this screen is resumed: a tea that came while the timer was on top is never lost.
@@ -173,7 +171,7 @@ fun CatalogRoute(
             lifecycle.withResumed {
                 currentOnOpenTea(opened)
                 notice?.let { Toast.makeText(context, it.messageRes(), Toast.LENGTH_LONG).show() }
-                viewModel.teaOpened()
+                viewModel.linkSheet.teaOpened()
             }
         }
     }
@@ -207,9 +205,9 @@ fun CatalogRoute(
     if (linkSheet != null && !alerting) {
         TeaLinkSheet(
             state = linkSheet,
-            onTextChange = viewModel::changeLinkText,
-            onLoad = viewModel::loadLink,
-            onDismissRequest = viewModel::dismissLink,
+            onTextChange = viewModel.linkSheet::changeText,
+            onLoad = viewModel.linkSheet::load,
+            onDismissRequest = viewModel.linkSheet::dismiss,
         )
     }
 }
@@ -497,23 +495,5 @@ private fun RefreshingRow(onShowProgress: () -> Unit) {
         )
         Spacer(Modifier.height(UmamiSpacing.XXSmall))
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-    }
-}
-
-/** The leaf placeholder's colour by the shop's *Sorte* [teaType] (03 §3.5), for a tea without a photo. */
-@Composable
-internal fun placeholderColor(teaType: String?): Color {
-    val colors = UmamiTheme.extendedColors.teaTypes
-    val type = teaType.orEmpty().lowercase()
-    return when {
-        "gyokuro" in type -> colors.gyokuro
-        "kabuse" in type -> colors.kabusecha
-        "shincha" in type -> colors.shincha
-        "sencha" in type -> colors.sencha
-        "matcha" in type -> colors.matcha
-        "kukicha" in type || "karigane" in type -> colors.kukichaKarigane
-        "hojicha" in type || "houjicha" in type -> colors.hojicha
-        "genmaicha" in type -> colors.genmaicha
-        else -> colors.other
     }
 }

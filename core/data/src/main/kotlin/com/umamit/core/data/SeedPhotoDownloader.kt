@@ -8,9 +8,6 @@ import com.umamit.core.data.SeedPhotoProgress.FailureCause
 import com.umamit.core.data.SeedPhotoProgress.Running
 import com.umamit.core.data.SeedPhotoProgress.Skipped
 import com.umamit.core.database.UmamiDatabase
-import com.umamit.core.model.Photo
-import com.umamit.core.model.PhotoOrigin
-import com.umamit.core.model.PhotoOwner
 import com.umamit.core.network.ShopClient
 import com.umamit.core.network.ShopFetch
 import com.umamit.core.network.ShopSession
@@ -29,7 +26,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.IOException
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -188,39 +184,28 @@ class SeedPhotoDownloader @Inject constructor(
     /** Stores [bytes] re-encoded as [teaId]'s cover. A disk or database error is [StoreResult.FAILED]. */
     private suspend fun store(teaId: String, bytes: ByteArray): StoreResult {
         val photo = withContext(Dispatchers.Default) { PhotoTranscoder.transcode(bytes) } ?: return StoreResult.LEFT_OUT
-        val id = UUID.randomUUID().toString()
+        val cover = CoverFile(photo)
         // Once the image is in, a skip no longer interrupts file and row half-way.
         return withContext(NonCancellable + Dispatchers.IO) {
-            var result = StoreResult.FAILED
             try {
-                photoFiles.write(id, photo.bytes)
-                result = if (saveCover(teaId, id, photo)) StoreResult.STORED else StoreResult.LEFT_OUT
+                photoFiles.withCoverFile(cover, kept = { it == StoreResult.STORED }) {
+                    if (saveCover(teaId, cover)) StoreResult.STORED else StoreResult.LEFT_OUT
+                }
             } catch (_: IOException) {
-                // Disk full or not writable: FAILED.
+                // Disk full or not writable.
+                StoreResult.FAILED
             } catch (_: SQLException) {
-                // Database error: FAILED.
-            } finally {
-                if (result != StoreResult.STORED) photoFiles.delete(id)
+                // Database error.
+                StoreResult.FAILED
             }
-            result
         }
     }
 
     /** Writes the photo row and the cover in one transaction; false when the tea is gone or has a cover. */
-    private suspend fun saveCover(teaId: String, id: String, photo: EncodedPhoto): Boolean = db.withTransaction {
+    private suspend fun saveCover(teaId: String, cover: CoverFile): Boolean = db.withTransaction {
         val tea = teas.getTea(teaId)
         if (tea == null || tea.coverPhotoId != null) return@withTransaction false
-        teas.savePhoto(
-            Photo(
-                id = id,
-                owner = PhotoOwner.OfTea(teaId),
-                origin = PhotoOrigin.CATALOG_COPY,
-                widthPx = photo.width,
-                heightPx = photo.height,
-                byteSize = photo.bytes.size.toLong(),
-            ),
-        )
-        teas.setCoverPhoto(teaId, id)
+        teas.saveCover(teaId, cover)
         true
     }
 }

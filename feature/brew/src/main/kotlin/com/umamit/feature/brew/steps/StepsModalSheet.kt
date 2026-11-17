@@ -17,11 +17,10 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.DiscardChangesDialog
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.ui.rememberExpandedSheetState
 
 /**
  * The Schritte-Sheet (SCR-31) as Material 3's modal bottom sheet. It runs in
@@ -188,29 +187,8 @@ private class DiscardGuard(asking: Boolean = false) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun rememberStepsSheetModalState(reduceMotion: Boolean, mayHide: () -> Boolean): SheetState {
-    val density = LocalDensity.current
     val currentMayHide by rememberUpdatedState(mayHide)
-    val confirmValueChange: (SheetValue) -> Boolean = { it != SheetValue.Hidden || currentMayHide() }
-    return rememberSaveable(
-        reduceMotion,
-        saver = SheetState.Saver(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            confirmValueChange = confirmValueChange,
-            skipHiddenState = false,
-        ),
-    ) {
-        SheetState(
-            skipPartiallyExpanded = true,
-            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
-            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
-            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
-            confirmValueChange = confirmValueChange,
-        )
+    return rememberExpandedSheetState(reduceMotion, saveable = true) {
+        it != SheetValue.Hidden || currentMayHide()
     }
 }
-
-// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
-private val PositionalThreshold = 56.dp
-private val VelocityThreshold = 125.dp

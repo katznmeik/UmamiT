@@ -48,7 +48,7 @@ enum class EventSource {
     /** The controller's in-process wake-up. */
     WAKE_UP,
 
-    /** The AlertPlayer reporting the end of its cycle. */
+    /** The alert player (`ControllerAlertPort`) reporting the end of its cycle. */
     ALERT_PLAYER,
 
     /** The controller's first turn in a process: `recover` from the persisted state (04 §7.2). */

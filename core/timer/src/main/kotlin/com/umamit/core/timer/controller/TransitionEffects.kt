@@ -2,6 +2,7 @@ package com.umamit.core.timer.controller
 
 import android.util.Log
 import com.umamit.core.common.ClockReading
+import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.DatabaseTransactions
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
@@ -31,7 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 internal class TransitionEffects(
     private val sessions: SessionRepository,
-    private val store: TimerSlotStore,
+    private val store: ActiveBrewStore,
     private val transactions: DatabaseTransactions,
     private val ports: TimerPorts,
 ) {

@@ -2,6 +2,7 @@ package com.umamit.feature.collection.recipe
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.domain.brew.BrewScaling
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeCheckReason
@@ -168,17 +169,17 @@ class RecipeEditorViewModelTest {
 
     @Test
     fun `leaf, water, temperatures and durations stay within the setup's limits (PRF-03, PRF-04)`() {
-        assertThat(RecipeForm.parseLeaf("0,1")).isEqualTo(0.1)
-        assertThat(RecipeForm.parseLeaf("100")).isEqualTo(100.0)
-        assertThat(RecipeForm.parseLeaf("4.5")).isEqualTo(4.5)
-        assertThat(RecipeForm.parseLeaf("0")).isNull()
-        assertThat(RecipeForm.parseLeaf("100,1")).isNull()
-        assertThat(RecipeForm.parseLeaf("4,55")).isNull()
-        assertThat(RecipeForm.parseWater("10")).isEqualTo(10)
-        assertThat(RecipeForm.parseWater("3000")).isEqualTo(3000)
-        assertThat(RecipeForm.parseWater("5")).isNull()
-        assertThat(RecipeForm.parseWater("3005")).isNull()
-        assertThat(RecipeForm.parseWater("252")).isNull()
+        assertThat(BrewScaling.parseLeaf("0,1")).isEqualTo(0.1)
+        assertThat(BrewScaling.parseLeaf("100")).isEqualTo(100.0)
+        assertThat(BrewScaling.parseLeaf("4.5")).isEqualTo(4.5)
+        assertThat(BrewScaling.parseLeaf("0")).isNull()
+        assertThat(BrewScaling.parseLeaf("100,1")).isNull()
+        assertThat(BrewScaling.parseLeaf("4,55")).isNull()
+        assertThat(BrewScaling.parseWater("10")).isEqualTo(10)
+        assertThat(BrewScaling.parseWater("3000")).isEqualTo(3000)
+        assertThat(BrewScaling.parseWater("5")).isNull()
+        assertThat(BrewScaling.parseWater("3005")).isNull()
+        assertThat(BrewScaling.parseWater("252")).isNull()
 
         val form = RecipeForm.of(kyusu)
         assertThat(form.copy(baseTempC = 100).withBaseStep(up = true).baseTempC).isEqualTo(100)

@@ -50,7 +50,7 @@ class FakeCollectionTest {
         assertThat(overview.defaultRecipe?.steps?.single()?.tempC).isEqualTo(50)
         assertThat(collection.stock.observeStock("t1").first().costPerGramCents).isWithin(1e-9).of(17.9)
 
-        collection.teas.deleteTea("t1")
+        collection.deleteTeaRows("t1")
 
         assertThat(collection.recipes.observeRecipes("t1").first()).isEmpty()
         assertThat(collection.stock.observeEvents("t1").first()).isEmpty()

@@ -20,7 +20,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
@@ -30,6 +29,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.testing.FakeBrewStarter
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeCollectionList
 import com.umamit.core.testing.FakeLowStockRepository
@@ -74,11 +74,7 @@ class BrewAgainHandOffTest {
     private val sessions = FakeSessions(collection)
     private val starter = FakeBrewStarter()
     private val brew = MutableStateFlow<ActiveBrew?>(null)
-    private val clock = object : MonotonicClock {
-        override fun elapsedMs() = 0L
-
-        override fun bootCount() = 1
-    }
+    private val clock = FakeClock(elapsed = 0L)
 
     private val source = object : ActiveBrewSource {
         override val activeBrew: StateFlow<ActiveBrew?> = brew

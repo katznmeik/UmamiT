@@ -414,14 +414,15 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 
 ### v0.7.2 — Code cleanup review, no visible change (D-119, D-120)
 
-- [ ] `v0.7.2-rc.1` installs over `v0.7.1` without losing data (teas, journal with both ratings, photos, settings); a timer running during the update still alerts.
-- [ ] Nothing looks or behaves different from `v0.7.1` on Start, the timer, Journal, Sammlung (Meine Tees, Katalog), Statistik and *Einstellungen*.
-- [ ] A brew of two infusions with the screen off: Vorwarnung and alarm on time, the full-screen alert at once, the Live Update counting.
-- [ ] A quick timer beside a brew, and two brews: both alert in the v0.7.1 order.
-- [ ] Katalog › *Jetzt aktualisieren* finishes (or stops cleanly on a challenge) with „N Tees"; a tea from the catalog and one from a shared shop link are added.
-- [ ] A session's ratings, taste and notes save; the tea detail and Statistik show them as before.
-- [ ] Settings (Design, sounds, Vorwarnung, *Bestand abziehen*) are kept after an app restart.
-- [ ] The rc's PR shows the proof: goldens, Room schemas and DataStore keys unchanged, the timer tests and the emulator jobs green, the accuracy variants PASS where 09 §4a asks for them.
+- [x] `v0.7.2-rc.1` installs over `v0.7.1` without losing data (teas, journal with both ratings, photos, settings); a timer running during the update still alerts.
+- [x] Nothing looks or behaves different from `v0.7.1` on Start, the timer, Journal, Sammlung (Meine Tees, Katalog), Statistik and *Einstellungen*.
+- [x] A brew of two infusions with the screen off: Vorwarnung and alarm on time, the full-screen alert at once, the Live Update counting.
+- [x] A quick timer beside a brew, and two brews: both alert in the v0.7.1 order.
+- [x] Katalog › *Jetzt aktualisieren* finishes (or stops cleanly on a challenge) with „N Tees"; a tea from the catalog and one from a shared shop link are added.
+- [x] A session's ratings, taste and notes save; the tea detail and Statistik show them as before.
+- [x] Settings (Design, sounds, Vorwarnung, *Bestand abziehen*) are kept after an app restart.
+- [x] The rc's PR shows the proof: goldens, Room schemas and DataStore keys unchanged, the timer tests and the emulator jobs green, the accuracy variants PASS where 09 §4a asks for them.
+- [x] **Approved by the PO (2026-11-17)** on `v0.7.2-rc.1`: checklist ticked on the #312 comment; the design review passes with the unchanged goldens (plan §„Release").
 
 ### M5 — 1.0
 

@@ -7,6 +7,8 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockSummary
 import kotlin.math.roundToLong
 
+private const val ML_PER_LITER = 1000.0
+
 /**
  * What a tea costs on its detail (INV-08, D-104, D-115 Amendment 2); all amounts in cents, rounded half up.
  *
@@ -18,7 +20,19 @@ import kotlin.math.roundToLong
 data class TeaCost(val pricePer100gCents: Long, val recipeLiterCents: Long? = null, val average: LiterAverage? = null)
 
 /** The real cost per litre over [sessionCount] finished sessions with a stored cost and a volume. */
-data class LiterAverage(val literCents: Long, val sessionCount: Int)
+data class LiterAverage(val literCents: Long, val sessionCount: Int) {
+    companion object {
+        /**
+         * The average of [count] priced sessions that cost [cents] for [ml] in all, per litre rounded half up; null
+         * for no sessions. The tea page and the statistics use it alike.
+         */
+        fun of(cents: Long, ml: Long, count: Int): LiterAverage? = if (count == 0) {
+            null
+        } else {
+            LiterAverage(literCents = (cents * ML_PER_LITER / ml).roundToLong(), sessionCount = count)
+        }
+    }
+}
 
 /**
  * The cost rule of INV-08 and D-104, on top of [StockSummary], and the volume rule (D-115 Amendment 2): a session's
@@ -27,7 +41,6 @@ data class LiterAverage(val literCents: Long, val sessionCount: Int)
  */
 object CostRule {
     private const val GRAMS_PER_PRICE = 100
-    private const val ML_PER_LITER = 1000.0
 
     /**
      * The tea's cost, or null when no priced INITIAL or PURCHASE event exists („no price, no cost").
@@ -56,10 +69,7 @@ object CostRule {
                 (session.costCents ?: 0L) to sessionVolumeMl(poured, session.snapshot.waterMl)
             }
             .filter { (_, ml) -> ml > 0 }
-        if (priced.isEmpty()) return null
-        val cents = priced.sumOf { it.first }
-        val ml = priced.sumOf { it.second.toLong() }
-        return LiterAverage(literCents = (cents * ML_PER_LITER / ml).roundToLong(), sessionCount = priced.size)
+        return LiterAverage.of(priced.sumOf { it.first }, priced.sumOf { it.second.toLong() }, priced.size)
     }
 
     /**

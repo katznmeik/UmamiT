@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
-import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import com.umamit.core.data.R
 
@@ -84,10 +83,10 @@ internal object CatalogNotifications {
             CatalogRefreshOutcome.Cancelled -> return null
 
             is CatalogRefreshOutcome.Success ->
-                context.getString(R.string.data_catalog_result_success_title) to summary(context, outcome)
+                context.getString(R.string.data_catalog_result_success_title) to outcome.summaryText(context.resources)
 
             is CatalogRefreshOutcome.Failure -> {
-                val reason = context.getString(outcome.reason())
+                val reason = context.getString(outcome.reasonRes())
                 // The shop-changed copy (03 §5) says it itself.
                 val text = if (outcome is CatalogRefreshOutcome.ShopChanged) {
                     reason
@@ -104,31 +103,6 @@ internal object CatalogNotifications {
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .build()
-    }
-
-    /** „274 Tees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen" (CAT-07 AC3). */
-    fun summary(context: Context, outcome: CatalogRefreshOutcome.Success): String {
-        val resources = context.resources
-        return outcome.summary().joinToString(context.getString(R.string.data_catalog_summary_separator)) { part ->
-            when (part) {
-                is SummaryPart.Teas -> resources.getQuantityString(
-                    R.plurals.data_catalog_tea_count,
-                    part.count,
-                    part.count,
-                )
-
-                is SummaryPart.New -> context.getString(R.string.data_catalog_summary_new, part.count)
-
-                is SummaryPart.Changed -> context.getString(R.string.data_catalog_summary_changed, part.count)
-
-                is SummaryPart.Discontinued -> context.getString(R.string.data_catalog_summary_discontinued, part.count)
-
-                is SummaryPart.RecipesToCheck ->
-                    resources.getQuantityString(R.plurals.data_catalog_summary_recipes, part.count, part.count)
-
-                SummaryPart.NoChanges -> context.getString(R.string.data_catalog_summary_unchanged)
-            }
-        }
     }
 
     fun post(context: Context, id: Int, notification: Notification) {
@@ -156,13 +130,4 @@ internal object CatalogNotifications {
         CatalogRefreshIntents.openRefresh(context),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
-
-    @StringRes
-    private fun CatalogRefreshOutcome.Failure.reason(): Int = when (this) {
-        is CatalogRefreshOutcome.Blocked -> R.string.data_catalog_result_blocked
-        is CatalogRefreshOutcome.Offline -> R.string.data_catalog_result_offline
-        is CatalogRefreshOutcome.ShopUnavailable -> R.string.data_catalog_result_unavailable
-        is CatalogRefreshOutcome.ShopChanged -> R.string.data_catalog_result_shop_changed
-        is CatalogRefreshOutcome.StorageFailed -> R.string.data_catalog_result_storage
-    }
 }

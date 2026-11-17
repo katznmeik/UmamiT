@@ -74,7 +74,7 @@ class TimerTestActivity : Activity() {
                     quickSeconds,
                     preAlertSeconds = quickPreAlertSeconds,
                     run = true,
-                    finishActive = quickRestart,
+                    ending = TimerSlot.QUICK.takeIf { quickRestart },
                 )
                 Log.i(TAG, "Quick timer of $quickSeconds s, pre-alert $quickPreAlertSeconds s: $quick")
                 outcomes += "quick timer" to quick

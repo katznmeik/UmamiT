@@ -52,7 +52,7 @@ data class BrewStart(val snapshot: SessionSnapshot, val steps: List<PlannedStep>
  * session and quick timer goes through it. It runs three slots (04 §3.3,
  * D-098, D-108), the brew slots `BREW` and `BREW_2` for brew sessions and the
  * quick slot for the quick timer, each with its own engine state, alarms, alert
- * watchdog and stored row ([ControllerSlots], [TimerSlotStore]); any two timers
+ * watchdog and stored row ([ControllerSlots], [ActiveBrewStore]); any two timers
  * are active at once: two brew sessions, or a brew session and the quick timer
  * (GEN-03, TMR-21, TMR-22). One alert player serves all, arbitrated after every
  * event ([AlertArbitration], [TransitionEffects]): the first alarm rings, a
@@ -83,9 +83,8 @@ class BrewSessionController @Inject constructor(
     private val ports: TimerPorts,
 ) : TimerInputs {
     private val lock = Mutex()
-    private val store: TimerSlotStore = ActiveBrewSlotStore(activeBrew)
-    private val effects = TransitionEffects(sessions, store, transactions, ports)
-    private val persistedTimer = PersistedTimer(store, sessions, ports, effects)
+    private val effects = TransitionEffects(sessions, activeBrew, transactions, ports)
+    private val persistedTimer = PersistedTimer(activeBrew, sessions, ports, effects)
     private val recovery = ProcessRecovery()
     private val sideBySide = SideBySide()
 
@@ -184,24 +183,22 @@ class BrewSessionController @Inject constructor(
      * is active and `Rejected(InvalidQuickTimer)` for a duration outside
      * 5 s – 24 h or a choice other than 0 or 5–30 s, and `Rejected(TwoTimersActive)` naming the brew slots while
      * two brew sessions are active (GEN-03, D-108: „Welchen Timer beenden?"). With [run], its step starts
-     * in the same turn (SCR-07's *Start*). With [finishActive] it is „Schnelltimer
-     * beenden und neu starten?" (D-054, D-065, D-098): in the same turn the
-     * active quick timer first ends (*Abbrechen*, or *Fertig* while alerting);
-     * the brew is never touched. With [ending] the timer of that slot ends first instead, a brew session as by
-     * *Sitzung beenden* (the answer to „Welchen Timer beenden?", D-108), and only while it is [endingSession] when
-     * that is given (#194).
+     * in the same turn (SCR-07's *Start*). With [ending] the timer of that slot ends first, in the same
+     * turn: [TimerSlot.QUICK] for „Schnelltimer beenden und neu starten?" (D-054, D-065, D-098), the active
+     * quick timer ending (*Abbrechen*, or *Fertig* while alerting) and the brew never touched; a brew session as
+     * by *Sitzung beenden* (the answer to „Welchen Timer beenden?", D-108), and only while it is [endingSession]
+     * when that is given (#194).
      */
     suspend fun startQuickTimer(
         durationSeconds: Int,
         preAlertSeconds: Int? = null,
         run: Boolean = false,
-        finishActive: Boolean = false,
         ending: TimerSlot? = null,
         endingSession: String? = null,
     ): TransitionOutcome {
         val event = TimerEvent.StartQuickTimer(durationSeconds, settings.current().preAlertSeconds, preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
-            (ending ?: TimerSlot.QUICK.takeIf { finishActive })?.let { sideBySide.endActive(it, endingSession) }
+            ending?.let { sideBySide.endActive(it, endingSession) }
             if (!sideBySide.quickStartAdmitted()) {
                 return@inTurn TransitionOutcome.Rejected(RejectionReason.TwoTimersActive(sideBySide.activeSlots()))
             }

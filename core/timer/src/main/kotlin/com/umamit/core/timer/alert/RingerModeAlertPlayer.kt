@@ -1,9 +1,7 @@
 package com.umamit.core.timer.alert
 
-import com.umamit.core.timer.AlertPlayer
-
 /**
- * The [AlertPlayer] that follows the ringer mode (04 §9.1, [AlertMatrix]).
+ * The alert player that follows the ringer mode (04 §9.1, [AlertMatrix]); [AlertPlayback] runs it.
  *
  * - **Alert:** the tone (SET-09) plays once per cycle and the vibration
  *   pattern starts with it. A cycle lasts as long as the tone, at least the
@@ -43,7 +41,7 @@ class RingerModeAlertPlayer(
     haptics: AlertHaptics,
     private val scheduler: AlertScheduler,
     private val settings: () -> AlertSettings = { AlertSettings() },
-) : AlertPlayer {
+) {
     private enum class Mode { IDLE, PRE_ALERT, ALERT, TEST }
 
     private val outputs = DeviceOutputs(sound, haptics)
@@ -57,7 +55,7 @@ class RingerModeAlertPlayer(
      * The pre-alert tick (TMR-23) with the chosen sound (SET-26); ignored while an alert plays, so
      * it never cuts one. The sound and the focus are released only after the sound has rung out.
      */
-    override fun playPreAlert() {
+    fun playPreAlert() {
         if (mode == Mode.ALERT) return
         stopAlert()
         mode = Mode.PRE_ALERT
@@ -70,7 +68,7 @@ class RingerModeAlertPlayer(
         }
     }
 
-    override fun startAlert() = startAlert(onFinished = null)
+    fun startAlert() = startAlert(onFinished = null)
 
     /**
      * Starts the alert with the current settings, replacing anything playing;
@@ -102,7 +100,7 @@ class RingerModeAlertPlayer(
         if (mode == Mode.TEST) stopAlert()
     }
 
-    override fun stopAlert() {
+    fun stopAlert() {
         mode = Mode.IDLE
         cyclesLeft = 0
         onFinished = null

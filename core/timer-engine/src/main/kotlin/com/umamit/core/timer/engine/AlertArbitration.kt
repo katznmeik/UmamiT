@@ -67,22 +67,6 @@ object AlertArbitration {
         }
     }
 
-    /**
-     * [eventFor] the quick slot while the brew slot is in [brew]: the rules for the v0.3.0 pair of one brew session
-     * and the quick timer.
-     */
-    fun quickEvent(event: TimerEvent, brew: TimerState): TimerEvent =
-        eventFor(TimerSlot.QUICK, event, mapOf(TimerSlot.BREW to brew))
-
-    /**
-     * [settle] for the v0.3.0 pair of a brew in [brew] and the quick timer in [quick]: the event the quick slot
-     * needs, [TimerEvent.AlertHold] while the brew's alert sounds and the quick alert sounds (preemption),
-     * [TimerEvent.AlertRingStart] when the brew's alert no longer sounds and the quick alert is held (release,
-     * D-109); null when the two already agree.
-     */
-    fun settle(brew: TimerState, quick: TimerState): TimerEvent? =
-        settle(mapOf(TimerSlot.BREW to brew, TimerSlot.QUICK to quick))?.takeIf { it.slot == TimerSlot.QUICK }?.event
-
     /** Whether a deadline of [slot] takes the sound from [sounding]'s alert: a brew's from the quick timer's. */
     private fun preempts(slot: TimerSlot, sounding: TimerSlot): Boolean = slot.isBrew && !sounding.isBrew
 

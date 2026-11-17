@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.testing.infusion
+import com.umamit.core.testing.rinse
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.test.runTest
 import org.junit.After

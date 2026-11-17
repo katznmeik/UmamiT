@@ -5,8 +5,6 @@ import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.StepKind
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -64,7 +62,7 @@ internal object DerivedRecipesColumn {
         }.toString()
     }
 
-    fun recipes(json: String?): List<RecipeTemplate> = (parse(json) as? JsonArray).orEmpty().mapNotNull { element ->
+    fun recipes(json: String?): List<RecipeTemplate> = (parseJson(json) as? JsonArray).orEmpty().mapNotNull { element ->
         val fields = element as? JsonObject ?: return@mapNotNull null
         val steps = (fields[STEPS] as? JsonArray).orEmpty().map { step(it) ?: return@mapNotNull null }
         RecipeTemplate(
@@ -86,14 +84,6 @@ internal object DerivedRecipesColumn {
         return if (kind != null && seconds != null) {
             RecipeStep(kind, seconds, fields.primitive(STEP_TEMP)?.intOrNull)
         } else {
-            null
-        }
-    }
-
-    private fun parse(json: String?): JsonElement? = json?.let {
-        try {
-            Json.parseToJsonElement(it)
-        } catch (_: SerializationException) {
             null
         }
     }

@@ -3,7 +3,6 @@ package com.umamit.feature.brew.steps
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,11 +12,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
@@ -28,7 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,12 +42,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -63,16 +56,20 @@ import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.model.StepKind
+import com.umamit.core.designsystem.theme.tabular
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.ui.DurationPicker
-import com.umamit.core.ui.RepeatingIconButton
+import com.umamit.core.ui.Stepper
 import com.umamit.feature.brew.R
+import com.umamit.feature.brew.timer.label
 import kotlinx.coroutines.launch
 
 /** The column of a read-only step's status icon (✓ for a done step). */
 internal val StatusIconSize = 20.dp
+
+/** The stepper values' minimum width, so the pills do not jump as the values change. */
+private val StepperValueMinWidth = 64.dp
 
 /**
  * The content of the Schritte-Sheet: the plan with a *Vorwarnung* selector under
@@ -200,7 +197,7 @@ private fun EditableStepRow(state: StepsSheetState, index: Int, onDurationClick:
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = UmamiSpacing.XSmall)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = stringResource(R.string.brew_steps_step_label, number, kindLabel(step.kind)),
+                text = stringResource(R.string.brew_steps_step_label, number, stringResource(step.kind.label)),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
@@ -229,6 +226,7 @@ private fun EditableStepRow(state: StepsSheetState, index: Int, onDurationClick:
                 canIncrease = state.canEdit(index, StepEdit.LENGTHEN),
                 onDecrease = { state.step(index, StepEdit.SHORTEN) },
                 onIncrease = { state.step(index, StepEdit.LENGTHEN) },
+                valueMinWidth = StepperValueMinWidth,
                 onValueClick = onDurationClick,
             )
             // A step without any temperature (quick timer) has no temperature stepper.
@@ -245,6 +243,7 @@ private fun EditableStepRow(state: StepsSheetState, index: Int, onDurationClick:
                 canIncrease = state.canEdit(index, StepEdit.WARM),
                 onDecrease = { state.step(index, StepEdit.COOL) },
                 onIncrease = { state.step(index, StepEdit.WARM) },
+                valueMinWidth = StepperValueMinWidth,
             )
         }
     }
@@ -255,7 +254,7 @@ private fun EditableStepRow(state: StepsSheetState, index: Int, onDurationClick:
 private fun ReadOnlyStepRow(state: StepsSheetState, index: Int) {
     val step = state.steps[index]
     val number = index + 1
-    val kind = kindLabel(step.kind)
+    val kind = stringResource(step.kind.label)
     val status = when (step.status) {
         StepStatus.DONE -> stringResource(R.string.brew_steps_status_done)
         StepStatus.STARTED -> stringResource(R.string.brew_steps_status_running)
@@ -322,77 +321,3 @@ private fun ReadOnlyStepRow(state: StepsSheetState, index: Int) {
 /** One − / + of a stepper: applies [edit] to step [index] and says whether it changed anything (a hold stops). */
 private fun StepsSheetState.step(index: Int, edit: StepEdit): Boolean =
     canEdit(index, edit).also { if (it) edit(index, edit) }
-
-/**
- * A value between − and + buttons, each 48 dp, with German TalkBack labels (03 §6). Held, − and + repeat and
- * speed up ([RepeatingIconButton], #141). With [onValueClick] the value is a button too (the duration opens
- * „Dauer wählen").
- */
-@Composable
-private fun Stepper(
-    value: String,
-    valueDescription: String,
-    decreaseDescription: String,
-    increaseDescription: String,
-    canDecrease: Boolean,
-    canIncrease: Boolean,
-    onDecrease: () -> Boolean,
-    onIncrease: () -> Boolean,
-    onValueClick: (() -> Unit)? = null,
-) {
-    Surface(
-        shape = UmamiShape.Pill,
-        border = BorderStroke(UmamiSpacing.Hairline, MaterialTheme.colorScheme.outlineVariant),
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RepeatingIconButton(
-                icon = painterResource(UmamiIcons.Remove),
-                contentDescription = decreaseDescription,
-                enabled = canDecrease,
-                onStep = onDecrease,
-            )
-            Box(
-                modifier = Modifier
-                    .heightIn(min = UmamiSpacing.MinTouchTarget)
-                    .widthIn(min = 64.dp)
-                    .then(
-                        if (onValueClick == null) {
-                            Modifier
-                        } else {
-                            Modifier.clickable(role = Role.Button, onClick = onValueClick)
-                        },
-                    )
-                    .semantics {
-                        contentDescription = valueDescription
-                        liveRegion = LiveRegionMode.Polite
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyLarge.tabular(),
-                    textAlign = TextAlign.Center,
-                )
-            }
-            RepeatingIconButton(
-                icon = painterResource(UmamiIcons.Add),
-                contentDescription = increaseDescription,
-                enabled = canIncrease,
-                onStep = onIncrease,
-            )
-        }
-    }
-}
-
-@Composable
-private fun kindLabel(kind: StepKind): String = stringResource(
-    when (kind) {
-        StepKind.INFUSION -> R.string.brew_steps_kind_infusion
-        StepKind.RINSE -> R.string.brew_steps_kind_rinse
-        StepKind.WHISK -> R.string.brew_steps_kind_whisk
-    },
-)
-
-/** Tabular lining figures, so the stepper values never jitter (03 §3.2). */
-private fun androidx.compose.ui.text.TextStyle.tabular() = copy(fontFeatureSettings = "lnum, tnum")

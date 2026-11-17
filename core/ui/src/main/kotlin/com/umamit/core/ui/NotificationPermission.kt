@@ -35,3 +35,18 @@ fun rememberNotificationPermissionAction(onResult: () -> Unit, openSettings: () 
         if (granted) currentOpenSettings() else launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 }
+
+/**
+ * The fix action of a reliability check's row (ONB-02, SET-24), for the setup page and the settings: the
+ * notification check [notifications] asks for the permission ([rememberNotificationPermissionAction]), every other
+ * check opens its page by [openPage]. [onResult] runs after the permission dialog, so the rows read again. Generic
+ * over the check type, which this module does not see (`core:timer`'s `ReliabilityCheck`).
+ */
+@Composable
+fun <C> rememberReliabilityFixAction(notifications: C, openPage: (C) -> Unit, onResult: () -> Unit): (C) -> Unit {
+    val requestNotifications = rememberNotificationPermissionAction(
+        onResult = onResult,
+        openSettings = { openPage(notifications) },
+    )
+    return { check -> if (check == notifications) requestNotifications() else openPage(check) }
+}

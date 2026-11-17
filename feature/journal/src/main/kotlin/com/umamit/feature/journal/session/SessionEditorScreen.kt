@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,13 +28,14 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.tabular
 import com.umamit.core.model.Vessel
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
+import com.umamit.core.ui.AmountField
 import com.umamit.core.ui.EditorScaffold
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.fadeInOnArrival
@@ -137,10 +137,8 @@ private fun SessionEditorFields(state: SessionEditorUiState.Ready, actions: Sess
             label = R.string.session_editor_water,
             unit = R.string.session_editor_unit_ml,
             error = R.string.session_editor_error_water.takeIf { SessionEditorError.Water in state.errors },
-            keyboard = KeyboardType.Number,
-            onValueChange = { text ->
-                actions.update { it.copy(water = text.filter(Char::isDigit).take(WATER_DIGITS)) }
-            },
+            decimal = false,
+            onValueChange = { text -> actions.update { it.copy(water = text) } },
             modifier = EditorFieldModifier.testTag(SessionEditorTags.WATER),
         )
         SectionHeader(
@@ -255,12 +253,8 @@ private fun LeafField(state: SessionEditorUiState.Ready, actions: SessionEditorA
             label = R.string.session_editor_leaf,
             unit = R.string.session_editor_unit_g,
             error = R.string.session_editor_error_leaf.takeIf { SessionEditorError.Leaf in state.errors },
-            keyboard = KeyboardType.Decimal,
-            onValueChange = { text ->
-                actions.update {
-                    it.copy(leaf = text.filter { c -> c.isDigit() || c == ',' || c == '.' }.take(LEAF_CHARS))
-                }
-            },
+            decimal = true,
+            onValueChange = { text -> actions.update { it.copy(leaf = text) } },
             modifier = EditorFieldModifier.testTag(SessionEditorTags.LEAF),
         )
         state.stockChangeGrams?.let { grams ->
@@ -277,30 +271,6 @@ private fun LeafField(state: SessionEditorUiState.Ready, actions: SessionEditorA
     }
 }
 
-@Suppress("LongParameterList") // an amount field's parts
-@Composable
-private fun AmountField(
-    value: String,
-    label: Int,
-    unit: Int,
-    error: Int?,
-    keyboard: KeyboardType,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier,
-        label = { Text(stringResource(label)) },
-        suffix = { Text(stringResource(unit)) },
-        singleLine = true,
-        isError = error != null,
-        supportingText = error?.let { { Text(stringResource(it)) } },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboard),
-    )
-}
-
 @Composable
 private fun ErrorText(text: Int, modifier: Modifier = Modifier) {
     Text(
@@ -315,6 +285,3 @@ private fun ErrorText(text: Int, modifier: Modifier = Modifier) {
 internal val EditorFieldModifier = Modifier
     .fillMaxWidth()
     .padding(horizontal = UmamiSpacing.SideMargin)
-
-private const val LEAF_CHARS = 5
-private const val WATER_DIGITS = 4

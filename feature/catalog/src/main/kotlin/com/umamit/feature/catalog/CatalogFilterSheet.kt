@@ -38,6 +38,7 @@ import com.umamit.core.model.FlavourFilter
 import com.umamit.core.model.TasteScale
 import com.umamit.core.model.TasteScaleOption
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.ui.rememberExpandedSheetState
 import kotlinx.coroutines.launch
 
 /** The filter sheet (SCR-19). */
@@ -61,7 +62,7 @@ internal fun CatalogFilterSheet(
     onDismissRequest: () -> Unit,
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
-    val sheetState = rememberCatalogSheetState(reduceMotion)
+    val sheetState = rememberExpandedSheetState(reduceMotion)
     val scope = rememberCoroutineScope()
     val scroll = rememberScrollState()
     // Set by *Fertig*: the sheet is on its way out, so a second tap does nothing.

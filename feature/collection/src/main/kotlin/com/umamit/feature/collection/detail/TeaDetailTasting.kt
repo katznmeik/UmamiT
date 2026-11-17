@@ -1,5 +1,6 @@
 package com.umamit.feature.collection.detail
 
+import com.umamit.core.common.sessionZone
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.SessionStatus
@@ -8,10 +9,8 @@ import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TeaTasting
 import com.umamit.core.ui.TasteRadarShape
-import java.time.DateTimeException
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 
 /** How many of the tea's most frequent descriptors GESCHMACK shows (TEA-13, D-112). */
 internal const val TOP_DESCRIPTORS = 5
@@ -85,7 +84,7 @@ internal fun BrewSession.recent(): RecentSession {
     val first = infusionRows.firstOrNull()
     return RecentSession(
         id = id,
-        day = Instant.ofEpochMilli(startedAtMs).atZone(zoneOf(zoneId)).toLocalDate(),
+        day = Instant.ofEpochMilli(startedAtMs).atZone(sessionZone(zoneId)).toLocalDate(),
         temperatureC = first?.let { it.tempC ?: snapshot.baseTempC } ?: snapshot.baseTempC,
         firstInfusionSeconds = first?.plannedSeconds,
         infusions = poured,
@@ -93,11 +92,4 @@ internal fun BrewSession.recent(): RecentSession {
         rating = rating,
         brewingRating = brewingRating,
     )
-}
-
-/** The session's zone; one this device doesn't know counts as the device's (as in the journal, D-054). */
-private fun zoneOf(id: String): ZoneId = try {
-    ZoneId.of(id)
-} catch (_: DateTimeException) {
-    ZoneId.systemDefault()
 }

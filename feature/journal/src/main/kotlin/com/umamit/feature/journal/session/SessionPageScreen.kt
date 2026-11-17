@@ -39,6 +39,7 @@ import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.tabular
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.ui.AlertGated

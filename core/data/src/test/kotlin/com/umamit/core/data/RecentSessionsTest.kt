@@ -2,6 +2,7 @@ package com.umamit.core.data
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.StepKind
+import com.umamit.core.testing.infusion
 import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

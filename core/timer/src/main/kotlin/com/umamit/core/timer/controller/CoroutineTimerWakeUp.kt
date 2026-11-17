@@ -1,7 +1,6 @@
 package com.umamit.core.timer.controller
 
 import android.util.Log
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,14 +52,8 @@ class CoroutineTimerWakeUp internal constructor(private val scope: CoroutineScop
         (armed === job).also { if (it) armed = null }
     }
 
-    @Suppress("TooGenericExceptionCaught") // a failed wake-up is logged; the exact alarms still deliver (04 §6)
+    // A failed wake-up is logged; the exact alarms still deliver (04 §6).
     private suspend fun fire(onDue: suspend () -> Unit) {
-        try {
-            onDue()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.e("UmamiTTimer", "wake-up failed", e)
-        }
+        attempt { onDue() }?.let { e -> Log.e("UmamiTTimer", "wake-up failed", e) }
     }
 }

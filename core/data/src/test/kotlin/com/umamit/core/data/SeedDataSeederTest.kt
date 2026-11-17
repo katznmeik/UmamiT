@@ -260,7 +260,7 @@ class SeedDataSeederTest {
     @Test
     fun aDeletedSeedTeaDoesNotComeBack() = runTest {
         seeder.seedIfNeeded()
-        data.teas.deleteTea(seededTea("TG0213").id)
+        data.db.teaDao().delete(seededTea("TG0213").id)
         val afterDelete = collection()
 
         assertThat(seeder.seedIfNeeded()).isFalse()

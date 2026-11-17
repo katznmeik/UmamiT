@@ -2,8 +2,6 @@ package com.umamit.feature.brew.timer
 
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewSessionController
-import com.umamit.core.timer.controller.BrewStarter
-import com.umamit.core.timer.controller.ControllerBrewStarter
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -36,10 +34,8 @@ interface BrewTimer {
 
 private val ALWAYS_RECOVERED: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
 
-/** The [BrewTimer] of the app: the controller itself, which also starts brews ([BrewStarter], M1-13). */
-class ControllerBrewTimer @Inject constructor(private val controller: BrewSessionController) :
-    BrewTimer,
-    BrewStarter by ControllerBrewStarter(controller) {
+/** The [BrewTimer] of the app: the controller itself, which also starts brews (`ControllerBrewStarter`, M1-13). */
+class ControllerBrewTimer @Inject constructor(private val controller: BrewSessionController) : BrewTimer {
     override val state: StateFlow<TimerUiState> get() = controller.state
 
     override val recovered: StateFlow<Boolean> get() = controller.recovered
