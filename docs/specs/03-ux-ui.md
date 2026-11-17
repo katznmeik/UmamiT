@@ -858,7 +858,7 @@ container colour instead.
 | READY | empty | KettleHint „Wasserkocher auf 60 °C" (≤ 10 °C: „Kaltes Wasser" / „Eiswürfel", BRW-10) + „4,0 g Tee · 250 ml Wasser" (v0.2.2, BRW-11, D-097; only what the session has) + from v0.3.0 the stock below it, „38 g übrig" / „14 g übrig · knapp" / „Leer" (BRW-11, D-098; only for a tea in the collection) + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
 | RUNNING | progress | „Zieht …" → „Gleich fertig …" after pre-alert | **Pause** |
 | PAUSED | frozen, dimmed | „Pausiert" | **Weiter** |
-| ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07"; from 15 s overtime: large „+2:30 überzogen" in the alert content ink, marked with a small warm-accent `#D9A35F` dot (never warm-accent text, D-055) | **Abgegossen** (*Weggegossen* for rinse) |
+| ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07"; from 15 s overtime: large „+2:30 überzogen" in the alert content ink, marked with a small warm-accent `#D9A35F` dot (never warm-accent text, D-055); on the light timer the dot has a 1 dp ring in full ink `#1F271B` (D-128 item 40) | **Abgegossen** (*Weggegossen* for rinse) |
 | FINISHED | full | „Alle Aufgüsse fertig" | **Session beenden**, secondary *Weiterer Aufguss* |
 
 Overflow ⋮ items by state:
