@@ -11,6 +11,13 @@
 
 ## Releases and plans
 
+### v0.8.0: build session 3, rc.1 published (2026-11-17)
+
+- **The PO's answers (in the session, as options):** the sage alarm as rendered; the active-brew bar's alarm static sage in the light app (D-128 item 38); the five open build notes kept as built (item 39); after the reviews, an ink ring on the light timer's overtime dot (item 40, #329) and the tabs' ⋮ alert gate as a v0.9.0 ticket (item 41, #330). #324 closed.
+- **#325 (T3, Opus `medium`):** the final look (`LightTimerLook` removed, `LightTimerDesignCheckTest` kept for the review renders), the cover in `UmamitRoot` and the system-bar icons in the app's theme, one-frame recolour on a theme change, the bar's static sage, the dark-timer pin removed and the light goldens re-recorded; no dark golden changed. 02 SET-05 and 03 §3.1 aligned (sheets `surfaceContainerLow`, as rendered and approved).
+- **#326 reviews:** T3 milestone review (no blocker), T4 timer review (no rule-8 risk), and, because `/review-animations` is user-invoke only, an ad-hoc T2 motion review at the PO's pick. One T3 fix round: taste resets name their axes, an unreadable tea falls back to the snapshot category's set, the tea editor's Sorte round trip, the radar's axis check, the refresh status without an empty exit frame and cleared on leaving the settings (SET-23), a golden renamed. Then #329 (T3).
+- **rc:** `9c0e4225` (`0.8.0-rc.1`, versionCode 80001). Full local gate PASS; timer tests 263 / 513 / 776 (21 skipped: 20 record-only design-check renders, 1 earlier); CI green (API 36 needed one rerun each time: Maven Central once, `TransitionJankTest` „Start is not shown" once); accuracy standard, alongside and two-brews PASS (runs 44153741187, 44153745560, 44153749225). Design review in `docs/design/review/v0.8.0/`.
+
 ### v0.8.0: build session 2 (2026-11-17)
 
 - **Branch:** worked directly on `claude/inspiring-ritchie-8hfw00` (PR #328); the session's assigned branch `claude/hopeful-feynman-nizldo` was not used.
@@ -719,6 +726,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-17 | **v0.8.0 build session 3:** the PO confirmed the sage alarm (bar static sage too); #325 and #329 built; the T3, T4 and ad-hoc motion reviews with one fix round; the full gate, CI and all three accuracy variants green on `9c0e4225`; `v0.8.0-rc.1` (80001) published with the checklist and the design review. Next: session 4 (the PO's check, merge, final `v0.8.0`). |
 | 2026-11-17 | **v0.8.0 build session 2:** #319, #320, #313, #321 and #322 merged and verified on PR #328; #325 step 1 (the sage alarm of the light timer) built and its renders posted on #324; the swing figures corrected to the measured 1.73 / 2.97. Next: the PO's confirmation, then build session 3 (the rest of #325, #326). |
 | 2026-11-17 | **v0.8.0 build session 1:** the PO approved spec #315, the tickets and the plan; PR #328 (draft) opened; #317, #318, #316 (+ a brew test follow-up) and #323 merged and verified; the light timer's renders posted on #324 and answered by the PO (band ink, fill as today, sage alarm for the light timer; D-128 34–37). Next: build session 2 (#320, #319, #321, #313, #322, #325). |
 | 2026-11-17 | **v0.8.0 specify session:** docs PR #314 merged; the PO's nine points grilled (Q1–Q31) into D-128: v0.8.0 (Session and Aufguss wording, three taste sets with *Geschmacksprofil* and the slider info, the timer follows *Design*, refresh progress in the settings, the ⋮ fix, #313) and v0.9.0 planned (export/import, shared recipes); 1.0 postponed. Specs, spec #315, tickets #316–#327, plan `docs/plans/v0.8.0.md` written. Next: the PO's approval, then build session 1. |
