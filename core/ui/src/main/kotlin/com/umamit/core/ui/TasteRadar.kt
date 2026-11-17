@@ -51,8 +51,10 @@ object TasteRadarShape {
     /**
      * The point of [axis] at [value] (0–5; null = unset, at the centre) around the centre (0, 0) at full [radius]:
      * the first axis points straight up, the others follow clockwise at equal angles. Screen coordinates (y down).
+     * [axis] must be one of [set]'s (D-128 Q16).
      */
     fun point(axis: TasteAxis, value: Double?, radius: Float, set: TasteSet = TasteSet.GREEN): Pair<Float, Float> {
+        require(axis in set.axes) { "$axis is not an axis of $set" }
         val angle = Math.toRadians(
             -QUARTER_TURN_DEGREES + FULL_TURN_DEGREES / set.axes.size * set.axes.indexOf(axis),
         )

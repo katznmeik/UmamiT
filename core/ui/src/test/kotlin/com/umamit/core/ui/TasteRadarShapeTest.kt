@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TasteSet
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 /** The pure parts of `TasteRadar` and `TasteSlider` (03 §3.8, JRN-03): when it is drawn, where points lie. */
@@ -59,6 +60,13 @@ class TasteRadarShapeTest {
         assertThat(bottom.second).isWithin(EPS).of(100f)
         assertThat(TasteRadarShape.point(TasteAxis.ROAST, 5.0, 100f, TasteSet.OXIDISED).second)
             .isWithin(EPS).of(-100f)
+    }
+
+    @Test
+    fun `an axis outside the set has no point`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            TasteRadarShape.point(TasteAxis.ROAST, 5.0, 100f, TasteSet.GREEN)
+        }
     }
 
     @Test
