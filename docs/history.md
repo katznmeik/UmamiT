@@ -11,6 +11,14 @@
 
 ## Releases and plans
 
+### v0.8.0: build session 1 (2026-11-17)
+
+- **The PO approved** spec #315, tickets #316–#327 and #313, and `docs/plans/v0.8.0.md` at the session's start; D-128 *Accepted*. Tickets relabelled (`ready-for-agent`, #324 `ready-for-human`); draft milestone PR #328 from `claude/inspiring-ritchie-8hfw00` (the assigned branch, fast-forwarded to `claude/magical-heisenberg-qev7fe`).
+- **Environment:** Maven Central answered 429 again, so the mirror init script was written anew (scratchpad, passed by `gw.sh`) and Robolectric's SDK 35/36 jars were pre-fetched and checked against the sha512. The first baseline failed 103 Robolectric tests for want of them.
+- **Merged on #328:** #317 (T3, `77a5691b`), #318 (T1, `bdd53797`), #316 (T2, `503a3092`) with its follow-up for a `feature:brew` test and 4 goldens on the shared stock-sheet text (T3, `79d3f557`), and #323 (T3, `162aee5f`). Each was verified by the orchestrator: the diff, the timer tests (263 / 513 / 734, 25 skipped), the cross-module check, the brew goldens with the dark timer unchanged, and lint.
+- **The light timer's renders** went to #324 for the PO: 8 states light and dark, the band (ink on washi / plain) and the fill (today / deeper), with the contrast values below 3:1.
+- **CI:** one API 36 `TransitionJankTest` failure on `bdd53797` („Start is not shown"), taken as the known jank flake; CI fully green on `79d3f557` (run 44085961534).
+
 ### v0.8.0: specified, waiting for the PO's approval (2026-11-17)
 
 - **The PO's nine points after `v0.7.2`:** „Session starten", „Session" for „Sitzung", an info section on the taste sliders, sliders for teas that are not green, shared recipes, the Statistik ⋮ menu opening at the left, refresh progress in the settings, a light timer, export/import.
@@ -697,6 +705,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-17 | **v0.8.0 build session 1:** the PO approved spec #315, the tickets and the plan; PR #328 (draft) opened; #317, #318, #316 (+ a brew test follow-up) and #323 merged and verified; the light timer's renders posted on #324. Next: the PO's design check, then build session 2 (#320, #319, #321, #313, #322; #325 after #324). |
 | 2026-11-17 | **v0.8.0 specify session:** docs PR #314 merged; the PO's nine points grilled (Q1–Q31) into D-128: v0.8.0 (Session and Aufguss wording, three taste sets with *Geschmacksprofil* and the slider info, the timer follows *Design*, refresh progress in the settings, the ⋮ fix, #313) and v0.9.0 planned (export/import, shared recipes); 1.0 postponed. Specs, spec #315, tickets #316–#327, plan `docs/plans/v0.8.0.md` written. Next: the PO's approval, then build session 1. |
 | 2026-11-17 | **v0.7.2 session 14 (#310: the PO's approval, merge, final):** the PO approved checklist and design review; PR #312 merged (`c5f19e8e`), CI and all three accuracy variants PASS on it; `v0.7.2` released (70299, certificate verified); #296–#310 closed. Next: the PO decides the next release. |
 | 2026-11-17 | **v0.7.2 session 13 (#309: the proof, accuracy, rc.1):** the proof on `a8f78d4f` all clean (recorded on #312), full local gate PASS, CI green, all three accuracy variants PASS; `v0.7.2-rc.1` released (70201, certificate verified), checklist to the PO on #312. Next: #310 after the PO's check. |
