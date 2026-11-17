@@ -114,8 +114,8 @@ class TasteSetsTest {
         assertThat(taste(0)).isEqualTo(TasteProfile(umami = 0, astringency = 3, aroma = 5, roast = 0))
         assertThat(row(0).tastingNote).isEqualTo("Notiz")
 
-        // The two-argument reset is the Grüntee six: Röstung/Malz stays.
-        assertThat(tasting.clearInfusionTaste(SESSION_ID, 0)).isEqualTo(TastingWrite.SAVED)
+        // The Grüntee six named: Röstung/Malz stays.
+        assertThat(tasting.clearInfusionTaste(SESSION_ID, 0, TasteSet.GREEN.axes)).isEqualTo(TastingWrite.SAVED)
         assertThat(taste(0)).isEqualTo(TasteProfile(roast = 0))
     }
 

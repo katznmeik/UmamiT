@@ -4,7 +4,6 @@ import android.util.Log
 import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TastingWrite
 import com.umamit.core.model.TasteAxis
-import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TastingLimits
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -38,7 +37,7 @@ internal class InfusionTastingWrites(
      * *Zurücksetzen*: the six taste values of the infusion at [position] that the page shows, [axes] (its tea's set,
      * D-128 Q16), are unset; the other axes and its note stay.
      */
-    fun clearTaste(position: Int, axes: Collection<TasteAxis> = TasteSet.GREEN.axes, onRefused: () -> Unit = {}) {
+    fun clearTaste(position: Int, axes: Collection<TasteAxis>, onRefused: () -> Unit = {}) {
         write(onRefused) { tasting.clearInfusionTaste(sessionId, position, axes) }
     }
 

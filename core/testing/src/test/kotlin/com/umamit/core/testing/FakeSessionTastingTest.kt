@@ -11,6 +11,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaRating
 import com.umamit.core.timer.engine.PlannedStep
@@ -161,7 +162,7 @@ class FakeSessionTastingTest {
         val stored = fakes.sessions.getSession("live")!!.infusions.single()
         assertThat(stored).isEqualTo(Infusion(1, 1, TasteProfile(umami = 4, body = 2), "Nori"))
 
-        assertThat(tasting.clearInfusionTaste("live", 1)).isEqualTo(TastingWrite.SAVED)
+        assertThat(tasting.clearInfusionTaste("live", 1, TasteSet.GREEN.axes)).isEqualTo(TastingWrite.SAVED)
         assertThat(tasting.setInfusionNote("live", 1, null)).isEqualTo(TastingWrite.SAVED)
         assertThat(fakes.sessions.getSession("live")!!.stepTastings).isEmpty()
     }
