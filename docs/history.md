@@ -11,6 +11,14 @@
 
 ## Releases and plans
 
+### v0.8.0: specified, waiting for the PO's approval (2026-11-17)
+
+- **The PO's nine points after `v0.7.2`:** „Session starten", „Session" for „Sitzung", an info section on the taste sliders, sliders for teas that are not green, shared recipes, the Statistik ⋮ menu opening at the left, refresh progress in the settings, a light timer, export/import.
+- **Grilling (Opus `medium` session, Q1–Q31 as options in eight rounds), D-128:** two releases (v0.8.0: points 1–4, 6–8 and #313; v0.9.0: points 5 and 9); 1.0 only on the PO's go. During the round the PO widened point 2: „brühen" becomes „aufgießen" / „Aufguss", and „Session" where a whole session is meant; the setup is titled „Neue Session" / „Session anpassen".
+- **Written:** D-128; the specs' German copy swept (02, 03, 04, 05, 11, 12); the v0.8.0 sections in 02, 03, 05, 08 (§4a), 09, 11 and the README; spec issue #315 with tickets #316–#327; #313 triaged (not reachable today, fixed anyway) and attached to #315; `docs/plans/v0.8.0.md`. v0.9.0 is recorded as planned (D-128 Q4–Q11, BAK-01/02/04/06, PRF-08).
+- **Housekeeping:** the docs PR #314 (the v0.7.2 handover, `2fd0a01a`) merged into `main` (`76e0a356`). The session's assigned branch was `claude/magical-heisenberg-qev7fe`, so the v0.8.0 docs are there, not on `claude/wonderful-davinci-fu8tqi`.
+- **No code was written.** Usage: not measured (the session had no usage readout); no subagents.
+
 ### v0.7.2: released (2026-11-17)
 
 - **PO approval (2026-11-17, in the session and on #312):** the checklist 09 §4 „v0.7.2" was ticked on the rc.1 comment of #312 (edited 06:43 UTC); the orchestrator found no reply with words, asked, and the PO answered „Yes, approved" (checklist and design review; the unchanged goldens stand in, plan §„Release"). No rc.2.
@@ -689,6 +697,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-17 | **v0.8.0 specify session:** docs PR #314 merged; the PO's nine points grilled (Q1–Q31) into D-128: v0.8.0 (Session and Aufguss wording, three taste sets with *Geschmacksprofil* and the slider info, the timer follows *Design*, refresh progress in the settings, the ⋮ fix, #313) and v0.9.0 planned (export/import, shared recipes); 1.0 postponed. Specs, spec #315, tickets #316–#327, plan `docs/plans/v0.8.0.md` written. Next: the PO's approval, then build session 1. |
 | 2026-11-17 | **v0.7.2 session 14 (#310: the PO's approval, merge, final):** the PO approved checklist and design review; PR #312 merged (`c5f19e8e`), CI and all three accuracy variants PASS on it; `v0.7.2` released (70299, certificate verified); #296–#310 closed. Next: the PO decides the next release. |
 | 2026-11-17 | **v0.7.2 session 13 (#309: the proof, accuracy, rc.1):** the proof on `a8f78d4f` all clean (recorded on #312), full local gate PASS, CI green, all three accuracy variants PASS; `v0.7.2-rc.1` released (70201, certificate verified), checklist to the PO on #312. Next: #310 after the PO's check. |
 | 2026-11-16 | **v0.7.2 session 11 (execution part 4, #308's alert-path group):** TMR-A-14, -01, -11, -12, -13 and D-126 (DAT-A-14, TMR-A-06) by seven T3 implementers, at most two at a time on disjoint files. Each step was verified (diff, proof; 04 §12 counts 263/512/707 unchanged on four landed heads) and pushed in three groups, each green on CI before the next. #308 is done. Usage: orchestrator 115 requests, 21.7 M cache read, 0.19 M cache write, 48 k output; seven implementers 77 requests, 5.7 M cache read, 0.93 M cache write, 39 k output (from the transcripts, before the final handover turn). Next: the T3 milestone review and the T4 timer review, then #309. |

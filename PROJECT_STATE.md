@@ -5,13 +5,18 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-17 (v0.7.2 session 14, #310: the PO's approval, merge, final). **`v0.7.2` is released** (full release, versionCode 70299, from `main` `c5f19e8e`, certificate verified; details in `docs/history.md`). The cleanup review is closed (#296–#310). **Next:** the PO decides what follows (see below); nothing is specified or approved yet.
+**Last updated:** 2026-11-17 (v0.8.0 specify session: grilling Q1–Q31, D-128, spec #315, tickets #316–#327 and #313, plan `docs/plans/v0.8.0.md`). **Nothing is approved yet and no code was written.** **Next:** the PO approves or changes the spec, the tickets and the plan, then starts the build (see below).
 
-## Next: the PO's decision
+## Next: the PO's approval of v0.8.0, then build session 1
 
-- **v0.7.2 is done:** no open milestone, no open milestone PR. The plan of record for the next release does not exist yet: the PO says what comes next (M5 1.0 per 09 §2, or feedback on `v0.7.2`), then a grilling round → specs and decision → tickets (CLAUDE.md rule 1). No development before that go.
-- **#313** (`needs-triage`, found in v0.7.2 session 10) is still open and was kept out of v0.7.2; triage it with the next release.
+- **Waits on the PO:** approval of **spec #315**, its tickets (#316–#327, #313; all `needs-triage`) and `docs/plans/v0.8.0.md`. D-128 is *Proposed*: the PO's answers Q1–Q31 are accepted, the details marked „Claude" are for the PO to check. They are: the `TasteSet` storage (four new columns, `tea.taste_set`, umamit.db v9), *Sonstige* in the Grüntee set, a session shown with its tea's set as it is now, the *Geschmacksprofil* labels, seven of the ten slider info texts (08 §4a), the light timer's starting colours (03 §3.1), „Sessions" as the plural, the channel „Sessions".
+- **v0.8.0 (D-128 Q1):** „Session" / „Aufguss" / „aufgießen" wording; three taste sets with *Geschmacksprofil* and the foldable „Was bedeuten die Regler?"; the timer follows *Design* (light timer, early design check #324); refresh progress in the settings; the ⋮ menu fix; the #313 guard. Timer code changes: T3+, the T4 timer review, all three accuracy variants before the rc and the final.
+- **On the PO's approval** (build session 1, Opus `medium` orchestrator, plan „Sessions"): relabel the tickets `ready-for-agent` (#324 `ready-for-human`), open the draft milestone PR from the working branch, then `/implement-spec #315` in the plan's order: #317 beside #318, then #323 beside #316; stop when the renders of #323 are posted on #324 for the PO.
+- **If the PO changes something:** update D-128 (a new numbered answer or an amendment), the spec sections and the tickets first; no build before that.
+- **v0.9.0 (planned, D-128 Q4–Q11):** export, a replacing import with four safeguards, backup reminder, „Letzte Sicherung", journal CSV, recipes shared as text plus a file. Its own specify session after v0.8.0; the points still to ask are under D-128 „Open for the v0.9.0 specify session".
+- **1.0 (M5) is postponed** (D-128 Q3): it starts only on the PO's go; releases stay 0.x.
 - **Notes left by the v0.7.2 reviews** (R-7, T-1 and others; `docs/history.md` „v0.7.2: milestone and timer review done") need a ticket only if the PO wants one.
+- **Branch:** this session ran on `claude/magical-heisenberg-qev7fe` (the session's assigned branch, fast-forwarded to `main` `76e0a356` after the docs PR #314 merged from `claude/wonderful-davinci-fu8tqi`). It carries the v0.8.0 docs; no PR is open for it yet.
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
   - **Worktrees:** brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
@@ -37,13 +42,13 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | none open. **v0.7.2** (cleanup review, D-119, D-120) is **released** (2026-11-17); **v0.7.1** (two ratings, smooth transitions) released 2026-11-15; next release not yet decided |
+| Current milestone | **v0.8.0** (D-128): specified, **waiting for the PO's approval** of spec #315, the tickets and the plan (2026-11-17); **v0.9.0** planned (export/import, shared recipes); M5 / 1.0 postponed until the PO's go. **v0.7.2** (cleanup review) released 2026-11-17 |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `c5f19e8e` after the v0.7.2 merge) |
+| Working branch | `claude/magical-heisenberg-qev7fe` (from `main` `76e0a356`; the v0.8.0 specs, D-128 and the plan on top) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none (#312, the v0.7.2 milestone PR, is merged) |
+| Open PR | none (#314, the v0.7.2 handover docs, is merged; the v0.8.0 milestone PR opens with build session 1) |
 | Latest APK | [`v0.7.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2) (full release, versionCode 70299, from `main` `c5f19e8e`, APK SHA-256 `efc2cca6…20fa`, certificate verified); earlier: rc [`v0.7.2-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2-rc.1) (pre-release, 70201, from `a8f78d4f`, certificate verified); [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) (full release, versionCode 70199, from `main` `6192bff5`, certificate verified); rc [`v0.7.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.2) (pre-release, 70102, from `e57861e0`); rc [`v0.7.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.1) (pre-release, 70101, from `3fe102c0`); [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-127** used; the next free is **D-128** |
+| Decision numbers | Up to **D-128** used; the next free is **D-129** |
 
 ## Working agreements in effect
 
@@ -59,7 +64,7 @@
 
 ## Waiting on the PO
 
-1. **What comes next:** the PO's decision on the next release (see „Next").
+1. **Approval of v0.8.0:** spec #315, tickets #316–#327 and #313, `docs/plans/v0.8.0.md`, and the „Claude" details of D-128 (see „Next"). Later in the build: the light timer's design check (#324), possibly a light band picture (plan „The band A13").
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
