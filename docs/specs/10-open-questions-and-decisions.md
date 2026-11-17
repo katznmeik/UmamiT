@@ -331,12 +331,16 @@ personal data or shop content).
 **Decision (the PO's answers, 2026-11-17, v0.8.0 session 4, as options).**
 
 1. **Only the picker's hand-over is fixed:** a tea row's tap in SCR-03. Every other way into the setup stays as it is.
-2. **The setup covers the sheet:** the sheet stays in place at full opacity until SCR-04's enter fade has finished over it, then leaves underneath without an animation of its own. Start is never seen between them. Not taken: the sheet sliding down while the setup fades in; the setup in one frame without a fade.
+2. **The setup covers the sheet:** the sheet stays where it is until *Neue Session* has faded in over it, so Start is never seen. It is the same fade as today, just without the gap. Not taken: the sheet sliding down while the setup fades in; the setup at once without a fade.
 3. **The launch stays as it is:** the late photos in „Zuletzt aufgegossen" on a cold or warm start are kept; no ticket.
 4. **The design review of v0.8.0 is approved as built** (`docs/design/review/v0.8.0/`), Claude's four details in its README included.
 5. **This session hands over:** the fix and `v0.8.0-rc.2` (80002) are built in a fresh session.
 
-The rest of the rc.1 checklist (09 §4 „v0.8.0") passed on the PO's phone: every box in the checklist comment on PR #328 is ticked, and the PO named only this failure.
+**Claude's details (not answered by the PO):**
+
+- Only a tea row's tap changes; the picker's other exits stay as they are.
+- The mechanism is left to the build (03 SCR-03). The picker is a `ModalBottomSheet` in its own window. If the visible result cannot be reached, the build asks the PO.
+- Claude reads the rest of the rc.1 checklist as passed: every box in the checklist comment on PR #328 is ticked, and the PO named only this failure. This is an inference, not an answer. The final therefore waits for the PO's explicit approval of the **whole** checklist on rc.2.
 
 **Consequences.**
 

@@ -656,12 +656,19 @@ ends the flow; nothing is written before the save. An alert wins: the add
 sheet and the picker give way and no setup opens during it ([D-088](10-open-questions-and-decisions.md#d-088)).
 
 **Hand-over to the setup (v0.8.0-rc.2, [D-129](10-open-questions-and-decisions.md#d-129), §3.6 „Transitions
-without stale frames").** A tea row's tap opens SCR-04 over the picker. The sheet stays in place at full opacity
-until SCR-04's enter fade (the route's `fade`) has finished over it, and then leaves underneath without an
-animation of its own. Start is never seen between the sheet and the setup. Back from the setup returns to Start,
-as before. Only a tea row's tap works this way; *Ohne Tee (Schnelltimer)*, *Aus dem Katalog*, back and a swipe
-down are unchanged. An alert still wins at once (D-088): the sheet and the setup give way in the alert's first
-frame, and nothing about the start is delayed (rule 8).
+without stale frames").** The PO's choice: when a tea row is tapped, the sheet stays where it is until SCR-04 has
+faded in over it, so Start is never seen between the sheet and the setup, not even for a frame. The change reads
+as today's fade, from the sheet to the setup. Back from the setup returns to Start, as before. An alert still wins
+at once (D-088): the sheet and the setup give way in the alert's first frame, and nothing about the start is
+delayed (rule 8).
+
+Claude's details within that choice:
+
+- Only a tea row's tap changes. *Ohne Tee (Schnelltimer)*, *Aus dem Katalog*, back and a swipe down are unchanged.
+- The mechanism is the build's to choose. The picker is a Material 3 `ModalBottomSheet` in its own window above the
+  routes, so the setup cannot simply be drawn over it.
+- A way that only holds the sheet and then drops it in one frame looks like „setup at once", which the PO did not
+  pick. If the result above cannot be reached, the build stops and asks the PO.
 
 **Archiving a tea (v0.2.1, TEA-04, [D-093](10-open-questions-and-decisions.md#d-093); wording from v0.4.0, [D-100](10-open-questions-and-decisions.md#d-100)).**
 A long press on a tea row opens a small menu with *Archivieren* (until v0.3.0

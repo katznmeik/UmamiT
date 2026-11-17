@@ -18,14 +18,16 @@
     - the late tea photos on launch stay as they are.
   - Recorded in 03 SCR-03 „Hand-over to the setup", plus a 09 §4 „v0.8.0" line for rc.2.
 - **Session 5 (Opus `medium` orchestrator):**
-  1. Build #331 at T3 (`/implement-spec`, a test that fails first).
+  0. Environment first: the mirror init script and `gw.sh` (below, „Session facts").
+  1. Build #331 at T3 (`/implement-spec`, a test that fails first). The picker is a `ModalBottomSheet` in its own window. If the PO's visible result (Start never seen, today's fade from sheet to setup) cannot be reached, stop and ask the PO with options.
   2. If the fix touches the app's timer wiring (`rememberTimerFirst`, `TimerRoute` navigation, `LeavingOverKeyguard`), add a T4 read of that delta.
-  3. Run the timer tests, the full local gate, and CI green with both emulator jobs.
-  4. Run all three accuracy variants on the rc commit's full 40-character SHA (09 §4a).
-  5. Set `umamit.version=0.8.0-rc.2` (80002) and dispatch `release.yml` from the PR branch.
-  6. Post the new checklist line on PR #328 for the PO, with a push notification.
+  3. Commit `umamit.version=0.8.0-rc.2` (80002). That commit is the rc commit.
+  4. On the rc commit: the timer tests, the full local gate, and CI green with both emulator jobs. If `TransitionJankTest` fails with „Start is not shown" on API 36, rerun once before investigating.
+  5. All three accuracy variants on the rc commit's full 40-character SHA (09 §4a).
+  6. Dispatch `release.yml` from the PR branch.
+  7. Post the new checklist line on PR #328 for the PO, with a push notification. Ask for explicit approval of the whole checklist: the rest of rc.1's was inferred from the ticked boxes (D-129).
   - **Stop there.**
-- **Session 6 (Sonnet `medium`, #327):** on the PO's approval of rc.2:
+- **Session 6 (Sonnet `medium`, #327):** on the PO's explicit approval of the whole checklist on rc.2:
   1. Tick 09 §4 „v0.8.0".
   2. Set `umamit.version=0.8.0` (80099).
   3. Mark PR #328 ready and merge it (merge commit) once CI is green.
