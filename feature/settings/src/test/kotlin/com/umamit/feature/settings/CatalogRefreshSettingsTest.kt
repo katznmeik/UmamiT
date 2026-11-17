@@ -99,6 +99,22 @@ class CatalogRefreshSettingsTest {
     }
 
     @Test
+    fun `the last line stays drawn while the status leaves (D-117)`() {
+        show()
+        catalogRefresh.state.value = CatalogRefreshState.Running(CatalogRefreshProgress(2, 4, 1))
+        compose.onNodeWithText("Seiten: 2 von 4 · Produkte: 1").performScrollTo().assertIsDisplayed()
+
+        compose.mainClock.autoAdvance = false
+        catalogRefresh.state.value = CatalogRefreshState.Idle
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithTag(SettingsTags.CATALOG_REFRESH_LINE).assertTextEquals("Seiten: 2 von 4 · Produkte: 1")
+
+        compose.mainClock.advanceTimeBy(LEAVE_MS)
+        compose.onNodeWithTag(SettingsTags.CATALOG_REFRESH).assertDoesNotExist()
+    }
+
+    @Test
     fun `reopening the settings after a refresh shows the date only`() {
         catalog.catalog.value = CatalogOverview(emptyList(), lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS)
         catalogRefresh.state.value =
@@ -107,5 +123,9 @@ class CatalogRefreshSettingsTest {
 
         compose.onNodeWithText("22. Okt. 2026").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(SettingsTags.CATALOG_REFRESH).assertDoesNotExist()
+    }
+
+    private companion object {
+        const val LEAVE_MS = 1_000L
     }
 }
