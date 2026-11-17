@@ -99,8 +99,12 @@ class TimerShortScreenScreenshotTest(private val appDark: Boolean) {
     @Test
     fun running() = capture("Running", TimerStates.running())
 
+    /** The alert's strong phase: matcha in the dark theme, washi-sage in the light one (03 §3.6), hence the names. */
     @Test
-    fun alerting() = capture("Alerting_matchaPhase", TimerStates.alerting(overtimeMs = 7_000))
+    fun alerting() = capture(
+        if (appDark) "Alerting_matchaPhase" else "Alerting_strongPhase",
+        TimerStates.alerting(overtimeMs = 7_000),
+    )
 
     /**
      * With the taste button (D-114): the band is down to the top bar already, so the button goes below the control
