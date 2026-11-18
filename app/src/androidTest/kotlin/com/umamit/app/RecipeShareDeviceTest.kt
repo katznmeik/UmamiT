@@ -54,9 +54,14 @@ class RecipeShareDeviceTest {
         assertEquals(RecipeFile.MIME_TYPE, send.type)
         assertTrue(send.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
 
-        val text = send.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
-        assertTrue(text, text.startsWith("Morgennebel (Probe) – Rezept „Kyusu\""))
-        assertTrue(text, text.contains("1. Spülen · 60 °C · 0:10"))
+        val expected = listOf(
+            "Morgennebel (Probe) – Rezept „Kyusu\"",
+            "Kyusu · 4,0${NBSP}g auf 120${NBSP}ml · 60$NBSP°C · Gefäß: Kyusu",
+            "1. Spülen · 60$NBSP°C · 0:10",
+            "2. Aufguss · 60$NBSP°C · 1:30",
+            "Geteilt aus UmamiT – öffne die angehängte Datei in UmamiT, um das Rezept zu übernehmen.",
+        ).joinToString("\n")
+        assertEquals(expected, send.getStringExtra(Intent.EXTRA_TEXT))
 
         val stream = send.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)!!
         assertEquals("content", stream.scheme)
@@ -65,5 +70,10 @@ class RecipeShareDeviceTest {
         assertEquals(RecipeFile.MIME_TYPE, context.contentResolver.getType(stream))
         val bytes = context.contentResolver.openInputStream(stream)!!.use { it.readBytes() }
         assertArrayEquals(RecipeFile.write(recipe, createdAt), bytes)
+    }
+
+    private companion object {
+        /** The no-break space between a number and its unit (05 §7), as in `core/backup`'s share-text golden. */
+        const val NBSP = "\u00A0"
     }
 }
