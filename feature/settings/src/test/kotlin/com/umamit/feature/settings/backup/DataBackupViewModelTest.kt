@@ -89,13 +89,25 @@ class DataBackupViewModelTest {
 
         viewModel.createBackup()
         advanceUntilIdle()
-        assertThat(viewModel.now.dialog).isEqualTo(BackupDialog.SizeNote(backup.estimate))
+        assertThat(viewModel.now.dialog).isEqualTo(BackupDialog.SizeNote(backup.estimate!!))
 
         viewModel.confirmSizeNote()
         assertThat(viewModel.now.dialog).isNull()
         assertThat(viewModel.now.pick).isEqualTo(BackupPick.CreateBackup("UmamiT-Sicherung-2026-11-18.umamit"))
         viewModel.pickHandled()
         assertThat(viewModel.now.pick).isNull()
+    }
+
+    @Test
+    fun `an unreadable estimate says the backup was not saved`() = runTest(dispatcher) {
+        backup.estimate = null
+        val viewModel = viewModel()
+
+        viewModel.createBackup()
+        advanceUntilIdle()
+
+        assertThat(viewModel.now.dialog).isNull()
+        assertThat(viewModel.now.message).isEqualTo(R.string.backup_failed)
     }
 
     @Test

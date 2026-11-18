@@ -1,6 +1,5 @@
 package com.umamit.feature.settings.backup
 
-import androidx.annotation.StringRes
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -19,7 +18,8 @@ import com.umamit.feature.settings.R
 
 /**
  * „Sicherung eingespielt · 142 Sessions, 23 Tees" · *Rückgängig machen* over Start after an import (03 SCR-26), for
- * about 8 s like every undo snackbar (D-093 Q21); [onDone] once it is gone. The undo's result shows after it.
+ * about 8 s like every undo snackbar (D-093 Q21); [onDone] once it is gone, or after a tapped undo once its result
+ * („Import rückgängig gemacht" or a refusal) has shown.
  */
 @Composable
 fun ImportedBackupSnackbar(
@@ -46,7 +46,7 @@ fun ImportedBackupSnackbar(
     onUndo: () -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
-    @StringRes result: Int? = null,
+    result: UndoResult? = null,
     onResultEnd: () -> Unit = {},
 ) {
     val hostState = remember { SnackbarHostState() }
@@ -57,16 +57,16 @@ fun ImportedBackupSnackbar(
     val currentOnDone by rememberUpdatedState(onDone)
     LaunchedEffect(imported) {
         if (imported == null || message == null) return@LaunchedEffect
-        val undone = hostState.showUndo(message, undoLabel, accessibility)
-        currentOnDone()
-        if (undone) currentOnUndo()
+        // A tapped undo keeps the snackbar's host until its result has shown.
+        if (hostState.showUndo(message, undoLabel, accessibility)) currentOnUndo() else currentOnDone()
     }
     val resources = LocalResources.current
     val currentOnResultEnd by rememberUpdatedState(onResultEnd)
     LaunchedEffect(result) {
-        val text = result?.let(resources::getString) ?: return@LaunchedEffect
+        val ended = result ?: return@LaunchedEffect
+        ended.messageRes?.let { hostState.showSnackbar(resources.getString(it)) }
         currentOnResultEnd()
-        hostState.showSnackbar(text)
+        currentOnDone()
     }
     SnackbarHost(hostState = hostState, modifier = modifier)
 }

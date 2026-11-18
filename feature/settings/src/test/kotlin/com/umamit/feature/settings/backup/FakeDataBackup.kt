@@ -17,7 +17,7 @@ class FakeDataBackup : DataBackup {
     override val reminderEnabled = MutableStateFlow(true)
     override val timerActive = MutableStateFlow(false)
 
-    var estimate = BackupEstimate(sessions = 142, teas = 23, photos = 61, bytes = 18L * 1024 * 1024)
+    var estimate: BackupEstimate? = BackupEstimate(sessions = 142, teas = 23, photos = 61, bytes = 18L * 1024 * 1024)
 
     /** What the running export emits; the test sends into it and closes it. */
     var exportEvents = Channel<BackupExport>(Channel.UNLIMITED)
@@ -43,7 +43,7 @@ class FakeDataBackup : DataBackup {
         return reminderWriteOk
     }
 
-    override suspend fun estimate(): BackupEstimate = estimate
+    override suspend fun estimate(): BackupEstimate? = estimate
 
     override fun export(document: String): Flow<BackupExport> {
         exported += document

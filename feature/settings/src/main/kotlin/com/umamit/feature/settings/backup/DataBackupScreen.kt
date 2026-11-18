@@ -158,8 +158,9 @@ fun DataBackupScreen(
     val currentMessageShown by rememberUpdatedState(actions.messageShown)
     LaunchedEffect(message) {
         if (message == null) return@LaunchedEffect
-        currentMessageShown()
         snackbar.showSnackbar(message)
+        // Only once it has ended: clearing it earlier would end this effect and the snackbar with it.
+        currentMessageShown()
     }
     Box(modifier) {
         ScreenScaffold(

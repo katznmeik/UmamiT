@@ -32,6 +32,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -85,7 +86,15 @@ class UseCaseDataBackup @Inject constructor(
         false
     }
 
-    override suspend fun estimate(): BackupEstimate = createBackup.estimate()
+    override suspend fun estimate(): BackupEstimate? = try {
+        createBackup.estimate()
+    } catch (e: IOException) {
+        Log.w(TAG, "backup size not estimated", e)
+        null
+    } catch (e: android.database.SQLException) {
+        Log.w(TAG, "backup size not estimated", e)
+        null
+    }
 
     override fun export(document: String): Flow<BackupExport> = flow {
         val output = withContext(Dispatchers.IO) { open(document) }
@@ -93,7 +102,18 @@ class UseCaseDataBackup @Inject constructor(
             emit(BackupExport.Failed(FileNotFoundException(document)))
             return@flow
         }
-        output.use { out -> createBackup.export(out).collect { emit(it) } }
+        try {
+            createBackup.export(output).collect { emit(it) }
+        } finally {
+            // A failing close after the file is complete never throws into the app (BAK-01 AC3: a timer may run).
+            withContext(Dispatchers.IO + NonCancellable) {
+                try {
+                    output.close()
+                } catch (e: IOException) {
+                    Log.w(TAG, "backup document not closed", e)
+                }
+            }
+        }
     }
 
     override suspend fun delete(document: String) {
@@ -131,7 +151,15 @@ class UseCaseDataBackup @Inject constructor(
         override fun close() = read.content.close()
     }
 
-    override suspend fun undoPreview(): UndoPreview? = undoImport.preview()
+    override suspend fun undoPreview(): UndoPreview? = try {
+        undoImport.preview()
+    } catch (e: IOException) {
+        Log.w(TAG, "undo not readable", e)
+        null
+    } catch (e: android.database.SQLException) {
+        Log.w(TAG, "undo not readable", e)
+        null
+    }
 
     override suspend fun undo(): RestoreResult = undoImport.undo(timerActivity)
 

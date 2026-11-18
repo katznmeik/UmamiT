@@ -30,8 +30,8 @@ interface DataBackup {
     /** Stores SET-20; false when the write failed. */
     suspend fun setReminderEnabled(on: Boolean): Boolean
 
-    /** The size note before the picker (BAK-01 AC1). */
-    suspend fun estimate(): BackupEstimate
+    /** The size note before the picker (BAK-01 AC1); null when the data cannot be read. */
+    suspend fun estimate(): BackupEstimate?
 
     /** The export to [document] (BAK-01 AC2); cancelling the collection stops it. */
     fun export(document: String): Flow<BackupExport>

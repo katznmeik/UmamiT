@@ -118,7 +118,13 @@ class DataBackupViewModel @Inject constructor(private val backup: DataBackup, pr
     fun createBackup() {
         viewModelScope.launch {
             val estimate = backup.estimate()
-            mutable.update { it.copy(dialog = BackupDialog.SizeNote(estimate)) }
+            mutable.update {
+                if (estimate == null) {
+                    it.copy(message = R.string.backup_failed)
+                } else {
+                    it.copy(dialog = BackupDialog.SizeNote(estimate))
+                }
+            }
         }
     }
 
