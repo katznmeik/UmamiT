@@ -435,4 +435,18 @@ class SettingsDataSourceTest {
         assertThat(dataSource(file).settings.first().lowStockReminderInterval)
             .isEqualTo(LowStockReminderInterval.DAILY)
     }
+
+    @Test
+    fun lastBackupAtIsNullUntilAnExportAndSurvivesASettingsUpdate() = runTest {
+        // BAK-01 (05 §6): set by a finished export only; an update of the user's settings keeps it.
+        val source = dataSource()
+        assertThat(source.lastBackupAt.first()).isNull()
+
+        source.markLastBackupAt(1_234L)
+        source.update { it.copy(vibration = false) }
+
+        assertThat(source.lastBackupAt.first()).isEqualTo(1_234L)
+        assertThat(source.stored().lastBackupAt).isEqualTo(1_234L)
+        assertThat(source.stored().vibration).isFalse()
+    }
 }
