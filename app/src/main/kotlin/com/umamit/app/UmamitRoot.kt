@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -110,6 +111,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param teaLinkShare a link shared to the app and not taken yet (CAT-17); the shell takes it to
  *   Sammlung › Katalog, which loads it and hands its token to [onTakeTeaLinkShare]. Nothing above
  *   the tabs is closed for it: while the timer or another full-screen route is shown, it waits (rule 8).
+ * @param receivedRecipes the recipe files received (PRF-08); the shell shows a pending one on SCR-32 in Sammlung.
+ *   Like a shared link it waits while the timer or another full-screen route is shown (rule 8, PRF-08 AC9).
  * @param catalogRefreshRequest a new non-zero token for each tap on a catalog refresh notification
  *   (SCR-22, D-097); 0 for none. The root opens Sammlung › Katalog with the refresh sheet above what
  *   is shown ([CatalogRefreshRoute], at most one, replacing an older one), so back returns there;
@@ -174,6 +177,7 @@ internal fun UmamitRoot(
     },
     teaLinkShare: StateFlow<TeaLinkShare?> = NO_TEA_LINK_SHARE,
     onTakeTeaLinkShare: (Long) -> Unit = {},
+    receivedRecipes: ReceivedRecipeFiles = remember { ReceivedRecipeFiles() },
     catalogRefreshRequest: StateFlow<Long> = NO_CATALOG_REFRESH_REQUEST,
     onConsumeCatalogRefreshRequest: (Long) -> Unit = {},
     startRequest: StateFlow<Long> = NO_START_REQUEST,
@@ -319,6 +323,7 @@ internal fun UmamitRoot(
             settings = settings.withRoot(rerunSetup, onBackupImported),
             teaLinkShare = share,
             onTakeTeaLinkShare = onTakeTeaLinkShare,
+            recipeFiles = receivedRecipes,
             opening = opening,
             startRequest = startRequest,
             archivedTea = archivedTea,

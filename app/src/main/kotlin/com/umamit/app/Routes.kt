@@ -130,6 +130,13 @@ internal data class CatalogTeaRoute(val key: String)
 @Serializable
 internal data class CollectionTeaRoute(val teaId: String)
 
+/**
+ * SCR-32 „Rezept übernehmen" (PRF-08) in the Sammlung tab's stack, for the received file [token]; its bytes stay in
+ * [ReceivedRecipeFiles], never in the route.
+ */
+@Serializable
+internal data class CollectionReceiveRecipeRoute(val token: Long)
+
 /** *Sorte wählen* (SCR-11) from *Meine Tees*' *Ohne Katalog* (TEA-01, D-100), in the Sammlung tab's stack. */
 @Serializable
 internal data object CollectionSorteRoute

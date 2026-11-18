@@ -197,9 +197,12 @@ private fun Message(text: String) {
     )
 }
 
-/** The copy of 03 §5 for a link that led to no tea; the shop's refusals as the refresh says them. */
+/**
+ * The copy of 03 §5 for a link that led to no tea; the shop's refusals as the refresh says them. Public for SCR-32's
+ * *Tee über Shop-Link laden* (PRF-08, D-130 Q4), which the app wires: the same fetch says the same.
+ */
 @StringRes
-internal fun TeaLinkOutcome.messageRes(): Int = when (this) {
+fun TeaLinkOutcome.messageRes(): Int = when (this) {
     TeaLinkOutcome.NotATeaLink -> R.string.tea_link_not_a_tea_link
 
     TeaLinkOutcome.NotInCatalog -> R.string.tea_link_not_in_catalog

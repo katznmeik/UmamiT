@@ -150,7 +150,11 @@ class ReceiveRecipeViewModel internal constructor(
         if (overviews.isEmpty()) {
             flowOf(emptyList())
         } else {
-            combine(overviews.map { overview -> recipes.observeRecipes(overview.tea.id).map { overview.toOption(it) } }) {
+            combine(
+                overviews.map { overview ->
+                    recipes.observeRecipes(overview.tea.id).map { overview.toOption(it) }
+                },
+            ) {
                 it.toList()
             }
         }

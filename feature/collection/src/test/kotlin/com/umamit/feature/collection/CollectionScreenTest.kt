@@ -28,6 +28,7 @@ class CollectionScreenTest {
     private var settingsOpened = 0
     private var fromCatalog = 0
     private var withoutCatalog = 0
+    private var imports = 0
     private val folds = mutableListOf<Boolean>()
 
     private fun show(segment: CollectionSegment, foldable: Boolean = false) {
@@ -43,6 +44,7 @@ class CollectionScreenTest {
                     onFoldCatalog = if (foldable) ({ folds += it }) else null,
                     onAddFromCatalog = { fromCatalog++ },
                     onAddWithoutCatalog = { withoutCatalog++ },
+                    onImportRecipe = { imports++ },
                 )
             }
         }
@@ -103,6 +105,17 @@ class CollectionScreenTest {
         assertThat(withoutCatalog).isEqualTo(1)
     }
 
+    /** PRF-08, D-130 Q14: the third entry, only on *Meine Tees*. */
+    @Test
+    fun myTeasOffersRezeptImportieren() {
+        show(CollectionSegment.MyTeas)
+
+        openMenu()
+        compose.onNodeWithText("Rezept importieren").performClick()
+
+        assertThat(imports).isEqualTo(1)
+    }
+
     @Test
     fun theCatalogSegmentHasNoAddEntries() {
         show(CollectionSegment.Catalog)
@@ -110,6 +123,7 @@ class CollectionScreenTest {
         openMenu()
         compose.onNodeWithText("Tee aus dem Katalog hinzufügen").assertDoesNotExist()
         compose.onNodeWithText("Tee ohne Katalog hinzufügen").assertDoesNotExist()
+        compose.onNodeWithText("Rezept importieren").assertDoesNotExist()
     }
 
     @Test

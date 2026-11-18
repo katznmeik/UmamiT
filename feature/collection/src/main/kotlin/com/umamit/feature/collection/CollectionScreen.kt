@@ -23,7 +23,8 @@ import com.umamit.core.ui.rememberAlertGate
  * [MyTeasRoute], D-100). *Katalog* is [catalogContent] (`feature:catalog`, wired by the app, since a
  * feature never depends on another, 06 §3). On *Meine Tees* the ⋮ menu offers *Tee aus dem Katalog hinzufügen*
  * ([onAddFromCatalog]: the *Katalog* segment) and *Tee ohne Katalog hinzufügen* ([onAddWithoutCatalog]: *Sorte
- * wählen*, SCR-11), in place of rc.1's FAB (D-102). On *Katalog* it offers
+ * wählen*, SCR-11), in place of rc.1's FAB (D-102), and *Rezept importieren* ([onImportRecipe]: the system file picker,
+ * then SCR-32; PRF-08, D-130 Q14). On *Katalog* it offers
  * *Katalog aktualisieren* ([onRefreshCatalog], SCR-19, CAT-07) and *Link einfügen*
  * ([onPasteLink], a tea from a shop link, CAT-17), and while the catalog shows a view whose *Sorte* groups fold
  * ([onFoldCatalog] not null, D-098) *Alle einklappen* (`true`) and *Alle ausklappen* (`false`). The menu gives way to
@@ -43,6 +44,7 @@ fun CollectionScreen(
     onFoldCatalog: ((fold: Boolean) -> Unit)? = null,
     onAddFromCatalog: () -> Unit = {},
     onAddWithoutCatalog: () -> Unit = {},
+    onImportRecipe: () -> Unit = {},
     alertKey: String? = null,
 ) {
     val menu = rememberAlertGate(alertKey)
@@ -52,6 +54,7 @@ fun CollectionScreen(
     val unfoldLabel = stringResource(R.string.collection_catalog_unfold_all)
     val addFromCatalogLabel = stringResource(R.string.my_teas_add_from_catalog)
     val addWithoutCatalogLabel = stringResource(R.string.my_teas_add_without_catalog)
+    val importRecipeLabel = stringResource(R.string.my_teas_import_recipe)
     val menuItems = if (segment == CollectionSegment.Catalog) {
         buildList {
             add(OverflowItem(refreshLabel, onRefreshCatalog))
@@ -65,6 +68,7 @@ fun CollectionScreen(
         listOf(
             OverflowItem(addFromCatalogLabel, onAddFromCatalog),
             OverflowItem(addWithoutCatalogLabel, onAddWithoutCatalog),
+            OverflowItem(importRecipeLabel, onImportRecipe),
         )
     }
     ScreenScaffold(

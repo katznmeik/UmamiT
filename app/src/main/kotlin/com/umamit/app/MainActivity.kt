@@ -59,6 +59,10 @@ import javax.inject.Inject
  * shell shows Sammlung › Katalog, which loads it. The timer is never covered for it: while the
  * timer or another screen above the tabs is shown, the share waits until the tabs are back (rule 8).
  *
+ * A recipe file opened or shared to the app reaches it from [ReceiveRecipeActivity] ([openRecipe], PRF-08), and one
+ * picked with *Rezept importieren* from the shell ([ReceivedRecipeFiles.receive]): the shell shows SCR-32 in Sammlung.
+ * Like a shared link it waits while the timer or another screen above the tabs is shown (rule 8, PRF-08 AC9).
+ *
  * The catalog refresh's notifications open it with [CatalogRefreshRequests] (SCR-22, D-097): the
  * root shows Sammlung › Katalog with the refresh sheet above what was shown, never over an alert.
  *
@@ -97,6 +101,9 @@ class MainActivity : ComponentActivity() {
     /** Links shared to the app (CAT-17); a pending one survives a recreation. */
     private val teaLinkShares = TeaLinkShares()
 
+    /** Recipe files received (PRF-08); a pending or shown one survives a recreation. */
+    private val receivedRecipes = ReceivedRecipeFiles()
+
     /** Taps on the catalog refresh's notifications (SCR-22, D-097); a pending one survives a recreation. */
     private val catalogRefreshRequests = CatalogRefreshRequests()
 
@@ -110,11 +117,13 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             openTimerIfAsked(intent)
             teaLinkShares.offer(intent)
+            receivedRecipes.offer(intent)
             catalogRefreshRequests.offer(intent)
             startRequests.offer(intent)
         } else {
             if (timerRequests.restore(savedInstanceState, intent)) showTimerOverLockScreen()
             teaLinkShares.restore(savedInstanceState)
+            receivedRecipes.restore(savedInstanceState)
             catalogRefreshRequests.restore(savedInstanceState)
             startRequests.restore(savedInstanceState)
         }
@@ -154,6 +163,7 @@ class MainActivity : ComponentActivity() {
                     keyguard = keyguard,
                     teaLinkShare = teaLinkShares.share,
                     onTakeTeaLinkShare = teaLinkShares::taken,
+                    receivedRecipes = receivedRecipes,
                     catalogRefreshRequest = catalogRefreshRequests.token,
                     onConsumeCatalogRefreshRequest = catalogRefreshRequests::handled,
                     startRequest = startRequests.token,
@@ -206,6 +216,7 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         openTimerIfAsked(intent)
         teaLinkShares.offer(intent)
+        receivedRecipes.offer(intent)
         catalogRefreshRequests.offer(intent)
         startRequests.offer(intent)
     }
@@ -214,6 +225,7 @@ class MainActivity : ComponentActivity() {
         super.onSaveInstanceState(outState)
         timerRequests.save(outState)
         teaLinkShares.save(outState)
+        receivedRecipes.save(outState)
         catalogRefreshRequests.save(outState)
         startRequests.save(outState)
     }
@@ -267,6 +279,12 @@ class MainActivity : ComponentActivity() {
         fun openTeaLink(context: Context, text: String): Intent = Intent(context, MainActivity::class.java)
             .setAction(TeaLinkShares.ACTION_OPEN_TEA_LINK)
             .putExtra(TeaLinkShares.EXTRA_TEXT, text)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+
+        /** Opens the app's own task with a received recipe file's [bytes] (PRF-08), as [openTeaLink] does. */
+        fun openRecipe(context: Context, bytes: ByteArray): Intent = Intent(context, MainActivity::class.java)
+            .setAction(ReceivedRecipeFiles.ACTION_OPEN_RECIPE)
+            .putExtra(ReceivedRecipeFiles.EXTRA_BYTES, bytes)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     }
 }
