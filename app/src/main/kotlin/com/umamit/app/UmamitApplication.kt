@@ -15,6 +15,7 @@ import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.controller.TimerInputs
 import com.umamit.core.timer.diagnostics.AppStartDiagnostics
+import com.umamit.feature.collection.recipe.SharedRecipeFiles
 import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -95,6 +96,8 @@ class UmamitApplication :
         recoveryScope.launch { lowStockReminders.get().follow() }
         // The safety copy's 7 × 24 h (05 §8 „Expiry") and what a crash left of an import.
         recoveryScope.launch { safetyCopyExpiry.get().atAppStart() }
+        // Shared recipe files older than a day (PRF-08, 06 §5.7): last, off the main thread, after the timer's recovery.
+        recoveryScope.launch(Dispatchers.IO) { SharedRecipeFiles.deleteStale(cacheDir, System.currentTimeMillis()) }
     }
 
     /** Debug builds only (06 §6): surface disk/network access on the main thread and leaks early. */
