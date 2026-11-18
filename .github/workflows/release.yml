@@ -87,6 +87,21 @@ jobs:
           echo "SHA=$sha" >> "$GITHUB_ENV"
           echo "Building $VERSION from $INPUT_REF at $sha (pre-release: $prerelease)."
 
+      # D-132: a final release needs its What's new, checked before anything is built or published.
+      - name: Check the What's new file of a final release
+        run: |
+          set -euo pipefail
+          base="${VERSION%%-*}"
+          file="docs/whats-new/v$base.md"
+          if [[ -f "$file" ]]; then
+            echo "What's new: $file."
+          elif [[ "$VERSION" != *-* ]]; then
+            echo "::error::The final release $VERSION needs $file at '$INPUT_REF' (D-132). Add it and dispatch again."
+            exit 1
+          else
+            echo "No $file at '$INPUT_REF'; the notes of $VERSION have no What's new."
+          fi
+
       - name: Check that tag and release do not exist yet
         env:
           GH_TOKEN: ${{ github.token }}
@@ -334,7 +349,22 @@ jobs:
             flags=(--latest)
           fi
           notes="$RUNNER_TEMP/notes.md"
-          cat > "$notes" <<EOF
+          # D-132: the What's new of the release (docs/whats-new/v<base>.md at $SHA) goes first.
+          base="${VERSION%%-*}"
+          file="docs/whats-new/v$base.md"
+          raw="$RUNNER_TEMP/whats-new.md"
+          if gh api -H "Accept: application/vnd.github.raw+json" "repos/$GH_REPO/contents/$file?ref=$SHA" > "$raw" 2>/dev/null; then
+            # Drop HTML comments (also multi-line) and the blank lines they leave at the start.
+            perl -0777 -pe 's/<!--.*?-->//gs; s/\A\s+//; s/\s+\z/\n/' "$raw" > "$notes"
+            printf '\n' >> "$notes"
+          elif [[ "$PRERELEASE" != "true" ]]; then
+            echo "::error::The final release $VERSION needs $file at $SHA (D-132)."
+            exit 1
+          else
+            echo "No $file at $SHA; the notes have no What's new."
+            : > "$notes"
+          fi
+          cat >> "$notes" <<EOF
           UmamiT $VERSION. $kind
 
           | | |
