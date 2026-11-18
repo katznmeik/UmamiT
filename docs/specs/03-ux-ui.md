@@ -2126,7 +2126,7 @@ tokens (§3.6); reduce motion: they appear at once.
 
 ### SCR-26 Daten & Sicherung
 
-Until v0.9.0: the device-backup explanation and *Alle Daten löschen*. From
+Planned before v0.9.0 as the device-backup explanation and *Alle Daten löschen*, neither built until v0.9.0 ([D-131](10-open-questions-and-decisions.md#d-131)). From
 v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q8, [D-130](10-open-questions-and-decisions.md#d-130)), top to bottom:
 
 - **SICHERUNG** (overline)
@@ -2165,9 +2165,16 @@ v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-de
 - **EXPORT** (overline): ***Journal als CSV*** (outlined) with „Alle
   Sessions als Tabelle, z. B. für Excel. Kann nicht eingespielt werden." →
   the picker (`UmamiT-Journal-2026-11-18.csv`) → „Journal gespeichert".
-- **GERÄTE-BACKUP** (overline): the device-backup explanation as before,
-  plus „Fotos sind nur in der Sicherung enthalten.".
-- ***Alle Daten löschen*** as before (SET-33).
+- **GERÄTE-BACKUP** (overline): „Dein Handy sichert Tees, Journal und
+  Einstellungen automatisch mit dem Geräte-Backup. Fotos sind nur in der
+  Sicherung enthalten." (D-131 Q6).
+- ***Alle Daten löschen*** (SET-33, destructive text button; D-131, #346):
+  the dialog „Alle Daten löschen?" · „Alle Tees, Sessions, Rezepte, Gefäße,
+  Fotos und Einstellungen werden von diesem Gerät gelöscht. Das kann nicht
+  rückgängig gemacht werden. Erstelle vorher eine Sicherung." · a field
+  „Tippe LÖSCHEN zur Bestätigung" · *Abbrechen* / *Löschen* (enabled only by
+  exactly „LÖSCHEN"). Then the app starts as after installing it
+  (onboarding). Greyed out during a timer like the import.
 - TalkBack: the progress bar reads „Sicherung wird erstellt, 12 von 61
   Fotos"; the typed field „Bestätigungswort, ERSETZEN eintippen".
 
