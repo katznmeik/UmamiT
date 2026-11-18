@@ -217,8 +217,9 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The taps other than the timer's (a shared link, a recipe file, the catalog refresh, Start, the backup reminder): the intent's
-     * when there is no saved state, else the ones still pending when the activity was recreated.
+     * The taps other than the timer's (a shared link, a recipe file, the catalog refresh, Start, the backup
+     * reminder): the intent's when there is no saved state, else the ones still pending when the activity was
+     * recreated.
      */
     private fun takeTaps(intent: Intent?, savedState: Bundle?) {
         if (savedState == null) {
