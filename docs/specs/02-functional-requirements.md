@@ -2131,7 +2131,9 @@ quotes. Does not set „Letzte Sicherung".
 | Aufgüsse im Detail | Spülen 0:10 \| 60 °C 1:30 \| 65 °C 0:20 \| 70 °C 0:45 |
 | Umami … Würze | ten columns in 05 §3.7's order (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma, Röstung/Malz, Säure, Frische, Würze): for the six axes of the session's set in effect (JRN-03, D-128 item 13) the mean over the infusions with a value, one decimal; the other four always empty (D-130 Q10), even where a hidden value is stored |
 
-Empty values stay empty; no unit in a cell.
+Empty values stay empty; no unit in a cell. A text cell that starts with
+`=`, `+`, `-` or `@` is written with a leading apostrophe („'- etwas bitter"), so
+Excel shows it as text (D-130 build note, PO 2026-11-18); number cells never.
 
 **BAK-06 — Backup reminder** `Should` (v0.9.0, D-130 Q11): with *An
 Sicherung erinnern* (SET-20) on, once a month a low-importance notification
