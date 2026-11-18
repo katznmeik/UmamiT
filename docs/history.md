@@ -11,6 +11,15 @@
 
 ## Releases and plans
 
+### v0.9.0: build session 1, steps 1–3 (2026-11-18)
+
+- **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/wizardly-fermi-djdpxn`, not used). Draft milestone PR [#345](https://github.com/katznmeik/UmamiT/pull/345).
+- **Gate:** the PO approved spec #333, tickets #334–#344 and #330, the plan and D-130 items 17–27 as written (asked as options); the tickets and the spec were relabelled `ready-for-agent`.
+- **Built and verified (orchestrator's diff review, local cross-module check, CI on the PR):** #334 backup writer (T3), #340 recipe file (T3), #335 backup reader (T4), #337 journal CSV (T3), #336 replacing import, safety copy, undo and expiry (T4; its crash-safety design note read and recorded before the code), #330 the tabs' ⋮ menu gives way to an alert (T3). The timer diff (`feature/brew`, `core/timer`, `core/timer-engine`) stayed empty after every ticket; umamit.db stays v9.
+- **PO answers during the build (as options, D-130 build notes):** a CSV text cell starting with `=`, `+`, `-` or `@` gets a leading apostrophe; the import and the undo are refused while a catalog refresh runs; a step that fails after the commit still reports „Sicherung eingespielt".
+- **Specs:** 02 BAK-04 (formula cells), 05 §8 (validation order, the replace's refusals, commit token and start gate), 10 (D-130 build notes for #334–#337, #340, #336).
+- **Environment:** Maven Central answered HTTP 429 again; the mirror init script (`mirror.gradle`, scratchpad) and the Robolectric jars (sha512 checked) were set up as PROJECT_STATE says. The container restarted once mid-session; the scratchpad survived, #330's report was lost and its commit reviewed by the orchestrator instead.
+
 ### v0.9.0: specify session (2026-11-18)
 
 - **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/lucid-hopper-qc2hw0`, not used). No code, no PR.
