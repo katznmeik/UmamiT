@@ -80,7 +80,9 @@ and effort to pick, the branch and PR, the phase and its steps by pointer
      (`workflow_dispatch`, inputs `ref` + `version`), which creates the tag
      and the release. Release candidates `vX.Y.Z-rc.N` are pre-releases
      from the PR branch for the PO's testing; the final `vX.Y.Z` is built
-     from `main` after the merge. The version lives only in
+     from `main` after the merge. Every final and rc release has a short
+     „What's new" in `docs/whats-new/vX.Y.Z.md` (English, 3–8 bullets,
+     D-132), which `release.yml` puts on the release page. The version lives only in
      `gradle.properties` (versionCode scheme: `docs/specs/06-architecture.md` §6);
    - the on-device checklist passes (`docs/specs/09-release-plan.md` §4);
    - the design review passes. Rendered screenshots (light and dark) go in

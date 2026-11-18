@@ -20,7 +20,9 @@
    `gradle.properties`. `release.yml` builds only a commit on which CI
    passed (D-070). Before each release candidate the accuracy
    workflow must pass ([§4a](#4a-accuracy-run-before-each-release-candidate),
-   D-067).
+   D-067). Every final and rc release page starts with a short „What's
+   new" from `docs/whats-new/vX.Y.Z.md` (English, 3–8 bullets as *New*,
+   *Improved*, *Fixed*; an rc adds „Since rc.N"; [D-132](10-open-questions-and-decisions.md#d-132)).
 4. Specs are updated in the same PR when behaviour changes.
 5. **Definition of done per milestone:** the on-device checklist passes on
    the PO's Galaxy **and** a design review round passes. For the review,
@@ -452,6 +454,7 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 
 - [ ] `v0.9.0-rc.1` installs over `v0.8.0` without losing data (umamit.db stays v9); a timer running during the update still alerts.
 - [ ] **Daten & Sicherung** shows „Noch keine Sicherung", *Sicherung erstellen*, *Sicherung einspielen*, *Journal als CSV*, *An Sicherung erinnern* (on) and *Alle Daten löschen*.
+- [ ] **Alle Daten löschen** (D-131, #346; last, after the other checks, with a backup made first): greyed out while a timer runs; *Löschen* only after typing „LÖSCHEN"; afterwards the app starts with the onboarding and the seed teas; *Sicherung einspielen* of the backup brings everything back.
 - [ ] **Sicherung erstellen** shows „Etwa … MB · … Sessions, … Tees, … Fotos", lets you choose a folder, shows the progress with the photo count and ends with „Sicherung gespeichert"; then „Letzte Sicherung: <heute> · 0 neue Sessions". Opened as a ZIP on a computer, the file holds `manifest.json`, a readable `data.json` and the photos (own and shop photos). It also works while a brew runs, and the brew still alerts.
 - [ ] *Abbrechen* during the export stops it, and „Letzte Sicherung" stays as it was.
 - [ ] **Sicherung einspielen** of that file on the same phone: the preview names its date and counts; *Ersetzen* stays disabled until „ERSETZEN" is typed; afterwards Start shows „Sicherung eingespielt", and teas, photos (covers included), journal, Statistik, vessels, bookmarks and settings are as in the file.

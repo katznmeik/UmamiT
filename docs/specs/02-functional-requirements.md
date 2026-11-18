@@ -2045,7 +2045,12 @@ Katalog tab, Einrichtung) shows the same way. There is no *Abbrechen* here.
 (the chosen *Vorwarnton*, SET-26, from v0.2.1; from v0.3.0 on the alarm
 volume at the *Lautstärke* of SET-27, D-098).
 
-**SET-33 — Delete all data** `Must` (type „LÖSCHEN" to confirm).
+**SET-33 — Delete all data** `Must` (type „LÖSCHEN" to confirm). From
+v0.9.0 ([D-131](10-open-questions-and-decisions.md#d-131), #346): on SCR-26,
+like a fresh install (database, own and catalog photos, catalog cache, all
+settings, the safety copy); greyed out while a timer is active; no undo, the
+dialog suggests a backup first; the next start is a first start
+(onboarding, seed data).
 
 ---
 
