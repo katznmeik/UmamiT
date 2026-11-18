@@ -2400,6 +2400,8 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Backup broken (BAK-02) | „Die Sicherung ist beschädigt und wurde nicht eingespielt." |
 | Backup import or undo while a timer is active (BAK-02) | „Während ein Timer läuft, kann nichts eingespielt werden." |
 | Safety copy could not be written (BAK-02) | „Die Sicherheitskopie konnte nicht angelegt werden – ist der Speicher voll? Es wurde nichts geändert." |
+| Backup import or undo while the catalog refreshes (BAK-02, D-130 build note, PO 2026-11-18) | „Während der Katalog aktualisiert wird, kann nichts eingespielt werden." |
+| Backup replace failed before its commit (BAK-02; Claude's wording, D-130 build note) | „Das Einspielen hat nicht geklappt. Deine Daten sind unverändert." |
 | Import failed during the replace (BAK-02) | „Das Einspielen hat nicht geklappt. Deine Daten sind unverändert." |
 | Recipe file: not one (PRF-08) | „Das ist keine UmamiT-Rezeptdatei." |
 | Recipe file broken or too large (PRF-08) | „Die Rezeptdatei ist beschädigt." |
