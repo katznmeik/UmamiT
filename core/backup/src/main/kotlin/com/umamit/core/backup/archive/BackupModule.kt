@@ -1,6 +1,7 @@
 package com.umamit.core.backup.archive
 
 import android.content.Context
+import com.umamit.core.backup.restore.ImportPaths
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,6 +19,10 @@ object BackupModule {
     /** `filesDir/photos/`, the folder `core:data`'s `PhotoFiles` writes (05 §3.9). */
     @Provides
     fun photoDirectory(@ApplicationContext context: Context) = BackupPhotoDirectory(File(context.filesDir, "photos"))
+
+    /** The replacing import's files in `noBackupFilesDir` and `filesDir` (05 §8 „Replace", BAK-02). */
+    @Provides
+    fun importPaths(@ApplicationContext context: Context) = ImportPaths.of(context)
 
     @Provides
     fun appVersion(@ApplicationContext context: Context): AppVersion {

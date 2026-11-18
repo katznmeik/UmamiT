@@ -12,6 +12,8 @@ dependencies {
     api(project(":core:model"))
     // The recipe file (05 §8a): CAT-17 AC2's shop link check (TeaLinks) and the built-in styles.
     implementation(project(":core:catalog-parser"))
+    // The replacing import is refused while a catalog refresh runs (BAK-02, D-130 build note of #336): its state only.
+    implementation(project(":core:data"))
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
 

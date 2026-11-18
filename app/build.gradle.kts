@@ -33,6 +33,8 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:data"))
     implementation(project(":core:timer"))
+    // The start gate of the replacing import and the safety copy's expiry (BAK-02, 05 §8, D-130 build note of #336).
+    implementation(project(":core:backup"))
     // The shared alert gate of the Start tab's tea picker (rule 8).
     implementation(project(":core:ui"))
 

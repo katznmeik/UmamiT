@@ -10,6 +10,7 @@ import com.umamit.core.database.dao.CatalogBookmarkDao
 import com.umamit.core.database.dao.InventoryDao
 import com.umamit.core.database.dao.JournalDao
 import com.umamit.core.database.dao.RecipeDao
+import com.umamit.core.database.dao.RestoreDao
 import com.umamit.core.database.dao.SessionDao
 import com.umamit.core.database.dao.SessionPhotoDao
 import com.umamit.core.database.dao.StatsDao
@@ -82,6 +83,9 @@ abstract class UmamiDatabase : RoomDatabase() {
 
     /** The backup's snapshot reads (05 §8, BAK-01). */
     abstract fun backupDao(): BackupDao
+
+    /** The replacing import's writes and the undo's counts (05 §8, BAK-02). */
+    abstract fun restoreDao(): RestoreDao
 
     companion object {
         const val NAME = "umamit.db"
