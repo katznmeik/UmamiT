@@ -454,6 +454,7 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 
 - [ ] `v0.9.0-rc.1` installs over `v0.8.0` without losing data (umamit.db stays v9); a timer running during the update still alerts.
 - [ ] **Daten & Sicherung** shows „Noch keine Sicherung", *Sicherung erstellen*, *Sicherung einspielen*, *Journal als CSV*, *An Sicherung erinnern* (on) and *Alle Daten löschen*.
+- [ ] The *Sicherung einspielen* dialog with „Tippe ERSETZEN zur Bestätigung" at font 2.0 with the keyboard open looks like the other dialogs (full width, 24 dp margins; D-130 build note #338).
 - [ ] **Alle Daten löschen** (D-131, #346; last, after the other checks, with a backup made first): greyed out while a timer runs; *Löschen* only after typing „LÖSCHEN"; afterwards the app starts with the onboarding and the seed teas; *Sicherung einspielen* of the backup brings everything back.
 - [ ] **Sicherung erstellen** shows „Etwa … MB · … Sessions, … Tees, … Fotos", lets you choose a folder, shows the progress with the photo count and ends with „Sicherung gespeichert"; then „Letzte Sicherung: <heute> · 0 neue Sessions". Opened as a ZIP on a computer, the file holds `manifest.json`, a readable `data.json` and the photos (own and shop photos). It also works while a brew runs, and the brew still alerts.
 - [ ] *Abbrechen* during the export stops it, and „Letzte Sicherung" stays as it was.

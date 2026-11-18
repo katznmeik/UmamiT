@@ -449,6 +449,26 @@ built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
   launch (`NameNotFoundException` in `NetworkModule`); passed on rerun — for
   #343's review of the start gate.
 
+- **Build note, #338 (SCR-26, build session 2, PO 2026-11-18):** built at T3
+  (it adds `backupReminderEnabled`, a normal backed-up key; the reader needed
+  no main-code change). The screen talks to a `DataBackup` interface in
+  `feature:settings` (`UseCaseDataBackup` adapts the use cases and reads
+  `BrewSessionController.slotStates` only). The PO's answers: the snackbar's
+  *Rückgängig machen* on Start undoes directly (nothing can be lost yet); the
+  undo dialog drops a zero count („Seit dem Import: 3 neue Sessions und alle
+  anderen Änderungen – sie gehen verloren.", the same for teas; fixed with
+  #339); „Das Journal konnte nicht gespeichert werden." (CSV failed) and
+  „Import wird rückgängig gemacht …" (the undo's cover). Accepted defaults:
+  refusals and „gespeichert/abgebrochen" are snackbars; „Sicherung wird
+  geprüft …" is a blocking cover like the import; an unreadable file shows
+  „Das Einspielen hat nicht geklappt. Deine Daten sind unverändert."; the
+  open picker shows `*/*`; leaving SCR-26 cancels a running export and
+  deletes the partial file; the size note rounds to whole MB, at least
+  „Etwa 1 MB"; the ERSETZEN dialog is full width with 24 dp margins (a
+  normal-width dialog with a text field never settled in Robolectric) — the
+  PO checks it at font 2.0 with the keyboard on rc.1. „N neue Sessions"
+  counts COMPLETED and MANUAL sessions (`RestoreDao.sessionsStartedAfter`).
+
 ### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*
 
 **Context.** The PO checked `v0.8.0-rc.1` (PR #328) and named one failure from a screen recording (2026-11-17 21:58). Tapping a tea in *Tee wählen* (SCR-03) removes the sheet within one frame, so Start shows bare for ≈ 150–200 ms while *Neue Session* (SCR-04) fades in over it. A second recording (cold and warm start) felt „a tiny bit jumpy": the system's splash and window zoom are as usual, but the tea photos in Start's „Zuletzt aufgegossen" are missing for the first frames and pop in a moment later. The same recording's longer view of Start (setup → Start → timer) was two taps of the PO's (the setup's back arrow, then a recent row), not a fault.
