@@ -102,6 +102,11 @@ data class StoredSettings(
      * only, device-bound (not in a backup's `settings.json`, 05 §8); a file of v0.8.x has no key, no migration.
      */
     val lastBackupAt: Long? = null,
+    /**
+     * When the safety copy of the last import was made (BAK-02, v0.9.0, D-130 Q5), epoch ms; null = no copy. Set and
+     * cleared by the import, its undo and the copy's expiry only; device-bound (05 §8); no migration.
+     */
+    val safetyCopyAt: Long? = null,
 )
 
 /** JSON serializer for [StoredSettings]; an unreadable file reads as the defaults. */
@@ -224,6 +229,22 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
         dataStore.updateData { it.copy(lastBackupAt = atMs) }
     }
 
+    /** When the safety copy was made (BAK-02, 05 §6), epoch ms; null = none. */
+    val safetyCopyAt: Flow<Long?> = dataStore.data.map { it.safetyCopyAt }
+
+    /** Records the safety copy's time [atMs], or clears it with null (BAK-02); only `core:backup`'s import calls it. */
+    suspend fun setSafetyCopyAt(atMs: Long?) {
+        dataStore.updateData { it.copy(safetyCopyAt = atMs) }
+    }
+
+    /**
+     * Applies [transform] atomically to the stored settings, every key of 05 §6: the import lays a backup's keys over
+     * them in one write (05 §8 „Replace" step 4).
+     */
+    suspend fun updateStored(transform: (StoredSettings) -> StoredSettings) {
+        dataStore.updateData(transform)
+    }
+
     /** Adds [parts] to [seedTeaLinksDone] (CAT-15, D-090). */
     suspend fun markSeedTeaLinksDone(parts: Set<String>) {
         dataStore.updateData { it.copy(seedTeaLinksDone = it.seedTeaLinksDone + parts) }
@@ -305,4 +326,5 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     seedTeaLinksDone = markersOf.seedTeaLinksDone,
     seedVesselsV2Added = markersOf.seedVesselsV2Added,
     lastBackupAt = markersOf.lastBackupAt,
+    safetyCopyAt = markersOf.safetyCopyAt,
 )

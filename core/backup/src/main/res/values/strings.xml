@@ -101,4 +101,10 @@
     <string name="backup_refused_newer_version">Diese Datei stammt aus einer neueren UmamiT-Version. Aktualisiere die App und versuch es noch mal.</string>
     <string name="backup_refused_damaged">Die Sicherung ist beschädigt und wurde nicht eingespielt.</string>
 
+    <!-- The replacing import and its undo (BAK-02, 05 §8 „Replace", 03 §5, D-130): their refusals; nothing changes. -->
+    <string name="backup_refused_timer_active">Während ein Timer läuft, kann nichts eingespielt werden.</string>
+    <string name="backup_refused_catalog_refresh">Während der Katalog aktualisiert wird, kann nichts eingespielt werden.</string>
+    <string name="backup_refused_safety_copy">Die Sicherheitskopie konnte nicht angelegt werden – ist der Speicher voll? Es wurde nichts geändert.</string>
+    <string name="backup_refused_replace_failed">Das Einspielen hat nicht geklappt. Deine Daten sind unverändert.</string>
+
 </resources>

@@ -4,6 +4,8 @@ import android.app.Application
 import android.os.StrictMode
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.umamit.core.backup.restore.ImportRecovery
+import com.umamit.core.backup.restore.SafetyCopyExpiry
 import com.umamit.core.data.FirstStart
 import com.umamit.core.data.catalog.CatalogRefreshHost
 import com.umamit.core.data.catalog.CatalogRefreshServicePort
@@ -57,6 +59,12 @@ class UmamitApplication :
     @Inject
     lateinit var lowStockReminders: Lazy<LowStockReminderScheduler>
 
+    @Inject
+    lateinit var importRecovery: Lazy<ImportRecovery>
+
+    @Inject
+    lateinit var safetyCopyExpiry: Lazy<SafetyCopyExpiry>
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
@@ -68,6 +76,10 @@ class UmamitApplication :
 
     override fun onCreate() {
         super.onCreate()
+        // An import interrupted by a crash is finished (or undone) before anything below reads the database, the
+        // photos or the settings (05 §8 crash safety, BAK-02). Only after such a crash does it block, briefly; the
+        // usual start checks one file.
+        if (ImportRecovery.isNeeded(this)) importRecovery.get().recoverAtStart()
         if (BuildConfig.DEBUG) enableStrictMode()
         // The permission states of this process start, for *Diagnose* (06 §5.6); binder calls,
         // so off the main thread, and never in the way of an alarm that started the process.
@@ -81,6 +93,8 @@ class UmamitApplication :
         recoveryScope.launch { firstStart.get().retrySeedAtAppStart() }
         // The daily low-stock reminder (INV-11): keeps a waiting job, follows SET-28 and SET-29 from now on.
         recoveryScope.launch { lowStockReminders.get().follow() }
+        // The safety copy's 7 × 24 h (05 §8 „Expiry") and what a crash left of an import.
+        recoveryScope.launch { safetyCopyExpiry.get().atAppStart() }
     }
 
     /** Debug builds only (06 §6): surface disk/network access on the main thread and leaks early. */
