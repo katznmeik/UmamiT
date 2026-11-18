@@ -51,6 +51,7 @@ class ImportCrashTest {
             h,
         ->
         val before = h.world()
+        val storedBefore = h.stored()
         h.replacer.checkpoints = ImportCheckpoints { if (it == point) throw InjectedFailure() }
 
         val result = runBlocking { h.newContent().use { h.restore.restore(it, NO_TIMER) } }
@@ -62,6 +63,7 @@ class ImportCrashTest {
         }
         assertWithMessage("$point").that(result).isEqualTo(RestoreResult.Refused(expected))
         assertWithMessage("$point").that(h.world()).isEqualTo(before)
+        assertWithMessage("settings").that(h.stored()).isEqualTo(storedBefore)
         assertWithMessage("$point").that(h.leftovers()).isEmpty()
         assertWithMessage("$point").that(h.paths.safetyCopy.exists()).isFalse()
         assertWithMessage("$point").that(h.stored().safetyCopyAt).isNull()
@@ -71,6 +73,7 @@ class ImportCrashTest {
     fun `a crash at each phase of an import ends in the complete old or the complete new data`() =
         forEachPoint(ImportPoint.entries) { point, h ->
             val before = h.world()
+            val storedBefore = h.stored()
             h.replacer.checkpoints = ImportCheckpoints { if (it == point) throw SimulatedCrash() }
 
             assertThrows(SimulatedCrash::class.java) {
@@ -80,6 +83,7 @@ class ImportCrashTest {
 
             if (point in beforeCommit) {
                 assertWithMessage("$point: old").that(h.world()).isEqualTo(before)
+                assertWithMessage("settings").that(h.stored()).isEqualTo(storedBefore)
                 assertWithMessage("$point").that(h.paths.safetyCopy.exists()).isFalse()
                 assertWithMessage("$point").that(h.stored().safetyCopyAt).isNull()
             } else {
@@ -97,6 +101,7 @@ class ImportCrashTest {
     fun `a crash at each phase of an undo ends in the complete imported or the complete earlier data`() =
         forEachPoint(ImportPoint.entries - ImportPoint.SAFETY_COPY_WRITTEN - ImportPoint.SAFETY_COPY_PROMOTED) { p, h ->
             val before = h.world()
+            val storedBefore = h.stored()
             runBlocking { h.newContent().use { h.restore.restore(it, NO_TIMER) } }
             val importedAt = h.clock.wall
             h.clock.advanceBy(60_000)
@@ -111,6 +116,7 @@ class ImportCrashTest {
                 assertWithMessage("$p").that(h.stored().safetyCopyAt).isEqualTo(importedAt)
             } else {
                 assertWithMessage("$p: earlier").that(h.world()).isEqualTo(before)
+                assertWithMessage("settings").that(h.stored()).isEqualTo(storedBefore)
                 assertWithMessage("$p").that(h.paths.safetyCopy.exists()).isFalse()
                 assertWithMessage("$p").that(h.stored().safetyCopyAt).isNull()
             }
@@ -148,6 +154,7 @@ class ImportCrashTest {
         val h = ImportHarness(File(folder.root, "gate")).apply { seedOld() }
         try {
             val before = h.world()
+            val storedBefore = h.stored()
             // A marker as a crash right after PREPARED leaves it, with photos.new/ and a settings file.
             h.paths.photosNew.mkdirs()
             File(h.paths.photosNew, "stray.jpg").writeBytes(byteArrayOf(1, 2, 3))
@@ -163,11 +170,57 @@ class ImportCrashTest {
             h.restart()
 
             assertThat(h.world()).isEqualTo(before)
+            assertThat(h.stored()).isEqualTo(storedBefore)
             assertThat(h.leftovers()).isEmpty()
         } finally {
             h.close()
         }
     }
+
+    /** A planted state, then a new start: the world and the settings are as before, with nothing left over. */
+    private fun plantedStartKeepsTheOldData(name: String, plant: (ImportHarness) -> Unit) {
+        val h = ImportHarness(File(folder.root, name)).apply { seedOld() }
+        try {
+            val before = h.world()
+            val storedBefore = h.stored()
+            plant(h)
+
+            h.restart()
+
+            assertWithMessage(name).that(h.world()).isEqualTo(before)
+            assertWithMessage(name).that(h.stored()).isEqualTo(storedBefore)
+            assertWithMessage(name).that(h.leftovers()).isEmpty()
+        } finally {
+            h.close()
+        }
+    }
+
+    @Test
+    fun `a swap started under a marker whose token the database lacks is reversed`() =
+        plantedStartKeepsTheOldData("reversed-swap") { h ->
+            // Only after a commit that a power loss undid: photos/ already the imported set, photos.old/ the old one.
+            Durable.rename(h.paths.photos, h.paths.photosOld)
+            h.paths.photos.mkdirs()
+            File(h.paths.photos, "imported.jpg").writeBytes(byteArrayOf(9))
+            MarkerFile.write(
+                h.paths,
+                ImportMarker(kind = ImportKind.IMPORT, token = 4242, phase = ImportPhase.PREPARED),
+            )
+        }
+
+    @Test
+    fun `an unreadable marker is rolled back`() = plantedStartKeepsTheOldData("unreadable-marker") { h ->
+        h.paths.photosNew.mkdirs()
+        File(h.paths.photosNew, "stray.jpg").writeBytes(byteArrayOf(1))
+        h.paths.safetyDir.mkdirs()
+        h.paths.safetyNew.writeBytes(byteArrayOf(2))
+        h.paths.importDir.mkdirs()
+        h.paths.marker.writeText("{ not json")
+    }
+
+    @Test
+    fun `a photos old folder without photos and without a marker is put back`() =
+        plantedStartKeepsTheOldData("old-without-photos") { h -> Durable.rename(h.paths.photos, h.paths.photosOld) }
 
     @Test
     fun `a foreign key that fails at the commit rolls everything back`() {
@@ -176,6 +229,7 @@ class ImportCrashTest {
         val h = ImportHarness(File(folder.root, "foreign-key")).apply { seedOld() }
         try {
             val before = h.world()
+            val storedBefore = h.stored()
             val valid = h.newContent()
             val broken = valid.data.photos.first().copy(id = "photo-orphan", teaId = "no-such-tea")
             val content = BackupContent(
@@ -190,6 +244,7 @@ class ImportCrashTest {
 
             assertThat(result).isEqualTo(RestoreResult.Refused(RestoreRefusal.REPLACE_FAILED))
             assertThat(h.world()).isEqualTo(before)
+            assertThat(h.stored()).isEqualTo(storedBefore)
             assertThat(h.paths.safetyCopy.exists()).isFalse()
             assertThat(h.leftovers()).isEmpty()
         } finally {

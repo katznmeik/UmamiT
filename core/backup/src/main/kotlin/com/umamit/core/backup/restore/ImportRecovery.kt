@@ -1,9 +1,10 @@
 package com.umamit.core.backup.restore
 
 import android.content.Context
+import com.umamit.core.common.WallClock
+import com.umamit.core.datastore.SettingsDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.withLock
 import java.io.File
 import javax.inject.Inject
 
@@ -14,19 +15,22 @@ import javax.inject.Inject
  * the other: forward when the database holds the marker's commit token, else back.
  *
  * The token is read on a plain connection **before Room opens** `umamit.db`, so Room's restore detection can never
- * sweep imported photo rows whose files are still in `photos.new/`. The gate only renames and writes the settings once;
- * deleting `photos.old/` and the stagings is left to [SafetyCopyExpiry.atAppStart] in the background. It blocks the
- * main thread only while a marker exists, which only a crash or a failure after an import's commit leaves.
+ * sweep imported photo rows whose files are still in `photos.new/`. It depends on the files, the settings and the clock
+ * only (no Room, no catalog graph), and nothing else runs yet, so it takes no lock. The gate only renames and writes
+ * the settings once; deleting `photos.old/` and the stagings is left to [SafetyCopyExpiry.atAppStart] in the
+ * background. It blocks the main thread only while a marker exists, which only a crash or a failure after an import's
+ * commit leaves.
  */
-class ImportRecovery @Inject constructor(private val replacer: ImportReplacer) {
+class ImportRecovery @Inject constructor(
+    private val paths: ImportPaths,
+    settings: SettingsDataSource,
+    clock: WallClock,
+) {
+    private val engine = ImportEngine(paths, settings, clock) { ImportCheckpoints {} }
+
     /** Finishes an interrupted replace, blocking; false when it could not (the next try or start does it). */
     fun recoverAtStart(): Boolean = runBlocking(Dispatchers.IO) {
-        replacer.mutex.withLock {
-            replacer.engine.finishPending(
-                token = { CommitToken.readFile(replacer.paths.database) },
-                cleanUp = false,
-            )
-        }
+        engine.finishPending(token = { CommitToken.readFile(paths.database) }, cleanUp = false)
     }
 
     companion object {

@@ -112,6 +112,7 @@ class RestoreBackupTest {
         val copyBytes = h.paths.safetyCopy.readBytes().toHex()
         val copyAt = h.stored().safetyCopyAt
         val afterFirst = h.world()
+        val storedBefore = h.stored()
         h.clock.advanceBy(60_000)
         h.replacer.checkpoints = ImportCheckpoints { if (it == ImportPoint.IN_TRANSACTION) throw InjectedFailure() }
 
@@ -119,6 +120,7 @@ class RestoreBackupTest {
 
         assertThat(second).isEqualTo(RestoreResult.Refused(RestoreRefusal.REPLACE_FAILED))
         assertThat(h.world()).isEqualTo(afterFirst)
+        assertThat(h.stored()).isEqualTo(storedBefore)
         assertThat(h.paths.safetyCopy.readBytes().toHex()).isEqualTo(copyBytes)
         assertThat(h.stored().safetyCopyAt).isEqualTo(copyAt)
         assertThat(h.leftovers()).isEmpty()
@@ -130,6 +132,7 @@ class RestoreBackupTest {
         val copyBytes = h.paths.safetyCopy.readBytes().toHex()
         val copyAt = h.stored().safetyCopyAt
         val afterFirst = h.world()
+        val storedBefore = h.stored()
         h.replacer.checkpoints =
             ImportCheckpoints { if (it == ImportPoint.SAFETY_COPY_WRITTEN) throw InjectedFailure() }
 
@@ -137,6 +140,7 @@ class RestoreBackupTest {
 
         assertThat(second).isEqualTo(RestoreResult.Refused(RestoreRefusal.SAFETY_COPY_FAILED))
         assertThat(h.world()).isEqualTo(afterFirst)
+        assertThat(h.stored()).isEqualTo(storedBefore)
         assertThat(h.paths.safetyCopy.readBytes().toHex()).isEqualTo(copyBytes)
         assertThat(h.stored().safetyCopyAt).isEqualTo(copyAt)
         assertThat(h.leftovers()).isEmpty()
@@ -147,10 +151,12 @@ class RestoreBackupTest {
         for (slot in TimerSlot.entries) {
             h.activeBrew(slot)
             val before = h.world()
+            val storedBefore = h.stored()
 
             assertThat(restore()).isEqualTo(RestoreResult.Refused(RestoreRefusal.TIMER_ACTIVE))
 
             assertThat(h.world()).isEqualTo(before)
+            assertThat(h.stored()).isEqualTo(storedBefore)
             assertThat(h.paths.safetyCopy.exists()).isFalse()
             assertThat(h.stored().safetyCopyAt).isNull()
             assertThat(h.leftovers()).isEmpty()
@@ -161,16 +167,19 @@ class RestoreBackupTest {
     @Test
     fun `a timer that runs without a row refuses the import`() {
         val before = h.world()
+        val storedBefore = h.stored()
 
         assertThat(restore { true }).isEqualTo(RestoreResult.Refused(RestoreRefusal.TIMER_ACTIVE))
 
         assertThat(h.world()).isEqualTo(before)
+        assertThat(h.stored()).isEqualTo(storedBefore)
         assertThat(h.paths.safetyCopy.exists()).isFalse()
     }
 
     @Test
     fun `a quick timer started while the safety copy is written stops the replace in its transaction`() {
         val before = h.world()
+        val storedBefore = h.stored()
         h.replacer.checkpoints = ImportCheckpoints {
             if (it == ImportPoint.SAFETY_COPY_WRITTEN) h.activeBrew(TimerSlot.QUICK)
         }
@@ -178,6 +187,7 @@ class RestoreBackupTest {
         assertThat(restore()).isEqualTo(RestoreResult.Refused(RestoreRefusal.TIMER_ACTIVE))
 
         assertThat(h.world()).isEqualTo(before)
+        assertThat(h.stored()).isEqualTo(storedBefore)
         assertThat(h.hasActiveBrew()).isTrue()
         assertThat(h.paths.safetyCopy.exists()).isFalse()
         assertThat(h.stored().safetyCopyAt).isNull()
@@ -187,11 +197,13 @@ class RestoreBackupTest {
     @Test
     fun `a running catalog refresh refuses the import and changes nothing`() {
         val before = h.world()
+        val storedBefore = h.stored()
         h.refresh.running()
 
         assertThat(restore()).isEqualTo(RestoreResult.Refused(RestoreRefusal.CATALOG_REFRESH))
 
         assertThat(h.world()).isEqualTo(before)
+        assertThat(h.stored()).isEqualTo(storedBefore)
         assertThat(h.paths.safetyCopy.exists()).isFalse()
         assertThat(h.leftovers()).isEmpty()
     }
@@ -206,6 +218,8 @@ class RestoreBackupTest {
         assertThat((result as RestoreResult.Done).finishedAtNextStart).isTrue()
         assertThat(h.paths.marker.exists()).isTrue()
         assertThat(h.world().rows).isEqualTo(h.newWorld().rows)
+        // Until it is finished the copy is not yet this import's: no undo is offered meanwhile.
+        assertThat(runBlocking { h.undo.preview() }).isNull()
 
         h.restart()
 

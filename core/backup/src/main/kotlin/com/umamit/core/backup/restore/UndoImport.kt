@@ -32,9 +32,10 @@ class UndoImport @Inject constructor(
      */
     suspend fun preview(): UndoPreview? = withContext(Dispatchers.IO) {
         replacer.mutex.withLock {
-            replacer.finishPending()
-            expiry.expireLocked()
-            validSince()?.let { at ->
+            // Until an unfinished replace is done, the copy and its date may still be the import before it.
+            val finished = replacer.finishPending()
+            if (finished) expiry.expireLocked()
+            validSince()?.takeIf { finished }?.let { at ->
                 val counts = db.restoreDao()
                 UndoPreview(
                     sessions = counts.sessionsStartedAfter(at),

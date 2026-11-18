@@ -133,10 +133,12 @@ class UndoImportTest {
         for (slot in TimerSlot.entries) {
             h.activeBrew(slot)
             val now = h.world()
+            val storedBefore = h.stored()
 
             assertThat(undo()).isEqualTo(RestoreResult.Refused(RestoreRefusal.TIMER_ACTIVE))
 
             assertThat(h.world()).isEqualTo(now)
+            assertThat(h.stored()).isEqualTo(storedBefore)
             assertThat(h.paths.safetyCopy.exists()).isTrue()
             assertThat(h.stored().safetyCopyAt).isEqualTo(importedAt)
             runBlocking { h.db.activeBrewDao().delete(slot) }
