@@ -11,6 +11,14 @@
 
 ## Releases and plans
 
+### v0.9.0: specify session (2026-11-18)
+
+- **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/lucid-hopper-qc2hw0`, not used). No code, no PR.
+- **Grilling:** four rounds of selectable options, Q1–Q16, recorded as **D-130**. The PO took every recommended option except Q4: the shop page of a received recipe's tea is fetched **only on a tap** (*Tee über Shop-Link laden*), which amends D-128 Q9 and the wording of GEN-01 (d) and CLAUDE.md rule 7. Claude's defaults are D-130 items 17–25.
+- **Specs:** 02 (GEN-01 (d), PRF-08, BAK-01, BAK-02, BAK-04, BAK-06, SET-20), 03 (SCR-08, SCR-12, SCR-26, the new SCR-32, §5), 05 (§6, §8, the new §8a), 06 (§2.2, §3, §5.4, §5.7), 09 (§2, §4 „v0.9.0"), 10 (D-130, log), 11, the README, CLAUDE.md rule 7.
+- **Issues:** spec #333; tickets #334–#344; #330 triaged into v0.9.0 as a sub-issue (T3, no timer review). All `needs-triage` until the PO approves.
+- **Plan:** `docs/plans/v0.9.0.md`.
+
 ### v0.8.0: released (2026-11-18)
 
 - **PO approval (2026-11-18, in session 6):** the session found no reply on PR #328 after the rc.2 comment, stopped and asked. The PO answered „all approved, nothing fails": the whole checklist 09 §4 „v0.8.0" on rc.2. Recorded on PR #328 (comment 6972174736). The design review was approved on rc.1 (session 4, D-129).
@@ -764,6 +772,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-18 | **v0.9.0 specify session:** grilled Q1–Q16 (D-130); specs 02, 03, 05, 06, 09, 11 and CLAUDE.md rule 7 updated; spec #333, tickets #334–#344 and #330, `docs/plans/v0.9.0.md`; waiting for the PO's approval. |
 | 2026-11-18 | **v0.8.0 session 6:** the PO approved the whole checklist on rc.2; `umamit.version=0.8.0` (80099); PR #328 merged (`60e07bbe`), CI and all three accuracy variants green on it; [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) released and verified. Next: the v0.9.0 specify session. |
 | 2026-11-17 | **v0.8.0 build session 3:** the PO confirmed the sage alarm (bar static sage too); #325 and #329 built; the T3, T4 and ad-hoc motion reviews with one fix round; the full gate, CI and all three accuracy variants green on `9c0e4225`; `v0.8.0-rc.1` (80001) published with the checklist and the design review. Next: session 4 (the PO's check, merge, final `v0.8.0`). |
 | 2026-11-17 | **v0.8.0 build session 2:** #319, #320, #313, #321 and #322 merged and verified on PR #328; #325 step 1 (the sage alarm of the light timer) built and its renders posted on #324; the swing figures corrected to the measured 1.73 / 2.97. Next: the PO's confirmation, then build session 3 (the rest of #325, #326). |

@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-11-17 (v0.8.0, D-128: `tea.taste_set`, four more taste columns on `session_step`, `TasteSet` and `TasteAxis`, umamit.db v9, the backup's new fields; 2026-11-14: v0.7.1, D-117: `brew_session.brewing_rating` and umamit.db v8, `statsRankingBy`, `brewingRating` in the backup's sessions; v0.7.0-rc.3, D-115 A2: `cupSizeMl` retired, no longer read, no migration; 2026-11-13: v0.7.0-rc.2, D-115 A1: `cupSizeMl`, `statsRange` custom months, `statsFolded`, no Room change; v0.7.0: settings `statsRange` values and `statsTab`, no schema change, D-115; 2026-11-12: v0.6.1: taste and a note per infusion in `session_step`, umamit.db v7, D-114; 2026-11-11: v0.6.0: tasting writes, `EditSession`, the recipe offer's flags, `session_descriptor` and umamit.db v6, session photos, no `custom_descriptor` and no `session_fts`, `offerRecipeUpdate` retired, D-112; 2026-10-22: session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
+> Status: **Draft v0.2** · Last updated: 2026-11-18 (v0.9.0, D-130: §8 the backup file, import, safety copy and undo in full, the new §8a recipe file, the backup settings keys in §6; 2026-11-17: v0.8.0, D-128: `tea.taste_set`, four more taste columns on `session_step`, `TasteSet` and `TasteAxis`, umamit.db v9, the backup's new fields; 2026-11-14: v0.7.1, D-117: `brew_session.brewing_rating` and umamit.db v8, `statsRankingBy`, `brewingRating` in the backup's sessions; v0.7.0-rc.3, D-115 A2: `cupSizeMl` retired, no longer read, no migration; 2026-11-13: v0.7.0-rc.2, D-115 A1: `cupSizeMl`, `statsRange` custom months, `statsFolded`, no Room change; v0.7.0: settings `statsRange` values and `statsTab`, no schema change, D-115; 2026-11-12: v0.6.1: taste and a note per infusion in `session_step`, umamit.db v7, D-114; 2026-11-11: v0.6.0: tasting writes, `EditSession`, the recipe offer's flags, `session_descriptor` and umamit.db v6, session photos, no `custom_descriptor` and no `session_fts`, `offerRecipeUpdate` retired, D-112; 2026-10-22: session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -670,8 +670,10 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18, retired in v0.6.0 (D-112): never read or written; the key is not added |
 | `weeklyDigest` | Boolean | false | SET-19 |
-| `backupReminder` | OFF/MONTHLY | MONTHLY | SET-20 |
-| `lastManualBackupAt` | Long? | null | BAK-01 |
+| `backupReminderEnabled` | Boolean | true | SET-20, BAK-06 (v0.9.0, [D-130](10-open-questions-and-decisions.md#d-130) Q11; replaces the planned `backupReminder` OFF/MONTHLY, never built) |
+| `backupReminderLastAt` | Long? (epoch ms) | null | BAK-06 (v0.9.0): the last reminder posted or the switch's last turn-on, which the 30 days count from (06 §5.4) |
+| `lastBackupAt` | Long? (epoch ms) | null | BAK-01, „Letzte Sicherung" (v0.9.0, D-130 Q12; was planned as `lastManualBackupAt`): set by a finished export only; „N neue Sessions" counts completed sessions with `started_at` after it |
+| `safetyCopyAt` | Long? (epoch ms) | null | BAK-02 (v0.9.0, D-130 Q5): when the safety copy was made; *Import rückgängig machen* shows while the copy exists and now < this + 7 × 24 h |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
 | `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 (v0.4.0, D-100): the *Sammlung* segment used last |
 | `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK/RATING | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100; `RATING` v0.6.0, D-112): *Zuletzt aufgegossen*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*, *Bewertung* (highest average first, unrated after rated); empty teas last in each |
@@ -720,30 +722,89 @@ Time rounding for derived recipes: nearest 5 s (half up).
 
 ## 8. Backup file format
 
-- Manual export `.umamit` (ZIP): `manifest.json`, `data.json`,
-  `settings.json`, `photos/<id>.jpg`. The **catalog is not included** (it is
-  re-downloadable); collection teas keep their `catalog_key`.
+v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q8, [D-130](10-open-questions-and-decisions.md#d-130)).
+
+- **File:** `.umamit`, a ZIP: `manifest.json`, `data.json`,
+  `settings.json`, `photos/<id>.jpg`. The **catalog is not included** (it
+  is re-downloadable); collection teas keep their `catalog_key`. **All
+  photos** are in it, own and shop copies (`CATALOG_COPY`) alike (D-130
+  Q7), so every tea comes back with its cover. Photos are stored (no
+  recompression), JSON entries deflated.
 - `manifest.json`: format id `umamit-backup`, `formatVersion` 1,
-  `createdAt`, app version, database schema version, counts, SHA-256 of JSON
-  entries.
+  `createdAt` (epoch ms and zone), app `versionName` and `versionCode`,
+  `schemaVersion` (umamit.db's, 9 in v0.9.0), `settingsSchemaVersion`,
+  counts (teas, sessions, photos, …), and the SHA-256 of every other entry
+  by path.
 - `data.json`: arrays for teas, brewProfiles, brewSteps, vessels,
   sessions, sessionSteps, customDescriptors (empty while custom descriptors
-  are not built, D-112), sessionDescriptors,
-  inventoryEvents, photos, and from v0.2.2 catalogBookmarks (camelCase
-  fields mirroring §3). From v0.7.1 ([D-117](10-open-questions-and-decisions.md#d-117)) sessions carry `rating` (Tee) and
-  `brewingRating` (Zubereitung); `formatVersion` stays 1, since no export
-  file exists before BAK-01. From v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128)) teas carry `tasteSet`
-  (absent or null = from the category) and sessionSteps `tasteRoast`,
-  `tasteAcidity`, `tasteFreshness`, `tasteSpice` beside the six. Export
-  and import are planned for **v0.9.0** (D-128), no longer M5.
-- **Restore (planned for v0.9.0, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128); until then `Won't` for
-  1.x, D-036):** a replacing import. Its validation covers ZIP limits and zip-slip protection,
-  manifest/version check, checksums, types/enums, constraints, referential
-  integrity, photo files decodable; safety backup of current data; staging;
-  single transaction; rollback on failure. The export writes
-  `manifest.json` with checksums so the import can check it. The details
-  (the safety copy's place and its 7 days, a file from a newer version) are
-  set in v0.9.0's specify session.
+  are not built, D-112), sessionDescriptors, inventoryEvents, photos and
+  catalogBookmarks, camelCase fields mirroring §3 one to one (no derived
+  values). Sessions carry `rating` (Tee) and `brewingRating` (Zubereitung)
+  (v0.7.1, D-117); teas `tasteSet` (absent or null = from the category) and
+  sessionSteps `tasteRoast`, `tasteAcidity`, `tasteFreshness`, `tasteSpice`
+  beside the six (v0.8.0, D-128). Only `COMPLETED` sessions and their steps;
+  `active_brew` and an `IN_PROGRESS` session are never written.
+- `settings.json`: the keys of §6 **except the device-bound ones**, which
+  are neither written nor replaced: `onboardingCompleted`, the seed keys
+  (`seedDataCreated`, `seedVesselsV2Added`, `seedPhotosAttempted`,
+  `seedTeaLinksDone`), `dismissedHints`, `lowStockReminderLastDate`,
+  `backupReminderLastAt`, `lastBackupAt`, `safetyCopyAt` (Claude, D-130
+  item 22). The catalog's refresh state lives in `catalog.db` and is not
+  touched.
+- **Export (BAK-01):** the rows are read in one read transaction (a
+  consistent snapshot even while a timer writes; allowed while a timer is
+  active, D-130 Q8); photos are copied after it, a photo whose file vanished
+  in between is left out with its row. The size note before the picker is
+  the photo bytes plus an estimate of the JSON. Progress reports the photo
+  count. A finished export sets `lastBackupAt`.
+- **Versions (D-130 Q3):** a `formatVersion` or `schemaVersion` **newer**
+  than the app's is refused („Diese Datei stammt aus einer neueren
+  UmamiT-Version. Aktualisiere die App und versuch es noch mal."). An older
+  `schemaVersion` is read and converted by §9's rules (a column added later
+  takes its migration's value, usually null). `formatVersion` 1 is the only
+  one so far.
+- **Validation (BAK-02, before anything changes):** the reader copies the
+  picked file to private staging, then checks, in order: ZIP limits (at
+  most 5 000 entries, 2 GB uncompressed in all, 20 MB per photo, 200 MB per
+  JSON entry, a compression ratio of at most 100 : 1 per entry); every
+  entry name relative, without `..`, backslash or a drive, and only the
+  paths above (zip-slip); the manifest (format id, versions); every
+  checksum; JSON types, enums (an unknown name refuses the file), §3's
+  ranges and constraints (one default recipe per tea, unique positions, …);
+  referential integrity (every id a row points to exists, every `photos`
+  row has its file and every file its row); every photo decodes as a JPEG
+  within 06 §5.2's size. Any failure refuses the whole file: „Die
+  Sicherung ist beschädigt und wurde nicht eingespielt." (not a ZIP, no
+  manifest or another format id: „Das ist keine UmamiT-Sicherung."); the
+  staging is deleted and nothing else is touched.
+- **Replace (BAK-02):**
+  1. Refused while `active_brew` has a row (a brew or a quick timer).
+  2. **Safety copy** (D-130 Q5): the export writer writes the current data
+     to `noBackupFilesDir/safety/umamit-safety.umamit` (one file, an older
+     one replaced) and the reader checks it. If either fails (e.g. no
+     space), the import is refused and nothing changes. `noBackupFilesDir`
+     is never in a device backup and not visible to other apps.
+  3. In **one Room transaction** every personal table of §3 is emptied and
+     filled from the staged rows (foreign keys checked at the commit). The
+     staged photos sit in `photos.new/` beside `photos/`; after the commit
+     `photos/` becomes `photos.old/`, `photos.new/` becomes `photos/`, then
+     `photos.old/` is deleted. A failure before the commit leaves
+     everything as it was; a crash between the renames is finished at the
+     next start (a `photos.new/` with a committed import is moved in, a
+     leftover `photos.old/` deleted).
+  4. Settings: the file's keys replace the non-device-bound ones in one
+     DataStore write. `safetyCopyAt` = now. The install marker is left as
+     it is, so the device-restore detection below does not run.
+- **Undo (*Import rückgängig machen*, D-130 Q6):** while the safety copy
+  exists and now < `safetyCopyAt` + 7 × 24 h. Its dialog counts the
+  completed sessions with `started_at` after `safetyCopyAt`. It is the same
+  replace (refused while a timer is active, steps 3–4) from the safety
+  copy, which is then deleted and `safetyCopyAt` cleared. No new safety
+  copy is made.
+- **Expiry:** at each app start, and before an import, a safety copy with
+  now ≥ `safetyCopyAt` + 7 × 24 h (or without `safetyCopyAt`) is deleted
+  and the key cleared. A new import replaces the copy, so only the last
+  import can be undone.
 - **Android device backup** (`res/xml/data_extraction_rules.xml` for cloud
   backup and device transfer, the same set in `res/xml/backup_rules.xml` as
   `fullBackupContent`; both referenced from the manifest): **only included
@@ -776,6 +837,62 @@ Time rounding for derived recipes: nearest 5 s (half up).
   catalog refresh (CAT-15) catalog teas without a cover, the seed teas
   included, get the catalog photo copied again (via `catalog_key`). The M5
   orphan sweeper (06 §5.4) removes leftover files and `*.tmp` files.
+
+## 8a. Recipe file format
+
+v0.9.0 (PRF-08, [D-128](10-open-questions-and-decisions.md#d-128) Q9–Q11, [D-130](10-open-questions-and-decisions.md#d-130) Q2, Q3, item 17). One UTF-8 JSON
+object, file name `<Tee>.umamit-rezept` (the tea's name with `/\:*?"<>|`
+removed, at most 60 characters), MIME type
+`application/vnd.umamit.recipe+json`. No photos, nothing personal beyond
+the recipe.
+
+```json
+{
+  "format": "umamit-recipe",
+  "formatVersion": 1,
+  "createdAt": "2026-11-18T08:30:00+01:00",
+  "tea": {
+    "name": "Gyokuro Asahi",
+    "secondaryName": "Uji",
+    "category": "GREEN",
+    "styleKey": "gyokuro",
+    "catalogKey": "…",
+    "shopUrl": "https://www.tee-kontor-kiel.de/…"
+  },
+  "recipe": {
+    "name": "Kyusu",
+    "method": "KYUSU",
+    "leafGrams": 4.0,
+    "waterMl": 120,
+    "baseTempC": 60,
+    "vesselType": "KYUSU",
+    "preAlertSeconds": null,
+    "steps": [
+      { "kind": "INFUSION", "durationSeconds": 90, "tempC": 60, "preAlertSeconds": null, "note": "" }
+    ]
+  }
+}
+```
+
+- `catalogKey` and `shopUrl` only for a catalog tea; `secondaryName`,
+  `styleKey`, `vesselType`, the pre-alerts and notes may be absent or null.
+  Enum names as in §5; the recipe's notes are not in it.
+- **Reader (untrusted input, every way in):** at most 64 KB, read before
+  parsing; `format` must be `umamit-recipe`, else „Das ist keine
+  UmamiT-Rezeptdatei."; a `formatVersion` newer than the app's is refused
+  with the text of §8 „Versions"; every field within §3.2/§3.3's ranges
+  (1–30 steps, at least one not `RINSE`, temperatures in 5 °C steps,
+  lengths within their limits, never cut), unknown enum names, extra
+  top-level types or a broken JSON → „Die Rezeptdatei ist beschädigt.".
+  `shopUrl` is kept only if CAT-17 AC2's check accepts it and it matches
+  `catalogKey`'s article; else both are dropped and the recipe stays valid.
+  The reader writes nothing.
+- **Taking it over (SCR-32):** a new `brew_profile` (`source` `USER`,
+  `is_default` 0, `position` last, `vessel_id` null) with its `brew_step`s,
+  in one transaction; refused if the tea has 10 recipes. A new tea is
+  created as from the catalog (`AddFromCatalog`) when `catalogKey` is in
+  the catalog, else like SCR-11 without catalog with the file's name,
+  Kategorie and Sorte (falling back to the category's default style).
 
 ## 9. Migrations
 

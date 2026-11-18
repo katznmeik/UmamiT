@@ -91,13 +91,15 @@ and effort to pick, the branch and PR, the phase and its steps by pointer
    - a one-time download of the two seed teas' photos at first start;
    - the exact price fetch when the user adds a package;
    - the fetch of one product page from a shop link the user shares or
-     pastes.
+     pastes, or taps in a received recipe file (*Tee über Shop-Link laden*,
+     never on opening the file; D-130).
 
    Rules:
    - host allow-list;
    - at most 2 requests per second, one connection;
    - respect `robots.txt` and discover pages through the sitemap, plus the
-     one page of a link the user shares or pastes, and the once-per-refresh
+     one page of a link the user shares, pastes or taps in a received
+     recipe, and the once-per-refresh
      check of known teas missing from the sitemap;
    - stop on a Cloudflare challenge, HTTP 429 or `Retry-After`, and never
      bypass a challenge.

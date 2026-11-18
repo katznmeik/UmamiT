@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-17 (v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-18 (v0.9.0, D-130: GEN-01 (d) a received recipe's shop link on a tap, PRF-08, BAK-01, BAK-02, BAK-04, BAK-06 in full, SET-20 a switch; 2026-11-17: v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -66,7 +66,9 @@ All personal data is stored only on the device. The app declares
 (b) the one-time download of the two seed teas' photos at first start
 (ONB-06); (c) the on-demand exact price fetch when the user adds a package
 (CAT-12); (d) the user-triggered fetch of one product page the user shares
-or pastes (CAT-17, v0.2.1).
+or pastes (CAT-17, v0.2.1), or, from v0.9.0, taps as *Tee über Shop-Link
+laden* in a received recipe (PRF-08, [D-130](10-open-questions-and-decisions.md#d-130) Q4; never on opening the
+file).
 - AC1: Network requests are made only to `www.tee-kontor-kiel.de` (the shop
   serves its images from the same host), enforced by a host allow-list in
   the HTTP client.
@@ -865,16 +867,52 @@ First duration + increment × count, optional +5 °C per step.
     the new catalog recipes at new positions, so a finished session's recipe
     link may point to a different catalog recipe after a reset.
 
-**PRF-08 — Share a recipe** `Should` (planned for v0.9.0, [D-128](10-open-questions-and-decisions.md#d-128))
-A recipe's ⋮ shares **one recipe** through the Android share sheet: a
-readable German text (tea, recipe name, leaf, water, vessel type, each
-infusion's temperature and time) with a small recipe file attached. The
-file carries the steps, leaf, water and vessel type, the tea's name and
-kind and, for a catalog tea, its shop link (the link only; never shop text
-or photos). An UmamiT install that opens the file offers „Rezept
-übernehmen": for the same tea if it is in the collection, else for a tea
-the user picks or creates; always as a new recipe. The app uses no network
-for it and needs no new permission. Details: v0.9.0's specify session.
+**PRF-08 — Share a recipe** `Should` (v0.9.0, [D-128](10-open-questions-and-decisions.md#d-128) Q9–Q11, [D-130](10-open-questions-and-decisions.md#d-130))
+**Sending.** The recipe editor's ⋮ (SCR-12) has *Rezept teilen*: it shares
+**one recipe** through the Android share sheet, as a readable German text
+with a small recipe file attached (`<Tee>.umamit-rezept`, 05 §8a).
+- AC1: The text (08's number and date rules): the tea's name (and secondary
+  name), the recipe's name and method, leaf, water, base temperature, vessel
+  type, then one line per step („1. Aufguss · 80 °C · 1:00"), and „Geteilt
+  aus UmamiT". For a catalog tea its shop link on a line of its own. Example
+  in 03 SCR-12.
+- AC2: The file carries what 05 §8a lists: the recipe (no notes), its steps,
+  the vessel **type** (never the vessel), the tea's name, Kategorie and
+  Sorte, and for a catalog tea its `catalog_key` and shop link (the link
+  only; never shop text or photos, rule 3).
+- AC3: Shared through a `FileProvider` with type
+  `application/vnd.umamit.recipe+json`; no network, no new permission.
+- AC4: Not offered for a new or unsaved recipe („Erst speichern"); offered
+  for an archived tea's recipe.
+
+**Receiving** (D-130 Q1). A file reaches the app in three ways, all leading
+to SCR-32 „Rezept übernehmen": (a) opening it („Öffnen mit") where the
+sending app allows it, (b) sharing it to UmamiT, (c) *Rezept importieren* in
+Meine Tees' ⋮ (SCR-08), which opens the system file picker. (a) and (b)
+depend on the sending app; (c) always works.
+- AC5: Every file is **untrusted input** and goes through one reader (05
+  §8a): at most 64 KB, format id `umamit-recipe`, a `formatVersion` newer
+  than the app's is refused („Diese Datei stammt aus einer neueren
+  UmamiT-Version. Aktualisiere die App und versuch es noch mal."), every
+  field within PRF-03/PRF-04's ranges, else „Die Rezeptdatei ist
+  beschädigt." / „Das ist keine UmamiT-Rezeptdatei.". Nothing is written
+  before *Rezept übernehmen*.
+- AC6: **The same tea** (D-130 Q13) is preselected: a catalog tea by its
+  `catalog_key`, else by name ignoring case and accents. The user can pick
+  another tea (*Tee wählen …*) or create one (*Neuen Tee anlegen*: from the
+  local catalog when the `catalog_key` is there, else without catalog with
+  the file's name, Kategorie and Sorte). A tea with 10 recipes is not
+  selectable („Höchstens 10 Rezepte").
+- AC7: *Rezept übernehmen* always adds a **new** recipe (D-128 Q11), never
+  the default, named as in the file (with „ (2)" if the tea has that name
+  already), with *Kein Gefäß* and the file's leaf and water. The tea detail
+  opens with „Rezept „Kyusu" übernommen".
+- AC8: **Shop page only on a tap** (D-130 Q4): when the file's link passes
+  CAT-17 AC2's check and its tea is not in the local catalog, SCR-32 offers
+  *Tee über Shop-Link laden*; only that tap fetches the one page by the
+  CAT-17 path (AC3–AC6 there; GEN-01 (d)). A link that fails the check is
+  dropped silently. Opening a file never makes a request.
+- AC9: A running timer does not block receiving.
 
 **PRF-07 — Learn from sessions** `Must` (v0.6.0, [D-112](10-open-questions-and-decisions.md#d-112))
 After a session with **deliberate changes**, *Zeiten ins Rezept übernehmen*
@@ -1962,7 +2000,7 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 | SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | ~~Geänderte Zeiten anbieten (PRF-07)~~ — **retired** (v0.6.0, D-112): the offer has no setting | — | Won't |
 | SET-19 | Wöchentliche Vorrats-Erinnerung (INV-07; freshness only from v0.3.0, D-098) | aus | Could |
-| SET-20 | Backup-Erinnerung (manual export) | Aus / Monatlich — Monatlich | Should |
+| SET-20 | An Sicherung erinnern (BAK-06; in *Daten & Sicherung*, a switch from v0.9.0, [D-130](10-open-questions-and-decisions.md#d-130) Q11; until then planned as *Aus / Monatlich*) | **an** | Should |
 | SET-22 | Katalog: Fotos laden | an | Should |
 | SET-23 | Katalog: letzter Abruf, *Jetzt aktualisieren*; from v0.8.0 the running refresh's progress and its result show under the button ([D-128](10-open-questions-and-decisions.md#d-128)) | — | Must |
 | SET-24 | Timer-Zuverlässigkeit (status of notification, Live Update, full-screen alert, battery, exact alarm, and from v0.3.0 the alarm volume, with *Beheben* links) | — | Must |
@@ -2015,34 +2053,90 @@ Database and settings participate in Android Auto Backup / Samsung & Google
 device backup and device-to-device transfer. Catalog photos and own photos are
 excluded (size limit; catalog photos can be re-downloaded).
 
-**Planned for v0.9.0 ([D-128](10-open-questions-and-decisions.md#d-128); amends D-036):** export **and import** leave
-M5. The PO's answers: import **replaces** everything after a preview and a
-typed confirmation; the file holds everything personal with the own
-photos; the system file picker for both; the file is fully checked before
-anything changes; an automatic safety copy with „Import rückgängig machen"
-(until the next import or for 7 days); no import while a timer is active;
-the backup reminder, a „Letzte Sicherung" line and a journal CSV come with
-it. The requirements below get their final text in v0.9.0's specify
-session.
+**v0.9.0 ([D-128](10-open-questions-and-decisions.md#d-128) Q4–Q8, [D-130](10-open-questions-and-decisions.md#d-130); amends D-036):** export **and import** leave
+M5. Screen: SCR-26 *Daten & Sicherung*. Formats: [05 §8](05-data-model.md#8-backup-file-format).
 
-**BAK-01 — Manual export** `Should` (v0.9.0)
-*Sicherung erstellen* writes a simple `.umamit` ZIP file (personal data and
-settings as JSON plus own photos; catalog excluded) via the system file
-picker. Format: [05 §8](05-data-model.md#8-backup-file-format).
+**BAK-01 — Sicherung erstellen** `Should` (v0.9.0)
+Writes a `.umamit` ZIP with everything personal (teas, recipes, vessels,
+sessions with taste and notes, stock history, bookmarks, the settings of 05
+§8, **all photos**, the shop copies included, D-130 Q7); never the catalog.
+- AC1: First a size note: „Etwa 18 MB · 142 Sessions, 23 Tees, 61 Fotos"
+  with *Weiter* (D-130 Q8); then the system file picker
+  (`ACTION_CREATE_DOCUMENT`, name `UmamiT-Sicherung-2026-11-18.umamit`).
+- AC2: While writing a progress bar with „Fotos 12 von 61" and *Abbrechen*;
+  then „Sicherung gespeichert". A cancelled or failed write says so and
+  does not count as a backup.
+- AC3: Allowed while a timer is active: one consistent read, nothing written
+  to the data.
+- AC4: A finished export sets „Letzte Sicherung" (D-130 Q12).
 
-**BAK-02 — Restore** `Should` (v0.9.0, [D-128](10-open-questions-and-decisions.md#d-128); `Won't` for 1.x until then,
-D-036)
-In-app restore of a `.umamit` file with validation, preview, safety backup
-and atomic replace: *Sicherung einspielen* replaces all personal data and
-settings. Until it ships, data comes back via Android device backup
-(BAK-05); the export file is readable JSON.
+**BAK-02 — Sicherung einspielen** `Should` (v0.9.0; until then `Won't` for
+1.x, D-036)
+Replaces all personal data and settings with a `.umamit` file's (merge
+stays out, BAK-03).
+- AC1: The system file picker (`ACTION_OPEN_DOCUMENT`); no open-with or
+  share for backups (BAK-07 stays `Won't`).
+- AC2: **The whole file is checked first** (05 §8 „Restore"); a broken file
+  („Die Sicherung ist beschädigt und wurde nicht eingespielt."), not a
+  backup („Das ist keine UmamiT-Sicherung.") or one from a newer version
+  (D-130 Q3) is refused and nothing changes.
+- AC3: **Preview:** „Sicherung vom 3. Nov. 2026 · 142 Sessions, 23 Tees, 61
+  Fotos. Sie ersetzt alle deine Daten auf diesem Gerät." Then the typed
+  word „ERSETZEN" enables *Ersetzen*.
+- AC4: **Refused while a timer is active** („Während ein Timer läuft, kann
+  nichts eingespielt werden.").
+- AC5: **Safety copy** (D-130 Q5): before the replace the current data is
+  written to one private copy in the no-backup storage and checked; if
+  that fails, the import is refused and nothing changes.
+- AC6: **One atomic replace**: a failure leaves the data as it was. After
+  it the app opens Start with „Sicherung eingespielt · 142 Sessions, 23
+  Tees" and *Rückgängig machen*.
+- AC7: **Import rückgängig machen** (D-130 Q5, Q6) on SCR-26 until 7 × 24 h
+  after the import or the next import; a dialog names the sessions started
+  since („Seit dem Import: 3 neue Sessions – sie gehen verloren." or „Seit
+  dem Import hat sich nichts geändert.") with *Rückgängig machen*; no typed
+  word; refused while a timer is active. It brings back the safety copy
+  and deletes it.
+- AC8: An import does not change „Letzte Sicherung" (D-130 Q12).
 
-**BAK-04 — CSV export** `Should` (v0.9.0, [D-128](10-open-questions-and-decisions.md#d-128)): the journal as CSV, one
-row per session; export only.
+**BAK-04 — Journal als CSV** `Should` (v0.9.0, D-130 Q9, Q10): export only,
+one row per completed session, newest first, through the file picker
+(`UmamiT-Journal-2026-11-18.csv`). Format for German Excel: UTF-8 with BOM,
+`;` separator, decimal comma, CRLF, fields with `;`, `"` or a line break in
+quotes. Does not set „Letzte Sicherung".
 
-**BAK-06 — Backup reminder** `Should` (v0.9.0)
-Monthly low-importance reminder to create a manual export if there are ≥ 20
-new sessions since the last export.
+| Column | Example |
+|---|---|
+| Datum | 21.10.2026 |
+| Uhrzeit | 07:45 |
+| Tee | Gyokuro Asahi |
+| Kategorie | Grün |
+| Rezept | Kyusu |
+| Gefäß | Shiboridashi |
+| Blatt (g) | 4,0 |
+| Wasser (ml) | 120 |
+| Aufgüsse | 3 von 4 |
+| Dauer | 0:12:30 (first start to end) |
+| Bewertung Tee | 4,5 |
+| Bewertung Zubereitung | 4 |
+| Kosten (€) | 0,36 |
+| Beschreibungen | Nori, Spinat, Süße Sahne |
+| Notizen | the session's note |
+| Aufgüsse im Detail | Spülen 0:10 \| 60 °C 1:30 \| 65 °C 0:20 \| 70 °C 0:45 |
+| Umami … Würze | ten columns in 05 §3.7's order (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma, Röstung/Malz, Säure, Frische, Würze): each the mean over the infusions with a value, one decimal; empty where none |
+
+Empty values stay empty; no unit in a cell.
+
+**BAK-06 — Backup reminder** `Should` (v0.9.0, D-130 Q11): with *An
+Sicherung erinnern* (SET-20) on, once a month a low-importance notification
+on „Erinnerungen" if ≥ 20 sessions were completed since the last export
+(or ever, without one): „Zeit für eine Sicherung" / „23 neue Sessions seit
+der letzten Sicherung." (never saved: „Du hast noch keine Sicherung
+erstellt."). A tap opens SCR-26. Schedule: 06 §5.4.
+
+**„Letzte Sicherung"** (D-128 Q8, D-130 Q12): SCR-26 shows „Letzte
+Sicherung: 3. Nov. 2026 · 12 neue Sessions" (sessions completed since), or
+„Noch keine Sicherung"; only a finished BAK-01 export sets it.
 
 ---
 

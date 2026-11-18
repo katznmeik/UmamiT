@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.3.0: a cue's log line names the DND policy and SET-32, D-099; 2026-10-30: v0.3.0: the daily low-stock reminder job and its channel „Vorrat", WorkManager's manifest entries, the timer's second channel, D-098; 2026-10-29: the share target and the catalog jobs taking turns as built, #98; 2026-10-28: four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
+> Status: **Draft v0.2** · Last updated: 2026-11-18 (v0.9.0, D-130: `core:backup` use cases, `BackupReminderWorker`, the recipe file's `FileProvider` and `ReceiveRecipeActivity`, no new permission; 2026-10-31: v0.3.0: a cue's log line names the DND policy and SET-32, D-099; 2026-10-30: v0.3.0: the daily low-stock reminder job and its channel „Vorrat", WorkManager's manifest entries, the timer's second channel, D-098; 2026-10-29: the share target and the catalog jobs taking turns as built, #98; 2026-10-28: four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -65,8 +65,11 @@ Use cases: `ScaleRecipe`, `Snap5`, `StartSession`, `FinishSession`
 (status, stock deduction, cost, opened date, recipe-update applicability),
 `DiscardSession`, `ComputePreAlert`, `ComputeFreshness`, `ComputeStock`,
 `ComputeCostPerGram`, `ComputeStreak`, `BuildStatistics`,
-`AddFromCatalog`, `ResetFromCatalog`, `CreateBackup` and `RestoreBackup`
-(both planned for v0.9.0, BAK-01, BAK-02, D-128).
+`AddFromCatalog`, `ResetFromCatalog`; from v0.9.0 ([D-130](10-open-questions-and-decisions.md#d-130)) in `core:backup`:
+`CreateBackup`, `ReadBackup` (validation into staging), `RestoreBackup`
+(safety copy, atomic replace), `UndoImport`, `ExportJournalCsv`
+(BAK-01, BAK-02, BAK-04; 05 §8) and `RecipeFile` (write, read, share
+text; PRF-08, 05 §8a). The import path is T4 (D-130 Q15).
 
 Catalog: `TeeKontorParser` (HTML → `ProductPage`), `CatalogEntries` (variant merge),
 `StyleMapper`, `RecipeDeriver` (rules in [08 §2.5](08-content.md#25-recipe-derivation)),
@@ -95,7 +98,7 @@ UmamiT/
 │   ├── datastore/             Settings
 │   ├── content/               Bundled styles, descriptors, sounds, illustrations
 │   ├── data/                  Repositories, photo storage, CatalogRefreshService
-│   ├── backup/                Export and import (planned for v0.9.0, D-128)
+│   ├── backup/                Backup export/import, safety copy, journal CSV, recipe file (v0.9.0, D-130)
 │   ├── designsystem/          Theme, fonts, components, icons
 │   ├── ui/                    Shared composables
 │   └── testing/               Fakes, fixtures, builders
@@ -257,7 +260,8 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 |---|---|
 | `CatalogRefreshService` (own `dataSync` FGS, not WorkManager) | User action only |
 | `OrphanFileSweepWorker` | Daily, idle; also once after a device restore |
-| `ReminderWorker` | Daily check (backup, freshness digest; not built yet) |
+| `ReminderWorker` | Freshness digest (SET-19; not built yet) |
+| `BackupReminderWorker` (v0.9.0, BAK-06, [D-130](10-open-questions-and-decisions.md#d-130)) | A unique one-time job (`backup-reminder`) due 30 days after the latest of `lastBackupAt` and `backupReminderLastAt`; kept if one waits at app start, replaced after an export or the switch's turn-on, cancelled when SET-20 is off. A run posts on „Erinnerungen" only with ≥ 20 completed sessions since `lastBackupAt` (all without one), sets `backupReminderLastAt` when it posts, and enqueues the next. No constraints |
 | `LowStockReminderWorker` (v0.3.0, INV-11, D-098; interval from v0.5.0, D-108) | A unique one-time job (`low-stock-reminder`) for the next `lowStockReminderTime` on the next due date of SET-28's interval: kept if one waits at app start (also after an app update), replaced after a change of SET-28/SET-29, appended by each run for the next due date (D-098, D-108 build notes); WorkManager re-arms it after a reboot. No constraints. Cancelled when SET-28 is *Aus* |
 
 **Low-stock reminder (v0.3.0, INV-11, D-098; interval from v0.5.0, D-108).** The app's first
@@ -292,7 +296,7 @@ Timer", LOW, silent) carries the active timer that is not the Live Update
 
 | Permission | Purpose |
 |---|---|
-| `INTERNET` | The four uses of GEN-01: catalog refresh, one-time seed photo download, exact price fetch, one product page from a shared or pasted shop link (all to `www.tee-kontor-kiel.de`) |
+| `INTERNET` | The four uses of GEN-01: catalog refresh, one-time seed photo download, exact price fetch, one product page from a shared or pasted shop link, or from a received recipe's link on a tap (v0.9.0, D-130) (all to `www.tee-kontor-kiel.de`) |
 | `POST_NOTIFICATIONS`, `POST_PROMOTED_NOTIFICATIONS` | Timer, Live Update, catalog progress (`POST_PROMOTED_NOTIFICATIONS` is not in the SDK 36 stubs but from Android 16 QPR1 a normal|appop permission that promotion requires; must stay declared; the user controls it, checked via `canPostPromotedNotifications()`, D-043/D-044) |
 | `USE_FULL_SCREEN_INTENT` | Full-screen step alert over the lock screen (TMR-06) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Timer service |
@@ -320,6 +324,28 @@ initializer from `androidx.startup.InitializationProvider`, since the app
 starts it on demand with `HiltWorkerFactory`. `checkManifestPermissions`
 stays unchanged; if a WorkManager version ever needs the permission, it is
 recorded here first.
+
+**Recipe files (v0.9.0, PRF-08, [D-130](10-open-questions-and-decisions.md#d-130)).** No new permission;
+`checkManifestPermissions` stays unchanged.
+- **Sending:** an `androidx.core.content.FileProvider` in `app`
+  (authority `com.umamit.app.files`, **not exported**,
+  `grantUriPermissions`), its paths only `cache/shared/`. The share intent
+  grants read access to that one URI. Files there older than a day are
+  deleted at app start.
+- **Receiving:** `ReceiveRecipeActivity` (`app`), exported only for two
+  filters: `VIEW` and `SEND` (category `DEFAULT`) with the MIME types
+  `application/vnd.umamit.recipe+json` and `application/json`. No filter for
+  `application/octet-stream` or by path pattern (UmamiT would offer itself
+  for every file); a file that arrives otherwise goes through *Rezept
+  importieren* (SCR-08). Like `ShareTeaLinkActivity` it is `NoDisplay`,
+  `noHistory`, `excludeFromRecents`, checks action and type again, accepts
+  only a `content://` URI (from `getData()` for `VIEW`, `EXTRA_STREAM` for
+  `SEND`), copies at most 64 KB + 1 byte and hands the bytes to
+  `MainActivity` with the app's own action; the reader (05 §8a) decides.
+  While the timer or another full-screen route is on top, the file waits
+  (rule 8).
+- **Backups** use only `ACTION_CREATE_DOCUMENT` / `ACTION_OPEN_DOCUMENT`
+  (BAK-07 stays `Won't`).
 
 **Share target (v0.2.1, CAT-17, D-094).** One activity (or activity alias)
 has an intent filter for `android.intent.action.SEND` with MIME type

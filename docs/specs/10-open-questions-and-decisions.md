@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-17 (D-129 the rc.1 check: the picker's hand-over to the setup, the launch kept, the design review approved; D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
+> Status: **Living document** · Last updated: 2026-11-18 (D-130 v0.9.0 specified, Q1–Q16; 2026-11-17: D-129 the rc.1 check: the picker's hand-over to the setup, the launch kept, the design review approved; D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -323,6 +323,59 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-130"></a>
+### D-130 — v0.9.0 specified: recipe file and how it arrives, newer files refused, the shop page only on a tap, the safety copy and its undo, all photos in the backup, the export's size note, the journal CSV, the reminder switch, „Letzte Sicherung", matching a received tea, tiers, #330 (GEN-01, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08, SET-20; SCR-08, SCR-12, SCR-26, SCR-32; 05 §8, §8a; 06 §2.2, §5.4, §5.7; 09 §2, §4 „v0.9.0"; amends D-128 Q9 and D-036's rule 7 wording) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q16 below. The spec #333, its tickets and `docs/plans/v0.9.0.md` **wait for the PO's approval**; the details marked „Claude" are Claude's defaults inside that spec, not the PO's answers
+
+**Context.** D-128 Q4–Q11 planned v0.9.0 (export and a replacing import, the backup reminder, „Letzte Sicherung", the journal CSV, shared recipes) and left a list „Open for the v0.9.0 specify session". #330 (the tabs' ⋮ menu does not give way to an alert) was put into v0.9.0 by D-128 item 41.
+
+**How it was decided.** The v0.9.0 specify session (2026-11-18), four rounds of selectable options (Q1–Q16). Every answer below is the PO's; in each question the recommended option was marked, and the PO took it in all but Q4. D-128 Q4–Q11 were not asked again.
+
+#### Shared recipes (Q1–Q4)
+
+1. **Q1, how a received recipe file reaches the app: all three ways.** (a) Opening the file („Öffnen mit") where the sending app allows it; (b) sharing the file to UmamiT from the messenger or mail app; (c) an in-app *Rezept importieren* that opens the system file picker. The PO was told that „open with" for a custom file type is unreliable on Android (apps often relabel attachments), so (c) is the way that always works, and that only the PO's phone shows which of (a) and (b) work. No new permission.
+2. **Q2, the recipe file: readable JSON.** One small file `<Tee>.umamit-rezept`, format id `umamit-recipe`, `formatVersion` 1, readable in a text editor; not a ZIP, no photos.
+3. **Q3, a file from a newer app version is refused**, for recipe files and backups alike: „Diese Datei stammt aus einer neueren UmamiT-Version. Aktualisiere die App und versuch es noch mal." Nothing changes. Older versions are read and converted.
+4. **Q4, the shop page: only on a tap** (not the recommended „never"). When a received recipe names a catalog tea that the local catalog does not have, the screen offers *Tee über Shop-Link laden*; only the user's tap fetches that one product page, through the CAT-17 path (its link check of CAT-17 AC2, the polite shop session, its stops). Opening the file never fetches anything. This **amends D-128 Q9** („no network use by the app") for that tap only, and the wording of network use (d) in GEN-01 and CLAUDE.md rule 7 (a link the user shares, pastes **or taps in a received recipe**); still one page, still only to `www.tee-kontor-kiel.de`.
+
+#### Backup and import (Q5–Q8)
+
+5. **Q5, the safety copy: private, 7 × 24 h.** One copy in the app's private no-backup storage (never in a device backup, not visible to other apps). *Import rückgängig machen* shows until 7 × 24 hours after the import; after that, or at the next import, the copy is deleted (at the next app start or the next import).
+6. **Q6, undo warns with counts.** *Import rückgängig machen* is itself a replace; a dialog says what is lost, e.g. „Deine Daten von vor dem Import kommen zurück. Seit dem Import: 3 neue Sessions – sie gehen verloren.", with *Rückgängig machen*. No typed word. Refused while a timer is active, like the import.
+7. **Q7, the backup carries all photos**, the shop photo copies (`CATALOG_COPY`) included, so every tea comes back with its cover. It is the user's private file, never the repository (rule 3).
+8. **Q8, the export shows its size first and a progress bar.** Before the file picker: „Etwa 18 MB · 142 Sessions, 23 Tees, 61 Fotos"; while writing a bar with „Fotos 12 von 61"; then „Sicherung gespeichert". Allowed while a timer is active (it only reads).
+
+#### Journal CSV, reminder, „Letzte Sicherung" (Q9–Q12)
+
+9. **Q9, the CSV for German Excel:** semicolon separator, decimal comma („4,0"), dates „21.10.2026" and times „07:45", UTF-8 with a BOM.
+10. **Q10, the columns: base + infusions + taste,** one row per session. Base: Datum, Uhrzeit, Tee, Kategorie, Rezept, Gefäß, Blatt (g), Wasser (ml), Aufgüsse („3 von 4"), Dauer, Bewertung Tee, Bewertung Zubereitung, Kosten (€), Beschreibungen, Notizen; plus „Aufgüsse im Detail" („80 °C 1:00 | 85 °C 0:30 | …") and the ten taste axes, each averaged over the session's infusions and empty where the tea's set has no such slider.
+11. **Q11, the reminder has a switch, on by default:** *An Sicherung erinnern* (SET-20, until now „Aus / Monatlich") in *Daten & Sicherung*; a tap on the reminder opens *Daten & Sicherung*; the existing channel „Erinnerungen".
+12. **Q12, „Letzte Sicherung" counts a finished export only:** *Sicherung erstellen* sets it; the CSV and an import do not; before the first „Noch keine Sicherung".
+
+#### Matching, entry, tiers, #330 (Q13–Q16)
+
+13. **Q13, the same tea:** a catalog tea matches by its `catalog_key`; a tea without catalog by its name, ignoring case and accents. The match is only preselected; the user can pick another tea or create one before *Rezept übernehmen*.
+14. **Q14, *Rezept importieren* sits in the ⋮ of Sammlung › Meine Tees**, beside the two *Tee … hinzufügen* entries; it leads to the same screen as (a) and (b).
+15. **Q15, tiers:** **T4** for the import (validation, safety copy, atomic replace, undo); **T3** for the export writer, the CSV, the recipe file's writing, reading and receiving (untrusted input) and #330; **T2** for the *Daten & Sicherung* screen and the reminder. The milestone review reads the import path at T4.
+16. **Q16, #330: T3, no timer review.** A T3 ticket with a test that the menu closes in the alert's first frame; the T3 milestone review covers it. No T4 timer review and no accuracy runs for v0.9.0, as long as `feature/brew`, `core/timer` and `core/timer-engine` stay unchanged (checked by diff; if a ticket must touch them, stop and ask the PO).
+
+#### Claude (not put to the PO; in the spec for the PO to change)
+
+17. **Recipe file content:** recipe name, method, leaf, water, base temperature, the recipe's *Vorwarnung*, the vessel **type** (not the vessel), each step's kind, duration, temperature, *Vorwarnung* and note; the tea's name, secondary name, Kategorie and Sorte, and for a catalog tea its `catalog_key` and shop link. **Not** the recipe's notes (D-128 Q10 did not name them) nor anything personal beyond the recipe. Size limit 64 KB; a step list per PRF-04 (1–30 steps, at least one that is not *Spülen*).
+18. **Intent filters:** `ACTION_VIEW` and `ACTION_SEND` for the MIME types `application/vnd.umamit.recipe+json` and `application/json`, on one new non-displaying activity like `ShareTeaLinkActivity`; nothing for `application/octet-stream` (UmamiT would offer itself for every file). The sent file goes out through a `FileProvider` (a new non-exported manifest component, no permission) with the own MIME type. Every file, whichever way it came, goes through one reader with the checks of 05 §8a.
+19. **The receiving screen is SCR-32 „Rezept übernehmen"**: the recipe's summary, *Für welchen Tee?* (the match preselected, else *Tee wählen …* or *Neuen Tee anlegen*: from the local catalog when its `catalog_key` is there, else without catalog with the file's name and Sorte), then *Rezept übernehmen*. A tea that already has 10 recipes is not offered („Höchstens 10 Rezepte"). The new recipe is never the default. The vessel type becomes *Kein Gefäß* with leaf and water as given; the user picks a vessel later.
+20. **The share text** (D-128 Q9) is built from 08's number and date rules; an archived tea's recipe can be shared too.
+21. **Safety copy and undo:** the copy is a `.umamit` file written by the same writer (photos included), checked like an import before the replace starts; if it cannot be written (no space), the import is refused and nothing changes. The undo's count is the sessions started after the import; an import with no session since says „Seit dem Import hat sich nichts geändert.".
+22. **Import scope and settings:** the import replaces `umamit.db`'s personal tables, the own and shop-copy photos and the settings in `settings.json` except the device-bound ones (onboarding, the seed keys, dismissed hints, the reminders' last dates, `lastBackupAt`, `safetyCopyAt`; list in 05 §8), which stay. `active_brew` is empty after it (no timer can run). The catalog stays; teas keep their `catalog_key`. After the replace the app opens Start with „Sicherung eingespielt · 142 Sessions, 23 Tees" and *Rückgängig machen* as a snackbar too.
+23. **Older backup files:** `formatVersion` 1 is the only one; a file whose database schema version is older than the app's is converted by the same rules as 05 §9's migrations (columns a newer schema added stay empty).
+24. **The reminder's schedule:** a unique one-time WorkManager job checked once a month (30 days after the last export, the switch's first turn-on or the last reminder); it posts only with ≥ 20 sessions since the last export; no constraints; cancelled when the switch is off.
+25. **Testing on one phone:** a recipe is shared to oneself (e.g. a note, mail or a messenger chat to oneself) and opened from there; the checklist (09 §4 „v0.9.0") tries all three ways and records which of (a) and (b) the Galaxy offers.
+
+**Consequences.**
+
+- Specs changed in this session: 02 (GEN-01 (d), PRF-08, BAK-01, BAK-02, BAK-04, BAK-06, SET-20 as a switch), 03 (SCR-08 ⋮, SCR-12 ⋮ *Rezept teilen*, SCR-26 in full, the new SCR-32), 05 (§8, the new §8a), 06 (§2.2, §3 `core:backup`, §5.4, §5.7), 09 (§2 row, §4 „v0.9.0"), 11, CLAUDE.md rule 7's wording.
+- **No timer code** in v0.9.0: no T4 timer review, no accuracy runs (Q16). **No migration**: umamit.db stays v9 (the export carries schema 9); the settings get `backupReminderEnabled`, `backupReminderLastAt`, `lastBackupAt` and `safetyCopyAt` (05 §6; the planned, never built `backupReminder` and `lastManualBackupAt` are replaced). „N neue Sessions" is counted from `lastBackupAt`, not stored.
+- The spec issue #333 and its tickets carry `needs-triage` until the PO approves them; then `ready-for-agent`.
+
 <a id="d-129"></a>
 ### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*
 
@@ -442,7 +495,7 @@ The PO checked the renders of #323 (comment on #324) and answered in build sessi
 40. **The overtime dot gets an ink outline on the light timer** (the PO, 2026-11-17, build session 3, as options, on the T4 review's nit): the warm-accent dot beside the prominent overtime (from 15 s, SCR-05 ALERTING) is about 1.1:1 on sage, so on the **light timer only** it gets a **1 dp ring in full ink `#1F271B`** around the unchanged warm dot (D-055: still no warm-accent text). The dark timer's dot stays as in v0.7.2 (SET-05 AC2). Built in #329 (T3, timer screen).
 41. **Review notes for later** (the PO, 2026-11-17, as options): the ⋮ menu of Journal, Sammlung and Statistik has had no alert gate since v0.6.1, so an alert may show it above the timer during the route fade (D-058 „Overlays give way"): **a ticket for v0.9.0** (#330). Claude's notes, kept: under reduce motion the system-bar icons flip 50 ms after the instant route change; an undecodable `tea.taste_set` (possible only with v0.9.0's import) falls back to the session's category set (#326 fix round).
 
-**Open for the v0.9.0 specify session (not asked yet):** how a received recipe file reaches the app (open-with for the recipe file type only, or an import entry in the app), the recipe file's format and version, the CSV's columns, where the safety copy lives and how its 7 days are counted, the export's progress and size note, whether shop photos copied to a tea are in the file, and the tiers (backup and import code is T3 or higher). A received file is **untrusted input**: its shop link is used only if its host is on the allow-list, and whether opening it may run rule 7's product-page fetch is asked then.
+**Open for the v0.9.0 specify session (answered in [D-130](#d-130), 2026-11-18):** how a received recipe file reaches the app (open-with for the recipe file type only, or an import entry in the app), the recipe file's format and version, the CSV's columns, where the safety copy lives and how its 7 days are counted, the export's progress and size note, whether shop photos copied to a tea are in the file, and the tiers (backup and import code is T3 or higher). A received file is **untrusted input**: its shop link is used only if its host is on the allow-list, and whether opening it may run rule 7's product-page fetch is asked then.
 
 **Consequences.**
 
@@ -8468,6 +8521,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-18 | D-130: v0.9.0 specified with the PO (Q1–Q16, four rounds). A recipe file (`.umamit-rezept`, readable JSON `umamit-recipe` v1) arrives by „Öffnen mit", by sharing it to UmamiT or by *Rezept importieren* in Meine Tees' ⋮; newer file versions are refused; the shop page of a received tea is fetched only on a tap (amends D-128 Q9, GEN-01 (d), rule 7's wording); a private safety copy for 7 × 24 h with an undo that counts what is lost; all photos in the backup; a size note and a progress bar on export; the journal CSV for German Excel with infusions and taste; the reminder switch on; „Letzte Sicherung" by export only; a received tea matched by catalog key, else name; tiers T4 import, T3 the rest of the backup and recipe code and #330, T2 screen and reminder; #330 without a timer review. Spec #333, tickets #334–#344, `docs/plans/v0.9.0.md`, waiting for the PO. |
 | 2026-11-17 | D-128: the PO's nine points after v0.7.2, grilled Q1–Q31. **v0.8.0:** „Session" for „Sitzung", „Session starten", „aufgießen"/„Aufguss" for „brühen", the setup titled „Neue Session" / „Session anpassen"; three taste sets of six sliders by kind of tea with a per-tea „Geschmacksprofil" (umamit.db v9), a foldable „Was bedeuten die Regler?"; the timer follows *Design* (supersedes D-012) with an early design check; refresh progress in the settings; the ⋮ menu anchored on every tab; #313 guarded. **v0.9.0 (planned):** export and a replacing import with four safeguards, backup reminder, „Letzte Sicherung", journal CSV; recipes shared as text plus a file (amends D-036). 1.0 starts only on the PO's go. |
 | 2026-11-16 | D-121–D-127: the v0.7.2 triage (#303). The PO picked all 60 audit findings (overlaps as one choice each); the seven restructurings get one decision each (CAT-A-05 `CatalogRefresher` split, CAT-A-07 shared fake shop, CAT-A-08 + UI-A-04 helpers and date picker in `core:ui`, CAT-A-14 link-sheet holder, UI-A-01 + UI-A-10 settings routes, DAT-A-14 + TMR-A-06 the session repositories and the timer's store, TMR-A-09 accuracy tooling); their designs wait for #304. |
 | 2026-11-15 | D-119: the v0.7.2 cleanup review (four steps, own release, Fable 5.2 for the timer and data audits and the restructuring design, catalog first). D-120: its plan details: Fable 5.2 at `medium`, findings files per group, the Dependency Analysis plugin from a local init script, the tier label „T4-F". |

@@ -1,6 +1,6 @@
 # UmamiT — Specifications
 
-> Status: **Draft v0.2 — for review** · Last updated: 2026-11-17 (v0.8.0 and v0.9.0 bullets, D-128; 2026-11-14: v0.7.1 bullet, D-117; 2026-11-13: v0.7.0 bullet, D-115; 2026-11-12: v0.6.1 bullet, D-114; 2026-11-11: journal bullet, D-112)
+> Status: **Draft v0.2 — for review** · Last updated: 2026-11-18 (v0.9.0 backup bullet, D-130; 2026-11-17: v0.8.0 and v0.9.0 bullets, D-128; 2026-11-14: v0.7.1 bullet, D-117; 2026-11-13: v0.7.0 bullet, D-115; 2026-11-12: v0.6.1 bullet, D-114; 2026-11-11: journal bullet, D-112)
 
 Product and technical specification of **UmamiT**, a personal Android app
 for brewing tea, focused on umami-rich Japanese green teas. It provides a
@@ -87,9 +87,12 @@ releases are dispatched and verified).
   three taste sets of six sliders by kind, with a foldable info on the
   sliders (umamit.db v9); the timer follows *Design*, so it has a light
   version; refresh progress in the settings; the ⋮ menu fix. — D-128
-- **Backup:** Android device backup. A manual export **and a replacing
-  import** are planned for v0.9.0, with recipes shared as text plus a
-  file; 1.0 starts only on the PO's go. — D-022, D-036, D-128
+- **Backup:** Android device backup. v0.9.0 adds a `.umamit` export with
+  all photos and a **replacing import** (checked first, typed „ERSETZEN",
+  a 7-day safety copy with undo), the journal as CSV and a monthly
+  reminder; a recipe is shared as text plus a `.umamit-rezept` file that
+  another UmamiT takes over. 1.0 starts only on the PO's go. — D-022,
+  D-036, D-128, D-130
 - **Navigation:** Start · Journal · Sammlung · Statistik. — D-018
 - **Stack:** Kotlin, Jetpack Compose, Material 3, Room, Hilt, OkHttp and
   Jsoup; min SDK 35. — D-003, D-023
