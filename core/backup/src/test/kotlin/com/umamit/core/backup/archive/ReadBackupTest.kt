@@ -257,6 +257,13 @@ class ReadBackupTest {
         highWater = 0
         assertRefused(forgeSize(bytes, BackupFormat.DATA, size = 1_000), BackupRefusal.DAMAGED, "a forged size")
         assertThat(highWater).isLessThan(30_000_000L)
+
+        // Its compressed size forged up to the file's size, to raise the ratio cap: the compressed sizes no longer
+        // fit in the file, refused from the central directory.
+        highWater = 0
+        val forgedUp = forgeSize(bytes, BackupFormat.DATA, size = 1_000, offset = COMPRESSED_SIZE, value = bytes.size)
+        assertRefused(forgedUp, BackupRefusal.DAMAGED, "a forged compressed size")
+        assertThat(highWater).isEqualTo(0L)
     }
 
     @Test
@@ -455,11 +462,18 @@ class ReadBackupTest {
     }
 
     /** [bytes] with the central directory's uncompressed size of entry [name] set to [size]. */
-    private fun forgeSize(bytes: ByteArray, name: String, size: Int): ByteArray {
+    private fun forgeSize(bytes: ByteArray, name: String, size: Int, offset: Int? = null, value: Int = 0): ByteArray {
         val out = bytes.copyOf()
         val at = centralHeader(out, name)
-        writeInt(out, at + 24, size)
+        writeInt(out, at + UNCOMPRESSED_SIZE, size)
+        if (offset != null) writeInt(out, at + offset, value)
         return out
+    }
+
+    private companion object {
+        /** Offsets in a central directory header. */
+        const val COMPRESSED_SIZE = 20
+        const val UNCOMPRESSED_SIZE = 24
     }
 
     /** [bytes] with every occurrence of entry name [from] (local and central headers) renamed to [to]. */

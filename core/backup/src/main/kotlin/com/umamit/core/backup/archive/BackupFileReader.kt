@@ -135,10 +135,15 @@ internal class BackupFileReader(
         return BackupContent(manifest, data, settings, photosDir, staging)
     }
 
-    /** The central directory: count, safe and unique names, declared sizes (refused before anything is read). */
+    /**
+     * The central directory: count, safe and unique names, declared sizes (refused before anything is read). The
+     * compressed sizes together fit in the file, so a forged compressed size (or entries sharing one block of data)
+     * cannot raise [extract]'s ratio cap beyond 100 × the file's size.
+     */
     private fun entries(zip: ZipFile): Map<String, ZipEntry> {
         val entries = LinkedHashMap<String, ZipEntry>()
         var declared = 0L
+        var compressed = 0L
         for (entry in zip.entries()) {
             ensure(entries.size < limits.maxEntries)
             ensure(BackupPaths.isSafe(entry.name))
@@ -148,6 +153,8 @@ internal class BackupFileReader(
                 declared += entry.size
                 ensure(declared <= limits.maxTotalBytes)
             }
+            compressed += entry.compressedSize.coerceAtLeast(0)
+            ensure(compressed <= source.length())
         }
         return entries
     }

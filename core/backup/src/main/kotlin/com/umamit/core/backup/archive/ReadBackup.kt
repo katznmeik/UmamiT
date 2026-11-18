@@ -125,9 +125,11 @@ class ReadBackup internal constructor(private val limits: BackupLimits, private 
 
     /**
      * Reads the backup [file] in place (the safety copy, #336), staging its photos in [staging], whose old contents
-     * are deleted first. Throws [IOException] when [staging] cannot be written, after deleting it.
+     * are deleted first, so [file] must not be inside it. Throws [IOException] when [staging] cannot be written,
+     * after deleting it.
      */
     suspend fun read(file: File, staging: File): BackupReadResult = withContext(Dispatchers.IO) {
+        require(!file.canonicalFile.startsWith(staging.canonicalFile)) { "The backup file is inside the staging" }
         prepare(staging)
         guarded(staging) { BackupFileReader(file, staging, limits, onStaged).read() }
     }
