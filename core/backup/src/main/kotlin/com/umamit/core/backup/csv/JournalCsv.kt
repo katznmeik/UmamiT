@@ -19,7 +19,8 @@ import java.util.Locale
  * The journal as CSV for German Excel (BAK-04, D-130 Q9, Q10): a header row, then one row per finished session
  * (`COMPLETED` and `MANUAL`), newest first; `;` between the fields, CRLF after every row, a field holding `;`, `"` or a
  * line break in quotes with its `"` doubled. Numbers and dates by 05 §7 and 08 („4,0", „21.10.2026", „07:45"); an
- * empty value stays empty and no cell carries a unit. The byte order mark is the writer's ([ExportJournalCsv]).
+ * empty value stays empty and no cell carries a unit. A free-text cell starting with `=`, `+`, `-` or `@` gets a
+ * leading apostrophe, so Excel does not read it as a formula. The byte order mark is the writer's ([ExportJournalCsv]).
  *
  * The derived cells follow the journal: „Aufgüsse" counts as the journal row does (TMR-12), „Aufgüsse im Detail"
  * lists the brewed steps (ended, not skipped) with their actual time, and the taste columns average the session's
@@ -75,10 +76,10 @@ object JournalCsv {
         return listOf(
             DATE.format(started),
             TIME.format(started),
-            session.teaName,
-            session.category?.let(labels::category),
-            session.profileName,
-            session.vesselName,
+            textCell(session.teaName),
+            session.category?.let(labels::category)?.let(::textCell),
+            session.profileName?.let(::textCell),
+            session.vesselName?.let(::textCell),
             session.leafGrams?.let { "%.1f".format(GERMAN, it) },
             session.waterMl?.toString(),
             infusions(session, steps, labels),
@@ -89,8 +90,9 @@ object JournalCsv {
             row.descriptors
                 .sortedWith(compareBy({ it.createdAt }, { it.descriptorKey }))
                 .mapNotNull { labels.descriptor(it.descriptorKey) }
-                .joinToString(labels.template(JournalCsvPart.DESCRIPTORS_SEPARATOR)),
-            session.notes,
+                .joinToString(labels.template(JournalCsvPart.DESCRIPTORS_SEPARATOR))
+                .let(::textCell),
+            session.notes?.let(::textCell),
             stepDetails(session, steps, labels),
         ) + TASTE_COLUMNS.map { axis -> averages[axis]?.let { "%.1f".format(GERMAN, it) } }
     }
@@ -195,3 +197,13 @@ private fun SessionStepEntity.taste() = TasteProfile(
     freshness = tasteFreshness,
     spice = tasteSpice,
 )
+
+/** The first characters a spreadsheet reads as a formula. */
+private const val FORMULA_STARTS = "=+-@"
+
+/**
+ * A free-text cell (Tee, Kategorie, Rezept, Gefäß, Beschreibungen, Notizen) that Excel must show as text: one starting
+ * with [FORMULA_STARTS] gets a leading apostrophe („'- etwas bitter"), nothing trimmed (the PO, #337); quoting
+ * applies to the result. Number and generated cells never pass here.
+ */
+private fun textCell(value: String): String = if (value.isNotEmpty() && value[0] in FORMULA_STARTS) "'$value" else value

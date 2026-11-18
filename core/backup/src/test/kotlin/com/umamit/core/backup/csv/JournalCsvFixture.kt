@@ -164,5 +164,8 @@ fun csvStep(
 
 fun csvDescriptor(sessionId: String, key: String, createdAt: Long) = SessionDescriptorEntity(sessionId, key, createdAt)
 
-/** The test's descriptor labels: `core:ui`'s are not on this module's classpath, so two invented ones. */
-val DESCRIPTOR_LABELS = mapOf("marine.nori" to "Nori", "vegetal.spinat" to "Spinat")
+/**
+ * The test's descriptor labels: `core:ui`'s are not on this module's classpath, so invented ones; one starts like a
+ * formula.
+ */
+val DESCRIPTOR_LABELS = mapOf("marine.nori" to "Nori", "vegetal.spinat" to "Spinat", "test.at" to "@frisch")

@@ -185,6 +185,8 @@ class ExportJournalCsvTest {
                 teaName = "Rauchgrün",
                 category = TeaCategory.GREEN,
                 startedAt = at("2026-10-23T06:00:00"),
+                vesselName = "+Glas; klein",
+                notes = "- etwas bitter",
             ),
         )
         db.sessionDao().insertSteps(listOf(csvStep("s-override", 0, tempC = 80, umami = 5, roast = 2)))
@@ -226,12 +228,13 @@ class ExportJournalCsvTest {
             csvSession(
                 id = "s-uncategorised",
                 teaId = null,
-                teaName = "Unbekannter Tee",
+                teaName = "=Unbekannter Tee",
                 category = null,
                 startedAt = at("2026-10-19T12:00:00"),
             ),
         )
         db.sessionDao().insertSteps(listOf(csvStep("s-uncategorised", 0, actualSeconds = 30, umami = 2, roast = 4)))
+        db.tastingDao().insertDescriptor(csvDescriptor("s-uncategorised", "test.at", 1))
     }
 
     private companion object {
@@ -254,9 +257,10 @@ class ExportJournalCsvTest {
             ";;;;;5:00;" +
             ";2,0;;;;;;3,0;4,0;"
 
-        // The tea's Geschmacksprofil (oxidised) beats its Kategorie: Röstung/Malz 2,0, not Umami.
-        val OVERRIDE_ROW = "23.10.2026;06:00;Rauchgrün;Grün;;;;;1 von 1;0:10:00;" +
-            ";;;;;80$NBSP°C 1:00;" +
+        // The tea's Geschmacksprofil (oxidised) beats its Kategorie: Röstung/Malz 2,0, not Umami. A vessel and a
+        // note that start like a formula get an apostrophe, then the quoting applies to the result (the PO, #337).
+        val OVERRIDE_ROW = "23.10.2026;06:00;Rauchgrün;Grün;;\"'+Glas; klein\";;;1 von 1;0:10:00;" +
+            ";;;;'- etwas bitter;80$NBSP°C 1:00;" +
             ";;;;;;2,0;;;"
 
         // The tea is gone: its snapshot Kategorie Oolong decides; Tokyo's date and time; no end, so no Dauer.
@@ -264,9 +268,10 @@ class ExportJournalCsvTest {
             "3;;12,34;;;95$NBSP°C 0:40;" +
             ";;;;;;3,0;;;"
 
-        // No tea and no Kategorie: an empty cell and the Grüntee set; no temperature at all, so the time alone.
-        const val UNCATEGORISED_ROW = "19.10.2026;12:00;Unbekannter Tee;;;;;;1 von 1;0:10:00;" +
-            ";;;;;0:30;" +
+        // No tea and no Kategorie: an empty cell and the Grüntee set; no temperature at all, so the time alone. The
+        // tea name and the descriptor start like a formula, so they get an apostrophe.
+        const val UNCATEGORISED_ROW = "19.10.2026;12:00;'=Unbekannter Tee;;;;;;1 von 1;0:10:00;" +
+            ";;;'@frisch;;0:30;" +
             "2,0;;;;;;;;;"
 
         val GOLDEN = BOM +
