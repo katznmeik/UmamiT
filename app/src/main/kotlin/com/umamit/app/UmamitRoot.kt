@@ -46,6 +46,7 @@ import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
+import com.umamit.feature.settings.backup.ImportedBackup
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.umamit.feature.brew.quick.QuickTimerRoute as QuickTimerScreenRoute
@@ -217,6 +218,9 @@ internal fun UmamitRoot(
         request = startRequest,
         onConsume = onConsumeStartRequest,
     )
+    // A finished backup import (BAK-02 AC6): Start at its root with „Sicherung eingespielt · …“ over it.
+    val backupImport = rememberBackupImportStart()
+    val onBackupImported: (ImportedBackup) -> Unit = { backupImport.finish(navController, it) }
 
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
@@ -312,13 +316,17 @@ internal fun UmamitRoot(
             collectionSegments = collectionSegments,
             collectionScreens = collectionScreens,
             journalScreens = journalScreens,
-            settings = settings.withRerunSetup(rerunSetup),
+            settings = settings.withRoot(rerunSetup, onBackupImported),
             teaLinkShare = share,
             onTakeTeaLinkShare = onTakeTeaLinkShare,
             opening = opening,
             startRequest = startRequest,
             archivedTea = archivedTea,
             onArchivedTeaChange = { archivedTea = it },
+            // Only the app's shell: the import pops the refresh shell above it.
+            importStartRequest = backupImport.requestFor(opening),
+            importedBackup = backupImport.importedFor(opening),
+            onImportedBackupChange = { backupImport.imported = it },
         )
     }
     CompositionLocalProvider(LocalPhotoViewer provides photoViewer) {
@@ -502,6 +510,7 @@ internal fun UmamitRoot(
                         },
                         alertKey = { alert },
                         rerunSetup = rerunSetup,
+                        backupImported = onBackupImported,
                     ),
                 )
                 // The photo viewer (SCR-28): fades in and out with the root's transitions; back closes it on the photo

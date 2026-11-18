@@ -86,6 +86,8 @@ data class StoredSettings(
     val statsFolded: Set<String> = emptySet(),
     /** The Tee-Rangliste's switch (INS-02, D-117); a file of v0.7.0 has no key and reads TEA, no migration. */
     val statsRankingBy: String = StatsRankingBy.TEA.name,
+    /** SET-20 *An Sicherung erinnern* (v0.9.0, D-130 Q11); a file of v0.8.x has no key and reads on, no migration. */
+    val backupReminderEnabled: Boolean = true,
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
@@ -286,6 +288,7 @@ private fun StoredSettings.toModel() = UserSettings(
     statsTab = enumOrDefault(statsTab, StatsTab.OVERVIEW),
     statsFolded = statsFolded,
     statsRankingBy = enumOrDefault(statsRankingBy, StatsRankingBy.TEA),
+    backupReminderEnabled = backupReminderEnabled,
 )
 
 private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
@@ -321,6 +324,7 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     statsTab = statsTab.name,
     statsFolded = statsFolded,
     statsRankingBy = statsRankingBy.name,
+    backupReminderEnabled = backupReminderEnabled,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
     seedTeaLinksDone = markersOf.seedTeaLinksDone,

@@ -36,7 +36,11 @@ internal fun testSettingsScreens(collection: FakeCollection = FakeCollection()):
                 status = ReliabilityStatus.AllOk,
                 alerting = host.alertKey != null,
                 onBack = host.onBack,
-                actions = SettingsActions(openAbout = host.onOpenAbout, openTeaware = host.onOpenTeaware),
+                actions = SettingsActions(
+                    openAbout = host.onOpenAbout,
+                    openTeaware = host.onOpenTeaware,
+                    openDataBackup = host.onOpenDataBackup,
+                ),
                 scrollToTopRequest = host.scrollToTopRequest,
             )
         },

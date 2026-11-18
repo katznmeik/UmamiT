@@ -437,6 +437,23 @@ class SettingsDataSourceTest {
     }
 
     @Test
+    fun backupReminderIsOnByDefaultIsStoredAndAnOlderFileWithoutTheKeyReadsOn() = runTest {
+        // SET-20 (05 §6, D-130 Q11): *An Sicherung erinnern*, on by default; a file of v0.8.x has no key, no migration.
+        val source = dataSource()
+        assertThat(source.settings.first().backupReminderEnabled).isTrue()
+
+        source.update { it.copy(backupReminderEnabled = false) }
+
+        assertThat(source.settings.first().backupReminderEnabled).isFalse()
+        assertThat(source.stored().backupReminderEnabled).isFalse()
+        val file = File(folder.root, "v080.json")
+        file.writeText("""{"schemaVersion":3,"vibration":false}""")
+        val older = dataSource(file).settings.first()
+        assertThat(older.backupReminderEnabled).isTrue()
+        assertThat(older.schemaVersion).isEqualTo(3)
+    }
+
+    @Test
     fun lastBackupAtIsNullUntilAnExportAndSurvivesASettingsUpdate() = runTest {
         // BAK-01 (05 §6): set by a finished export only; an update of the user's settings keeps it.
         val source = dataSource()

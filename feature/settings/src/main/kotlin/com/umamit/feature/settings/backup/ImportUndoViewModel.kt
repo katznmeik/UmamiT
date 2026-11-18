@@ -1,0 +1,42 @@
+package com.umamit.feature.settings.backup
+
+import androidx.annotation.StringRes
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.umamit.core.backup.restore.RestoreResult
+import com.umamit.feature.settings.R
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/** How the undo from Start's snackbar ended: [messageRes] is its text, null for none. */
+data class UndoResult(@param:StringRes val messageRes: Int?)
+
+/**
+ * The snackbar's *Rückgängig machen* on Start (BAK-02 AC6, D-130 item 22): the undo of the import just done, refused
+ * like the one on SCR-26 while a timer is active. [result] is its text, until [resultShown].
+ */
+@HiltViewModel
+class ImportUndoViewModel @Inject constructor(private val backup: DataBackup) : ViewModel() {
+    private val mutable = MutableStateFlow<UndoResult?>(null)
+
+    val result: StateFlow<UndoResult?> = mutable.asStateFlow()
+
+    fun undo() {
+        viewModelScope.launch {
+            val message = when (val done = backup.undo()) {
+                is RestoreResult.Done -> R.string.backup_undone
+                is RestoreResult.Refused -> done.refusal.messageRes
+                RestoreResult.NoSafetyCopy -> null
+            }
+            mutable.value = UndoResult(message)
+        }
+    }
+
+    fun resultShown() {
+        mutable.value = null
+    }
+}

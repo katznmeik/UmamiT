@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="settings_title">Einstellungen</string>
 
     <!-- Timer-Zuverlässigkeit (SET-24). -->
@@ -105,6 +105,78 @@
     <!-- Teegeschirr (SET-30, v0.4.0, D-100): one row that opens the teaware list (SCR-13). -->
     <string name="settings_section_teaware">Teegeschirr</string>
     <string name="settings_teaware">Teegeschirr</string>
+
+    <!-- Daten (SET-30): one row that opens Daten & Sicherung (SCR-26). -->
+    <string name="settings_section_data">Daten</string>
+    <string name="settings_data_backup">Daten &amp; Sicherung</string>
+
+    <!-- Daten & Sicherung (SCR-26, v0.9.0, BAK-01, BAK-02, BAK-04, SET-20, D-130). -->
+    <string name="backup_title">Daten &amp; Sicherung</string>
+    <string name="backup_section_backup">Sicherung</string>
+    <string name="backup_last">Letzte Sicherung: %1$s · %2$s</string>
+    <plurals name="backup_new_sessions">
+        <item quantity="one">%d neue Session</item>
+        <item quantity="other">%d neue Sessions</item>
+    </plurals>
+    <string name="backup_never">Noch keine Sicherung</string>
+    <string name="backup_create">Sicherung erstellen</string>
+    <string name="backup_size_title">Sicherung erstellen</string>
+    <string name="backup_size_body">Etwa %1$d MB · %2$s. Du wählst gleich, wo die Datei gespeichert wird.</string>
+    <string name="backup_counts">%1$s, %2$s, %3$s</string>
+    <string name="backup_counts_short">%1$s, %2$s</string>
+    <plurals name="backup_sessions">
+        <item quantity="one">%d Session</item>
+        <item quantity="other">%d Sessions</item>
+    </plurals>
+    <plurals name="backup_teas">
+        <item quantity="one">%d Tee</item>
+        <item quantity="other">%d Tees</item>
+    </plurals>
+    <plurals name="backup_photos">
+        <item quantity="one">%d Foto</item>
+        <item quantity="other">%d Fotos</item>
+    </plurals>
+    <string name="backup_cancel">Abbrechen</string>
+    <string name="backup_continue">Weiter</string>
+    <string name="backup_progress">Sicherung wird erstellt …</string>
+    <string name="backup_progress_photos" tools:ignore="PluralsCandidate">Sicherung wird erstellt … Fotos %1$d von %2$d</string>
+    <string name="backup_progress_photos_talkback" tools:ignore="PluralsCandidate">Sicherung wird erstellt, %1$d von %2$d Fotos</string>
+    <string name="backup_saved">Sicherung gespeichert</string>
+    <string name="backup_cancelled">Sicherung abgebrochen</string>
+    <string name="backup_failed">Die Sicherung konnte nicht gespeichert werden.</string>
+    <string name="backup_import">Sicherung einspielen</string>
+    <string name="backup_timer_active">Während ein Timer läuft, nicht möglich</string>
+    <string name="backup_checking">Sicherung wird geprüft …</string>
+    <string name="backup_preview_title">Sicherung einspielen?</string>
+    <string name="backup_preview_body">Sicherung vom %1$s · %2$s. Sie ersetzt alle deine Daten auf diesem Gerät. Vorher wird eine Sicherheitskopie angelegt, die du 7 Tage lang zurückholen kannst.</string>
+    <string name="backup_confirm_word">ERSETZEN</string>
+    <string name="backup_confirm_hint">Tippe ERSETZEN zur Bestätigung</string>
+    <string name="backup_confirm_talkback">Bestätigungswort, ERSETZEN eintippen</string>
+    <string name="backup_replace">Ersetzen</string>
+    <string name="backup_importing">Sicherung wird eingespielt …</string>
+    <string name="backup_imported">Sicherung eingespielt · %1$s</string>
+    <string name="backup_undo">Import rückgängig machen</string>
+    <string name="backup_undo_until">Möglich bis %1$s, %2$s</string>
+    <string name="backup_undo_title">Import rückgängig machen?</string>
+    <string name="backup_undo_body">Deine Daten von vor dem Import kommen zurück. Seit dem Import: %1$s, %2$s und alle anderen Änderungen – sie gehen verloren.</string>
+    <string name="backup_undo_body_none">Deine Daten von vor dem Import kommen zurück. Seit dem Import gibt es keine neuen Sessions und keine geänderten Tees.</string>
+    <plurals name="backup_undo_teas">
+        <item quantity="one">%d geänderter Tee</item>
+        <item quantity="other">%d geänderte Tees</item>
+    </plurals>
+    <string name="backup_undo_confirm">Rückgängig machen</string>
+    <string name="backup_undoing">Import wird rückgängig gemacht …</string>
+    <string name="backup_undone">Import rückgängig gemacht</string>
+    <string name="backup_reminder">An Sicherung erinnern</string>
+    <string name="backup_reminder_detail">Einmal im Monat, wenn seit der letzten Sicherung 20 Sessions dazugekommen sind</string>
+    <string name="backup_section_export">Export</string>
+    <string name="backup_csv">Journal als CSV</string>
+    <string name="backup_csv_detail">Alle Sessions als Tabelle, z. B. für Excel. Kann nicht eingespielt werden.</string>
+    <string name="backup_csv_saved">Journal gespeichert</string>
+    <!-- Claude's wording (#338): BAK-04 names no failure text. -->
+    <string name="backup_csv_failed">Das Journal konnte nicht gespeichert werden.</string>
+    <string name="backup_section_device">Geräte-Backup</string>
+    <string name="backup_device_body">Dein Handy sichert Tees, Journal und Einstellungen automatisch mit dem Geräte-Backup. Fotos sind nur in der Sicherung enthalten.</string>
 
     <!-- Über (SCR-27). -->
     <string name="settings_section_about">Über</string>

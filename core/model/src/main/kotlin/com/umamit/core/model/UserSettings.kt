@@ -82,6 +82,11 @@ data class UserSettings(
     val statsFolded: Set<String> = emptySet(),
     /** INS-02, SCR-18 (v0.7.1, D-117): the Tee-Rangliste's switch *Tee · Zubereitung* used last; *Tee* by default. */
     val statsRankingBy: StatsRankingBy = StatsRankingBy.TEA,
+    /**
+     * SET-20 *An Sicherung erinnern* (v0.9.0, BAK-06, D-130 Q11): on by default; backed up like the other user
+     * settings (05 §8).
+     */
+    val backupReminderEnabled: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_ALERT_SOUND = "klangschale"

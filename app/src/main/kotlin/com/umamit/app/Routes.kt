@@ -180,6 +180,10 @@ internal data object DiagnosticsRoute
 @Serializable
 internal data object TeawareRoute
 
+/** *Daten & Sicherung* (SCR-26, v0.9.0) from the settings: in a tab's stack or above the timer. */
+@Serializable
+internal data object DataBackupRoute
+
 /**
  * The vessel editor (SCR-14): [vesselId] to edit, null for a new vessel (named as the editor's view model reads it,
  * `VesselEditorViewModel.VESSEL_ID`). It closes with its result in the entry below ([closeVesselEditor]): the saved
