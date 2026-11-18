@@ -22,7 +22,8 @@ import java.time.format.DateTimeParseException
  * The one reader of received recipe files (05 §8a, PRF-08 AC5). The file is untrusted, so the checks run in this
  * order and the first that fails decides:
  * 1. more than [RecipeFile.MAX_BYTES], refused unread: not a recipe file;
- * 2. not strict UTF-8 or not JSON, or the top level not an object: damaged;
+ * 2. not strict UTF-8, nested deeper than [MAX_NESTING] (counted before parsing, so a hostile file never drives the
+ *    parser's recursion), not JSON, or the top level not an object: damaged;
  * 3. `format` not the string `umamit-recipe`: not a recipe file;
  * 4. `formatVersion` newer than [RecipeFile.FORMAT_VERSION]: newer (before any other field is looked at, since a
  *    newer file may have other fields); not a whole number ≥ 1: damaged;
@@ -35,6 +36,9 @@ import java.time.format.DateTimeParseException
 internal object RecipeFileReader {
     private val json = Json
     private val DIGITS = Regex("""\d{1,30}""")
+
+    /** The deepest nesting of objects and arrays read; the format needs 4, a newer version may need a few more. */
+    const val MAX_NESTING = 16
     private const val BOM = '\uFEFF'
 
     fun read(bytes: ByteArray): RecipeFileResult {
@@ -85,14 +89,37 @@ internal object RecipeFileReader {
             null
         }
         return try {
-            text?.let(json::parseToJsonElement) as? JsonObject
+            text?.takeIf { nesting(it) <= MAX_NESTING }?.let(json::parseToJsonElement) as? JsonObject
         } catch (_: SerializationException) {
             null
         }
     }
+
+    /** The deepest nesting of `{` and `[` in [text] outside strings, counted without parsing. */
+    internal fun nesting(text: String): Int {
+        var depth = 0
+        var deepest = 0
+        var inString = false
+        var escaped = false
+        for (char in text) {
+            when {
+                escaped -> escaped = false
+                inString && char == '\\' -> escaped = true
+                char == '"' -> inString = !inString
+                inString -> Unit
+                char == '{' || char == '[' -> deepest = maxOf(deepest, ++depth)
+                char == '}' || char == ']' -> depth--
+            }
+        }
+        return deepest
+    }
 }
 
-/** The field checks of 05 §8a: 05 §3.1–§3.3's ranges, PRF-03's and PRF-04's limits. */
+/**
+ * The field checks of 05 §8a: 05 §3.1–§3.3's ranges and PRF-03's and PRF-04's limits; temperatures and pre-alerts
+ * in 5 steps. Leaf, water and durations are checked against their ranges only, not the editor's increments, so a
+ * file written from any recipe the database can hold is read back.
+ */
 internal object RecipeFields {
     const val MAX_TEA_NAME = 80
     const val MAX_SECONDARY_NAME = 80
@@ -136,7 +163,7 @@ internal object RecipeFields {
             name = fields.name(Keys.NAME, MAX_RECIPE_NAME),
             method = fields.enum<BrewMethod>(Keys.METHOD),
             leafGrams = leaf(fields.number(Keys.LEAF_GRAMS)),
-            waterMl = fields.int(Keys.WATER_ML).also { check(it in MIN_WATER_ML..MAX_WATER_ML && it % UNIT == 0) },
+            waterMl = fields.int(Keys.WATER_ML).also { check(it in MIN_WATER_ML..MAX_WATER_ML) },
             baseTempC = temp(fields.int(Keys.BASE_TEMP_C)),
             steps = parsed,
             vesselType = fields.stringOrNull(Keys.VESSEL_TYPE)?.let { enumByName<VesselType>(it) },
@@ -147,17 +174,15 @@ internal object RecipeFields {
     private fun step(fields: Fields): RecipeStep = RecipeStep(
         kind = fields.enum<StepKind>(Keys.KIND),
         durationSeconds = fields.int(Keys.DURATION_SECONDS)
-            .also { check(it in MIN_STEP_SECONDS..MAX_STEP_SECONDS && it % UNIT == 0) },
+            .also { check(it in MIN_STEP_SECONDS..MAX_STEP_SECONDS) },
         tempC = fields.intOrNull(Keys.TEMP_C)?.let(::temp),
         note = fields.stringOrNull(Keys.NOTE)?.let { text(it, MAX_STEP_NOTE, name = false) }?.ifEmpty { null },
         preAlertSeconds = fields.intOrNull(Keys.PRE_ALERT_SECONDS)?.let(::preAlert),
     )
 
-    /** 0,1–100 g with at most one decimal (PRF-03), from the number as written. */
+    /** 0,1–100 g (05 §3.2), from a JSON number as written (never NaN or infinite). */
     private fun leaf(number: String): Double {
-        val exact = number.toBigDecimalOrNull() ?: damaged()
-        check(exact.stripTrailingZeros().scale() <= 1)
-        val grams = exact.toDouble()
+        val grams = number.toBigDecimalOrNull()?.toDouble() ?: damaged()
         check(grams in MIN_LEAF_GRAMS..MAX_LEAF_GRAMS)
         return grams
     }

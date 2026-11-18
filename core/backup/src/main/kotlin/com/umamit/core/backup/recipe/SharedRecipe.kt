@@ -67,7 +67,10 @@ data class SharedTea(
 ) {
     companion object {
         fun of(tea: Tea): SharedTea {
-            val (catalogKey, shopUrl) = catalogLink(tea.catalogKey, tea.productUrl)
+            // The sender's own tea keeps its key when only its stored link fails the check (the receiver still
+            // matches it by catalog_key, D-130 Q13); a received file drops both (05 §8a).
+            val (linkedKey, shopUrl) = catalogLink(tea.catalogKey, tea.productUrl)
+            val catalogKey = linkedKey ?: catalogLink(tea.catalogKey, null).first
             return SharedTea(
                 name = tea.name,
                 category = tea.category,

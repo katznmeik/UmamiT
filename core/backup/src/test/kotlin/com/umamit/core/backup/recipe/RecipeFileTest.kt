@@ -73,6 +73,12 @@ class RecipeFileTest {
     }
 
     @Test
+    fun `values off the editor's increments but within the data model's ranges are read back`() {
+        // 05 §8a checks §3.2 and §3.3's ranges: a stored 2,45 g, 333 ml or 10:07 is never refused.
+        roundTrip(kyusu.copy(leafGrams = 2.45, waterMl = 333, steps = listOf(RecipeStep(StepKind.INFUSION, 607))))
+    }
+
+    @Test
     fun `the file is the JSON of 05 8a`() {
         val root = Json.parseToJsonElement(write()).jsonObject
         assertThat(root.keys).containsExactly("format", "formatVersion", "createdAt", "tea", "recipe").inOrder()
@@ -126,6 +132,10 @@ class RecipeFileTest {
         assertThat(write(shared)).doesNotContain("meine Notiz")
         assertThat(write(shared)).doesNotContain("vessel-1")
         assertThat(write(shared)).doesNotContain("privat")
+
+        val badLink = SharedRecipe.of(tea.copy(productUrl = "http://example.com/x/XY0170"), recipe, null)
+        assertThat(badLink.tea.catalogKey).isEqualTo(RecipeFixtures.CATALOG_KEY)
+        assertThat(badLink.tea.shopUrl).isNull()
     }
 
     @Test

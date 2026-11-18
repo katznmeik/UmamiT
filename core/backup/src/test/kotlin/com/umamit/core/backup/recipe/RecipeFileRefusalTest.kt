@@ -64,8 +64,13 @@ class RecipeFileRefusalTest {
     @Test
     fun `deeply nested JSON is refused, not a crash`() {
         assertRefused("[".repeat(60_000), RecipeRefusal.DAMAGED)
-        val deepObject = RecipeFixtures.read("{\"a\":".repeat(10_000) + "1" + "}".repeat(10_000))
-        assertThat(deepObject).isInstanceOf(RecipeFileResult.Refused::class.java)
+        assertRefused("{\"a\":".repeat(10_000) + "1" + "}".repeat(10_000), RecipeRefusal.DAMAGED)
+        // Counted before parsing: 16 levels are parsed (no format id), 17 are not; brackets in strings don't count.
+        assertRefused("{\"a\":".repeat(16) + "1" + "}".repeat(16), RecipeRefusal.NOT_A_RECIPE_FILE)
+        assertRefused("{\"a\":".repeat(17) + "1" + "}".repeat(17), RecipeRefusal.DAMAGED)
+        val brackets = "[".repeat(18) + "\\\"" + "{".repeat(18)
+        val inName = read(edited("\"Kyusu\"", "\"$brackets\""))
+        assertThat(inName).isInstanceOf(RecipeFileResult.Valid::class.java)
     }
 
     @Test
@@ -124,13 +129,13 @@ class RecipeFileRefusalTest {
 
     @Test
     fun `a value outside PRF-03 and PRF-04 is damaged`() {
-        listOf("0.05", "100.1", "4.05", "0", "-4.0").forEach {
+        listOf("0.05", "100.1", "0", "-4.0", "1e3", "NaN", "true").forEach {
             assertDamaged("\"leafGrams\": 4.0", "\"leafGrams\": $it")
         }
-        listOf("5", "3005", "122").forEach { assertDamaged("\"waterMl\": 120", "\"waterMl\": $it") }
+        listOf("5", "3005", "-120").forEach { assertDamaged("\"waterMl\": 120", "\"waterMl\": $it") }
         listOf("0", "62", "105").forEach { assertDamaged("\"baseTempC\": 60", "\"baseTempC\": $it") }
         listOf("62", "105", "0").forEach { assertDamaged("\"tempC\": 65", "\"tempC\": $it") }
-        listOf("0", "3", "86405", "92").forEach { assertDamaged("\"durationSeconds\": 90", "\"durationSeconds\": $it") }
+        listOf("0", "3", "86401").forEach { assertDamaged("\"durationSeconds\": 90", "\"durationSeconds\": $it") }
         listOf("3", "35", "-5", "12").forEach {
             assertDamaged("\"preAlertSeconds\": 10", "\"preAlertSeconds\": $it")
             assertDamaged("\"preAlertSeconds\": 5", "\"preAlertSeconds\": $it")
