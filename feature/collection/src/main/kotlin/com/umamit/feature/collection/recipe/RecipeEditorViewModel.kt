@@ -3,6 +3,7 @@ package com.umamit.feature.collection.recipe
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.backup.recipe.SharedRecipe
 import com.umamit.core.data.DeleteRecipeResult
 import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.RoomAddWithoutCatalog
@@ -46,6 +47,8 @@ sealed interface RecipeEditorUiState {
      * @property selectedVessel the form's vessel, archived or not („Kyusu 250 ml (archiviert)", D-100).
      * @property globalPreAlertSeconds the settings' Vorwarnung (SET-10): B while the recipe has none of its own.
      * @property errors the refused fields, once *Speichern* was tapped (then kept up to date as you type).
+     * @property canShare ⋮ *Rezept teilen* (PRF-08 AC4): a stored recipe without unsaved changes, also an archived
+     * tea's; else greyed out with „Erst speichern".
      */
     data class Ready(
         val form: RecipeForm,
@@ -61,6 +64,8 @@ sealed interface RecipeEditorUiState {
         val saving: Boolean = false,
         val message: RecipeEditorMessage? = null,
     ) : RecipeEditorUiState {
+        val canShare: Boolean get() = !isNew && !hasChanges
+
         /** B of the steps' *Automatisch* (TMR-23): the recipe's Vorwarnung, else the settings'. */
         val preAlertBaseSeconds: Int get() = form.preAlertSeconds ?: globalPreAlertSeconds
     }
@@ -85,6 +90,9 @@ sealed interface RecipeEditorEvent {
 
     /** The recipe was deleted: close. */
     data object Deleted : RecipeEditorEvent
+
+    /** ⋮ *Rezept teilen* (PRF-08): open the share sheet with [recipe]'s text and file. */
+    data class Share(val recipe: SharedRecipe) : RecipeEditorEvent
 }
 
 /**
@@ -99,7 +107,7 @@ class RecipeEditorViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     private val recipes: RecipeRepository,
     private val teas: TeaRepository,
-    vessels: VesselRepository,
+    private val vessels: VesselRepository,
     settings: SettingsRepository,
 ) : ViewModel() {
     private val teaId: String = checkNotNull(savedState[TEA_ID]) { "the recipe editor needs its tea" }
@@ -208,6 +216,20 @@ class RecipeEditorViewModel @Inject constructor(
                 DeleteRecipeResult.LastRecipe -> message.value = RecipeEditorMessage.LastRecipe
                 DeleteRecipeResult.InActiveSession -> message.value = RecipeEditorMessage.InActiveSession
             }
+        }
+    }
+
+    /**
+     * ⋮ *Rezept teilen* (PRF-08): the stored recipe as it is shared, with its vessel's type (an archived vessel's
+     * too; never the vessel itself) and without its notes. Only while [RecipeEditorUiState.Ready.canShare].
+     */
+    fun share() {
+        if ((state.value as? RecipeEditorUiState.Ready)?.canShare != true) return
+        val stored = (base.value as? Base.Stored)?.recipe ?: return
+        viewModelScope.launch {
+            val tea = teas.getTea(teaId) ?: return@launch
+            val vessel = stored.vesselId?.let { id -> vessels.observeVessels().first().firstOrNull { it.id == id } }
+            navigation.send(RecipeEditorEvent.Share(SharedRecipe.of(tea, stored, vessel?.type)))
         }
     }
 

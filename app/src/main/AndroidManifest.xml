@@ -81,6 +81,18 @@
             android:noHistory="true"
             android:taskAffinity=""
             android:theme="@android:style/Theme.NoDisplay" />
+        <!-- *Rezept teilen* (PRF-08, 06 §5.7, D-130): the recipe file goes out through this FileProvider.
+             Not exported and without a permission; the share intent grants read access to its one URI.
+             Paths: cache/shared/ only. -->
+        <provider
+            android:name=".RecipeFileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/recipe_share_paths" />
+        </provider>
         <!-- WorkManager starts on demand with Hilt's worker factory (UmamitApplication is its
              Configuration.Provider; 06 §5.4, D-098): its default initializer goes, the other
              App Startup initializers stay. -->

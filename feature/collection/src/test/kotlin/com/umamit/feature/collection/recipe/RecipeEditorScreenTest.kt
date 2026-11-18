@@ -1,5 +1,6 @@
 package com.umamit.feature.collection.recipe
 
+import android.content.Intent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.backup.recipe.SharedRecipe
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Recipe
@@ -40,6 +42,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /** Rezept bearbeiten (SCR-12) with its view model on fakes: what the PO taps, drags and reads. */
@@ -54,6 +58,11 @@ class RecipeEditorScreenTest {
     private var closed = 0
     private var deleted = 0
     private var alertKey by mutableStateOf<String?>(null)
+    private val shared = mutableListOf<SharedRecipe>()
+    private val sharer = RecipeSharer { recipe ->
+        shared += recipe
+        Intent(Intent.ACTION_CHOOSER)
+    }
 
     private val recipe = Recipe(
         id = "kyusu",
@@ -85,6 +94,7 @@ class RecipeEditorScreenTest {
                     onSave = { saved += it },
                     onDelete = { deleted++ },
                     alertKey = alertKey,
+                    sharer = sharer,
                     viewModel = viewModel {
                         RecipeEditorViewModel(
                             SavedStateHandle(
@@ -236,6 +246,30 @@ class RecipeEditorScreenTest {
         assertThat(deleted).isEqualTo(1)
         assertThat(runBlocking { collection.recipes.getRecipe("kyusu") }).isNull()
         assertThat(runBlocking { collection.recipes.getRecipe("kalt") }!!.isDefault).isTrue()
+    }
+
+    @Test
+    fun `Rezept teilen opens the share sheet with the stored recipe (PRF-08)`() {
+        show()
+        compose.onNodeWithTag(RecipeEditorTags.MORE).performClick()
+        compose.onNodeWithText("Rezept teilen").performClick()
+        compose.waitForIdle()
+
+        assertThat(shared.map { it.tea.name to it.name }).containsExactly("Morgennebel" to "Kyusu")
+        val started = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
+        assertThat(started.action).isEqualTo(Intent.ACTION_CHOOSER)
+    }
+
+    @Test
+    fun `with unsaved changes Rezept teilen is greyed out - Erst speichern`() {
+        show()
+        compose.onNodeWithTag(RecipeEditorTags.NAME).performTextReplacement("Kyusu, neu")
+        compose.onNodeWithTag(RecipeEditorTags.MORE).performClick()
+
+        compose.onNodeWithTag(RecipeEditorTags.SHARE).assertIsNotEnabled().assertTextContains("Erst speichern")
+        compose.onNodeWithTag(RecipeEditorTags.SHARE).performClick()
+        compose.waitForIdle()
+        assertThat(shared).isEmpty()
     }
 
     @Test
