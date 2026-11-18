@@ -1403,8 +1403,11 @@ v0.4.0 (D-100):
     *Weiterer Aufguss* (TMR-10), up to 30 steps.
   - ⋮ *Rezept teilen* (v0.9.0, PRF-08, D-130) above *Rezept löschen*: the
     Android share sheet with the text and the file `Gyokuro Asahi.umamit-rezept`.
-    Greyed out with „Erst speichern" for a new recipe or while the editor
-    has unsaved changes. The text, for example:
+    Greyed out with „Erst speichern" while the editor has unsaved changes;
+    a new recipe has no ⋮ at all, so it can be shared once saved (PO,
+    2026-11-18, D-130 build note). If the file can't be written or no app
+    takes the share: the snackbar „Das Rezept konnte nicht geteilt werden."
+    (PO, 2026-11-18). The text, for example:
 
     ```
     Gyokuro Asahi (Uji) – Rezept „Kyusu"
