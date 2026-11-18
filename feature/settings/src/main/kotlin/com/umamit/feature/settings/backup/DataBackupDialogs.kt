@@ -83,6 +83,7 @@ private fun ReplaceDialog(preview: BackupPreview, state: DataBackupUiState, acti
         ),
         confirm = stringResource(R.string.backup_replace),
         confirmEnabled = state.canReplace,
+        fullWidthWindow = true,
         onConfirm = actions.replace,
         onDismiss = actions.dismissDialog,
     ) {
@@ -135,14 +136,24 @@ private fun BackupAlert(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     confirmEnabled: Boolean = true,
+    fullWidthWindow: Boolean = false,
     extra: @Composable () -> Unit = {},
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        // A text field filling a wrap-content dialog window never settles its measure in Robolectric; a full-width
+        // window with the dialog's own margins looks the same on the phone (Material's 280–560 dp).
+        modifier = if (fullWidthWindow) Modifier.padding(horizontal = UmamiSpacing.Large) else Modifier,
+        properties = DialogProperties(usePlatformDefaultWidth = !fullWidthWindow),
         title = { Text(title) },
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(body, style = MaterialTheme.typography.bodyMedium)
+            // Only the text scrolls: the typed field below it stays in view.
+            Column {
+                Text(
+                    text = body,
+                    modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
                 extra()
             }
         },

@@ -170,7 +170,9 @@ fun DataBackupScreen(
             if (state.saveFailed) {
                 Text(
                     text = stringResource(R.string.settings_save_failed),
-                    modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -185,7 +187,9 @@ fun DataBackupScreen(
             SectionHeader(title = stringResource(R.string.backup_section_device), modifier = Modifier.fillMaxWidth())
             Text(
                 text = stringResource(R.string.backup_device_body),
-                modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -202,7 +206,9 @@ private fun BackupSection(state: DataBackupUiState, actions: DataBackupActions, 
     SectionHeader(title = stringResource(R.string.backup_section_backup), modifier = Modifier.fillMaxWidth())
     Text(
         text = lastBackupLine(state.lastBackup, zone),
-        modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurface,
     )

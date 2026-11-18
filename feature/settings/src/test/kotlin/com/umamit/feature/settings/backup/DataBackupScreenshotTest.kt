@@ -52,18 +52,17 @@ class DataBackupScreenshotTest(private val dark: Boolean, private val fontScale:
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, state: DataBackupUiState, snackbar: Boolean = false) {
+    private fun capture(name: String, state: DataBackupUiState) {
         RuntimeEnvironment.setFontScale(fontScale)
+        // A standing clock: the snackbar stays (it would time out under the auto-advancing clock), and the busy spinner
+        // never lets the clock settle.
+        compose.mainClock.autoAdvance = false
         compose.setContent {
             Themed {
                 DataBackupScreen(state, alerting = false, onBack = {}, actions = DataBackupActions(), zone = BERLIN)
             }
         }
-        if (snackbar) {
-            // The snackbar stays while the clock stands (it would time out under the auto-advancing clock).
-            compose.mainClock.autoAdvance = false
-            compose.mainClock.advanceTimeBy(1_000)
-        }
+        compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/DataBackup_${name}_$variant.png")
     }
@@ -129,8 +128,7 @@ class DataBackupScreenshotTest(private val dark: Boolean, private val fontScale:
     @Test
     fun importing() = capture("importing", DataBackupUiState(busy = BackupBusy.IMPORTING))
 
-    private fun refused(name: String, message: Int) =
-        capture("refused_$name", DataBackupUiState(message = message), snackbar = true)
+    private fun refused(name: String, message: Int) = capture("refused_$name", DataBackupUiState(message = message))
 
     // Each refusal of 03 §5 as the screen shows it (BAK-02 AC2, AC4, AC5, AC6).
 
