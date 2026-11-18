@@ -324,6 +324,23 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-130"></a>
+### D-132 — A „What's new" for every release, on its GitHub Release page (09 §2; CLAUDE.md rule 6; `release.yml`) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q4 below (build session 2 of v0.9.0, asked as options)
+
+1. **Q1, language: English.**
+2. **Q2, where: a file per release and the release page.** `docs/whats-new/vX.Y.Z.md`
+   is written with the milestone; `release.yml` puts its text at the top of
+   the GitHub Release body, above the version and checksum table. The
+   workflow change reaches `main` through its own housekeeping PR (D-039).
+3. **Q3, which releases: final and release candidates.** An rc shows the
+   release's whole what's new plus a short „Since rc.N" part for what
+   changed since the previous rc; the final drops that part.
+4. **Q4, length: 3–8 bullets**, grouped as *New*, *Improved*, *Fixed*, one
+   line each, user-visible changes only, no ticket numbers.
+5. **Claude (defaults):** the file is named after the version without its
+   `-rc.N` suffix; a final release without its file fails before the tag is
+   made, an rc or probe without one publishes the table alone. Probes get
+   none. Starts with v0.9.0.
+
 ### D-131 — v0.9.0: *Alle Daten löschen* (SET-33) built in this release, like a fresh install; the device-backup note's wording (SET-33, BAK-05; SCR-26) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q6 below (build session 2, asked as options); ticket #346 and the dialog's copy (Claude's proposal) **approved by the PO as written on 2026-11-18**; it is built in build session 3
 
 Context: build session 2 found that SCR-26's „as before" parts were never
@@ -8563,6 +8580,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-18 | D-132: a „What's new" (English, 3–8 bullets, New/Improved/Fixed) for every final and rc release, from `docs/whats-new/vX.Y.Z.md` at the top of the GitHub Release page. |
 | 2026-11-18 | D-131: *Alle Daten löschen* (SET-33) joins v0.9.0 as #346, like a fresh install, greyed out during a timer, a hint to back up first, onboarding again; the device-backup note's wording (build session 2). |
 | 2026-11-18 | D-130: v0.9.0 specified with the PO (Q1–Q16, four rounds). A recipe file (`.umamit-rezept`, readable JSON `umamit-recipe` v1) arrives by „Öffnen mit", by sharing it to UmamiT or by *Rezept importieren* in Meine Tees' ⋮; newer file versions are refused; the shop page of a received tea is fetched only on a tap (amends D-128 Q9, GEN-01 (d), rule 7's wording); a private safety copy for 7 × 24 h with an undo that counts what is lost; all photos in the backup; a size note and a progress bar on export; the journal CSV for German Excel with infusions and taste; the reminder switch on; „Letzte Sicherung" by export only; a received tea matched by catalog key, else name; tiers T4 import, T3 the rest of the backup and recipe code and #330, T2 screen and reminder; #330 without a timer review. Spec #333, tickets #334–#344, `docs/plans/v0.9.0.md`, waiting for the PO. |
 | 2026-11-17 | D-128: the PO's nine points after v0.7.2, grilled Q1–Q31. **v0.8.0:** „Session" for „Sitzung", „Session starten", „aufgießen"/„Aufguss" for „brühen", the setup titled „Neue Session" / „Session anpassen"; three taste sets of six sliders by kind of tea with a per-tea „Geschmacksprofil" (umamit.db v9), a foldable „Was bedeuten die Regler?"; the timer follows *Design* (supersedes D-012) with an early design check; refresh progress in the settings; the ⋮ menu anchored on every tab; #313 guarded. **v0.9.0 (planned):** export and a replacing import with four safeguards, backup reminder, „Letzte Sicherung", journal CSV; recipes shared as text plus a file (amends D-036). 1.0 starts only on the PO's go. |

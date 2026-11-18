@@ -20,7 +20,9 @@
    `gradle.properties`. `release.yml` builds only a commit on which CI
    passed (D-070). Before each release candidate the accuracy
    workflow must pass ([§4a](#4a-accuracy-run-before-each-release-candidate),
-   D-067).
+   D-067). Every final and rc release page starts with a short „What's
+   new" from `docs/whats-new/vX.Y.Z.md` (English, 3–8 bullets as *New*,
+   *Improved*, *Fixed*; an rc adds „Since rc.N"; [D-132](10-open-questions-and-decisions.md#d-132)).
 4. Specs are updated in the same PR when behaviour changes.
 5. **Definition of done per milestone:** the on-device checklist passes on
    the PO's Galaxy **and** a design review round passes. For the review,
