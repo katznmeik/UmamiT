@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -96,6 +97,11 @@ data class StoredSettings(
     val seedTeaLinksDone: Set<String> = emptySet(),
     /** Set once the seven seed vessels of v0.2.1 exist (WARE-06, D-093); never reset. */
     val seedVesselsV2Added: Boolean = false,
+    /**
+     * When the last export finished (BAK-01, v0.9.0, D-130 Q12), epoch ms; null = never. Set by a finished export
+     * only, device-bound (not in a backup's `settings.json`, 05 §8); a file of v0.8.x has no key, no migration.
+     */
+    val lastBackupAt: Long? = null,
 )
 
 /** JSON serializer for [StoredSettings]; an unreadable file reads as the defaults. */
@@ -207,6 +213,17 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
         dataStore.updateData { it.copy(seedVesselsV2Added = true) }
     }
 
+    /** The stored settings now, every key of 05 §6 (the backup's `settings.json` is written from it, 05 §8). */
+    suspend fun stored(): StoredSettings = dataStore.data.first()
+
+    /** When the last export finished (BAK-01, 05 §6), epoch ms; null = never. */
+    val lastBackupAt: Flow<Long?> = dataStore.data.map { it.lastBackupAt }
+
+    /** Records a finished export at [atMs] (BAK-01); only the export writer calls it, never the safety copy. */
+    suspend fun markLastBackupAt(atMs: Long) {
+        dataStore.updateData { it.copy(lastBackupAt = atMs) }
+    }
+
     /** Adds [parts] to [seedTeaLinksDone] (CAT-15, D-090). */
     suspend fun markSeedTeaLinksDone(parts: Set<String>) {
         dataStore.updateData { it.copy(seedTeaLinksDone = it.seedTeaLinksDone + parts) }
@@ -287,4 +304,5 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
     seedTeaLinksDone = markersOf.seedTeaLinksDone,
     seedVesselsV2Added = markersOf.seedVesselsV2Added,
+    lastBackupAt = markersOf.lastBackupAt,
 )
