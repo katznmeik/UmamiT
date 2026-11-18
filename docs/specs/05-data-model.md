@@ -671,7 +671,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `offerRecipeUpdate` | Boolean | true | SET-18, retired in v0.6.0 (D-112): never read or written; the key is not added |
 | `weeklyDigest` | Boolean | false | SET-19 |
 | `backupReminderEnabled` | Boolean | true | SET-20, BAK-06 (v0.9.0, [D-130](10-open-questions-and-decisions.md#d-130) Q11; replaces the planned `backupReminder` OFF/MONTHLY, never built) |
-| `backupReminderLastAt` | Long? (epoch ms) | null | BAK-06 (v0.9.0): the last reminder posted or the switch's last turn-on, which the 30 days count from (06 §5.4) |
+| `backupReminderLastAt` | Long? (epoch ms) | null | BAK-06 (v0.9.0): the last check (a run, whether it posted or not) or the switch's last turn-on, which the 30 days count from (06 §5.4) |
 | `lastBackupAt` | Long? (epoch ms) | null | BAK-01, „Letzte Sicherung" (v0.9.0, D-130 Q12; was planned as `lastManualBackupAt`): set by a finished export only; „N neue Sessions" counts completed sessions with `started_at` after it |
 | `safetyCopyAt` | Long? (epoch ms) | null | BAK-02 (v0.9.0, D-130 Q5): when the safety copy was made; *Import rückgängig machen* shows while the copy exists and now < this + 7 × 24 h |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
@@ -742,8 +742,9 @@ v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q
   values). Sessions carry `rating` (Tee) and `brewingRating` (Zubereitung)
   (v0.7.1, D-117); teas `tasteSet` (absent or null = from the category) and
   sessionSteps `tasteRoast`, `tasteAcidity`, `tasteFreshness`, `tasteSpice`
-  beside the six (v0.8.0, D-128). Only `COMPLETED` sessions and their steps;
-  `active_brew` and an `IN_PROGRESS` session are never written.
+  beside the six (v0.8.0, D-128). Sessions with status `COMPLETED` and
+  `MANUAL` and their steps; `active_brew` and an `IN_PROGRESS` session are
+  never written.
 - `settings.json`: the keys of §6 **except the device-bound ones**, which
   are neither written nor replaced: `onboardingCompleted`, the seed keys
   (`seedDataCreated`, `seedVesselsV2Added`, `seedPhotosAttempted`,
@@ -766,24 +767,27 @@ v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q
 - **Validation (BAK-02, before anything changes):** the reader copies the
   picked file to private staging, then checks, in order: ZIP limits (at
   most 5 000 entries, 2 GB uncompressed in all, 20 MB per photo, 200 MB per
-  JSON entry, a compression ratio of at most 100 : 1 per entry); every
+  JSON entry, a compression ratio of at most 100 : 1 per entry; Claude's
+  numbers, far above what 06 §5.2's photos (2048 px JPEG 85, catalog copies
+  1200 px) and ten years of sessions produce); every
   entry name relative, without `..`, backslash or a drive, and only the
   paths above (zip-slip); the manifest (format id, versions); every
   checksum; JSON types, enums (an unknown name refuses the file), §3's
   ranges and constraints (one default recipe per tea, unique positions, …);
   referential integrity (every id a row points to exists, every `photos`
   row has its file and every file its row); every photo decodes as a JPEG
-  within 06 §5.2's size. Any failure refuses the whole file: „Die
+  of at most 2048 px a side (06 §5.2). Any failure refuses the whole file: „Die
   Sicherung ist beschädigt und wurde nicht eingespielt." (not a ZIP, no
   manifest or another format id: „Das ist keine UmamiT-Sicherung."); the
   staging is deleted and nothing else is touched.
 - **Replace (BAK-02):**
   1. Refused while `active_brew` has a row (a brew or a quick timer).
   2. **Safety copy** (D-130 Q5): the export writer writes the current data
-     to `noBackupFilesDir/safety/umamit-safety.umamit` (one file, an older
-     one replaced) and the reader checks it. If either fails (e.g. no
-     space), the import is refused and nothing changes. `noBackupFilesDir`
-     is never in a device backup and not visible to other apps.
+     to `noBackupFilesDir/safety/umamit-safety.new` and the reader checks
+     it. If either fails (e.g. no space), it is deleted, the import is
+     refused and nothing changes. The previous copy (`umamit-safety.umamit`)
+     stays until step 5. `noBackupFilesDir` is never in a device backup and
+     not visible to other apps.
   3. In **one Room transaction** every personal table of §3 is emptied and
      filled from the staged rows (foreign keys checked at the commit). The
      staged photos sit in `photos.new/` beside `photos/`; after the commit
@@ -793,14 +797,26 @@ v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q
      next start (a `photos.new/` with a committed import is moved in, a
      leftover `photos.old/` deleted).
   4. Settings: the file's keys replace the non-device-bound ones in one
-     DataStore write. `safetyCopyAt` = now. The install marker is left as
-     it is, so the device-restore detection below does not run.
+     DataStore write. The install marker is left as it is, so the
+     device-restore detection below does not run.
+  5. `umamit-safety.new` is renamed over `umamit-safety.umamit`, then
+     `safetyCopyAt` = now.
+  - **Crash safety (D-130 item 26):** steps 3–5 span Room, files and
+    DataStore, so they are guarded by a phase marker in
+    `noBackupFilesDir/import/`. After a crash, the next start (before any
+    query is served, like the restore detection below) finds either the
+    complete old data or the complete imported data: it rolls **back**
+    (staging and `.new` deleted) when the Room transaction had not
+    committed, and **forward** (steps 3's renames, 4, 5) when it had. How a
+    commit is recognised is designed in #336, recorded as a D-130 build
+    note and read in the T4 review.
 - **Undo (*Import rückgängig machen*, D-130 Q6):** while the safety copy
   exists and now < `safetyCopyAt` + 7 × 24 h. Its dialog counts the
-  completed sessions with `started_at` after `safetyCopyAt`. It is the same
-  replace (refused while a timer is active, steps 3–4) from the safety
-  copy, which is then deleted and `safetyCopyAt` cleared. No new safety
-  copy is made.
+  sessions (`COMPLETED`, `MANUAL`) with `started_at` after `safetyCopyAt`
+  and the teas with `created_at` or `updated_at` after it (D-130 item 21).
+  It is the same replace (refused while a timer is active, steps 3–4 with
+  the same crash safety) from the safety copy, which is then deleted and
+  `safetyCopyAt` cleared. No new safety copy is made.
 - **Expiry:** at each app start, and before an import, a safety copy with
   now ≥ `safetyCopyAt` + 7 × 24 h (or without `safetyCopyAt`) is deleted
   and the key cleared. A new import replaces the copy, so only the last

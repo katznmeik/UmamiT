@@ -9,7 +9,7 @@
 
 ## Next: the v0.9.0 build session (after the PO's approval)
 
-- **v0.9.0 is specified** (2026-11-18): D-130 (the PO's answers Q1–Q16; Claude's defaults items 17–25), spec #333, tickets #334–#344 and #330 (all `needs-triage`), plan [`docs/plans/v0.9.0.md`](docs/plans/v0.9.0.md). Details in `docs/history.md` „v0.9.0: specify session".
+- **v0.9.0 is specified** (2026-11-18): D-130 (the PO's answers Q1–Q16; Claude's defaults items 17–27), spec #333, tickets #334–#344 and #330 (all `needs-triage`), plan [`docs/plans/v0.9.0.md`](docs/plans/v0.9.0.md). Details in `docs/history.md` „v0.9.0: specify session".
 - **Gate:** no code before the PO approves the spec, the tickets and the plan (CLAUDE.md rule 1). The build session checks that approval first, relabels the tickets `ready-for-agent`, opens the draft milestone PR and follows the plan's order.
 - **Key rules for the build:** the import path (#335, #336) is T4; no timer code (an empty `git diff -- feature/brew core/timer core/timer-engine` after every ticket, else stop and ask), so no T4 timer review and no accuracy runs; no migration (umamit.db v9); no new permission.
 - **v0.8.0 is done:** PR #328 merged into `main` (`60e07bbe`), [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) released (80099).
@@ -66,7 +66,7 @@
 
 ## Waiting on the PO
 
-1. **v0.9.0:** approve (or change) spec #333, its tickets #334–#344 and #330, `docs/plans/v0.9.0.md` and D-130's „Claude" items 17–25.
+1. **v0.9.0:** approve (or change) spec #333, its tickets #334–#344 and #330, `docs/plans/v0.9.0.md` and D-130's „Claude" items 17–27.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.

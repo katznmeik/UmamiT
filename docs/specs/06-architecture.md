@@ -146,7 +146,7 @@ four things (GEN-01, D-036, D-094): the catalog refresh (incl. the once-per-
 refresh re-check of known teas missing from the sitemap, CAT-16), the
 one-time seed photo download at first start, the on-demand exact price fetch
 when adding a package, and the fetch of one product page from a shop link
-the user shares or pastes (CAT-17). An OkHttp interceptor rejects any host other than
+the user shares or pastes (CAT-17), or taps in a received recipe (v0.9.0, D-130). An OkHttp interceptor rejects any host other than
 `www.tee-kontor-kiel.de` (images are served from the same host, 08 §2.2).
 The client uses a **single connection** (`maxRequestsPerHost = 1`, one
 dispatcher thread for the shop). Each job (the seed photos, one refresh, one
@@ -261,7 +261,7 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | `CatalogRefreshService` (own `dataSync` FGS, not WorkManager) | User action only |
 | `OrphanFileSweepWorker` | Daily, idle; also once after a device restore |
 | `ReminderWorker` | Freshness digest (SET-19; not built yet) |
-| `BackupReminderWorker` (v0.9.0, BAK-06, [D-130](10-open-questions-and-decisions.md#d-130)) | A unique one-time job (`backup-reminder`) due 30 days after the latest of `lastBackupAt` and `backupReminderLastAt`; kept if one waits at app start, replaced after an export or the switch's turn-on, cancelled when SET-20 is off. A run posts on „Erinnerungen" only with ≥ 20 completed sessions since `lastBackupAt` (all without one), sets `backupReminderLastAt` when it posts, and enqueues the next. No constraints |
+| `BackupReminderWorker` (v0.9.0, BAK-06, [D-130](10-open-questions-and-decisions.md#d-130)) | A unique one-time job (`backup-reminder`) due 30 days after the latest of `lastBackupAt` and `backupReminderLastAt`; kept if one waits at app start, replaced after an export or the switch's turn-on (which sets `backupReminderLastAt`), cancelled when SET-20 is off. A run posts on „Erinnerungen" only with ≥ 20 sessions since `lastBackupAt` (all without one), sets `backupReminderLastAt` = now whether it posted or not, and enqueues the next, so the job is never due in the past. No constraints |
 | `LowStockReminderWorker` (v0.3.0, INV-11, D-098; interval from v0.5.0, D-108) | A unique one-time job (`low-stock-reminder`) for the next `lowStockReminderTime` on the next due date of SET-28's interval: kept if one waits at app start (also after an app update), replaced after a change of SET-28/SET-29, appended by each run for the next due date (D-098, D-108 build notes); WorkManager re-arms it after a reboot. No constraints. Cancelled when SET-28 is *Aus* |
 
 **Low-stock reminder (v0.3.0, INV-11, D-098; interval from v0.5.0, D-108).** The app's first

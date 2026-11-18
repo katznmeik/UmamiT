@@ -1,6 +1,6 @@
 # 08 · Content & Catalog Import
 
-> Status: **Draft v0.2** · Last updated: 2026-11-17 (taste sets and the slider info, §4a, D-128; 2026-11-11: descriptor keys, §4, D-112; 2026-10-31: the rows of the other categories ship with v0.4.0's *Sorte wählen*, D-100; 2026-10-29: a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-11-18 (§2 item 9: a received recipe's link on a tap, D-130; 2026-11-17: taste sets and the slider info, §4a, D-128; 2026-11-11: descriptor keys, §4, D-112; 2026-10-31: the rows of the other categories ship with v0.4.0's *Sorte wählen*, D-100; 2026-10-29: a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
 > v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
@@ -293,7 +293,8 @@ the prose, whose years are travel reports, founding years and link texts
 8. New harvests usually get new article numbers; the old one becomes
    discontinued.
 9. **A tea from a shop link (v0.2.1, CAT-17, D-094):** a link the user
-   shares to UmamiT or pastes (*Link einfügen*) is accepted only as
+   shares to UmamiT or pastes (*Link einfügen*), or from v0.9.0 taps in a
+   received recipe (*Tee über Shop-Link laden*, PRF-08, D-130), is accepted only as
    `https://www.tee-kontor-kiel.de/<slug>/<article number>` with an optional
    `-<grams>` size suffix; any other link (other or look-alike host, `http`,
    userinfo, a query string, a category or `/tee-info/` URL) sends no

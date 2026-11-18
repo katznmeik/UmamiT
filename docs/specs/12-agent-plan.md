@@ -1,6 +1,6 @@
 # 12 · Subagent Distribution Plan
 
-> Status: **Draft v0.3** · Last updated: 2026-11-17 (v0.8.0 tiers, D-128; 2026-11-15: v0.7.2 tiers and T4-F, D-119, D-120; 2026-11-14: v0.7.1 tiers, D-117; 2026-11-13: v0.7.0 tiers, D-115; 2026-11-12: v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
+> Status: **Draft v0.3** · Last updated: 2026-11-18 (v0.9.0 tiers, D-130; 2026-11-17: v0.8.0 tiers, D-128; 2026-11-15: v0.7.2 tiers and T4-F, D-119, D-120; 2026-11-14: v0.7.1 tiers, D-117; 2026-11-13: v0.7.0 tiers, D-115; 2026-11-12: v0.6.1 tiers, Statistik becomes v0.7.0, D-114; 2026-11-02: tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
 > Decisions: [D-026](10-open-questions-and-decisions.md#d-026), [D-101](10-open-questions-and-decisions.md#d-101), [D-119](10-open-questions-and-decisions.md#d-119), [D-120](10-open-questions-and-decisions.md#d-120)
 
 UmamiT is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
@@ -259,8 +259,22 @@ all three accuracy variants before the rc and the final)
 | Milestone review | T3 |
 | Timer review | T4 |
 
-*v0.9.0 — Export, import, shared recipes* (planned, D-128): tiers are set
-in its specify session; backup and import code is never below T3.
+*v0.9.0 — Export, import, shared recipes* (D-128, [D-130](10-open-questions-and-decisions.md#d-130) Q15, Q16; tickets in spec
+#333, plan `docs/plans/v0.9.0.md`; no timer code, so no T4 timer review and
+no accuracy runs while `feature:brew`, `core:timer` and `core:timer-engine`
+stay unchanged)
+
+| Task | Tier |
+|---|---|
+| Backup reader and validation (#335) | T4 |
+| Replacing import, safety copy, undo, crash safety (#336) | T4 |
+| Backup writer (#334) | T3 |
+| Journal CSV (#337) | T3 |
+| Recipe file write/read (#340), Rezept teilen (#341), Rezept übernehmen (#342) | T3 |
+| ⋮ menu and the alert gate (#330) | T3 |
+| *Daten & Sicherung* screen (#338), backup reminder (#339) | T2 |
+| Milestone review, the import path read at T4 | T3 (+ T4) |
+| `/review-animations` | T2 |
 
 **M5 — Polish → 1.0** (postponed until the PO's go, D-128; the manual
 export moved to v0.9.0)

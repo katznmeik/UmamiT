@@ -2135,7 +2135,8 @@ v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-de
   - ***Sicherung erstellen*** (primary): a dialog „Sicherung erstellen" ·
     „Etwa 18 MB · 142 Sessions, 23 Tees, 61 Fotos. Du wählst gleich, wo die
     Datei gespeichert wird." · *Abbrechen* / *Weiter* → the system picker
-    (`UmamiT-Sicherung-2026-11-18.umamit`) → in place of the button a
+    (`UmamiT-Sicherung-2026-11-18.umamit`, typed `application/octet-stream`
+    so the name keeps its ending) → in place of the button a
     progress bar with „Sicherung wird erstellt … Fotos 12 von 61" and
     *Abbrechen* → „Sicherung gespeichert" (snackbar) and the line updated.
     Cancelled: „Sicherung abgebrochen"; failed: „Die Sicherung konnte nicht
@@ -2154,8 +2155,10 @@ v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-de
   - ***Import rückgängig machen*** (text button, only while the safety copy
     is valid), with „Möglich bis 25. Nov. 2026, 08:30": the dialog „Import
     rückgängig machen?" · „Deine Daten von vor dem Import kommen zurück. Seit
-    dem Import: 3 neue Sessions – sie gehen verloren." (or „Seit dem Import
-    hat sich nichts geändert.") · *Abbrechen* / *Rückgängig machen*. Greyed
+    dem Import: 3 neue Sessions, 1 geänderter Tee und alle anderen
+    Änderungen – sie gehen verloren." (with neither: „Seit dem Import gibt
+    es keine neuen Sessions und keine geänderten Tees.") · *Abbrechen* /
+    *Rückgängig machen*. Greyed
     out during a timer like the import. Done: „Import rückgängig gemacht".
   - Switch ***An Sicherung erinnern*** (SET-20, on) with „Einmal im Monat,
     wenn seit der letzten Sicherung 20 Sessions dazugekommen sind".

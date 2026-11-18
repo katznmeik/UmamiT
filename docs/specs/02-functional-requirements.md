@@ -525,7 +525,10 @@ A tea the sitemap doesn't list (e.g. sold out) can be fetched on its own from
 its shop link. This is network use (d) of GEN-01.
 - AC1: Entry points: the Android share target (`ACTION_SEND`, `text/plain`),
   so UmamiT appears in the browser's *Teilen* sheet, and *Link einfügen* in
-  the catalog's overflow menu (SCR-19), which opens a paste field.
+  the catalog's overflow menu (SCR-19), which opens a paste field; from
+  v0.9.0 also *Tee über Shop-Link laden* on SCR-32 for a received recipe's
+  link ([D-130](10-open-questions-and-decisions.md#d-130) Q4; on success SCR-32 stays open and offers *Neuen
+  Tee anlegen* from that entry instead of opening SCR-21, AC4).
 - AC2: Accepted is only `https://www.tee-kontor-kiel.de/<slug>/<Artikelnummer>`
   with an optional `-<Gramm>` size suffix. Anything else (another or
   look-alike host, `http`, userinfo, a query string, a category or
@@ -2088,19 +2091,22 @@ stays out, BAK-03).
 - AC5: **Safety copy** (D-130 Q5): before the replace the current data is
   written to one private copy in the no-backup storage and checked; if
   that fails, the import is refused and nothing changes.
-- AC6: **One atomic replace**: a failure leaves the data as it was. After
+- AC6: **One atomic replace**: a failure leaves the data as it was, and a
+  crash at any point leaves either the old or the imported data complete
+  at the next start (05 §8 „Replace"). After
   it the app opens Start with „Sicherung eingespielt · 142 Sessions, 23
   Tees" and *Rückgängig machen*.
 - AC7: **Import rückgängig machen** (D-130 Q5, Q6) on SCR-26 until 7 × 24 h
-  after the import or the next import; a dialog names the sessions started
-  since („Seit dem Import: 3 neue Sessions – sie gehen verloren." or „Seit
-  dem Import hat sich nichts geändert.") with *Rückgängig machen*; no typed
-  word; refused while a timer is active. It brings back the safety copy
-  and deletes it.
+  after the import or the next import; a dialog counts what is lost
+  („Seit dem Import: 3 neue Sessions, 1 geänderter Tee und alle anderen
+  Änderungen – sie gehen verloren."; with neither: „Seit dem Import gibt
+  es keine neuen Sessions und keine geänderten Tees.") with *Rückgängig
+  machen*; no typed word; refused while a timer is active. It brings back
+  the safety copy and deletes it.
 - AC8: An import does not change „Letzte Sicherung" (D-130 Q12).
 
 **BAK-04 — Journal als CSV** `Should` (v0.9.0, D-130 Q9, Q10): export only,
-one row per completed session, newest first, through the file picker
+one row per session (`COMPLETED` and `MANUAL`), newest first, through the file picker
 (`UmamiT-Journal-2026-11-18.csv`). Format for German Excel: UTF-8 with BOM,
 `;` separator, decimal comma, CRLF, fields with `;`, `"` or a line break in
 quotes. Does not set „Letzte Sicherung".
@@ -2123,7 +2129,7 @@ quotes. Does not set „Letzte Sicherung".
 | Beschreibungen | Nori, Spinat, Süße Sahne |
 | Notizen | the session's note |
 | Aufgüsse im Detail | Spülen 0:10 \| 60 °C 1:30 \| 65 °C 0:20 \| 70 °C 0:45 |
-| Umami … Würze | ten columns in 05 §3.7's order (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma, Röstung/Malz, Säure, Frische, Würze): each the mean over the infusions with a value, one decimal; empty where none |
+| Umami … Würze | ten columns in 05 §3.7's order (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma, Röstung/Malz, Säure, Frische, Würze): for the six axes of the session's set in effect (JRN-03, D-128 item 13) the mean over the infusions with a value, one decimal; the other four always empty (D-130 Q10), even where a hidden value is stored |
 
 Empty values stay empty; no unit in a cell.
 

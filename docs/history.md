@@ -14,7 +14,7 @@
 ### v0.9.0: specify session (2026-11-18)
 
 - **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/lucid-hopper-qc2hw0`, not used). No code, no PR.
-- **Grilling:** four rounds of selectable options, Q1–Q16, recorded as **D-130**. The PO took every recommended option except Q4: the shop page of a received recipe's tea is fetched **only on a tap** (*Tee über Shop-Link laden*), which amends D-128 Q9 and the wording of GEN-01 (d) and CLAUDE.md rule 7. Claude's defaults are D-130 items 17–25.
+- **Grilling:** four rounds of selectable options, Q1–Q16, recorded as **D-130**. The PO took every recommended option except Q4: the shop page of a received recipe's tea is fetched **only on a tap** (*Tee über Shop-Link laden*), which amends D-128 Q9 and the wording of GEN-01 (d) and CLAUDE.md rule 7. Claude's defaults are D-130 items 17–27.
 - **Specs:** 02 (GEN-01 (d), PRF-08, BAK-01, BAK-02, BAK-04, BAK-06, SET-20), 03 (SCR-08, SCR-12, SCR-26, the new SCR-32, §5), 05 (§6, §8, the new §8a), 06 (§2.2, §3, §5.4, §5.7), 09 (§2, §4 „v0.9.0"), 10 (D-130, log), 11, the README, CLAUDE.md rule 7.
 - **Issues:** spec #333; tickets #334–#344; #330 triaged into v0.9.0 as a sub-issue (T3, no timer review). All `needs-triage` until the PO approves.
 - **Plan:** `docs/plans/v0.9.0.md`.
