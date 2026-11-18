@@ -324,7 +324,7 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-130"></a>
-### D-130 — v0.9.0 specified: recipe file and how it arrives, newer files refused, the shop page only on a tap, the safety copy and its undo, all photos in the backup, the export's size note, the journal CSV, the reminder switch, „Letzte Sicherung", matching a received tea, tiers, #330 (GEN-01, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08, SET-20; SCR-08, SCR-12, SCR-26, SCR-32; 05 §8, §8a; 06 §2.2, §5.4, §5.7; 09 §2, §4 „v0.9.0"; amends D-128 Q9 and D-036's rule 7 wording) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q16 below. The spec #333, its tickets and `docs/plans/v0.9.0.md` **wait for the PO's approval**; the details marked „Claude" (items 17–27) are Claude's defaults inside that spec, not the PO's answers
+### D-130 — v0.9.0 specified: recipe file and how it arrives, newer files refused, the shop page only on a tap, the safety copy and its undo, all photos in the backup, the export's size note, the journal CSV, the reminder switch, „Letzte Sicherung", matching a received tea, tiers, #330 (GEN-01, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08, SET-20; SCR-08, SCR-12, SCR-26, SCR-32; 05 §8, §8a; 06 §2.2, §5.4, §5.7; 09 §2, §4 „v0.9.0"; amends D-128 Q9 and D-036's rule 7 wording) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q16 below. The spec #333, its tickets (#334–#344, #330), `docs/plans/v0.9.0.md` and the details marked „Claude" (items 17–27) **approved by the PO as written on 2026-11-18** (build session 1, asked as options); items 17–27 stay Claude's defaults inside the approved spec, not the PO's answers to Q1–Q16
 
 **Context.** D-128 Q4–Q11 planned v0.9.0 (export and a replacing import, the backup reminder, „Letzte Sicherung", the journal CSV, shared recipes) and left a list „Open for the v0.9.0 specify session". #330 (the tabs' ⋮ menu does not give way to an alert) was put into v0.9.0 by D-128 item 41.
 
@@ -377,6 +377,10 @@ personal data or shop content).
 - Specs changed in this session: 02 (GEN-01 (d), PRF-08, BAK-01, BAK-02, BAK-04, BAK-06, SET-20 as a switch), 03 (SCR-08 ⋮, SCR-12 ⋮ *Rezept teilen*, SCR-26 in full, the new SCR-32), 05 (§8, the new §8a), 06 (§2.2, §3 `core:backup`, §5.4, §5.7), 09 (§2 row, §4 „v0.9.0"), 11, CLAUDE.md rule 7's wording.
 - **No timer code** in v0.9.0: no T4 timer review, no accuracy runs (Q16). **No migration**: umamit.db stays v9 (the export carries schema 9); the settings get `backupReminderEnabled`, `backupReminderLastAt`, `lastBackupAt` and `safetyCopyAt` (05 §6; the planned, never built `backupReminder` and `lastManualBackupAt` are replaced). „N neue Sessions" is counted from `lastBackupAt`, not stored.
 - The spec issue #333 and its tickets carry `needs-triage` until the PO approves them; then `ready-for-agent`.
+
+**Build notes.**
+
+- **Approval (2026-11-18, build session 1):** the PO approved spec #333, tickets #334–#344 and #330, the plan and items 17–27 as written; the tickets were relabelled `ready-for-agent`.
 
 <a id="d-129"></a>
 ### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*

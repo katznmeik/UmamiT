@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-18 (v0.9.0 specify session: D-130, spec #333, tickets #334–#344 and #330, `docs/plans/v0.9.0.md`). **Next:** the PO approves spec, tickets and plan; then the v0.9.0 build session (`/implement-spec #333`).
+**Last updated:** 2026-11-18 (v0.9.0 specify session: D-130, spec #333, tickets #334–#344 and #330, `docs/plans/v0.9.0.md`). **Now:** v0.9.0 build session 1 (approved by the PO 2026-11-18; steps 1–3 of the plan).
 
 ## Next: the v0.9.0 build session (after the PO's approval)
 
@@ -44,7 +44,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.9.0** (export/import, CSV, reminder, shared recipes; D-128, D-130) specified 2026-11-18, waiting for the PO's approval of spec #333, tickets and plan; **v0.8.0** released 2026-11-18; M5 / 1.0 postponed until the PO's go |
+| Current milestone | **v0.9.0** (export/import, CSV, reminder, shared recipes; D-128, D-130) specified 2026-11-18, spec #333, tickets and plan **approved by the PO 2026-11-18**; build session 1 running; **v0.8.0** released 2026-11-18; M5 / 1.0 postponed until the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00`, restarted from `main` `60e07bbe` after the v0.8.0 merge; the v0.9.0 spec docs on top (not yet in `main`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -66,7 +66,7 @@
 
 ## Waiting on the PO
 
-1. **v0.9.0:** approve (or change) spec #333, its tickets #334–#344 and #330, `docs/plans/v0.9.0.md` and D-130's „Claude" items 17–27.
+1. **v0.9.0:** nothing until rc.1 (spec, tickets, plan and items 17–27 approved 2026-11-18).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
