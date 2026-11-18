@@ -784,7 +784,10 @@ v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q
   manifest or another format id: „Das ist keine UmamiT-Sicherung."); the
   staging is deleted and nothing else is touched.
 - **Replace (BAK-02):**
-  1. Refused while `active_brew` has a row (a brew or a quick timer).
+  1. Refused while `active_brew` has a row (a brew or a quick timer) or a
+     timer runs without one (D-054), and while a catalog refresh runs:
+     „Während der Katalog aktualisiert wird, kann nichts eingespielt
+     werden." (D-130 build note, PO 2026-11-18).
   2. **Safety copy** (D-130 Q5): the export writer writes the current data
      to `noBackupFilesDir/safety/umamit-safety.new` and the reader checks
      it. If either fails (e.g. no space), it is deleted, the import is
@@ -807,12 +810,19 @@ v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q
   - **Crash safety (D-130 item 26):** steps 3–5 span Room, files and
     DataStore, so they are guarded by a phase marker in
     `noBackupFilesDir/import/`. After a crash, the next start (before any
-    query is served, like the restore detection below) finds either the
-    complete old data or the complete imported data: it rolls **back**
+    query is served: a synchronous gate in `UmamitApplication.onCreate`,
+    before Room opens and before the restore detection below) finds either
+    the complete old data or the complete imported data: it rolls **back**
     (staging and `.new` deleted) when the Room transaction had not
-    committed, and **forward** (steps 3's renames, 4, 5) when it had. How a
-    commit is recognised is designed in #336, recorded as a D-130 build
-    note and read in the T4 review.
+    committed, and **forward** (steps 3's renames, 4, 5) when it had. **A
+    commit is recognised by `PRAGMA application_id`**: the transaction sets
+    it to the marker's token (no schema change); `wal_checkpoint(FULL)` runs
+    after the commit, before any rename; the marker, the staged photos and
+    `import/settings.json` are fsynced. A step that fails after the commit
+    still reports „Sicherung eingespielt" and is finished at the next start
+    (PO 2026-11-18). The design is the D-130 build note „#336, crash
+    safety"; the M5 orphan sweeper skips `photos.new/` and `photos.old/` and
+    does not run while a marker exists.
 - **Undo (*Import rückgängig machen*, D-130 Q6):** while the safety copy
   exists and now < `safetyCopyAt` + 7 × 24 h. Its dialog counts the
   sessions (`COMPLETED`, `MANUAL`) with `started_at` after `safetyCopyAt`
