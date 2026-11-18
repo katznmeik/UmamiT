@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The recipe file (PRF-08, 05 §8a, D-130): the reader's refusals (PRF-08 AC5). -->
+    <string name="recipe_file_refused_not_a_recipe">Das ist keine UmamiT-Rezeptdatei.</string>
+    <string name="recipe_file_refused_newer_version">Diese Datei stammt aus einer neueren UmamiT-Version. Aktualisiere die App und versuch es noch mal.</string>
+    <string name="recipe_file_refused_damaged">Die Rezeptdatei ist beschädigt.</string>
+
+    <!-- The share text (PRF-08 AC1, the example in 03 SCR-12). %1$s the tea, %2$s the recipe's name. -->
+    <string name="recipe_file_share_title">%1$s – Rezept „%2$s\"</string>
+    <!-- %1$s the tea, %2$s its secondary name, %3$s the recipe's name. -->
+    <string name="recipe_file_share_title_secondary">%1$s (%2$s) – Rezept „%3$s\"</string>
+    <string name="recipe_file_share_separator">" · "</string>
+    <!-- %1$s the leaf („4,0 g"), %2$s the water („120 ml"). -->
+    <string name="recipe_file_share_amounts">%1$s auf %2$s</string>
+    <!-- %1$s the vessel type („Kyusu"). -->
+    <string name="recipe_file_share_vessel">Gefäß: %1$s</string>
+    <!-- A number and its unit are joined by a no-break space (05 §7). -->
+    <string name="recipe_file_share_grams">%1$s\u00A0g</string>
+    <string name="recipe_file_share_ml">%1$d\u00A0ml</string>
+    <string name="recipe_file_share_celsius">%1$d\u00A0°C</string>
+    <!-- %1$d the step's number, %2$s its kind („1. Aufguss"). -->
+    <string name="recipe_file_share_step">%1$d. %2$s</string>
+    <string name="recipe_file_share_footer">Geteilt aus UmamiT – öffne die angehängte Datei in UmamiT, um das Rezept zu übernehmen.</string>
+
+    <string name="recipe_file_method_kyusu">Kyusu</string>
+    <string name="recipe_file_method_gongfu">Gongfu</string>
+    <string name="recipe_file_method_western">Westlich</string>
+    <string name="recipe_file_method_matcha_usucha">Matcha Usucha</string>
+    <string name="recipe_file_method_matcha_koicha">Matcha Koicha</string>
+    <string name="recipe_file_method_cold_brew">Kaltaufguss</string>
+    <string name="recipe_file_method_ice_brew">Eisaufguss</string>
+    <string name="recipe_file_method_custom">Eigene</string>
+
+    <string name="recipe_file_step_kind_rinse">Spülen</string>
+    <string name="recipe_file_step_kind_infusion">Aufguss</string>
+    <string name="recipe_file_step_kind_whisk">Aufschlagen</string>
+
+    <string name="recipe_file_vessel_type_kyusu">Kyusu</string>
+    <string name="recipe_file_vessel_type_houhin">Houhin</string>
+    <string name="recipe_file_vessel_type_shiboridashi">Shiboridashi</string>
+    <string name="recipe_file_vessel_type_gaiwan">Gaiwan</string>
+    <string name="recipe_file_vessel_type_clay_teapot">Tonkanne</string>
+    <string name="recipe_file_vessel_type_western_teapot">Teekanne</string>
+    <string name="recipe_file_vessel_type_mug_infuser">Becher mit Sieb</string>
+    <string name="recipe_file_vessel_type_glass">Glas</string>
+    <string name="recipe_file_vessel_type_chawan">Chawan</string>
+    <string name="recipe_file_vessel_type_cold_brew_bottle">Cold-Brew-Flasche</string>
+    <string name="recipe_file_vessel_type_other">Andere</string>
+</resources>
