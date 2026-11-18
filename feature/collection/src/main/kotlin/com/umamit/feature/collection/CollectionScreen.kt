@@ -14,6 +14,7 @@ import com.umamit.core.designsystem.component.OverflowItem
 import com.umamit.core.designsystem.component.OverflowSettingsAction
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.ui.rememberAlertGate
 
 /**
  * Sammlung (SCR-08 / SCR-19): the segmented control [ Meine Tees | Katalog ] at the top and the
@@ -25,7 +26,8 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
  * wählen*, SCR-11), in place of rc.1's FAB (D-102). On *Katalog* it offers
  * *Katalog aktualisieren* ([onRefreshCatalog], SCR-19, CAT-07) and *Link einfügen*
  * ([onPasteLink], a tea from a shop link, CAT-17), and while the catalog shows a view whose *Sorte* groups fold
- * ([onFoldCatalog] not null, D-098) *Alle einklappen* (`true`) and *Alle ausklappen* (`false`).
+ * ([onFoldCatalog] not null, D-098) *Alle einklappen* (`true`) and *Alle ausklappen* (`false`). The menu gives way to
+ * an alert it was not opened in ([alertKey], the alert playing now; rule 8, D-058).
  */
 @Composable
 fun CollectionScreen(
@@ -41,7 +43,9 @@ fun CollectionScreen(
     onFoldCatalog: ((fold: Boolean) -> Unit)? = null,
     onAddFromCatalog: () -> Unit = {},
     onAddWithoutCatalog: () -> Unit = {},
+    alertKey: String? = null,
 ) {
+    val menu = rememberAlertGate(alertKey)
     val refreshLabel = stringResource(R.string.collection_catalog_refresh)
     val pasteLabel = stringResource(R.string.collection_catalog_paste_link)
     val foldLabel = stringResource(R.string.collection_catalog_fold_all)
@@ -66,7 +70,16 @@ fun CollectionScreen(
     ScreenScaffold(
         title = stringResource(R.string.collection_title),
         modifier = modifier,
-        actions = { OverflowSettingsAction(onOpenSettings, items = menuItems) },
+        actions = {
+            OverflowSettingsAction(
+                onOpenSettings = onOpenSettings,
+                shown = menu.shown,
+                keepsPopup = menu.keepsPopup,
+                onOpen = menu::open,
+                onClose = menu::close,
+                items = menuItems,
+            )
+        },
         scrollToTopRequest = scrollToTopRequest,
         // The segments stay at the top.
         verticalArrangement = Arrangement.Top,

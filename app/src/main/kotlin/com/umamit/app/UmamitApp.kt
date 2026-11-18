@@ -655,8 +655,9 @@ private fun TabHost(
                 // Only from the resumed list: a double tap opens one page (D-090).
                 onOpenSession = resumedOnly { navController.navigate(JournalSessionRoute(it)) },
                 teaRequest = journal.teaRequest,
-                // An alert plays: the filter sheet gives way (rule 8).
+                // An alert plays: the filter sheet and the ⋮ menu give way (rule 8, D-058).
                 alerting = alertKey != null,
+                alertKey = alertKey,
             )
         }
         // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal aufgießen* opens the setup
@@ -708,6 +709,8 @@ private fun TabHost(
                         navController.navigate(CollectionSorteRoute) { launchSingleTop = true }
                     },
                     myTeasContent = { modifier, scrollToTop -> myTeas(modifier, scrollToTop, openTea) },
+                    // The ⋮ menu gives way to an alert (rule 8, D-058).
+                    alertKey = alertKey,
                 )
             }
         }
@@ -815,6 +818,7 @@ private fun TabHost(
                     openSettings = openSettings,
                     scrollToTopRequest = scrollToTopRequest,
                     openTea = resumedOnly<String> { navController.navigate(CollectionTeaRoute(it)) },
+                    alertKey = alertKey,
                 ),
             )
         }
