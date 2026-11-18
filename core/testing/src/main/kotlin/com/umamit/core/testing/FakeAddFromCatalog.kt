@@ -75,24 +75,29 @@ class FakeAddFromCatalog(private val collection: FakeCollection) : AddFromCatalo
     /** As on Room: a new tea `tea-<key>` named by its key, no stock event; an owned key is only named. */
     override suspend fun addWithoutPackage(catalogKey: String): AddFromCatalogResult {
         gate?.await()
-        if (failNext) {
-            failNext = false
-            return AddFromCatalogResult.Failed
-        }
-        addedWithoutPackage += catalogKey
+        val failed = failNext
+        failNext = false
         val owner = collection.teaRows.value.values.firstOrNull { it.catalogKey == catalogKey }?.id
-        if (owner != null) return AddFromCatalogResult.Repurchased(owner)
-        val teaId = "tea-$catalogKey"
-        collection.teas.saveTea(
-            Tea(
-                id = teaId,
-                name = catalogKey,
-                category = TeaCategory.GREEN,
-                form = TeaForm.LOOSE_LEAF,
-                catalogKey = catalogKey,
-            ),
-        )
-        return AddFromCatalogResult.Added(teaId)
+        return when {
+            failed -> AddFromCatalogResult.Failed
+
+            owner != null -> AddFromCatalogResult.Repurchased(owner).also { addedWithoutPackage += catalogKey }
+
+            else -> {
+                addedWithoutPackage += catalogKey
+                val teaId = "tea-$catalogKey"
+                collection.teas.saveTea(
+                    Tea(
+                        id = teaId,
+                        name = catalogKey,
+                        category = TeaCategory.GREEN,
+                        form = TeaForm.LOOSE_LEAF,
+                        catalogKey = catalogKey,
+                    ),
+                )
+                AddFromCatalogResult.Added(teaId)
+            }
+        }
     }
 }
 

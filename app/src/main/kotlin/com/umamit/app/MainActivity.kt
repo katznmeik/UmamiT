@@ -116,10 +116,7 @@ class MainActivity : ComponentActivity() {
         // A recreated activity has seen its intent already, but keeps a request not handled yet (S1, #47).
         if (savedInstanceState == null) {
             openTimerIfAsked(intent)
-            teaLinkShares.offer(intent)
-            receivedRecipes.offer(intent)
-            catalogRefreshRequests.offer(intent)
-            startRequests.offer(intent)
+            offerRequests(intent)
         } else {
             if (timerRequests.restore(savedInstanceState, intent)) showTimerOverLockScreen()
             teaLinkShares.restore(savedInstanceState)
@@ -215,6 +212,11 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         openTimerIfAsked(intent)
+        offerRequests(intent)
+    }
+
+    /** The requests besides the timer's an intent may carry: a shared link, a recipe file, the notifications' taps. */
+    private fun offerRequests(intent: Intent?) {
         teaLinkShares.offer(intent)
         receivedRecipes.offer(intent)
         catalogRefreshRequests.offer(intent)

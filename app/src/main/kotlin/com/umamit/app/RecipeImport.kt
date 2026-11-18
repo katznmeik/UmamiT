@@ -5,8 +5,12 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,3 +42,15 @@ internal fun rememberRecipeImport(files: ReceivedRecipeFiles): () -> Unit {
 }
 
 private const val ANY_TYPE = "*/*"
+
+/**
+ * The token of the received recipe file the shell has not shown yet (PRF-08), 0 for none; [onReceive] runs once
+ * per new one, while the shell is shown (rule 8: a covered shell waits).
+ */
+@Composable
+internal fun pendingRecipeToken(files: ReceivedRecipeFiles, onReceive: () -> Unit): Long {
+    val token = files.pending.collectAsStateWithLifecycle().value?.token ?: 0L
+    val currentOnReceive by rememberUpdatedState(onReceive)
+    LaunchedEffect(token) { if (token != 0L) currentOnReceive() }
+    return token
+}

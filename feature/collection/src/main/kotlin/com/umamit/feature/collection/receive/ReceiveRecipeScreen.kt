@@ -36,7 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -261,7 +261,7 @@ private fun Ready(
 /** The recipe's summary card; one block for TalkBack. */
 @Composable
 private fun Summary(recipe: SharedRecipe) {
-    val resources = LocalContext.current.resources
+    val resources = LocalResources.current
     val labels = ResourceRecipeShareLabels(resources)
     // The share text's lines: the title, the summary („Kyusu · 4,0 g auf 120 ml · 60 °C · Gefäß: Kyusu"), the steps.
     val lines = RecipeShareText.build(recipe, labels).lines()

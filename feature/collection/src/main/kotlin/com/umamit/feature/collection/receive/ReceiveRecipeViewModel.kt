@@ -208,9 +208,8 @@ class ReceiveRecipeViewModel internal constructor(
 
     /** *Tee über Shop-Link laden* (D-130 Q4, GEN-01 (d)): the one CAT-17 fetch of the file's shop link. */
     fun loadShopLink() {
-        val ready = state.value as? ReceiveRecipeUiState.Ready ?: return
-        val url = ready.recipe.tea.shopUrl ?: return
-        if (!ready.offersShopLink || ready.linkLoading) return
+        val ready = (state.value as? ReceiveRecipeUiState.Ready)?.takeIf { it.offersShopLink && !it.linkLoading }
+        val url = ready?.recipe?.tea?.shopUrl ?: return
         form.update { it.copy(linkLoading = true, linkFailure = null) }
         viewModelScope.launch {
             val outcome = links.load(url)
@@ -223,9 +222,8 @@ class ReceiveRecipeViewModel internal constructor(
 
     /** *Rezept übernehmen*: the only write (PRF-08 AC7). */
     fun takeOver() {
-        val ready = state.value as? ReceiveRecipeUiState.Ready ?: return
-        val choice = ready.choice ?: return
-        if (ready.saving) return
+        val ready = (state.value as? ReceiveRecipeUiState.Ready)?.takeIf { !it.saving }
+        val choice = ready?.choice ?: return
         form.update { it.copy(saving = true, failure = null) }
         viewModelScope.launch {
             val target = when (choice) {

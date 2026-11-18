@@ -61,7 +61,10 @@ class RecipeTakeOver @Inject constructor(
             is TakeOverTarget.NewTea -> newTea(recipe.tea, target.catalogKey) ?: return TakeOverResult.Failed
         }
         val existing = recipes.observeRecipes(teaId).first()
-        if (existing.size >= Recipe.MAX_PER_TEA) return TakeOverResult.LimitReached
+        return if (existing.size >= Recipe.MAX_PER_TEA) TakeOverResult.LimitReached else add(recipe, teaId, existing)
+    }
+
+    private suspend fun add(recipe: SharedRecipe, teaId: String, existing: List<Recipe>): TakeOverResult {
         val name = RecipeMatch.recipeName(recipe.name, existing.map { it.name })
         val added = Recipe(
             id = UUID.randomUUID().toString(),

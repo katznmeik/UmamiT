@@ -197,9 +197,7 @@ internal fun UmamitApp(
         }
     }
     // A received recipe file (PRF-08): SCR-32 on top of the Sammlung stack at its root; the picker's flow ends quietly.
-    val receivedRecipe by recipeFiles.pending.collectAsStateWithLifecycle()
-    LaunchedEffect(receivedRecipe?.token) {
-        if (receivedRecipe == null) return@LaunchedEffect
+    val pendingRecipe = pendingRecipeToken(recipeFiles) {
         brewFlow.quit()
         controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
         select(Tab.Collection)
@@ -339,7 +337,7 @@ internal fun UmamitApp(
                                     openSetup = startNavigation.openSetupWith,
                                     showInJournal = showInJournal,
                                     recipeFiles = recipeFiles,
-                                    pendingRecipe = receivedRecipe?.token ?: 0L,
+                                    pendingRecipe = pendingRecipe,
                                     importRecipe = importRecipe,
                                     onTakenOver = { takenOver = it },
                                 ),
@@ -816,7 +814,8 @@ private fun TabHost(
             )
         }
         // Rezept übernehmen (SCR-32, PRF-08): ✕ discards; *Rezept übernehmen* replaces it with the tea's detail
-        // (SCR-09) and „Rezept „…" übernommen" over it. A file whose bytes are gone (it closed) shows nothing and closes.
+        // (SCR-09) and „Rezept „…" übernommen" over it. A file whose bytes are gone (it closed) shows nothing and
+        // closes.
         composable<CollectionReceiveRecipeRoute> { entry ->
             val token = entry.toRoute<CollectionReceiveRecipeRoute>().token
             val bytes = remember(token) { collection.recipeFiles.bytes(token) }
