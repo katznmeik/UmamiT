@@ -324,7 +324,7 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-130"></a>
-### D-131 — v0.9.0: *Alle Daten löschen* (SET-33) built in this release, like a fresh install; the device-backup note's wording (SET-33, BAK-05; SCR-26) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q6 below (build session 2, asked as options); the dialog's copy and ticket #346 are Claude's proposal, waiting for the PO's approval
+### D-131 — v0.9.0: *Alle Daten löschen* (SET-33) built in this release, like a fresh install; the device-backup note's wording (SET-33, BAK-05; SCR-26) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q6 below (build session 2, asked as options); ticket #346 and the dialog's copy (Claude's proposal) **approved by the PO as written on 2026-11-18**; it is built in build session 3
 
 Context: build session 2 found that SCR-26's „as before" parts were never
 built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
@@ -346,7 +346,7 @@ built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
 6. **Q6, the GERÄTE-BACKUP note** (SCR-26, BAK-05): „Dein Handy sichert
    Tees, Journal und Einstellungen automatisch mit dem Geräte-Backup. Fotos
    sind nur in der Sicherung enthalten."
-7. **Claude (proposal, waiting for the PO):** the dialog's copy in 03
+7. **Claude (approved by the PO, 2026-11-18):** the dialog's copy in 03
    SCR-26; the wipe's mechanism is proposed by #346's implementer as a build
    note before the code.
 
