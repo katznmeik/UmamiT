@@ -78,6 +78,7 @@ import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.journal.session.SessionEditorHost
 import com.umamit.feature.journal.session.SessionPageHost
+import com.umamit.feature.settings.backup.ImportedBackup
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
 import com.umamit.feature.journal.JournalRoute as JournalTab
@@ -122,6 +123,9 @@ private const val SLIDE_FRACTION = 12
  *   notification opens above what was shown ([ShellOpening.CatalogRefresh], D-097).
  * @param startRequest a new non-zero token for each tap on the daily low-stock reminder (INV-11, D-098): the
  *   shell turns to Start at its root; the picker's catalog flow ends quietly.
+ * @param importStartRequest a new non-zero count for each finished backup import (BAK-02 AC6): the same turn.
+ * @param importedBackup the import just done, for its snackbar over the shell (03 SCR-26);
+ *   [onImportedBackupChange] clears it once the snackbar is gone.
  *
  * **The tea picker's catalog flow** (D-073, D-088): *Aus dem Katalog* opens Sammlung › Katalog
  * (the Sammlung tab at its root, segment *Katalog*); an add or repurchase saved there opens the
@@ -156,6 +160,9 @@ internal fun UmamitApp(
     startRequest: Long = 0L,
     archivedTea: ArchivedTea? = null,
     onArchivedTeaChange: (ArchivedTea?) -> Unit = {},
+    importStartRequest: Long = 0L,
+    importedBackup: ImportedBackup? = null,
+    onImportedBackupChange: (ImportedBackup?) -> Unit = {},
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(opening.firstTab) }
@@ -191,6 +198,12 @@ internal fun UmamitApp(
     }
     // The daily low-stock reminder's tap (INV-11): Start at its root.
     OnNewToken(startRequest) {
+        brewFlow.quit()
+        controllers.getValue(Tab.Start).popToRoot(Tab.Start)
+        select(Tab.Start)
+    }
+    // A finished backup import (BAK-02 AC6): the same, with its snackbar over Start.
+    OnNewToken(importStartRequest) {
         brewFlow.quit()
         controllers.getValue(Tab.Start).popToRoot(Tab.Start)
         select(Tab.Start)
@@ -392,6 +405,12 @@ internal fun UmamitApp(
                     collectionScreens.archivedSnackbar(
                         archivedTea,
                         { onArchivedTeaChange(null) },
+                        Modifier.align(Alignment.BottomCenter),
+                    )
+                    // „Sicherung eingespielt · …“ · *Rückgängig machen* on Start after an import (BAK-02 AC6).
+                    settings.importedSnackbar(
+                        importedBackup,
+                        { onImportedBackupChange(null) },
                         Modifier.align(Alignment.BottomCenter),
                     )
                     SavedSheetHost(
@@ -836,6 +855,7 @@ private fun TabHost(
                 alertKey = { alertKey },
                 scrollToTopRequest = scrollToTopRequest,
                 rerunSetup = settings.onRerunSetup,
+                backupImported = settings.onBackupImported,
             ),
         )
     }

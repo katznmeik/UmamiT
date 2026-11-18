@@ -6,7 +6,7 @@ import androidx.navigation.compose.composable
 
 /**
  * Registers the settings [S] (the root's `TimerSettingsRoute`, a tab's `SettingsRoute`) and the four screens opened
- * from them: *Über*, *Diagnose*, *Teegeschirr* and the vessel editor (D-125).
+ * from them: *Über*, *Diagnose*, *Teegeschirr*, the vessel editor (D-125) and *Daten & Sicherung* (SCR-26).
  */
 internal inline fun <reified S : Any> NavGraphBuilder.settingsRoutes(settings: SettingsScreens, nav: SettingsNav) {
     composable<S> {
@@ -17,6 +17,16 @@ internal inline fun <reified S : Any> NavGraphBuilder.settingsRoutes(settings: S
                 alertKey = nav.alertKey(),
                 scrollToTopRequest = nav.scrollToTopRequest,
                 onOpenTeaware = dropUnlessResumed { nav.open(TeawareRoute) },
+                onOpenDataBackup = dropUnlessResumed { nav.open(DataBackupRoute) },
+            ),
+        )
+    }
+    composable<DataBackupRoute> {
+        settings.dataBackup(
+            DataBackupHost(
+                onBack = dropUnlessResumed(block = nav.back),
+                onImported = nav.backupImported,
+                alertKey = nav.alertKey(),
             ),
         )
     }

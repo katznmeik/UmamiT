@@ -197,7 +197,10 @@ class BackupConversionTest {
         // SET-20 (05 §6, §8, D-130 Q11): not device-bound, so written, read and replaced like the other user settings.
         val off = BackupSettingsReader.read(settingsJson(validStoredSettings().copy(backupReminderEnabled = false)), 3)
         assertThat(off.getValue("backupReminderEnabled").jsonPrimitive.content).isEqualTo("false")
-        val older = BackupSettingsReader.read(settingsJson(validStoredSettings()).with("backupReminderEnabled", null), 3)
+        val older = BackupSettingsReader.read(
+            settingsJson(validStoredSettings()).with("backupReminderEnabled", null),
+            3,
+        )
         assertThat(older.getValue("backupReminderEnabled").jsonPrimitive.content).isEqualTo("true")
         assertWithMessage("wrong type").that(
             refusal {
