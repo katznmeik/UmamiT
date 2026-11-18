@@ -25,8 +25,8 @@
     <string name="my_teas_stock_low">Knapp</string>
     <string name="my_teas_stock_low_chip">%1$s g · knapp</string>
     <string name="my_teas_stock_empty">Leer</string>
-    <!-- Sort (TEA-11); the chip reads „Sortierung: Zuletzt gebrüht" to TalkBack. -->
-    <string name="my_teas_sort_last_brewed">Zuletzt gebrüht</string>
+    <!-- Sort (TEA-11); the chip reads „Sortierung: Zuletzt aufgegossen" to TalkBack. -->
+    <string name="my_teas_sort_last_brewed">Zuletzt aufgegossen</string>
     <string name="my_teas_sort_name">Name</string>
     <string name="my_teas_sort_recently_added">Zuletzt hinzugefügt</string>
     <string name="my_teas_sort_stock">Vorrat</string>
@@ -62,7 +62,7 @@
     <string name="my_teas_reset_filters">Filter zurücksetzen</string>
 
     <!-- SCR-09 Tee (TEA-13, D-100). Non-breaking spaces ( ) keep a number with its unit. -->
-    <string name="collection_tea_brew">Brühen</string>
+    <string name="collection_tea_brew">Session starten</string>
     <string name="collection_tea_brew_archived">Tee ist archiviert</string>
     <string name="collection_tea_more">Weitere Optionen</string>
     <string name="collection_tea_edit">Tee bearbeiten</string>
@@ -80,15 +80,15 @@
     <string name="collection_tea_umami_high">hoch</string>
     <string name="collection_tea_umami_very_high">sehr hoch</string>
     <!-- The StatTriplet of SCR-09 (D-100): the tea's sessions, last brew and stock. -->
-    <string name="collection_tea_stat_sessions">Sitzungen</string>
+    <string name="collection_tea_stat_sessions">Sessions</string>
     <plurals name="collection_tea_stat_sessions_description">
-        <item quantity="one">%1$d Sitzung</item>
-        <item quantity="other">%1$d Sitzungen</item>
+        <item quantity="one">%1$d Session</item>
+        <item quantity="other">%1$d Sessions</item>
     </plurals>
     <string name="collection_tea_stat_last">Zuletzt</string>
-    <string name="collection_tea_stat_last_description">Zuletzt gebrüht am %1$s</string>
+    <string name="collection_tea_stat_last_description">Zuletzt aufgegossen am %1$s</string>
     <string name="collection_tea_stat_never">–</string>
-    <string name="collection_tea_stat_never_description">Noch nie gebrüht</string>
+    <string name="collection_tea_stat_never_description">Noch nie aufgegossen</string>
     <string name="collection_tea_stat_stock">Vorrat</string>
     <string name="collection_tea_stat_stock_value">%1$s g</string>
     <string name="collection_tea_stat_stock_description">Vorrat: %1$s</string>
@@ -98,7 +98,7 @@
     <string name="collection_tea_archive">Archivieren</string>
     <string name="collection_tea_restore">Wiederherstellen</string>
     <string name="collection_tea_delete">Löschen</string>
-    <string name="collection_tea_blocked">Erst die Sitzung beenden</string>
+    <string name="collection_tea_blocked">Erst die Session beenden</string>
     <!-- 03 §5: „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." -->
     <string name="collection_tea_delete_title">%1$s löschen?</string>
     <plurals name="collection_tea_delete_body">
@@ -126,20 +126,20 @@
     <string name="collection_tea_section_stock">Vorrat</string>
     <string name="collection_tea_section_freshness">Frische</string>
     <string name="collection_tea_section_taste">Geschmack</string>
-    <string name="collection_tea_section_recent">Letzte Sitzungen</string>
+    <string name="collection_tea_section_recent">Letzte Sessions</string>
     <!-- The header's „★ 4,5 (12)" (TEA-13, D-112): the average of the rated sessions and their count. -->
     <string name="collection_tea_rating">★ %1$s (%2$d)</string>
     <plurals name="collection_tea_rating_description">
-        <item quantity="one">Bewertung %1$s von 5, aus %2$d Sitzung</item>
-        <item quantity="other">Bewertung %1$s von 5, aus %2$d Sitzungen</item>
+        <item quantity="one">Bewertung %1$s von 5, aus %2$d Session</item>
+        <item quantity="other">Bewertung %1$s von 5, aus %2$d Sessions</item>
     </plurals>
     <!-- The „Zubereitung Ø 3,8 (10)" line under the header's rating (TEA-13, D-117 Q3). -->
     <string name="collection_tea_brewing_rating">Zubereitung Ø %1$s (%2$d)</string>
     <plurals name="collection_tea_brewing_rating_description">
-        <item quantity="one">Zubereitung im Schnitt %1$s von 5, aus %2$d Sitzung</item>
-        <item quantity="other">Zubereitung im Schnitt %1$s von 5, aus %2$d Sitzungen</item>
+        <item quantity="one">Zubereitung im Schnitt %1$s von 5, aus %2$d Session</item>
+        <item quantity="other">Zubereitung im Schnitt %1$s von 5, aus %2$d Sessions</item>
     </plurals>
-    <!-- LETZTE SITZUNGEN rows (TEA-13, D-112): „8. Juni · 55 °C · 1:00 · 3 Aufgüsse" and „★ 4,5"; for TalkBack. -->
+    <!-- LETZTE SESSIONS rows (TEA-13, D-112): „8. Juni · 55 °C · 1:00 · 3 Aufgüsse" and „★ 4,5"; for TalkBack. -->
     <string name="collection_tea_session_spoken_separator">", "</string>
     <!-- „2 von 3 Aufgüssen": fewer infusions poured than planned (TMR-12). The quantity is the planned count. -->
     <plurals name="collection_tea_session_infusions_of">
@@ -175,12 +175,12 @@
     <string name="collection_tea_cost_price">%1$s € / 100 g</string>
     <string name="collection_tea_cost_recipe">ca. %1$s € pro Liter (Rezept)</string>
     <plurals name="collection_tea_cost_average">
-        <item quantity="one">Ø %1$s € pro Liter aus %2$d Sitzung</item>
-        <item quantity="other">Ø %1$s € pro Liter aus %2$d Sitzungen</item>
+        <item quantity="one">Ø %1$s € pro Liter aus %2$d Session</item>
+        <item quantity="other">Ø %1$s € pro Liter aus %2$d Sessions</item>
     </plurals>
     <plurals name="collection_tea_cost_average_spoken">
-        <item quantity="one">Durchschnittlich %1$s € pro Liter aus %2$d Sitzung</item>
-        <item quantity="other">Durchschnittlich %1$s € pro Liter aus %2$d Sitzungen</item>
+        <item quantity="one">Durchschnittlich %1$s € pro Liter aus %2$d Session</item>
+        <item quantity="other">Durchschnittlich %1$s € pro Liter aus %2$d Sessions</item>
     </plurals>
     <!-- Nachkauf erfassen on VORRAT (INV-03, SCR-09, D-104). -->
     <string name="collection_tea_stock_purchase">Nachkauf erfassen</string>
@@ -200,7 +200,7 @@
     <!-- VORRAT's stock history (SCR-29, INV-03, D-104): newest first; a brew row opens its session. -->
     <string name="collection_tea_history_purchase">Kauf</string>
     <string name="collection_tea_history_correction">Bestand korrigiert</string>
-    <string name="collection_tea_history_brew">Gebrüht</string>
+    <string name="collection_tea_history_brew">Aufgegossen</string>
     <plurals name="collection_tea_history_more">
         <item quantity="one">Alle %1$d Einträge anzeigen</item>
         <item quantity="other">Alle %1$d Einträge anzeigen</item>
@@ -213,8 +213,8 @@
     <string name="collection_tea_history_purchase_priced_description">Kauf am %1$s: %2$s g dazu für %3$s €</string>
     <string name="collection_tea_history_correction_up_description">Bestand korrigiert am %1$s: %2$s g mehr</string>
     <string name="collection_tea_history_correction_down_description">Bestand korrigiert am %1$s: %2$s g weniger</string>
-    <string name="collection_tea_history_brew_description">Gebrüht am %1$s: %2$s g verbraucht</string>
-    <string name="collection_tea_history_open_session">Sitzung ansehen</string>
+    <string name="collection_tea_history_brew_description">Aufgegossen am %1$s: %2$s g verbraucht</string>
+    <string name="collection_tea_history_open_session">Session ansehen</string>
     <string name="collection_tea_history_delete_purchase">Kauf vom %1$s löschen</string>
     <string name="collection_tea_history_delete_correction">Korrektur vom %1$s löschen</string>
     <string name="collection_tea_history_delete_purchase_title">Kauf löschen?</string>
@@ -332,6 +332,9 @@
     <string name="tea_editor_secondary_name">Zweiter Name</string>
     <string name="tea_editor_secondary_name_hint">z. B. der japanische Name</string>
     <string name="tea_editor_sorte">Sorte</string>
+    <string name="tea_editor_taste_set">Geschmacksprofil</string>
+    <string name="tea_editor_taste_set_auto">Automatisch (nach Kategorie)</string>
+    <string name="tea_editor_taste_set_hint">Bestimmt die sechs Geschmacksregler dieses Tees. Eingetragene Werte bleiben erhalten.</string>
     <string name="tea_editor_umami">Umami</string>
     <string name="tea_editor_umami_unset">Keine Angabe</string>
     <string name="tea_editor_umami_none">Kein</string>
@@ -418,15 +421,15 @@
     <string name="recipe_editor_pre_alert_settings">Wie in Einstellungen · %1$s</string>
     <string name="recipe_editor_pre_alert_hint">Gilt für die Schritte auf „Automatisch“.</string>
     <string name="recipe_editor_default">Als Standard</string>
-    <string name="recipe_editor_default_detail">Brühen und die Teeauswahl nehmen dieses Rezept.</string>
+    <string name="recipe_editor_default_detail">Neue Sessions und die Teeauswahl nehmen dieses Rezept.</string>
     <string name="recipe_editor_default_locked">Das ist das Standardrezept dieses Tees.</string>
     <string name="recipe_editor_notes">Notizen</string>
     <string name="recipe_editor_delete">Rezept löschen</string>
     <string name="recipe_editor_delete_last">Ein Tee braucht mindestens ein Rezept.</string>
     <!-- E15 (D-101 F12): the recipe of the running brew stays until the session ends. -->
-    <string name="recipe_editor_delete_brewing">Erst die Sitzung beenden</string>
+    <string name="recipe_editor_delete_brewing">Erst die Session beenden</string>
     <string name="recipe_editor_delete_title">Rezept löschen?</string>
-    <string name="recipe_editor_delete_text">Das Rezept ist danach weg. Deine Sitzungen im Journal bleiben.</string>
+    <string name="recipe_editor_delete_text">Das Rezept ist danach weg. Deine Sessions im Journal bleiben.</string>
     <string name="recipe_editor_delete_confirm">Löschen</string>
     <string name="recipe_editor_delete_cancel">Abbrechen</string>
     <string name="recipe_editor_limit_reached">Ein Tee hat höchstens 10 Rezepte.</string>

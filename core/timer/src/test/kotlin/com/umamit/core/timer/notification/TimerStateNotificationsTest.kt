@@ -103,13 +103,13 @@ class TimerStateNotificationsTest {
 
         assertThat(notification.title()).isEqualTo("Gyokuro · Alle Aufgüsse fertig")
         assertThat(notification.text()).isEqualTo("Tippen zum Beenden")
-        assertThat(notification.actionTitles()).containsExactly("Sitzung beenden")
+        assertThat(notification.actionTitles()).containsExactly("Session beenden")
         assertThat(notification.shortCriticalText).isEqualTo("Fertig")
     }
 
     @Test
     fun `a finish that would discard the session is not offered without asking`() {
-        // Sitzung beenden would discard it (TMR-12 AC1): only the app may ask first.
+        // Session beenden would discard it (TMR-12 AC1): only the app may ask first.
         val notification = build(states.finished().copy(finishWouldDiscard = true))
 
         assertThat(notification.actionTitles()).isEmpty()
@@ -138,17 +138,17 @@ class TimerStateNotificationsTest {
     }
 
     @Test
-    fun `a demoted session is a quiet regular notification with Start and Sitzung beenden`() {
+    fun `a demoted session is a quiet regular notification with Start and Session beenden`() {
         // TMR-14: after 30 min without the service, a regular ongoing notification.
         val ready = states.ready().copy(demoted = true)
         val paused = states.paused().copy(demoted = true)
 
         assertThat(notifications.idFor(ready)).isEqualTo(TimerNotifications.ID_QUIET)
         val notification = build(ready)
-        assertThat(notification.actionTitles()).containsExactly("Start", "Sitzung beenden").inOrder()
+        assertThat(notification.actionTitles()).containsExactly("Start", "Session beenden").inOrder()
         assertThat(notification.flags and Notification.FLAG_ONGOING_EVENT).isNotEqualTo(0)
         assertThat(NotificationCompat.isRequestPromotedOngoing(notification)).isFalse()
-        assertThat(build(paused).actionTitles()).containsExactly("Weiter", "Sitzung beenden").inOrder()
+        assertThat(build(paused).actionTitles()).containsExactly("Weiter", "Session beenden").inOrder()
     }
 
     // --- the alert (04 §8.2, D-044) ---
@@ -322,14 +322,14 @@ class TimerStateNotificationsTest {
         assertThat(notification.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN)).isTrue()
     }
 
-    // --- „Sitzung gespeichert" (TMR-14) ---
+    // --- „Session gespeichert" (TMR-14) ---
 
     @Test
     fun `the saved session notification names the tea on the sessions channel`() {
         val notification = notifications.sessionSaved("Gyokuro")
 
         assertThat(notification.channelId).isEqualTo(TimerNotifications.CHANNEL_SESSIONS)
-        assertThat(notification.title()).isEqualTo("Sitzung gespeichert")
+        assertThat(notification.title()).isEqualTo("Session gespeichert")
         assertThat(notification.text()).isEqualTo("Gyokuro · im Journal")
         assertThat(notification.flags and Notification.FLAG_AUTO_CANCEL).isNotEqualTo(0)
         assertThat(notifications.sessionSaved(null).text()).isEqualTo("Im Journal")

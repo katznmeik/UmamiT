@@ -385,7 +385,7 @@ class TeaDetailViewModel @Inject constructor(
             cost = costOf(stockEvents, recipeList, finished),
             rating = brew.tasting.rating,
             brewingRating = brew.tasting.brewingRating,
-            taste = DetailTasting.of(brew.tasting),
+            taste = DetailTasting.of(brew.tasting, tea.effectiveTasteSet),
             recentSessions = finished.sortedByDescending { it.startedAtMs }.take(RECENT_SESSIONS).map { it.recent() },
         )
     }
@@ -401,7 +401,7 @@ class TeaDetailViewModel @Inject constructor(
         val globals: Globals,
         val tasting: TeaTasting,
     ) {
-        /** The leaf the active session of this tea deducts at *Sitzung beenden* (D-096), while deduction is on. */
+        /** The leaf the active session of this tea deducts at *Session beenden* (D-096), while deduction is on. */
         fun sessionLeaf(): Double? = sessions.takeIf { active && globals.deductStock }
             ?.filter { it.status == SessionStatus.IN_PROGRESS }
             ?.maxByOrNull { it.startedAtMs }

@@ -76,6 +76,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 
 /**
@@ -287,9 +288,11 @@ class CatalogBrewFlowTest {
             .performScrollTo()
             .performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        compose.onNodeWithText("Neue Session").assertIsDisplayed()
     }
 
+    // A tea row's tap freezes the sheet's frame (D-129), which needs real graphics to draw.
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Test
     fun `the setup's Im Katalog ansehen opens the tea's catalog page and back keeps every value (SCR-04, D-098)`() {
         catalog.details.value += HISUI_KEY to TEA.copy(key = HISUI_KEY, name = HISUI_CATALOG_NAME, discontinued = true)
@@ -311,10 +314,12 @@ class CatalogBrewFlowTest {
 
         back()
 
-        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        compose.onNodeWithText("Neue Session").assertIsDisplayed()
         assertThat(shownTexts()).isEqualTo(before)
     }
 
+    // A tea row's tap freezes the sheet's frame (D-129), which needs real graphics to draw.
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Test
     fun `the catalog page's own back returns to the setup too (SCR-04, D-098)`() {
         catalog.details.value += HISUI_KEY to TEA.copy(key = HISUI_KEY, name = HISUI_CATALOG_NAME)
@@ -330,7 +335,7 @@ class CatalogBrewFlowTest {
         doubleTapOnScreenBack()
 
         // One back: the setup as it was, never Start under it (D-090).
-        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        compose.onNodeWithText("Neue Session").assertIsDisplayed()
         assertThat(shownTexts()).isEqualTo(before)
     }
 
@@ -419,7 +424,7 @@ class CatalogBrewFlowTest {
         toDetail()
         openAddSheet()
         save()
-        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        compose.onNodeWithText("Neue Session").assertIsDisplayed()
 
         doubleTapOnScreenBack()
 
@@ -444,7 +449,7 @@ class CatalogBrewFlowTest {
         // The setup (SCR-04) of the tea just added, with the shell back on Start underneath.
         val teaId = add.purchases.single().let { "tea-${it.catalogKey}" }
         assertThat(runBlocking { collection.teas.getTea(teaId) }?.catalogKey).isEqualTo(KEY)
-        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        compose.onNodeWithText("Neue Session").assertIsDisplayed()
         compose.onNodeWithText(KEY).assertIsDisplayed()
 
         back()
@@ -468,7 +473,7 @@ class CatalogBrewFlowTest {
         save()
 
         assertThat(add.purchases.single().catalogKey).isEqualTo(KEY)
-        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        compose.onNodeWithText("Neue Session").assertIsDisplayed()
         compose.onNodeWithText(KEY).assertIsDisplayed()
         // Back from the setup: Start, and the flow's screens are gone from Sammlung.
         back()
@@ -512,7 +517,7 @@ class CatalogBrewFlowTest {
 
         assertThat(add.purchases).hasSize(1)
         assertThat(teas().count { it.catalogKey == KEY }).isEqualTo(1)
-        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        compose.onNodeWithText("Neue Session").assertIsDisplayed()
         compose.onNodeWithText("Mein Morgennebel").assertIsDisplayed()
     }
 
@@ -551,7 +556,7 @@ class CatalogBrewFlowTest {
         save()
 
         assertThat(add.purchases).hasSize(1)
-        compose.onNodeWithText("Brühen").assertDoesNotExist()
+        compose.onNodeWithText("Neue Session").assertDoesNotExist()
         compose.onNodeWithTag(tabTag(Tab.Collection)).assertIsSelected()
     }
 
@@ -569,7 +574,7 @@ class CatalogBrewFlowTest {
         save()
 
         assertThat(add.purchases).hasSize(1)
-        compose.onNodeWithText("Brühen").assertDoesNotExist()
+        compose.onNodeWithText("Neue Session").assertDoesNotExist()
         compose.onNodeWithTag(TEA_PICKER_TAG).assertDoesNotExist()
     }
 
@@ -587,7 +592,7 @@ class CatalogBrewFlowTest {
 
         compose.onNodeWithTag(CATALOG_ADD_SHEET_TAG).assertDoesNotExist()
         assertThat(add.purchases).isEmpty()
-        compose.onNodeWithText("Brühen").assertDoesNotExist()
+        compose.onNodeWithText("Neue Session").assertDoesNotExist()
         // Backing out during the alert returns to Start, but the picker stays closed (it never covers an alert).
         back()
         back()

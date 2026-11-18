@@ -1,6 +1,7 @@
 package com.umamit.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
@@ -110,26 +111,29 @@ fun OverflowSettingsAction(
     items: List<OverflowItem> = emptyList(),
 ) {
     var expanded by remember { mutableStateOf(false) }
-    IconButton(onClick = { expanded = true }, modifier = modifier) {
-        Icon(painterResource(UmamiIcons.MoreVert), contentDescription = stringResource(R.string.ds_more_options))
-    }
-    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        items.forEach { item ->
+    // Own anchor: the menu opens below the dots with its end edge on the button's, whatever layout the caller uses.
+    Box(modifier = modifier) {
+        IconButton(onClick = { expanded = true }) {
+            Icon(painterResource(UmamiIcons.MoreVert), contentDescription = stringResource(R.string.ds_more_options))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            items.forEach { item ->
+                DropdownMenuItem(
+                    text = { Text(item.label) },
+                    onClick = {
+                        expanded = false
+                        item.onClick()
+                    },
+                )
+            }
             DropdownMenuItem(
-                text = { Text(item.label) },
+                text = { Text(stringResource(R.string.ds_settings)) },
                 onClick = {
                     expanded = false
-                    item.onClick()
+                    onOpenSettings()
                 },
             )
         }
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.ds_settings)) },
-            onClick = {
-                expanded = false
-                onOpenSettings()
-            },
-        )
     }
 }
 

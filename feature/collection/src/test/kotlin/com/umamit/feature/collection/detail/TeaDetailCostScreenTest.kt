@@ -41,16 +41,16 @@ class TeaDetailCostScreenTest {
 
         compose.onNodeWithText("12,40 € / 100 g").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("ca. 2,40 € pro Liter (Rezept)").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Ø 2,70 € pro Liter aus 5 Sitzungen").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ø 2,70 € pro Liter aus 5 Sessions").performScrollTo().assertIsDisplayed()
         // TalkBack reads „Durchschnitt", not the sign.
-        compose.onNodeWithContentDescription("Durchschnittlich 2,70 € pro Liter aus 5 Sitzungen").assertExists()
+        compose.onNodeWithContentDescription("Durchschnittlich 2,70 € pro Liter aus 5 Sessions").assertExists()
     }
 
     @Test
     fun `one priced session reads in the singular`() {
         show(TeaCost(pricePer100gCents = 1240, recipeLiterCents = 240, average = LiterAverage(310, 1)))
 
-        compose.onNodeWithText("Ø 3,10 € pro Liter aus 1 Sitzung").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ø 3,10 € pro Liter aus 1 Session").performScrollTo().assertIsDisplayed()
     }
 
     @Test

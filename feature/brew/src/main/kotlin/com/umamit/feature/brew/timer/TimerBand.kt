@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -26,12 +27,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
@@ -87,6 +90,21 @@ private const val SEAL_LEAF_FRACTION = 0.5f
 private const val BAND_FADE_START = 0.35f
 
 /**
+ * Ink on washi (light timer, 03 §3.1 „Ink-wash band A13", D-128 item 34): the luma of A13's dark paper (≈ 30 of
+ * 255) becomes the background, its brightest bamboo (≈ 140) [BAND_INK_STRENGTH] of the way to the ink.
+ */
+private const val BAND_PAPER_LUMA = 30f
+private const val BAND_LEAF_LUMA = 140f
+private const val BAND_INK_STRENGTH = 0.85f
+private const val LUMA_R = 0.299f
+private const val LUMA_G = 0.587f
+private const val LUMA_B = 0.114f
+private const val CHANNEL_MAX = 255f
+
+/** The seal's soft shadow on washi (light timer, 03 §3.1 „Seal"); the dark timer has none. */
+private val SealShadowElevation = 2.dp
+
+/**
  * What the brew's seal shows (SCR-05, D-095): the session tea's [styleKey] for
  * the leaf's colour and the file of its cover photo, null without one.
  */
@@ -100,11 +118,15 @@ internal val SealContentKey = SemanticsPropertyKey<SealContent>("SealContent")
 
 /**
  * The ink-wash band A13 at the top, centre-cropped and fading into the
- * Steeping background (D-095). Decorative: the title names the tea.
+ * timer's background (D-095). Decorative: the title names the tea. On the light timer (D-128 Q20) it is A13 turned
+ * into ink on washi through a colour filter, no new picture (the PO's design check, D-128 item 34).
  */
 @Composable
 internal fun TimerBand(modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.background
+    val light = !UmamiTheme.isDark
+    val ink = MaterialTheme.colorScheme.onSurface
+    val filter = if (light) remember(background, ink) { inkOnWashi(paper = background, ink = ink) } else null
     val resources = LocalResources.current
     // The same bitmap as `painterResource`, decoded once per process instead of in each timer's first frame
     // (setup → timer, NFR-PERF-12); usually decoded ahead, off the main thread, by the screens before the timer.
@@ -113,6 +135,7 @@ internal fun TimerBand(modifier: Modifier = Modifier) {
         painter = band,
         contentDescription = null,
         contentScale = ContentScale.Crop,
+        colorFilter = filter,
         modifier = modifier
             .fillMaxWidth()
             .height(TimerBandHeight)
@@ -122,6 +145,23 @@ internal fun TimerBand(modifier: Modifier = Modifier) {
                 drawRect(Brush.verticalGradient(BAND_FADE_START to Color.Transparent, 1f to background))
             },
     )
+}
+
+/**
+ * A13's night painting as ink on [paper]: each pixel's luma is mapped linearly, the dark paper to [paper], the
+ * bright bamboo towards [ink]. One colour matrix, no new picture.
+ */
+private fun inkOnWashi(paper: Color, ink: Color): ColorFilter {
+    val scale = BAND_INK_STRENGTH / (BAND_LEAF_LUMA - BAND_PAPER_LUMA)
+
+    fun row(paperChannel: Float, inkChannel: Float): FloatArray {
+        // The matrix works on channels of 0…255, so is the luma; the offset is in the same units.
+        val k = scale * (inkChannel - paperChannel) * CHANNEL_MAX
+        return floatArrayOf(k * LUMA_R, k * LUMA_G, k * LUMA_B, 0f, paperChannel * CHANNEL_MAX - k * BAND_PAPER_LUMA)
+    }
+    val matrix = row(paper.red, ink.red) + row(paper.green, ink.green) + row(paper.blue, ink.blue) +
+        floatArrayOf(0f, 0f, 0f, 1f, 0f)
+    return ColorFilter.colorMatrix(ColorMatrix(matrix))
 }
 
 /**
@@ -164,7 +204,7 @@ internal object TimerBandBitmap {
  * primary control ([controlHeight] tall) and the bottom margin lie on the
  * screen without scrolling. [reservedControls], measured and never placed,
  * take [controlHeight]'s place when they are taller: a brew passes FINISHED's
- * *Sitzung beenden* with *Weiterer Aufguss* in every phase, so the secondary
+ * *Session beenden* with *Weiterer Aufguss* in every phase, so the secondary
  * control and the bottom margin fit in FINISHED and the pill does not move at
  * the last *Abgegossen*. The band's height follows only the screen, the
  * insets, [aboveControls], [reservedAboveControls] and [reservedControls], never [controls] or whether
@@ -393,9 +433,12 @@ internal fun TeaSeal(photo: Painter?, styleKey: String?, modifier: Modifier = Mo
     val content = photo ?: leaf
     val washi = UmamiTheme.extendedColors.alert.washi
     val ring = UmamiTheme.extendedColors.alert.content.copy(alpha = SEAL_RING_ALPHA)
+    // On the light timer the disc is washi on washi: the ring and a soft shadow set it off (03 §3.1 „Seal").
+    val shadow = if (UmamiTheme.isDark) Modifier else Modifier.shadow(SealShadowElevation, CircleShape)
     Spacer(
         modifier = modifier
             .size(TimerSealSize)
+            .then(shadow)
             .testTag(TIMER_SEAL_TAG)
             .semantics { this[SealContentKey] = if (photo != null) SealContent.Photo else SealContent.Leaf }
             .drawBehind {

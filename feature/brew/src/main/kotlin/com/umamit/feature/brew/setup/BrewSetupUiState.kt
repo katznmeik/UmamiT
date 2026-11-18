@@ -23,10 +23,10 @@ sealed interface BrewSetupUiState {
      * @property preAlertBaseSeconds the pre-alert base B the session will start with (recipe ?: global, 04 §5):
      *   each step's *Automatisch* lead, listed in the *Vorwarnung* row and shown in the Schritte-Sheet (TMR-23).
      * @property canSaveToRecipe something differs from the selected recipe (BRW-02).
-     * @property question „Erst die … -Sitzung beenden?" is open (TMR-21).
+     * @property question „Erst die …-Session beenden?" is open (TMR-21).
      * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
      * @property stockLevel the stock's INV-05 status: *Knapp* reads „14 g übrig · knapp" (BRW-08, D-097).
-     * @property sessionLeafGrams the leaf an active session of this tea still deducts at *Sitzung beenden*
+     * @property sessionLeafGrams the leaf an active session of this tea still deducts at *Session beenden*
      *   (INV-03, D-096), or null: „Wie viel ist noch da?" says so, and the arithmetic stays as it is.
      * @property catalogKey the tea's catalog key while its catalog tea exists (discontinued counts), else null:
      *   the top bar's ⋮ *Im Katalog ansehen* shows only then (D-098).
@@ -67,7 +67,7 @@ sealed interface BrewSetupUiState {
     ) : BrewSetupUiState {
         /**
          * BRW-08 (D-100): the stock is known, above 0 g (not *Leer*) and below this brew's leaf, so the stock line
-         * reads „Nur noch 3 g übrig". It follows the leaf and never blocks *Brühen starten*.
+         * reads „Nur noch 3 g übrig". It follows the leaf and never blocks *Session starten*.
          */
         val stockShort: Boolean
             get() = stockGrams != null && stockGrams >= StockLevel.EMPTY_BELOW_GRAMS && stockGrams < leafGrams

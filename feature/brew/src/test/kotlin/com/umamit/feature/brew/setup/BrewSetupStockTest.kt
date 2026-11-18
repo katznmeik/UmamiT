@@ -339,7 +339,7 @@ class BrewSetupStockTest {
         activeSession(tanabata())
         show()
         openSheet()
-        compose.onNodeWithText("Die laufende Sitzung", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Die laufende Session", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -348,7 +348,7 @@ class BrewSetupStockTest {
         activeSession(hisui(leafGrams = 4.5))
         show()
         openSheet()
-        compose.onNodeWithText("Die laufende Sitzung", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Die laufende Session", substring = true).assertDoesNotExist()
     }
 
     private fun activeSession(request: BrewStart) {
@@ -380,6 +380,6 @@ class BrewSetupStockTest {
     )
 
     private companion object {
-        const val PENDING_LINE = "Die laufende Sitzung zieht beim Beenden noch %s\u00A0g ab."
+        const val PENDING_LINE = "Die laufende Session zieht beim Beenden noch %s\u00A0g ab."
     }
 }

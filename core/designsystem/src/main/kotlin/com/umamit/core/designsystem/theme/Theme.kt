@@ -66,7 +66,7 @@ fun ThemeMode.isDark(systemDark: Boolean): Boolean = when (this) {
 
 /**
  * The app's theme for the stored *Design* choice (SET-05, D-114): [mode] decides, *System* follows the phone.
- * The timer surfaces keep [SteepingTheme] inside whatever this is.
+ * The timer surfaces follow it through [TimerTheme] (D-128 Q20).
  */
 @Composable
 fun UmamiAppTheme(
@@ -78,10 +78,33 @@ fun UmamiAppTheme(
     UmamiTheme(darkTheme = mode.isDark(systemDark), reduceMotion = reduceMotion, content = content)
 }
 
-/** The timer always steeps in the dark „Steeping" scheme, in both app themes (03 §3.1). */
+/**
+ * The timer's theme (SET-05, D-128 Q20, supersedes D-012): it follows the app's, the dark „Steeping" scheme in the
+ * dark theme and a light one in the light theme. Never dynamic colour. The light timer is the Washi scheme: every
+ * starting value of 03 §3.1 „Timer in the light theme" is one of its roles (background, `onSurface`,
+ * `onSurfaceVariant`, `primary` ring and pill, `outline` track, `surface` circles and sheets). The alert surface
+ * keeps its own tokens: washi ↔ matcha in the dark timer (D-046), washi ↔ sage in the light one
+ * ([LightTimerAlertColors], D-128 item 36).
+ *
+ * @param darkTheme the app's theme, read from the enclosing [UmamiTheme].
+ */
+@Composable
+fun TimerTheme(
+    darkTheme: Boolean = LocalUmamiDarkTheme.current,
+    reduceMotion: Boolean = rememberSystemReduceMotion(),
+    content: @Composable () -> Unit,
+) {
+    UmamiTheme(darkTheme = darkTheme, dynamicColor = false, reduceMotion = reduceMotion) {
+        // One provider in both themes, so a theme change only swaps the value and keeps the content's state.
+        val extended = if (darkTheme) DefaultExtendedColors else LightTimerExtendedColors
+        CompositionLocalProvider(LocalUmamiExtendedColors provides extended, content = content)
+    }
+}
+
+/** The dark „Steeping" scheme whatever the app's theme: the dark side of [TimerTheme], for tests and previews. */
 @Composable
 fun SteepingTheme(reduceMotion: Boolean = rememberSystemReduceMotion(), content: @Composable () -> Unit) {
-    UmamiTheme(darkTheme = true, dynamicColor = false, reduceMotion = reduceMotion, content = content)
+    TimerTheme(darkTheme = true, reduceMotion = reduceMotion, content = content)
 }
 
 internal val LocalUmamiMotion = staticCompositionLocalOf { UmamiMotion(reduceMotion = false) }

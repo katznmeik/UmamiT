@@ -68,6 +68,7 @@ import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.ui.SheetHandOver
 import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
@@ -112,7 +113,7 @@ private const val SLIDE_FRACTION = 12
  *   snackbar; tests replace them. *Meine Tees*' *Aus dem Katalog* and *Im Katalog stöbern* turn to the *Katalog*
  *   segment.
  * @param journalScreens a past session's page (SCR-16) in the Journal tab, opened from its entry (D-100); its tea
- *   link opens the tea's detail in the same stack, and *So nochmal brühen* the setup above the shell
+ *   link opens the tea's detail in the same stack, and *So nochmal aufgießen* the setup above the shell
  *   ([StartNavigation.openSetupFromSession]). Tests replace it.
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
  * @param teaLinkShare a link shared to the app (CAT-17): the shell turns to Sammlung › Katalog (the
@@ -194,7 +195,7 @@ internal fun UmamitApp(
         controllers.getValue(Tab.Start).popToRoot(Tab.Start)
         select(Tab.Start)
     }
-    // LETZTE SITZUNGEN's *Alle anzeigen* (TEA-13): the Journal tab's root, filtered to the tea.
+    // LETZTE SESSIONS's *Alle anzeigen* (TEA-13): the Journal tab's root, filtered to the tea.
     val journalRequests = rememberSaveable(saver = JournalTeaRequests.Saver) { JournalTeaRequests() }
     val showInJournal: (String) -> Unit = { teaId ->
         journalRequests.ask(teaId)
@@ -204,6 +205,8 @@ internal fun UmamitApp(
     }
     val reselection = remember { TabReselection() }
     val brewBarHold = remember { BrewBarHold() }
+    // The picker's hand-over to the setup (D-129): Start's picker freezes it, the shell draws its stand-in.
+    val pickerHandOver = remember { SheetHandOver() }
     // While Start hands off to the timer, a bar not shown before stays away (D-111).
     val activeBrew = heldBar(activeBrewSource.activeBrew.collectAsStateWithLifecycle().value, brewBarHold.held)
     val alongside by activeBrewSource.alongside.collectAsStateWithLifecycle()
@@ -236,198 +239,204 @@ internal fun UmamitApp(
         }
     }
 
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            Tab.entries.forEach { tab ->
-                item(
-                    selected = tab == selected,
-                    onClick = {
-                        if (tab != selected) {
-                            brewFlow.leaveFor(tab)
-                            select(tab)
-                        } else {
-                            reselection.reselect(tab, controllers.getValue(tab))
-                        }
-                    },
-                    icon = { Icon(painterResource(tab.icon), contentDescription = null) },
-                    label = { TabLabel(stringResource(tab.label)) },
-                    modifier = Modifier.testTag(tabTag(tab)),
-                )
-            }
-        },
-        modifier = modifier,
-        layoutType = resolvedLayout,
-    ) {
-        val rail = resolvedLayout != NavigationSuiteType.NavigationBar
-        // In the rail layout the brew bar applies the bottom inset below the content, so the content must not.
-        val insetBelowContent = if (rail && activeBrew != null) {
-            WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
-        } else {
-            WindowInsets(0)
-        }
-        Column(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .consumeWindowInsets(insetBelowContent)
-                    .consumeCoveredBelow(),
-            ) {
-                transition.AnimatedContent(
-                    modifier = Modifier.fillMaxSize(),
-                    transitionSpec = {
-                        // Fade-through: the old tab leaves, then the new one arrives (03 §3.6 `tabSwitch`).
-                        fadeIn(motion.tabSwitchIn()) togetherWith fadeOut(motion.tabSwitchOut())
-                    },
-                ) { tab ->
-                    stateHolder.SaveableStateProvider(tab) {
-                        TabHost(
-                            tab = tab,
-                            navController = controllers.getValue(tab),
-                            scrollToTopRequest = reselection.scrollRequest(tab),
-                            segment = segments.segment,
-                            onSegmentChange = chooseSegment,
-                            journalSources = journalSources,
-                            journal = JournalWiring(
-                                journalScreens,
-                                startNavigation.openSetupFromSession,
-                                teaRequest = journalRequests.current,
-                            ),
-                            onOpenTimer = onOpenTimer,
-                            settings = settings,
-                            alertKey = alertKey,
-                            catalogScreens = catalogScreens,
-                            collection = CollectionWiring(
-                                screens = collectionScreens,
-                                onArchivedChange = onArchivedTeaChange,
-                                openSetup = startNavigation.openSetupWith,
-                                showInJournal = showInJournal,
-                            ),
-                            catalog = { catalogModifier, scrollToTop ->
-                                catalogScreen(
-                                    CatalogTab(
-                                        modifier = catalogModifier,
-                                        scrollToTopRequest = scrollToTop,
-                                        alerting = alerting,
-                                        refreshRequest = catalogRefreshRequest,
-                                        // Only from the resumed list: a double tap opens one detail (D-090).
-                                        openTea = resumedOnly { key ->
-                                            controllers.getValue(Tab.Collection).navigate(CatalogTeaRoute(key))
-                                        },
-                                        openGuides = dropUnlessResumed {
-                                            controllers.getValue(Tab.Collection).navigate(GuidesRoute)
-                                        },
-                                        pasteLinkRequest = catalogPasteRequest,
-                                        sharedLink = teaLinkShare,
-                                        onTakeSharedLink = onTakeTeaLinkShare,
-                                        refreshSheetRequest = opening.sheetToken,
-                                        foldAllRequest = catalogFolds.foldAllRequest,
-                                        unfoldAllRequest = catalogFolds.unfoldAllRequest,
-                                        onFoldableChange = { catalogFolds.foldable = it },
-                                    ),
-                                )
-                            },
-                            myTeas = { myTeasModifier, scrollToTop, openTea ->
-                                collectionScreens.myTeas(
-                                    MyTeasTab(
-                                        modifier = myTeasModifier,
-                                        scrollToTopRequest = scrollToTop,
-                                        openTea = openTea,
-                                        alertKey = alertKey,
-                                        addFromCatalog = { chooseSegment(CollectionSegment.Catalog) },
-                                    ),
-                                )
-                            },
-                            onRefreshCatalog = { catalogRefreshRequest++ },
-                            onPasteLink = { catalogPasteRequest++ },
-                            onFoldCatalog = catalogFolds.action,
-                            catalogTea = { onBack ->
-                                catalogScreens.tea(
-                                    CatalogTeaHost(onBack = onBack, alerting = alerting) { teaId ->
-                                        // Saved in the picker's flow: the setup of that tea (D-073, D-088).
-                                        brewFlow.finish {
-                                            select(Tab.Start)
-                                            startNavigation.openSetup(teaId)
-                                        }
-                                    },
-                                )
-                            },
-                            statsScreen = statsScreen,
-                            start = { openSettings, scrollToTop ->
-                                startScreen(
-                                    StartTab(
-                                        openSettings = openSettings,
-                                        scrollToTopRequest = scrollToTop,
-                                        showJournal = { select(Tab.Journal) },
-                                        openCatalog = {
-                                            // The list, not a screen left open in Sammlung (D-090).
-                                            controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
-                                            chooseSegment(CollectionSegment.Catalog)
-                                            select(Tab.Collection)
-                                        },
-                                        alertKey = alertKey,
-                                        navigation = startNavigation,
-                                        openCatalogForBrew = {
-                                            brewFlow.start()
-                                            chooseSegment(CollectionSegment.Catalog)
-                                            select(Tab.Collection)
-                                        },
-                                        pickerReturn = brewFlow.pickerReturn,
-                                        onPickerReturned = brewFlow::pickerReturned,
-                                        brewBarHold = brewBarHold,
-                                    ),
-                                )
-                            },
-                        )
-                    }
+    // The picker's frozen frame over the whole shell, bars included, below a route opened above it (D-129); never
+    // during an alert (rule 8).
+    Box(modifier) {
+        NavigationSuiteScaffold(
+            navigationSuiteItems = {
+                Tab.entries.forEach { tab ->
+                    item(
+                        selected = tab == selected,
+                        onClick = {
+                            if (tab != selected) {
+                                brewFlow.leaveFor(tab)
+                                select(tab)
+                            } else {
+                                reselection.reselect(tab, controllers.getValue(tab))
+                            }
+                        },
+                        icon = { Icon(painterResource(tab.icon), contentDescription = null) },
+                        label = { TabLabel(stringResource(tab.label)) },
+                        modifier = Modifier.testTag(tabTag(tab)),
+                    )
                 }
-                // „*Tanabata* archiviert" · *Rückgängig* after *Archivieren* on a detail, over the screen below it,
-                // whichever tab or stack that is (D-100, F6).
-                collectionScreens.archivedSnackbar(
-                    archivedTea,
-                    { onArchivedTeaChange(null) },
-                    Modifier.align(Alignment.BottomCenter),
-                )
-                SavedSheetHost(
-                    requests = journalSources.savedSheets,
-                    sessions = journalSources.sessions,
-                    teas = journalSources.teas,
-                    tasting = journalSources.tasting,
-                    offers = journalSources.recipeOffers,
-                    // *Notizen hinzufügen*: the session's page above the tab in use (SCR-06, SCR-16).
-                    onOpenNotes = { sessionId ->
-                        controllers.getValue(selected).navigate(JournalSessionRoute(sessionId))
-                    },
-                    alerting = alerting,
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    // Like the brew bar: in the rail layout nothing below the content has applied the bottom inset.
-                    windowInsets = if (rail && activeBrew == null) {
-                        WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+            },
+            modifier = Modifier.fillMaxSize(),
+            layoutType = resolvedLayout,
+        ) {
+            val rail = resolvedLayout != NavigationSuiteType.NavigationBar
+            // In the rail layout the brew bar applies the bottom inset below the content, so the content must not.
+            val insetBelowContent = if (rail && activeBrew != null) {
+                WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+            } else {
+                WindowInsets(0)
+            }
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .consumeWindowInsets(insetBelowContent)
+                        .consumeCoveredBelow(),
+                ) {
+                    transition.AnimatedContent(
+                        modifier = Modifier.fillMaxSize(),
+                        transitionSpec = {
+                            // Fade-through: the old tab leaves, then the new one arrives (03 §3.6 `tabSwitch`).
+                            fadeIn(motion.tabSwitchIn()) togetherWith fadeOut(motion.tabSwitchOut())
+                        },
+                    ) { tab ->
+                        stateHolder.SaveableStateProvider(tab) {
+                            TabHost(
+                                tab = tab,
+                                navController = controllers.getValue(tab),
+                                scrollToTopRequest = reselection.scrollRequest(tab),
+                                segment = segments.segment,
+                                onSegmentChange = chooseSegment,
+                                journalSources = journalSources,
+                                journal = JournalWiring(
+                                    journalScreens,
+                                    startNavigation.openSetupFromSession,
+                                    teaRequest = journalRequests.current,
+                                ),
+                                onOpenTimer = onOpenTimer,
+                                settings = settings,
+                                alertKey = alertKey,
+                                catalogScreens = catalogScreens,
+                                collection = CollectionWiring(
+                                    screens = collectionScreens,
+                                    onArchivedChange = onArchivedTeaChange,
+                                    openSetup = startNavigation.openSetupWith,
+                                    showInJournal = showInJournal,
+                                ),
+                                catalog = { catalogModifier, scrollToTop ->
+                                    catalogScreen(
+                                        CatalogTab(
+                                            modifier = catalogModifier,
+                                            scrollToTopRequest = scrollToTop,
+                                            alerting = alerting,
+                                            refreshRequest = catalogRefreshRequest,
+                                            // Only from the resumed list: a double tap opens one detail (D-090).
+                                            openTea = resumedOnly { key ->
+                                                controllers.getValue(Tab.Collection).navigate(CatalogTeaRoute(key))
+                                            },
+                                            openGuides = dropUnlessResumed {
+                                                controllers.getValue(Tab.Collection).navigate(GuidesRoute)
+                                            },
+                                            pasteLinkRequest = catalogPasteRequest,
+                                            sharedLink = teaLinkShare,
+                                            onTakeSharedLink = onTakeTeaLinkShare,
+                                            refreshSheetRequest = opening.sheetToken,
+                                            foldAllRequest = catalogFolds.foldAllRequest,
+                                            unfoldAllRequest = catalogFolds.unfoldAllRequest,
+                                            onFoldableChange = { catalogFolds.foldable = it },
+                                        ),
+                                    )
+                                },
+                                myTeas = { myTeasModifier, scrollToTop, openTea ->
+                                    collectionScreens.myTeas(
+                                        MyTeasTab(
+                                            modifier = myTeasModifier,
+                                            scrollToTopRequest = scrollToTop,
+                                            openTea = openTea,
+                                            alertKey = alertKey,
+                                            addFromCatalog = { chooseSegment(CollectionSegment.Catalog) },
+                                        ),
+                                    )
+                                },
+                                onRefreshCatalog = { catalogRefreshRequest++ },
+                                onPasteLink = { catalogPasteRequest++ },
+                                onFoldCatalog = catalogFolds.action,
+                                catalogTea = { onBack ->
+                                    catalogScreens.tea(
+                                        CatalogTeaHost(onBack = onBack, alerting = alerting) { teaId ->
+                                            // Saved in the picker's flow: the setup of that tea (D-073, D-088).
+                                            brewFlow.finish {
+                                                select(Tab.Start)
+                                                startNavigation.openSetup(teaId)
+                                            }
+                                        },
+                                    )
+                                },
+                                statsScreen = statsScreen,
+                                start = { openSettings, scrollToTop ->
+                                    startScreen(
+                                        StartTab(
+                                            openSettings = openSettings,
+                                            scrollToTopRequest = scrollToTop,
+                                            showJournal = { select(Tab.Journal) },
+                                            openCatalog = {
+                                                // The list, not a screen left open in Sammlung (D-090).
+                                                controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
+                                                chooseSegment(CollectionSegment.Catalog)
+                                                select(Tab.Collection)
+                                            },
+                                            alertKey = alertKey,
+                                            navigation = startNavigation,
+                                            openCatalogForBrew = {
+                                                brewFlow.start()
+                                                chooseSegment(CollectionSegment.Catalog)
+                                                select(Tab.Collection)
+                                            },
+                                            pickerReturn = brewFlow.pickerReturn,
+                                            onPickerReturned = brewFlow::pickerReturned,
+                                            brewBarHold = brewBarHold,
+                                            pickerHandOver = pickerHandOver,
+                                        ),
+                                    )
+                                },
+                            )
+                        }
+                    }
+                    // „*Tanabata* archiviert" · *Rückgängig* after *Archivieren* on a detail, over the screen below it,
+                    // whichever tab or stack that is (D-100, F6).
+                    collectionScreens.archivedSnackbar(
+                        archivedTea,
+                        { onArchivedTeaChange(null) },
+                        Modifier.align(Alignment.BottomCenter),
+                    )
+                    SavedSheetHost(
+                        requests = journalSources.savedSheets,
+                        sessions = journalSources.sessions,
+                        teas = journalSources.teas,
+                        tasting = journalSources.tasting,
+                        offers = journalSources.recipeOffers,
+                        // *Notizen hinzufügen*: the session's page above the tab in use (SCR-06, SCR-16).
+                        onOpenNotes = { sessionId ->
+                            controllers.getValue(selected).navigate(JournalSessionRoute(sessionId))
+                        },
+                        alerting = alerting,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        // Like the brew bar: in the rail layout nothing below the content has applied the bottom inset.
+                        windowInsets = if (rail && activeBrew == null) {
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+                        } else {
+                            WindowInsets(0)
+                        },
+                    )
+                }
+                // Slot above the bar; a tap opens the timer. Without a bar to consume them, the rail
+                // layout leaves the system bar insets to the brew bar. With two timers, each half opens its own slot's
+                // timer (D-098, D-108: also the second brew's).
+                ActiveBrewBar(
+                    brew = activeBrew,
+                    progress = activeBrewSource.progress,
+                    onClick = if (alongside != null) {
+                        { onOpenTimerOf(barSlots.getOrElse(0) { TimerSlot.BREW }) }
                     } else {
+                        onOpenTimer
+                    },
+                    alongside = alongside,
+                    alongsideProgress = activeBrewSource.alongsideProgress,
+                    onAlongsideClick = { onOpenTimerOf(barSlots.getOrElse(1) { TimerSlot.QUICK }) },
+                    windowInsets = if (!rail) {
                         WindowInsets(0)
+                    } else {
+                        WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.End)
                     },
                 )
             }
-            // Slot above the bar; a tap opens the timer. Without a bar to consume them, the rail
-            // layout leaves the system bar insets to the brew bar. With two timers, each half opens its own slot's
-            // timer (D-098, D-108: also the second brew's).
-            ActiveBrewBar(
-                brew = activeBrew,
-                progress = activeBrewSource.progress,
-                onClick = if (alongside != null) {
-                    { onOpenTimerOf(barSlots.getOrElse(0) { TimerSlot.BREW }) }
-                } else {
-                    onOpenTimer
-                },
-                alongside = alongside,
-                alongsideProgress = activeBrewSource.alongsideProgress,
-                onAlongsideClick = { onOpenTimerOf(barSlots.getOrElse(1) { TimerSlot.QUICK }) },
-                windowInsets = if (!rail) {
-                    WindowInsets(0)
-                } else {
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.End)
-                },
-            )
         }
+        PickerStandIn(pickerHandOver, alertKey, startNavigation.shellCovered)
     }
 }
 
@@ -650,7 +659,7 @@ private fun TabHost(
                 alerting = alertKey != null,
             )
         }
-        // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal brühen* opens the setup
+        // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal aufgießen* opens the setup
         // above the shell, which opens the alerting timer instead during an alert (rule 8).
         // The session page (SCR-16): *Löschen* closes it, only while it is on top (D-090, D-102).
         composable<JournalSessionRoute> { entry ->
@@ -668,7 +677,7 @@ private fun TabHost(
                 ),
             )
         }
-        // Sitzung bearbeiten (SCR-17, JRN-11): ✕ and *Speichern* return to the session page, which shows the new
+        // Session bearbeiten (SCR-17, JRN-11): ✕ and *Speichern* return to the session page, which shows the new
         // values.
         composable<JournalSessionEditorRoute> { entry ->
             val closeIfOnTop = { navController.popIfOnTop(entry) }
@@ -702,7 +711,8 @@ private fun TabHost(
                 )
             }
         }
-        // A collection tea's detail (SCR-09): *Brühen* and a recipe's tap open the setup above the shell, which
+        // A collection tea's detail (SCR-09): *Session starten* and a recipe's tap open the setup above the shell,
+        // which
         // opens the alerting timer instead during an alert (rule 8). *Archivieren* and *Löschen* close it.
         composable<CollectionTeaRoute> { entry ->
             val teaId = entry.toRoute<CollectionTeaRoute>().teaId
@@ -728,7 +738,7 @@ private fun TabHost(
                     onOpenSession = resumedOnly { sessionId: String ->
                         navController.navigate(JournalSessionRoute(sessionId))
                     },
-                    // LETZTE SITZUNGEN's *Alle anzeigen*: the Journal tab at its root, not a list in this stack.
+                    // LETZTE SESSIONS's *Alle anzeigen*: the Journal tab at its root, not a list in this stack.
                     onShowAllSessions = dropUnlessResumed { collection.showInJournal(teaId) },
                     // ⋮ *Im Katalog ansehen* (D-114 Q10): the catalog tea in this stack; back returns to the detail.
                     onOpenCatalog = resumedOnly { key: String -> navController.navigate(CatalogTeaRoute(key)) },

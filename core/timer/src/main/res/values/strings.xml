@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Notification channels (04 §8.1) -->
-    <string name="timer_channel_brew_timer_name">Brühtimer</string>
+    <string name="timer_channel_brew_timer_name">Aufguss-Timer</string>
     <string name="timer_channel_brew_timer_description">Der laufende Aufguss als Live-Update</string>
     <string name="timer_channel_steep_finished_name">Aufguss fertig</string>
     <string name="timer_channel_steep_finished_description">Alarm am Ende eines Aufgusses</string>
-    <string name="timer_channel_sessions_name">Sitzungen</string>
-    <string name="timer_channel_sessions_description">Automatisch gespeicherte Sitzungen</string>
+    <string name="timer_channel_sessions_name">Sessions</string>
+    <string name="timer_channel_sessions_description">Automatisch gespeicherte Sessions</string>
     <string name="timer_channel_other_name">Weiterer Timer</string>
     <string name="timer_channel_other_description">Der zweite laufende Timer, still neben dem Aufguss</string>
     <string name="timer_text_quick_held">Fertig, wartet auf den Aufguss</string>
@@ -56,11 +56,11 @@
     <string name="timer_action_poured">Abgegossen</string>
     <string name="timer_action_poured_rinse">Weggegossen</string>
     <string name="timer_action_quick_done">Fertig</string>
-    <string name="timer_action_finish_session">Sitzung beenden</string>
+    <string name="timer_action_finish_session">Session beenden</string>
     <string name="timer_action_cancel">Abbrechen</string>
 
-    <!-- „Sitzung gespeichert" (TMR-14, NotifySessionSaved) -->
-    <string name="timer_session_saved_title">Sitzung gespeichert</string>
+    <!-- „Session gespeichert" (TMR-14, NotifySessionSaved) -->
+    <string name="timer_session_saved_title">Session gespeichert</string>
     <string name="timer_session_saved_text">%1$s · im Journal</string>
     <string name="timer_session_saved_text_no_tea">Im Journal</string>
 

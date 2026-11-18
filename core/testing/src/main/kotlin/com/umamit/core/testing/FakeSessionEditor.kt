@@ -33,7 +33,7 @@ class FakeSessionEditor(private val s: FakeSessions) : SessionEditor {
 
     override suspend fun editable(sessionId: String): EditableSession? =
         s.sessionRows.value[sessionId]?.takeIf { it.status == SessionStatus.COMPLETED }?.let {
-            EditableSession(it, hasStockDeduction = brewEvent(sessionId) != null)
+            EditableSession(s.withTasteSet(it), hasStockDeduction = brewEvent(sessionId) != null)
         }
 
     override suspend fun editSession(sessionId: String, edit: SessionEdit): SessionEditResult {

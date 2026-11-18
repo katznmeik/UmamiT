@@ -31,12 +31,12 @@ import com.umamit.feature.brew.steps.rememberStepsSheetState
 /** What a tap on the screen does. */
 internal class TimerActions(val event: (TimerEvent) -> Unit, val back: () -> Unit, val menu: (TimerMenuItem) -> Unit)
 
-/** The two questions of the timer: both read „Sitzung verwerfen?" (03 §5; TMR-12 AC1, TMR-13). */
+/** The two questions of the timer: both read „Session verwerfen?" (03 §5; TMR-12 AC1, TMR-13). */
 internal enum class TimerConfirmation {
-    /** *Sitzung verwerfen*. */
+    /** *Session verwerfen*. */
     Discard,
 
-    /** *Sitzung beenden* without a completed non-rinse step: the session would be discarded. */
+    /** *Session beenden* without a completed non-rinse step: the session would be discarded. */
     FinishDiscard,
 }
 

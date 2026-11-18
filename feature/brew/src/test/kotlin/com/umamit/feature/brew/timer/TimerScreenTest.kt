@@ -4,6 +4,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -65,11 +67,11 @@ class TimerScreenTest {
     private var start = 0L
     private val clock: () -> Long = { NOW + compose.mainClock.currentTime - start }
 
-    private fun show(initial: TimerUiState.Active) {
+    private fun show(initial: TimerUiState.Active, darkTheme: Boolean? = null) {
         state = initial
         start = compose.mainClock.currentTime
         compose.setContent {
-            UmamiTheme(reduceMotion = true) {
+            UmamiTheme(darkTheme = darkTheme ?: isSystemInDarkTheme(), reduceMotion = true) {
                 TimerScreen(
                     state = state,
                     nowElapsedMs = clock,
@@ -148,6 +150,25 @@ class TimerScreenTest {
         assertThat(events).containsExactly(TimerEvent.Poured)
     }
 
+    /** The ring flag of every overtime dot in the tree (the status line can be composed more than once). */
+    private fun overtimeDotRings(dark: Boolean): Set<Boolean> {
+        show(TimerStates.alerting(overtimeMs = 150_000), darkTheme = dark)
+        return compose.onAllNodesWithTag(TIMER_OVERTIME_DOT_TAG, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .map { it.config[OvertimeDotRingKey] }
+            .toSet()
+    }
+
+    @Test
+    fun `the prominent overtime dot has the ink ring on the light timer (SCR-05, D-128 item 40)`() {
+        assertThat(overtimeDotRings(dark = false)).containsExactly(true)
+    }
+
+    @Test
+    fun `the prominent overtime dot has no ring on the dark timer (SCR-05, SET-05)`() {
+        assertThat(overtimeDotRings(dark = true)).containsExactly(false)
+    }
+
     @Test
     fun `the alert is found as the app's emulator test looks for it over the lock screen (#47)`() {
         show(TimerStates.alerting())
@@ -169,15 +190,15 @@ class TimerScreenTest {
     }
 
     @Test
-    fun `FINISHED offers Sitzung beenden and Weiterer Aufguss, which opens the Schritte-Sheet (TMR-10, TMR-12)`() {
+    fun `FINISHED offers Session beenden and Weiterer Aufguss, which opens the Schritte-Sheet (TMR-10, TMR-12)`() {
         show(TimerStates.finished())
 
         ring().assert(hasDescriptionContaining("Alle Aufgüsse fertig"))
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
         compose.onNodeWithText("Weiterer Aufguss").performClick()
 
         assertThat(events).containsExactly(TimerEvent.FinishSession, TimerEvent.AddStep).inOrder()
-        compose.onNodeWithText("Schritte für diese Sitzung").assertIsDisplayed()
+        compose.onNodeWithText("Schritte für diese Session").assertIsDisplayed()
     }
 
     @Test
@@ -230,13 +251,13 @@ class TimerScreenTest {
     // --- Overflow ⋮ per state (SCR-05 table) ------------------------------------------------
 
     private val allItems = listOf(
-        "Brühen anpassen",
+        "Session anpassen",
         "Aufguss jetzt beenden",
         "Schritt überspringen",
         "Schritte bearbeiten",
         "Weiterer Aufguss",
-        "Sitzung beenden",
-        "Sitzung verwerfen",
+        "Session beenden",
+        "Session verwerfen",
         "Timer-Einstellungen",
         "Abbrechen",
     )
@@ -245,7 +266,7 @@ class TimerScreenTest {
 
     private fun assertMenu(state: TimerUiState.Active, vararg expected: String) {
         show(state)
-        // FINISHED has *Sitzung beenden* and *Weiterer Aufguss* as buttons too: count what the menu adds.
+        // FINISHED has *Session beenden* and *Weiterer Aufguss* as buttons too: count what the menu adds.
         val before = allItems.associateWith(::count)
         openMenu()
         allItems.forEach { item ->
@@ -256,12 +277,12 @@ class TimerScreenTest {
     @Test
     fun `the overflow of READY`() = assertMenu(
         TimerStates.ready(),
-        "Brühen anpassen",
+        "Session anpassen",
         "Schritt überspringen",
         "Schritte bearbeiten",
         "Weiterer Aufguss",
-        "Sitzung beenden",
-        "Sitzung verwerfen",
+        "Session beenden",
+        "Session verwerfen",
         "Timer-Einstellungen",
     )
 
@@ -271,8 +292,8 @@ class TimerScreenTest {
         "Aufguss jetzt beenden",
         "Schritte bearbeiten",
         "Weiterer Aufguss",
-        "Sitzung beenden",
-        "Sitzung verwerfen",
+        "Session beenden",
+        "Session verwerfen",
         "Timer-Einstellungen",
     )
 
@@ -282,16 +303,16 @@ class TimerScreenTest {
         "Aufguss jetzt beenden",
         "Schritte bearbeiten",
         "Weiterer Aufguss",
-        "Sitzung beenden",
-        "Sitzung verwerfen",
+        "Session beenden",
+        "Session verwerfen",
         "Timer-Einstellungen",
     )
 
     @Test
     fun `the overflow of ALERTING never opens the Schritte-Sheet (D-055)`() = assertMenu(
         TimerStates.alerting(),
-        "Sitzung beenden",
-        "Sitzung verwerfen",
+        "Session beenden",
+        "Session verwerfen",
         "Timer-Einstellungen",
     )
 
@@ -300,8 +321,8 @@ class TimerScreenTest {
         TimerStates.finished(),
         "Schritte bearbeiten",
         "Weiterer Aufguss",
-        "Sitzung beenden",
-        "Sitzung verwerfen",
+        "Session beenden",
+        "Session verwerfen",
         "Timer-Einstellungen",
     )
 
@@ -334,7 +355,7 @@ class TimerScreenTest {
     fun `Abbrechen in the overflow cancels the quick timer (SCR-07)`() {
         show(TimerStates.quick(TimerPhase.RUNNING))
         openMenu()
-        compose.onNodeWithText("Sitzung beenden").assertDoesNotExist()
+        compose.onNodeWithText("Session beenden").assertDoesNotExist()
         compose.onNodeWithText("Abbrechen").performClick()
 
         assertThat(events).containsExactly(TimerEvent.Cancel)
@@ -497,7 +518,7 @@ class TimerScreenTest {
         compose.onNodeWithText("Timer-Einstellungen").performClick()
         openMenu()
         // A session with a completed step is finished without asking.
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
 
         assertThat(events).containsExactly(TimerEvent.EndStepNow, TimerEvent.FinishSession).inOrder()
         assertThat(opened).containsExactly("settings")
@@ -509,7 +530,7 @@ class TimerScreenTest {
         openMenu()
         compose.onNodeWithText("Schritt überspringen").performClick()
         openMenu()
-        compose.onNodeWithText("Brühen anpassen").performClick()
+        compose.onNodeWithText("Session anpassen").performClick()
 
         assertThat(events).containsExactly(TimerEvent.SkipStep)
         assertThat(opened).containsExactly("adjust")
@@ -518,16 +539,16 @@ class TimerScreenTest {
     // --- Confirmations (TMR-12 AC1, TMR-13) -------------------------------------------------
 
     @Test
-    fun `Sitzung verwerfen asks first`() {
+    fun `Session verwerfen asks first`() {
         show(TimerStates.running(stepIndex = 1))
         openMenu()
-        compose.onNodeWithText("Sitzung verwerfen").performClick()
+        compose.onNodeWithText("Session verwerfen").performClick()
         compose.onNodeWithText("Nichts wird gespeichert.").assertIsDisplayed()
-        compose.onNodeWithText("Weiter brühen").performClick()
+        compose.onNodeWithText("Weiter aufgießen").performClick()
         assertThat(events).isEmpty()
 
         openMenu()
-        compose.onNodeWithText("Sitzung verwerfen").performClick()
+        compose.onNodeWithText("Session verwerfen").performClick()
         compose.onNodeWithText("Verwerfen").performClick()
 
         assertThat(events).containsExactly(TimerEvent.Discard)
@@ -537,9 +558,9 @@ class TimerScreenTest {
     fun `finishing without a completed step asks, because the session would be discarded`() {
         show(TimerStates.ready())
         openMenu()
-        compose.onNodeWithText("Sitzung beenden").performClick()
+        compose.onNodeWithText("Session beenden").performClick()
 
-        compose.onNodeWithText("Sitzung verwerfen?").assertIsDisplayed()
+        compose.onNodeWithText("Session verwerfen?").assertIsDisplayed()
         assertThat(events).isEmpty()
         compose.onNodeWithText("Verwerfen").performClick()
 
@@ -553,7 +574,7 @@ class TimerScreenTest {
         show(TimerStates.running(stepIndex = 1))
         openMenu()
         compose.onNodeWithText("Schritte bearbeiten").performClick()
-        compose.onNodeWithText("Schritte für diese Sitzung").assertIsDisplayed()
+        compose.onNodeWithText("Schritte für diese Session").assertIsDisplayed()
 
         compose.mainClock.autoAdvance = false
         state = TimerStates.alerting()
@@ -563,7 +584,7 @@ class TimerScreenTest {
             compose.waitForIdle()
         }
 
-        compose.onNodeWithText("Schritte für diese Sitzung").assertDoesNotExist()
+        compose.onNodeWithText("Schritte für diese Session").assertDoesNotExist()
         compose.onNode(isDialog()).assertDoesNotExist()
         compose.onNodeWithText("Abgegossen").assertExists()
     }
@@ -577,15 +598,15 @@ class TimerScreenTest {
     fun `a menu left open is gone, without its exit animation, when the alert starts`() {
         show(TimerStates.running(stepIndex = 1))
         openMenu()
-        compose.onNodeWithText("Sitzung verwerfen").assertIsDisplayed()
+        compose.onNodeWithText("Session verwerfen").assertIsDisplayed()
 
         compose.mainClock.autoAdvance = false
         state = TimerStates.alerting()
         advanceTwoFrames()
 
-        // „Sitzung verwerfen" is an ALERTING item too: only a menu still on screen would show it.
+        // „Session verwerfen" is an ALERTING item too: only a menu still on screen would show it.
         compose.onNode(isPopup()).assertDoesNotExist()
-        compose.onNodeWithText("Sitzung verwerfen").assertDoesNotExist()
+        compose.onNodeWithText("Session verwerfen").assertDoesNotExist()
         compose.onNodeWithText("Abgegossen").assertExists()
     }
 
@@ -606,7 +627,7 @@ class TimerScreenTest {
     fun `a question opened during one alert never covers the next alert`() {
         show(TimerStates.alerting(stepIndex = 0))
         openMenu()
-        compose.onNodeWithText("Sitzung verwerfen").performClick()
+        compose.onNodeWithText("Session verwerfen").performClick()
         compose.onNodeWithText("Nichts wird gespeichert.").assertIsDisplayed()
 
         // *Abgegossen* and *Start* from the notification; the question stays open meanwhile.
@@ -626,7 +647,7 @@ class TimerScreenTest {
     fun `a menu or a question opened before the alert is gone when it starts`() {
         show(TimerStates.running(stepIndex = 1))
         openMenu()
-        compose.onNodeWithText("Sitzung verwerfen").performClick()
+        compose.onNodeWithText("Session verwerfen").performClick()
         compose.onNodeWithText("Nichts wird gespeichert.").assertIsDisplayed()
 
         compose.mainClock.autoAdvance = false

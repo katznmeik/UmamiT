@@ -25,7 +25,7 @@
     <string name="brew_timer_resume">Weiter</string>
     <string name="brew_timer_poured">Abgegossen</string>
     <string name="brew_timer_poured_rinse">Weggegossen</string>
-    <string name="brew_timer_finish">Sitzung beenden</string>
+    <string name="brew_timer_finish">Session beenden</string>
     <string name="brew_timer_add_step">Weiterer Aufguss</string>
 
     <!-- The row for the other timer (v0.3.0, SCR-05, SCR-07, D-098): „Schnelltimer 2:14", „Tanabata · Aufguss 2 · 0:48". -->
@@ -47,20 +47,20 @@
     <string name="brew_timer_other_resume_brew">Aufguss fortsetzen</string>
 
     <!-- Overflow ⋮ (SCR-05) -->
-    <string name="brew_timer_menu_adjust">Brühen anpassen</string>
+    <string name="brew_timer_menu_adjust">Session anpassen</string>
     <string name="brew_timer_menu_end_step">Aufguss jetzt beenden</string>
     <string name="brew_timer_menu_skip">Schritt überspringen</string>
     <string name="brew_timer_menu_edit_steps">Schritte bearbeiten</string>
     <string name="brew_timer_menu_add_step">Weiterer Aufguss</string>
-    <string name="brew_timer_menu_finish">Sitzung beenden</string>
-    <string name="brew_timer_menu_discard">Sitzung verwerfen</string>
+    <string name="brew_timer_menu_finish">Session beenden</string>
+    <string name="brew_timer_menu_discard">Session verwerfen</string>
     <string name="brew_timer_menu_settings">Timer-Einstellungen</string>
 
     <!-- Confirmation (03 §5, TMR-12 AC1, TMR-13) -->
-    <string name="brew_timer_discard_title">Sitzung verwerfen?</string>
+    <string name="brew_timer_discard_title">Session verwerfen?</string>
     <string name="brew_timer_discard_text">Nichts wird gespeichert.</string>
     <string name="brew_timer_discard_confirm">Verwerfen</string>
-    <string name="brew_timer_discard_cancel">Weiter brühen</string>
+    <string name="brew_timer_discard_cancel">Weiter aufgießen</string>
 
     <!-- Reliability banner (TMR-31) -->
     <string name="brew_timer_reliability">Der Timer ist eventuell unzuverlässig</string>

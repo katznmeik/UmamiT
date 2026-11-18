@@ -85,7 +85,8 @@ const val SETUP_STOCK_TAG = "setup_stock"
  * The setup (SCR-04, BRW-02): tea, recipe chips, vessel, water and leaf with
  * the ratio lock (BRW-03), the kettle hint (BRW-10), „Rezept prüfen" with its
  * reason for a flagged tea (CAT-05), the steps, the effective
- * pre-alert, *Im Rezept speichern* (only after a change) and *Brühen starten*.
+ * pre-alert, *Im Rezept speichern* (only after a change) and *Session starten*. The title is „Neue Session", or
+ * „Session anpassen" when [adjusting]: opened from a running timer's ⋮ (D-128).
  * *Bearb.* and the *Vorwarnung* row open the Schritte-Sheet (SCR-31) for this
  * session.
  *
@@ -102,6 +103,7 @@ const val SETUP_STOCK_TAG = "setup_stock"
 fun BrewSetupScreen(
     state: BrewSetupUiState,
     modifier: Modifier = Modifier,
+    adjusting: Boolean = false,
     actions: BrewSetupActions = BrewSetupActions(),
 ) {
     // The first arrival of the setup fades in with `fade` instead of popping in part-way through the push (A-12).
@@ -110,7 +112,7 @@ fun BrewSetupScreen(
     val resources = LocalResources.current
     LaunchedEffect(resources) { TimerBandBitmap.preload(resources) }
     ScreenScaffold(
-        title = stringResource(R.string.brew_setup_title),
+        title = stringResource(if (adjusting) R.string.brew_setup_title_adjust else R.string.brew_setup_title),
         modifier = modifier,
         navigationIcon = { BackAction(actions.back) },
         actions = {

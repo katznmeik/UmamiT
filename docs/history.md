@@ -11,6 +11,67 @@
 
 ## Releases and plans
 
+### v0.8.0: session 5, #331 and rc.2 published (2026-11-18)
+
+- **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/youthful-ride-nxyb6e`). The environment (mirror init script, `gw.sh`, Robolectric jars) was written again.
+- **#331 (T3, Opus `medium` implementer):**
+  - The failing test came first (`9017da60`, `PickerHandOverTest`; seen failing by the orchestrator), then the fix (`78ca92a8`, `16f41215`) and the docs (`e6aed920`: D-129 „Claude's details", 03 SCR-03).
+  - The mechanism: a frozen frame of the sheet (`SheetHandOver` in `core:ui`). It is recorded synchronously in the tap into a `Picture` and drawn by the shell below the routes. The real sheet hands over its scrim and fades out over it in about four frames.
+  - No change to the timer wiring, so there was no T4 read. A container restart mid-session lost only a wait.
+- **rc:** `95da6ad5` (`0.8.0-rc.2`, versionCode 80002).
+  - Timer tests 263 / 513 / 776; full local gate PASS.
+  - CI run 44198004897 green on attempt 3. API 36 failed first in `ProcessDeathTest`'s two-brews case (the known flake), then in `TransitionJankTest.savedSheetInAndOut` on a slow emulator (the reference fade at ≈ 120 ms frames).
+  - Accuracy standard, alongside and two-brews PASS (44201903920, 44201908972, 44201912905).
+  - Release run 44211626516 needed one rerun for `JournalPerformanceTest`'s wall-clock budget. APK SHA-256 `b0396be0…7f79`.
+  - The checklist line is with the PO in comment 6966407229 on PR #328, with a request to approve the whole checklist.
+
+### v0.8.0: session 4, the PO's check of rc.1 (2026-11-17)
+
+- **The PO's check:** the design review is approved as built, with Claude's four details. The checklist passed except one item.
+- **The failing item, from the PO's screen recordings:**
+  - Tapping a tea in *Tee wählen* removes the sheet within one frame, so Start shows bare for ≈ 150–200 ms before *Neue Session* fades in.
+  - Frames at 30 fps showed that the longer view of Start in the same recording was the PO's own back tap and recent-row tap.
+- **The rest of the PO's answers:** the late tea photos on launch are kept as they are; the session hands over.
+- **Recorded:** D-129, 03 SCR-03 „Hand-over to the setup", a 09 §4 line for rc.2, ticket #331 (T3).
+- **What did not happen:** no merge, no version change; PR #328 stays a draft. Worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/sharp-einstein-te907a`).
+
+### v0.8.0: build session 3, rc.1 published (2026-11-17)
+
+- **The PO's answers (in the session, as options):** the sage alarm as rendered; the active-brew bar's alarm static sage in the light app (D-128 item 38); the five open build notes kept as built (item 39); after the reviews, an ink ring on the light timer's overtime dot (item 40, #329) and the tabs' ⋮ alert gate as a v0.9.0 ticket (item 41, #330). #324 closed.
+- **#325 (T3, Opus `medium`):** the final look (`LightTimerLook` removed, `LightTimerDesignCheckTest` kept for the review renders), the cover in `UmamitRoot` and the system-bar icons in the app's theme, one-frame recolour on a theme change, the bar's static sage, the dark-timer pin removed and the light goldens re-recorded; no dark golden changed. 02 SET-05 and 03 §3.1 aligned (sheets `surfaceContainerLow`, as rendered and approved).
+- **#326 reviews:** T3 milestone review (no blocker), T4 timer review (no rule-8 risk), and, because `/review-animations` is user-invoke only, an ad-hoc T2 motion review at the PO's pick. One T3 fix round: taste resets name their axes, an unreadable tea falls back to the snapshot category's set, the tea editor's Sorte round trip, the radar's axis check, the refresh status without an empty exit frame and cleared on leaving the settings (SET-23), a golden renamed. Then #329 (T3).
+- **rc:** `9c0e4225` (`0.8.0-rc.1`, versionCode 80001). Full local gate PASS; timer tests 263 / 513 / 776 (21 skipped: 20 record-only design-check renders, 1 earlier); CI green (API 36 needed one rerun each time: Maven Central once, `TransitionJankTest` „Start is not shown" once); accuracy standard, alongside and two-brews PASS (runs 44153741187, 44153745560, 44153749225). Design review in `docs/design/review/v0.8.0/`.
+
+### v0.8.0: build session 2 (2026-11-17)
+
+- **Branch:** worked directly on `claude/inspiring-ritchie-8hfw00` (PR #328); the session's assigned branch `claude/hopeful-feynman-nizldo` was not used.
+- **Environment:** the mirror init script and `gw.sh` written again in the scratchpad, and Robolectric's SDK 35/36 jars pre-fetched and checked against the sha512. The wrapper now fetches Gradle 9.8.2.
+- **Merged on #328, each verified by the orchestrator** (the diff, the cross-module check, the empty timer diff where the plan asks for it, and `feature:brew`'s tests and goldens after a shared-module change):
+  - #319 (T2, `6ee8d0f0`): progress and result in *Katalog*. The formatter composables are in `core:ui`, which now depends on `core:data`; the `data_catalog_*` words stay in `core:data`, which the notifications share.
+  - #320 (T3, `157dd673`): umamit.db v9 and `TasteSet`; `9.json` is Room-generated and `check-frozen-schemas.sh` passes.
+  - #313 (T3, `752111b1`): `firstOrNull` guard. The test deletes through `FakeTeaArchive` (`teaId` null, as on Room); it was red before the guard and green after.
+  - #321 (T2, `3d1ef4ba`): the sets and `TasteInfo` on the session page, the tea detail and the editor.
+  - #322 (T3, `b465d7a5`): the timer's taste sheet per set with `TasteInfo`, the alert gate with the info unfolded, two brews with two sets, and the leftover „Sitzung" / *Brühen anpassen* KDoc. Timer tests 263 / 513 / 765 (25 skipped).
+- **#325 step 1** (T3, `3cfa5870`): the light timer's sage alarm. `TimerTheme` provides `LightTimerAlertColors` in light only; no existing golden changed and `dark-alarm.png` is byte-identical. Timer tests 263 / 513 / 770 (29 skipped). The implementer stopped on the stated swing: it measures 1.734:1, not 1.72 (and matcha measures 2.975, not 2.95). The colours stay; the figures are corrected in 03 §3.1 and D-128 item 36 (`a5cb7006`). Renders posted on #324 for the PO's confirmation, with the active-brew bar's alarm in the light app (unchanged matcha).
+- **CI:** green on `752111b1` (run 44109846265) and fully green on `3cfa5870` (run 44127033591, both emulator jobs).
+
+### v0.8.0: build session 1 (2026-11-17)
+
+- **The PO approved** spec #315, tickets #316–#327 and #313, and `docs/plans/v0.8.0.md` at the session's start; D-128 *Accepted*. Tickets relabelled (`ready-for-agent`, #324 `ready-for-human`); draft milestone PR #328 from `claude/inspiring-ritchie-8hfw00` (the assigned branch, fast-forwarded to `claude/magical-heisenberg-qev7fe`).
+- **Environment:** Maven Central answered 429 again, so the mirror init script was written anew (scratchpad, passed by `gw.sh`) and Robolectric's SDK 35/36 jars were pre-fetched and checked against the sha512. The first baseline failed 103 Robolectric tests for want of them.
+- **Merged on #328:** #317 (T3, `77a5691b`), #318 (T1, `bdd53797`), #316 (T2, `503a3092`) with its follow-up for a `feature:brew` test and 4 goldens on the shared stock-sheet text (T3, `79d3f557`), and #323 (T3, `162aee5f`). Each was verified by the orchestrator: the diff, the timer tests (263 / 513 / 734, 25 skipped), the cross-module check, the brew goldens with the dark timer unchanged, and lint.
+- **The light timer's renders** went to #324 for the PO: 8 states light and dark, the band (ink on washi / plain) and the fill (today / deeper), with the contrast values below 3:1.
+- **The PO's design check #324 (end of the session, as options):** band A13 in ink, fill as today, everything else as rendered, and a sage alarm (`#AEBF8D`) for the light timer only, still pulsing washi ↔ sage. Recorded as D-128 items 34–37, in 03 §3.1 and in #325's body.
+- **CI:** one API 36 `TransitionJankTest` failure on `bdd53797` („Start is not shown"), taken as the known jank flake; CI fully green on `79d3f557` (run 44085961534).
+
+### v0.8.0: specified, waiting for the PO's approval (2026-11-17)
+
+- **The PO's nine points after `v0.7.2`:** „Session starten", „Session" for „Sitzung", an info section on the taste sliders, sliders for teas that are not green, shared recipes, the Statistik ⋮ menu opening at the left, refresh progress in the settings, a light timer, export/import.
+- **Grilling (Opus `medium` session, Q1–Q31 as options in nine rounds), D-128:** two releases (v0.8.0: points 1–4, 6–8 and #313; v0.9.0: points 5 and 9); 1.0 only on the PO's go. During the round the PO widened point 2: „brühen" becomes „aufgießen" / „Aufguss", and „Session" where a whole session is meant; the setup is titled „Neue Session" / „Session anpassen".
+- **Written:** D-128; the specs' German copy swept (02, 03, 04, 05, 11, 12); the v0.8.0 sections in 02, 03, 05, 08 (§4a), 09, 11 and the README; spec issue #315 with tickets #316–#327; #313 triaged (not reachable today, fixed anyway) and attached to #315; `docs/plans/v0.8.0.md`. v0.9.0 is recorded as planned (D-128 Q4–Q11, BAK-01/02/04/06, PRF-08).
+- **Housekeeping:** the docs PR #314 (the v0.7.2 handover, `2fd0a01a`) merged into `main` (`76e0a356`). The session's assigned branch was `claude/magical-heisenberg-qev7fe`, so the v0.8.0 docs are there, not on `claude/wonderful-davinci-fu8tqi`.
+- **No code was written.** Usage: not measured (the session had no usage readout); no subagents.
+
 ### v0.7.2: released (2026-11-17)
 
 - **PO approval (2026-11-17, in the session and on #312):** the checklist 09 §4 „v0.7.2" was ticked on the rc.1 comment of #312 (edited 06:43 UTC); the orchestrator found no reply with words, asked, and the PO answered „Yes, approved" (checklist and design review; the unchanged goldens stand in, plan §„Release"). No rc.2.
@@ -689,6 +750,10 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-17 | **v0.8.0 build session 3:** the PO confirmed the sage alarm (bar static sage too); #325 and #329 built; the T3, T4 and ad-hoc motion reviews with one fix round; the full gate, CI and all three accuracy variants green on `9c0e4225`; `v0.8.0-rc.1` (80001) published with the checklist and the design review. Next: session 4 (the PO's check, merge, final `v0.8.0`). |
+| 2026-11-17 | **v0.8.0 build session 2:** #319, #320, #313, #321 and #322 merged and verified on PR #328; #325 step 1 (the sage alarm of the light timer) built and its renders posted on #324; the swing figures corrected to the measured 1.73 / 2.97. Next: the PO's confirmation, then build session 3 (the rest of #325, #326). |
+| 2026-11-17 | **v0.8.0 build session 1:** the PO approved spec #315, the tickets and the plan; PR #328 (draft) opened; #317, #318, #316 (+ a brew test follow-up) and #323 merged and verified; the light timer's renders posted on #324 and answered by the PO (band ink, fill as today, sage alarm for the light timer; D-128 34–37). Next: build session 2 (#320, #319, #321, #313, #322, #325). |
+| 2026-11-17 | **v0.8.0 specify session:** docs PR #314 merged; the PO's nine points grilled (Q1–Q31) into D-128: v0.8.0 (Session and Aufguss wording, three taste sets with *Geschmacksprofil* and the slider info, the timer follows *Design*, refresh progress in the settings, the ⋮ fix, #313) and v0.9.0 planned (export/import, shared recipes); 1.0 postponed. Specs, spec #315, tickets #316–#327, plan `docs/plans/v0.8.0.md` written. Next: the PO's approval, then build session 1. |
 | 2026-11-17 | **v0.7.2 session 14 (#310: the PO's approval, merge, final):** the PO approved checklist and design review; PR #312 merged (`c5f19e8e`), CI and all three accuracy variants PASS on it; `v0.7.2` released (70299, certificate verified); #296–#310 closed. Next: the PO decides the next release. |
 | 2026-11-17 | **v0.7.2 session 13 (#309: the proof, accuracy, rc.1):** the proof on `a8f78d4f` all clean (recorded on #312), full local gate PASS, CI green, all three accuracy variants PASS; `v0.7.2-rc.1` released (70201, certificate verified), checklist to the PO on #312. Next: #310 after the PO's check. |
 | 2026-11-16 | **v0.7.2 session 11 (execution part 4, #308's alert-path group):** TMR-A-14, -01, -11, -12, -13 and D-126 (DAT-A-14, TMR-A-06) by seven T3 implementers, at most two at a time on disjoint files. Each step was verified (diff, proof; 04 §12 counts 263/512/707 unchanged on four landed heads) and pushed in three groups, each green on CI before the next. #308 is done. Usage: orchestrator 115 requests, 21.7 M cache read, 0.19 M cache write, 48 k output; seven implementers 77 requests, 5.7 M cache read, 0.93 M cache write, 39 k output (from the transcripts, before the final handover turn). Next: the T3 milestone review and the T4 timer review, then #309. |

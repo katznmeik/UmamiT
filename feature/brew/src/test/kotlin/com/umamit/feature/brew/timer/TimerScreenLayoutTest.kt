@@ -264,14 +264,14 @@ class TimerScreenLayoutTest {
         compose.onNodeWithText("+0:15 überzogen", useUnmergedTree = true).assertIsDisplayed()
         val prominent = top("Abgegossen")
 
-        // The last *Abgegossen* ends the brew: FINISHED's *Sitzung beenden* takes the pill's place.
+        // The last *Abgegossen* ends the brew: FINISHED's *Session beenden* takes the pill's place.
         state = TimerStates.alerting(overtimeMs = 7_000, stepIndex = 2)
         compose.waitForIdle()
         val lastAlert = top("Abgegossen")
 
         state = TimerStates.finished()
         compose.waitForIdle()
-        val finished = top("Sitzung beenden")
+        val finished = top("Session beenden")
 
         assertThat(listOf(running, alert, prominent, lastAlert, finished))
             .containsExactly(ready, ready, ready, ready, ready)
@@ -330,7 +330,7 @@ class TimerScreenLayoutTest {
     }
 
     /**
-     * D-096 for FINISHED: the band gives way until *Sitzung beenden*, *Weiterer Aufguss* below it and the bottom
+     * D-096 for FINISHED: the band gives way until *Session beenden*, *Weiterer Aufguss* below it and the bottom
      * margin lie on the screen, so the secondary never sits on the gesture handle (BRW-11's line makes the page
      * taller).
      */
@@ -360,8 +360,8 @@ class TimerScreenLayoutTest {
         state = TimerStates.finished().copy(teaName = TWO_LINE_NAME)
         compose.waitForIdle()
 
-        assertThat(top("Sitzung beenden")).isEqualTo(lastAlert)
-        assertWithMargin(compose.onNodeWithText("Sitzung beenden").getUnclippedBoundsInRoot())
+        assertThat(top("Session beenden")).isEqualTo(lastAlert)
+        assertWithMargin(compose.onNodeWithText("Session beenden").getUnclippedBoundsInRoot())
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
         val secondary = compose.onNodeWithText("Weiterer Aufguss")
         assertThat(secondary.getUnclippedBoundsInRoot().top + UmamiSpacing.MinTouchTarget / 2).isAtMost(screen.bottom)
@@ -371,7 +371,7 @@ class TimerScreenLayoutTest {
 
     private fun finishedFits(finished: TimerUiState.Active) {
         show(finished)
-        assertWithMargin(compose.onNodeWithText("Sitzung beenden").getUnclippedBoundsInRoot())
+        assertWithMargin(compose.onNodeWithText("Session beenden").getUnclippedBoundsInRoot())
         assertWithMargin(compose.onNodeWithText("Weiterer Aufguss").getUnclippedBoundsInRoot())
     }
 
@@ -504,7 +504,7 @@ class TimerScreenLayoutTest {
             }
         }
         compose.onNodeWithContentDescription("Weitere Optionen").performClick()
-        compose.onNodeWithText("Sitzung verwerfen").performClick()
+        compose.onNodeWithText("Session verwerfen").performClick()
         compose.onNodeWithText("Nichts wird gespeichert.").assertIsDisplayed()
 
         restoration.emulateSavedInstanceStateRestore()

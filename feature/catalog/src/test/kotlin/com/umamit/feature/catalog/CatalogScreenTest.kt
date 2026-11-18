@@ -185,7 +185,7 @@ class CatalogScreenTest {
 
         assertThat(runner.cancels).isEqualTo(1)
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Cancelled))
-        compose.onNodeWithText(str(R.string.catalog_refresh_cancelled_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(com.umamit.core.ui.R.string.ui_catalog_refresh_cancelled)).assertIsDisplayed()
         compose.onNodeWithText(str(DataR.string.data_catalog_result_kept)).assertIsDisplayed()
     }
 

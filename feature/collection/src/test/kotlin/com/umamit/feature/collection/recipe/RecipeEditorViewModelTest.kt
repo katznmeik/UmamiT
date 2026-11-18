@@ -343,7 +343,7 @@ class RecipeEditorViewModelTest {
     }
 
     @Test
-    fun `the recipe of the running brew can't be deleted - Erst die Sitzung beenden (E15, D-101)`() = runTest {
+    fun `the recipe of the running brew can't be deleted - Erst die Session beenden (E15, D-101)`() = runTest {
         brewing(recipeId = "kyusu")
         val vm = viewModel("kyusu")
         assertThat(vm.ready.isBrewing).isTrue()

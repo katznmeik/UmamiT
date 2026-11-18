@@ -156,7 +156,7 @@ class SessionHeroScreenTest {
     fun `with session photos the hero swipes over them in the order added`() {
         showScreen(SessionHero(photos = photos(3), coverPath = "/photos/cover.jpg"))
 
-        compose.onNodeWithContentDescription("Fotos der Sitzung").assertExists()
+        compose.onNodeWithContentDescription("Fotos der Session").assertExists()
         compose.onNodeWithContentDescription("Foto 1 von 3").assertIsDisplayed()
         compose.onNodeWithTag(SESSION_PHOTOS_TAG).performTouchInput { swipeLeft() }
         compose.waitForIdle()
@@ -260,7 +260,7 @@ class SessionHeroScreenTest {
 
         assertThat(picker.launches).isEqualTo(1)
         assertThat(photos.added).containsExactly("content://picked/1")
-        compose.onNodeWithContentDescription("Fotos der Sitzung").assertExists()
+        compose.onNodeWithContentDescription("Fotos der Session").assertExists()
         compose.onNodeWithContentDescription("Foto 1 von 1").assertExists()
     }
 
@@ -294,7 +294,7 @@ class SessionHeroScreenTest {
         openPhotoMenu()
         confirmDelete()
 
-        compose.onNodeWithContentDescription("Fotos der Sitzung").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Fotos der Session").assertDoesNotExist()
         compose.onNodeWithContentDescription("Foto-Optionen").assertDoesNotExist()
         compose.onNodeWithTag(SESSION_HERO_COVER_TAG).assertExists()
     }

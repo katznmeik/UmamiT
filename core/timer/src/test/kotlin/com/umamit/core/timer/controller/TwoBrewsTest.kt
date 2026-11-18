@@ -267,7 +267,7 @@ class TwoBrewsTest {
         assertThat(quickRefused).isEqualTo(both)
         assertThat(h.log.calls).hasSize(calls)
 
-        // „Welchen Timer beenden?" → the second tea, with a completed infusion: saved, „Sitzung gespeichert".
+        // „Welchen Timer beenden?" → the second tea, with a completed infusion: saved, „Session gespeichert".
         assertThat(h.controller.finishActiveAndStart(third, ending = TimerSlot.BREW_2))
             .isEqualTo(TransitionOutcome.Accepted)
 

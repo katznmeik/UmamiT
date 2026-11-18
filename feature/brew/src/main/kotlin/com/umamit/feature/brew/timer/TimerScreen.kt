@@ -20,7 +20,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.umamit.core.designsystem.component.AlertSurface
-import com.umamit.core.designsystem.theme.SteepingTheme
+import com.umamit.core.designsystem.theme.TimerTheme
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
@@ -37,8 +37,8 @@ const val TIMER_ANNOUNCEMENT_TAG = "timer_announcement"
 const val TIMER_RING_TAG = "timer_ring"
 
 /**
- * The timer (SCR-05; TMR-02…13, TMR-17, TMR-31): always in the dark
- * „Steeping" scheme, edge-to-edge, in one of five states. It draws [state]
+ * The timer (SCR-05; TMR-02…13, TMR-17, TMR-31): in the app's theme ([TimerTheme], SET-05, D-128 Q20), the dark
+ * „Steeping" scheme or the light one, edge-to-edge, in one of five states. It draws [state]
  * and turns every tap into a controller event ([onEvent]); it calls nothing
  * else.
  *
@@ -48,9 +48,9 @@ const val TIMER_RING_TAG = "timer_ring"
  * - **ALERTING:** the pulsing [AlertSurface], entered without any transition
  *   (`alertEnter`), „Jetzt abgießen!", the overtime, from 15 s on large and
  *   marked with a warm-accent dot; *Abgegossen* (*Weggegossen* for a rinse).
- * - **FINISHED:** *Sitzung beenden* and *Weiterer Aufguss*.
+ * - **FINISHED:** *Session beenden* and *Weiterer Aufguss*.
  *
- * The overflow ⋮ follows the SCR-05 table ([menuItems]). *Sitzung verwerfen*
+ * The overflow ⋮ follows the SCR-05 table ([menuItems]). *Session verwerfen*
  * and a finish that would discard the session ask first (TMR-12 AC1, TMR-13).
  * The Schritte-Sheet is hosted with `alerting` bound to the phase: on ALERTING
  * it is removed in the same frame (D-051, rule 8), and so are a menu or a
@@ -101,7 +101,7 @@ fun TimerScreen(
     tasting: TimerTasting? = null,
     closing: Boolean = false,
 ) {
-    SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
+    TimerTheme(reduceMotion = UmamiTheme.reduceMotion) {
         val alerting = state.alerting
         val alertKey = state.alertKey()
         val now by rememberTimerNow(state, nowElapsedMs)

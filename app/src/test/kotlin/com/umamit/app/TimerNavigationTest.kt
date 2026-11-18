@@ -70,7 +70,7 @@ class TimerNavigationTest {
                         Column {
                             Text("TIMER")
                             Button(onClick = openSettings) { Text("Timer-Einstellungen") }
-                            Button(onClick = { adjust("s1") }) { Text("Brühen anpassen") }
+                            Button(onClick = { adjust("s1") }) { Text("Session anpassen") }
                         }
                     },
                     settings = testSettingsScreens(),
@@ -249,7 +249,7 @@ class TimerNavigationTest {
         show()
         bar().performClick()
         // A setup opened in this alert stays for it (navigateAbove), so its menu is reachable.
-        compose.onNodeWithText("Brühen anpassen").performClick()
+        compose.onNodeWithText("Session anpassen").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("SETUP").assertIsDisplayed()
 

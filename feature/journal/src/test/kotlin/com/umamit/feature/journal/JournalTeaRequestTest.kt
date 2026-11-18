@@ -128,7 +128,7 @@ class JournalTeaRequestTest {
         compose.waitForIdle()
 
         // The search for „hisui" would leave no match with the tea filter; the request cleared it.
-        compose.onNodeWithText("Keine Sitzung passt zu deiner Suche.").assertDoesNotExist()
+        compose.onNodeWithText("Keine Session passt zu deiner Suche.").assertDoesNotExist()
         compose.onAllNodesWithText("Gyokuro Asahi").onLast().assertIsDisplayed()
         compose.onNodeWithText("Bio Sencha Hisui").assertDoesNotExist()
     }

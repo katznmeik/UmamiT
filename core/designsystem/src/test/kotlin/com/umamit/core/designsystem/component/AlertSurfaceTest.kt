@@ -12,8 +12,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.designsystem.theme.AlertColors
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
+import com.umamit.core.designsystem.theme.LightTimerAlertColors
 import com.umamit.core.designsystem.theme.SteepingTheme
+import com.umamit.core.designsystem.theme.TimerTheme
+import com.umamit.core.designsystem.theme.UmamiTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,7 +28,8 @@ import kotlin.math.abs
 
 /**
  * The alert surface (03 §3.6 `alertPulse`, CLAUDE.md rule 8): full matcha on the
- * first frame, washi half a cycle later, and static matcha under reduce motion.
+ * first frame, washi half a cycle later, and static matcha under reduce motion. The light timer does the same
+ * with sage (D-128 item 36).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -36,11 +41,25 @@ class AlertSurfaceTest {
 
     private val alert = DefaultExtendedColors.alert
 
+    private val sage = LightTimerAlertColors
+
     private fun show(reduceMotion: Boolean) {
         compose.mainClock.autoAdvance = false
         compose.setContent {
             SteepingTheme(reduceMotion = reduceMotion) {
                 AlertSurface(modifier = Modifier.size(40.dp).testTag("alert")) {}
+            }
+        }
+    }
+
+    /** The light timer (D-128 item 36): the light app with [TimerTheme] following it. */
+    private fun showLightTimer(reduceMotion: Boolean) {
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            UmamiTheme(darkTheme = false, reduceMotion = reduceMotion) {
+                TimerTheme(reduceMotion = reduceMotion) {
+                    AlertSurface(modifier = Modifier.size(40.dp).testTag("alert")) {}
+                }
             }
         }
     }
@@ -105,6 +124,38 @@ class AlertSurfaceTest {
         assertClose(surfaceColor(), alert.matcha)
         compose.mainClock.advanceTimeBy(HALF_CYCLE_MILLIS)
         assertClose(surfaceColor(), alert.matcha)
+    }
+
+    @Test
+    fun `the light timer's alert is full sage on the first frame`() {
+        showLightTimer(reduceMotion = false)
+        assertClose(surfaceColor(), sage.matcha)
+    }
+
+    @Test
+    fun `the light timer's pulse keeps its rhythm, washi at half a cycle and sage after a full one`() {
+        showLightTimer(reduceMotion = false)
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeBy(HALF_CYCLE_MILLIS)
+        assertClose(surfaceColor(), sage.washi)
+        compose.mainClock.advanceTimeBy(HALF_CYCLE_MILLIS)
+        assertClose(surfaceColor(), sage.matcha)
+    }
+
+    @Test
+    fun `under reduce motion the light timer's alert stays static sage`() {
+        showLightTimer(reduceMotion = true)
+        assertClose(surfaceColor(), sage.matcha)
+        compose.mainClock.advanceTimeBy(HALF_CYCLE_MILLIS)
+        assertClose(surfaceColor(), sage.matcha)
+    }
+
+    @Test
+    fun `outside the timer the light app's alert colours stay matcha`() {
+        lateinit var colors: AlertColors
+        compose.setContent { UmamiTheme(darkTheme = false) { colors = UmamiTheme.extendedColors.alert } }
+        compose.waitForIdle()
+        assertThat(colors).isEqualTo(DefaultExtendedColors.alert)
     }
 
     private companion object {

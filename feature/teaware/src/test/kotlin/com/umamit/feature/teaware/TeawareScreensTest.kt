@@ -288,7 +288,7 @@ class TeawareScreensTest {
     }
 
     @Test
-    fun `the blocked Archivieren is greyed out with Erst die Sitzung beenden`() {
+    fun `the blocked Archivieren is greyed out with Erst die Session beenden`() {
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
                 VesselEditorScreen(
@@ -307,7 +307,7 @@ class TeawareScreensTest {
 
         compose.onNodeWithTag(VesselEditorTags.MORE).performClick()
 
-        compose.onNodeWithText("Erst die Sitzung beenden").assertIsDisplayed()
+        compose.onNodeWithText("Erst die Session beenden").assertIsDisplayed()
         compose.onNodeWithText("Archivieren").assertIsNotEnabled()
     }
 

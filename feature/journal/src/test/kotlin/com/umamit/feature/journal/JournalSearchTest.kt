@@ -166,12 +166,12 @@ class JournalSearchTest {
         show()
 
         compose.onNodeWithTag(JOURNAL_SEARCH_TAG).performTextInput("zzzz")
-        compose.onNodeWithText("Keine Sitzung passt zu deiner Suche.").assertIsDisplayed()
+        compose.onNodeWithText("Keine Session passt zu deiner Suche.").assertIsDisplayed()
         compose.onNodeWithText("Bio Sencha Hisui").assertDoesNotExist()
 
         compose.onNodeWithText("Filter zurücksetzen").performClick()
 
-        compose.onNodeWithText("Keine Sitzung passt zu deiner Suche.").assertDoesNotExist()
+        compose.onNodeWithText("Keine Session passt zu deiner Suche.").assertDoesNotExist()
         compose.onNodeWithText("Bio Sencha Hisui").assertIsDisplayed()
         compose.onNodeWithText("LÄUFT GERADE").assertIsDisplayed()
     }
@@ -340,7 +340,7 @@ class JournalSearchTest {
 
         compose.onNodeWithText("LÄUFT GERADE").assertIsDisplayed()
         compose.onNodeWithText("Sencha Tanabata").assertIsDisplayed()
-        compose.onNodeWithText("Keine Sitzung passt zu deiner Suche.").assertDoesNotExist()
+        compose.onNodeWithText("Keine Session passt zu deiner Suche.").assertDoesNotExist()
     }
 
     @Test
@@ -392,11 +392,11 @@ class JournalSearchTest {
         }
         compose.waitForIdle()
         compose.waitUntil(5_000) {
-            compose.onAllNodesWithText("Keine Sitzung passt zu deiner Suche.").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText("Keine Session passt zu deiner Suche.").fetchSemanticsNodes().isNotEmpty()
         }
 
         compose.onNodeWithContentDescription("Filter entfernen: Neuer Sencha").assertExists()
-        compose.onNodeWithText("Keine Sitzung passt zu deiner Suche.").assertIsDisplayed()
+        compose.onNodeWithText("Keine Session passt zu deiner Suche.").assertIsDisplayed()
     }
 
     @Test
@@ -407,6 +407,6 @@ class JournalSearchTest {
 
         compose.onNodeWithTag(JOURNAL_SEARCH_TAG).performTextInput("sencha")
 
-        compose.onNodeWithText("1 Sitzung").assertExists()
+        compose.onNodeWithText("1 Session").assertExists()
     }
 }

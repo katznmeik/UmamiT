@@ -56,8 +56,10 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TastingLimits
 import com.umamit.core.ui.InfusionTasteEditor
+import com.umamit.core.ui.TasteInfo
 import com.umamit.core.ui.TasteRadar
 import com.umamit.core.ui.TasteRadarShape
 import com.umamit.core.ui.radarValues
@@ -122,6 +124,7 @@ internal fun TasteSection(page: SessionPage, actions: SessionPageActions, modifi
     var selectedState by rememberSaveable(page.sessionId) { mutableIntStateOf(infusions.first().position) }
     val selected = selectedState.takeIf { it == ALL || shown.any { infusion -> infusion.position == it } }
         ?: shown.first().position
+    val set = page.tasteSet
     val withChips = opened || shown.any { it.hasData }
     val motion = UmamiTheme.motion
     Column(modifier = modifier.fillMaxWidth()) {
@@ -159,11 +162,12 @@ internal fun TasteSection(page: SessionPage, actions: SessionPageActions, modifi
                 ) { target ->
                     val infusion = shown.firstOrNull { it.position == target }
                     if (infusion == null) {
-                        AllTaste(TasteProfile.averages(shown.map { it.taste }))
+                        AllTaste(TasteProfile.averages(shown.map { it.taste }, set), set)
                     } else {
                         key(infusion.position) {
                             InfusionTaste(
                                 infusion = infusion,
+                                set = set,
                                 unfolded = unfolded,
                                 onToggle = { unfolded = !unfolded },
                                 onSet = { axis, value ->
@@ -189,9 +193,11 @@ internal fun TasteSection(page: SessionPage, actions: SessionPageActions, modifi
                                 onReset = {
                                     opened = true
                                     val position = infusion.position
-                                    pending = pending + (position to TasteProfile.EMPTY)
-                                    actions.clearTaste(position) {
-                                        if (pending[position] == TasteProfile.EMPTY) pending = pending - position
+                                    // Only the set's six: a value outside it stays stored (D-128 Q16).
+                                    val cleared = infusion.taste.without(set.axes)
+                                    pending = pending + (position to cleared)
+                                    actions.clearTaste(position, set.axes) {
+                                        if (pending[position] == cleared) pending = pending - position
                                     }
                                 },
                             )
@@ -328,12 +334,12 @@ private fun TasteChip(
 
 /** *Alle*: the radar averaged per axis over the session's infusions, or its summary line; no *Anpassen*. */
 @Composable
-private fun AllTaste(averages: Map<TasteAxis, Double>) {
+private fun AllTaste(averages: Map<TasteAxis, Double>, set: TasteSet) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin)) {
         if (TasteRadarShape.isDrawn(averages)) {
-            TasteRadar(averages)
+            TasteRadar(averages, set = set)
         } else {
-            SummaryLine(averages)
+            SummaryLine(averages, set)
         }
     }
 }
@@ -343,6 +349,7 @@ private fun AllTaste(averages: Map<TasteAxis, Double>) {
 @Suppress("LongParameterList") // the infusion, the fold and the editor's three answers
 private fun InfusionTaste(
     infusion: SessionInfusion,
+    set: TasteSet,
     unfolded: Boolean,
     onToggle: () -> Unit,
     onSet: (TasteAxis, Int) -> Unit,
@@ -350,7 +357,7 @@ private fun InfusionTaste(
     onReset: () -> Unit,
 ) {
     val motion = UmamiTheme.motion
-    val values = infusion.taste.radarValues()
+    val values = infusion.taste.radarValues(set)
     val drawn = TasteRadarShape.isDrawn(values)
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin)) {
         // The radar eases in with the third axis instead of pushing the sliders down in one frame (03 §3.6).
@@ -359,7 +366,7 @@ private fun InfusionTaste(
             enter = expandVertically(motion.sheet()) + fadeIn(motion.fade()),
             exit = shrinkVertically(motion.sheet()) + fadeOut(motion.exitFade()),
         ) {
-            TasteRadar(values)
+            TasteRadar(values, set = set)
         }
         AnimatedVisibility(
             visible = !unfolded,
@@ -367,7 +374,7 @@ private fun InfusionTaste(
             exit = shrinkVertically(motion.sheet()) + fadeOut(motion.exitFade()),
         ) {
             Column {
-                if (!drawn) SummaryLine(values)
+                if (!drawn) SummaryLine(values, set)
                 infusion.note?.let { note ->
                     Text(
                         text = note,
@@ -386,22 +393,27 @@ private fun InfusionTaste(
             enter = expandVertically(motion.sheet()) + fadeIn(motion.fade()),
             exit = shrinkVertically(motion.sheet()) + fadeOut(motion.exitFade()),
         ) {
-            InfusionTasteEditor(
-                taste = infusion.taste,
-                note = infusion.note,
-                onTasteChange = onSet,
-                onNoteSave = onNoteSave,
-                onReset = onReset,
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Folded again whenever the fold opens or a chip changes: it leaves the composition with either.
+                TasteInfo(set = set)
+                InfusionTasteEditor(
+                    taste = infusion.taste,
+                    note = infusion.note,
+                    onTasteChange = onSet,
+                    onNoteSave = onNoteSave,
+                    onReset = onReset,
+                    set = set,
+                )
+            }
         }
     }
 }
 
 /** „Umami 4 · Süße 3", or „Noch nichts eingetragen". */
 @Composable
-private fun SummaryLine(values: Map<TasteAxis, Double>) {
+private fun SummaryLine(values: Map<TasteAxis, Double>, set: TasteSet) {
     Text(
-        text = tasteSummary(values),
+        text = tasteSummary(values, set),
         style = MaterialTheme.typography.bodyLarge,
         color = if (values.isEmpty()) {
             MaterialTheme.colorScheme.onSurfaceVariant

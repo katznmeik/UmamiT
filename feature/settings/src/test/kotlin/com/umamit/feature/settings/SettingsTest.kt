@@ -31,6 +31,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.catalog.CatalogRefreshOutcome
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -155,11 +156,36 @@ class SettingsTest {
         compose.onNode(hasContentDescription("$hour ", substring = true) and hasClickAction()).performClick()
 
     @Test
+    fun `the refresh result shows until the settings are left, a running refresh stays shown (SET-23)`() {
+        show()
+        catalogRefresh.state.value = CatalogRefreshState.Running(CatalogRefreshProgress(1, 3, 0))
+        compose.waitForIdle()
+        catalogRefresh.state.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Cancelled)
+        compose.onNodeWithText("Laden abgebrochen").performScrollTo().assertIsDisplayed()
+
+        visible = false
+        compose.waitForIdle()
+        visible = true
+        compose.waitForIdle()
+        compose.onNodeWithTag(SettingsTags.CATALOG_REFRESH).assertDoesNotExist()
+
+        // Left while one runs: its progress, and then its result, are shown on the way back.
+        catalogRefresh.state.value = CatalogRefreshState.Running(CatalogRefreshProgress(1, 3, 0))
+        compose.waitForIdle()
+        visible = false
+        compose.waitForIdle()
+        visible = true
+        compose.onNodeWithText("Seiten: 1 von 3 · Produkte: 0").performScrollTo().assertIsDisplayed()
+        catalogRefresh.state.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Cancelled)
+        compose.onNodeWithText("Laden abgebrochen").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun `the switches persist vibration, the screen kept on and the dimming`() {
         show()
 
         clickRow("Vibration")
-        clickRow("Bildschirm beim Brühen anlassen")
+        clickRow("Bildschirm beim Aufguss anlassen")
         clickRow("Beim Ziehen abdunkeln")
         compose.waitForIdle()
 
@@ -277,7 +303,7 @@ class SettingsTest {
         show()
         val row = compose.onNode(hasText("Bestand abziehen") and isToggleable()).performScrollTo()
         row.assertIsOn()
-        compose.onNodeWithText("Zieht nach jeder Sitzung die Blätter vom Vorrat ab.").assertIsDisplayed()
+        compose.onNodeWithText("Zieht nach jeder Session die Blätter vom Vorrat ab.").assertIsDisplayed()
         // Above „Knapp ab" (D-100).
         val lowStockTop = compose.onNodeWithText("Knapp ab").performScrollTo().fetchSemanticsNode().boundsInRoot.top
         val switchTop = row.fetchSemanticsNode().boundsInRoot.top

@@ -11,8 +11,8 @@
     <string name="ui_stock_field">Noch da</string>
     <string name="ui_stock_unit">g</string>
     <string name="ui_stock_hint">0 g heißt: der Tee ist leer.</string>
-    <!-- D-096: a session of this tea is running; %1$s is its leaf in g („4,5"). It is deducted at Sitzung beenden. -->
-    <string name="ui_stock_session">Die laufende Sitzung zieht beim Beenden noch %1$s\u00A0g ab.</string>
+    <!-- D-096: a session of this tea is running; %1$s is its leaf in g („4,5"). It is deducted at Session beenden. -->
+    <string name="ui_stock_session">Die laufende Session zieht beim Beenden noch %1$s\u00A0g ab.</string>
     <string name="ui_stock_invalid">Gib eine Menge ab 0 g ein, z. B. 23,5</string>
     <string name="ui_stock_less">0,1 g weniger</string>
     <string name="ui_stock_more">0,1 g mehr</string>
@@ -124,12 +124,57 @@
     <string name="ui_taste_astringency">Adstringenz</string>
     <string name="ui_taste_body">Körper</string>
     <string name="ui_taste_aroma">Aroma</string>
+    <string name="ui_taste_roast">Röstung/Malz</string>
+    <string name="ui_taste_acidity">Säure</string>
+    <string name="ui_taste_freshness">Frische</string>
+    <string name="ui_taste_spice">Würze</string>
     <!-- The value of an untouched slider (unset is not 0). -->
     <string name="ui_taste_unset">–</string>
     <string name="ui_taste_not_set">nicht gesetzt</string>
     <string name="ui_taste_slider_value">%1$s von 5</string>
     <string name="ui_taste_radar_label">Geschmacksprofil: %1$s</string>
     <string name="ui_taste_radar_item">%1$s %2$s von 5</string>
+    <!-- TasteInfo (03 §3.8, 08 §4a, D-128 Q17–Q18): the foldable „Was bedeuten die Regler?". -->
+    <string name="ui_taste_info_title">Was bedeuten die Regler?</string>
+    <string name="ui_taste_info_folded">eingeklappt</string>
+    <string name="ui_taste_info_unfolded">ausgeklappt</string>
+    <string name="ui_taste_info_howto">0 = nicht wahrnehmbar, 5 = sehr stark. Bewerte, was du schmeckst – wie gut es dir gefällt, sagen die Sterne. Unberührte Regler zählen nicht mit.</string>
+    <string name="ui_taste_info_scale">0 = %1$s · 5 = %2$s</string>
+    <string name="ui_taste_info_spoken">%1$s. %2$s 0 bedeutet %3$s, 5 bedeutet %4$s.</string>
+    <string name="ui_taste_info_umami_line">Herzhafte, brühige Fülle – wie Dashi oder Nori.</string>
+    <string name="ui_taste_info_umami_zero">keine</string>
+    <string name="ui_taste_info_umami_five">dicht wie Brühe</string>
+    <string name="ui_taste_info_sweetness_line">Weiche, natürliche Süße, oft im Nachklang.</string>
+    <string name="ui_taste_info_sweetness_zero">keine</string>
+    <string name="ui_taste_info_sweetness_five">deutlich süß</string>
+    <string name="ui_taste_info_bitterness_line">Herb, hinten auf der Zunge.</string>
+    <string name="ui_taste_info_bitterness_zero">keine</string>
+    <string name="ui_taste_info_bitterness_five">kräftig herb</string>
+    <string name="ui_taste_info_astringency_line">Trockenes, zusammenziehendes Mundgefühl.</string>
+    <string name="ui_taste_info_astringency_zero">weich, rund</string>
+    <string name="ui_taste_info_astringency_five">pelzig, rau</string>
+    <string name="ui_taste_info_body_line">Wie voll sich der Tee anfühlt.</string>
+    <string name="ui_taste_info_body_zero">wässrig</string>
+    <string name="ui_taste_info_body_five">sämig, ölig</string>
+    <string name="ui_taste_info_aroma_line">Wie stark der Duft ist, in der Tasse und danach.</string>
+    <string name="ui_taste_info_aroma_zero">kaum Duft</string>
+    <string name="ui_taste_info_aroma_five">duftet lange nach</string>
+    <string name="ui_taste_info_roast_line">Geröstete, malzige Tiefe – wie Brotkruste oder Kakao.</string>
+    <string name="ui_taste_info_roast_zero">keine</string>
+    <string name="ui_taste_info_roast_five">kräftig geröstet</string>
+    <string name="ui_taste_info_acidity_line">Frische Säure – wie Hibiskus oder Zitrone.</string>
+    <string name="ui_taste_info_acidity_zero">keine</string>
+    <string name="ui_taste_info_acidity_five">spritzig sauer</string>
+    <string name="ui_taste_info_freshness_line">Kühlend, minzig, zitronig.</string>
+    <string name="ui_taste_info_freshness_zero">keine</string>
+    <string name="ui_taste_info_freshness_five">stark kühlend</string>
+    <string name="ui_taste_info_spice_line">Warm und würzig – wie Ingwer, Zimt, Fenchel.</string>
+    <string name="ui_taste_info_spice_zero">keine</string>
+    <string name="ui_taste_info_spice_five">scharf, wärmend</string>
+    <!-- The taste sets' names (08 §4a): the tea editor's Geschmacksprofil and its supporting line. -->
+    <string name="ui_taste_set_green">Grüntee</string>
+    <string name="ui_taste_set_oxidised">Schwarz · Oolong · Pu-Erh</string>
+    <string name="ui_taste_set_herbal">Kräuter · Rotbusch · Früchte</string>
     <!-- The summary line under three set axes (SCR-16 v0.6.1, D-114): „Umami 4 · Süße 3"; nothing set. -->
     <string name="ui_taste_summary_item">%1$s %2$s</string>
     <string name="ui_taste_summary_separator">" · "</string>
@@ -147,4 +192,6 @@
     <string name="ui_photo_enlarge">Foto vergrößern</string>
     <string name="ui_photo_viewer_counter">%1$d / %2$d</string>
     <string name="ui_photo_viewer_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d</string>
+    <!-- The refresh's result when the user cancelled it (CAT-07): SCR-22's title and SCR-25's result line. -->
+    <string name="ui_catalog_refresh_cancelled">Laden abgebrochen</string>
 </resources>

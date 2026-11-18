@@ -20,10 +20,10 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.reliability.startFirstIntent
 
 /**
- * Start (SCR-02) with its view model. *Nochmal brühen* opens the timer once
+ * Start (SCR-02) with its view model. *Nochmal aufgießen* opens the timer once
  * the session waits in READY ([onOpenTimer]); the other taps go to the host
- * through [actions], whose *Nochmal brühen* and question callbacks the route
- * replaces with the view model's. From an accepted *Nochmal brühen* until Start leaves the screen it holds
+ * through [actions], whose *Nochmal aufgießen* and question callbacks the route
+ * replaces with the view model's. From an accepted *Nochmal aufgießen* until Start leaves the screen it holds
  * still ([HomeViewModel.handOff], D-111).
  */
 @Composable

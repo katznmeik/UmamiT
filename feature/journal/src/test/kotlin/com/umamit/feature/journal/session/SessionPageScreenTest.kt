@@ -171,7 +171,7 @@ class SessionPageScreenTest {
             "Aufguss 1: geplant\u00A01 Minute 15 Sekunden, tatsächlich\u00A01 Minute 35 Sekunden, 65 °C",
         ).assertExists()
         // Kept from v0.4.0 without a measured time (Q-19).
-        stepRow("Aufguss 2: geplant\u00A030 Sekunden, nicht gebrüht, 75 °C").assertExists()
+        stepRow("Aufguss 2: geplant\u00A030 Sekunden, nicht aufgegossen, 75 °C").assertExists()
     }
 
     @Test
@@ -208,17 +208,17 @@ class SessionPageScreenTest {
         compose.onNodeWithText("Sencha Morgentau").assertExists()
         compose.onNodeWithTag(SESSION_TEA_TAG).assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
         compose.onNodeWithTag(SESSION_BREW_AGAIN_TAG).assertDoesNotExist()
-        stepRow("Aufguss 2: geplant\u00A030 Sekunden, nicht gebrüht, 75 °C").assertExists()
+        stepRow("Aufguss 2: geplant\u00A030 Sekunden, nicht aufgegossen, 75 °C").assertExists()
     }
 
-    /** ⋮ *Löschen* asks „Sitzung löschen?" first; confirmed, the session is gone and the host is told (D-102). */
+    /** ⋮ *Löschen* asks „Session löschen?" first; confirmed, the session is gone and the host is told (D-102). */
     @Test
     fun `Loeschen asks first, then removes the session and tells the host`() {
         show()
 
         compose.onNodeWithTag(SESSION_MENU_TAG).performClick()
         compose.onNodeWithText("Löschen").performClick()
-        compose.onNodeWithText("Sitzung löschen?").assertExists()
+        compose.onNodeWithText("Session löschen?").assertExists()
         compose.onNodeWithText("Abbrechen").performClick()
         compose.waitForIdle()
         assertThat(runBlocking { sessions.sessions.getSession(PAST) }).isNotNull()
@@ -226,7 +226,7 @@ class SessionPageScreenTest {
 
         compose.onNodeWithTag(SESSION_MENU_TAG).performClick()
         compose.onNodeWithText("Löschen").performClick()
-        compose.onNodeWithText("Sitzung löschen?").assertExists()
+        compose.onNodeWithText("Session löschen?").assertExists()
         compose.onNodeWithText("Löschen").performClick()
         compose.waitForIdle()
 
@@ -324,7 +324,7 @@ class SessionPageScreenTest {
         runBlocking { sessions.sessions.discardSession(PAST) }
         show()
 
-        compose.onNodeWithText("Diese Sitzung ist nicht mehr da").assertExists()
+        compose.onNodeWithText("Diese Session ist nicht mehr da").assertExists()
     }
 
     @Test

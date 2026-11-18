@@ -268,12 +268,12 @@ class TeaPickerSheetTest {
     }
 
     @Test
-    fun `the tea of the active session is greyed out with Erst die Sitzung beenden (E15)`() {
+    fun `the tea of the active session is greyed out with Erst die Session beenden (E15)`() {
         showRemovable(TeaPickerUiState(all = listOf(hisui, tanabata.copy(removable = false)), loading = false))
 
         compose.onNodeWithText("Bio Sencha Tanabata").performTouchInput { longClick() }
 
-        compose.onNodeWithText("Erst die Sitzung beenden", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("Erst die Session beenden", useUnmergedTree = true).assertIsDisplayed()
         compose.onNode(hasClickAction() and hasText("Archivieren")).assertIsNotEnabled().performClick()
         assertThat(removedTeas).isEmpty()
     }

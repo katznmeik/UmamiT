@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Start holds still while *Nochmal brühen* opens the timer (SCR-02, D-111): from just before an accepted start until
+ * Start holds still while *Nochmal aufgießen* opens the timer (SCR-02, D-111): from just before an accepted start until
  * Start has left the screen, Start keeps its card and *Aufguss starten* from before the tap, and the shell's active
  * brew bar does not grow in. Presentation only: the start, the timer, an alert and the question are never delayed
  * (rule 8). A start that is not accepted releases it at once, a new alert too, and it ends by itself after about a

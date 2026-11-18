@@ -54,7 +54,7 @@ const val STOCK_SHEET_SESSION_TAG = "stock_sheet_session"
  * and the host closes the sheet in that frame; *Abbrechen*, back, the scrim or a drag close it without
  * saving ([onDismissRequest]). With [hideOnClose], [onSave] only saves: *Speichern* and *Abbrechen* slide the
  * sheet out with Material's hide, as a drag does, and then call [onDismissRequest] (A-13, NFR-PERF-12). While a
- * session of this tea runs, [sessionLeafGrams] is the leaf it still deducts at *Sitzung beenden*, and a line says
+ * session of this tea runs, [sessionLeafGrams] is the leaf it still deducts at *Session beenden*, and a line says
  * so (D-096); the total typed is stored as it is.
  *
  * Shared in `core:ui` (D-100) so the setup and the tea detail open the same sheet. Like every sheet it never

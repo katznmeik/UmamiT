@@ -318,7 +318,7 @@ class MyTeasScreenTest {
         compose.onNode(hasContentDescription("Favorit"), useUnmergedTree = true).assertExists()
         compose.onNode(hasContentDescription("38 g übrig"), useUnmergedTree = true).assertExists()
         compose.onNode(hasContentDescription("Knapp, 8 g übrig"), useUnmergedTree = true).assertExists()
-        compose.onNodeWithContentDescription("Sortierung: Zuletzt gebrüht").assertExists()
+        compose.onNodeWithContentDescription("Sortierung: Zuletzt aufgegossen").assertExists()
         compose.onNodeWithText("Favoriten").performClick()
         compose.onNodeWithText("Favoriten").assertIsSelected()
     }

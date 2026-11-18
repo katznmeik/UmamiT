@@ -87,7 +87,7 @@ fun statsSectionTag(key: String): String = "stats_section_$key"
 
 /**
  * One section of a tab (SCR-18, INS-08): its overline [title] as a heading row with a turning chevron. A tap folds
- * the section to that one line, which then also reads [summary] (the key number: „SITZUNGEN · 42"; nothing when
+ * the section to that one line, which then also reads [summary] (the key number: „SESSIONS · 42"; nothing when
  * null). [key] names the section in `statsFolded`. With [isEmpty] (nothing in the range) the body reads „In diesem
  * Zeitraum nichts" quietly instead (D-115 Q15). The body expands and collapses in ≈ 200 ms, at once under reduce
  * motion; TalkBack hears „eingeklappt" or „ausgeklappt" with the action.

@@ -3,6 +3,7 @@ package com.umamit.feature.collection.editor
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -24,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -180,6 +182,8 @@ internal fun <T> ChoiceField(
     alertKey: String?,
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
+    helper: String? = null,
+    optionSupporting: @Composable (T) -> String? = { null },
 ) {
     val menu = rememberAlertGate(alertKey)
     ExposedDropdownMenuBox(expanded = menu.shown, onExpandedChange = menu::expand, modifier = modifier) {
@@ -188,6 +192,7 @@ internal fun <T> ChoiceField(
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
+            supportingText = helper?.let { { Text(it) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menu.shown) },
             singleLine = singleLine,
             modifier = Modifier
@@ -196,8 +201,20 @@ internal fun <T> ChoiceField(
         )
         AlertGatedExposedDropdownMenu(menu) {
             options.forEach { option ->
+                val supporting = optionSupporting(option)
                 DropdownMenuItem(
-                    text = { Text(optionLabel(option)) },
+                    text = {
+                        Column {
+                            Text(optionLabel(option))
+                            if (supporting != null) {
+                                Text(
+                                    text = supporting,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    },
                     onClick = {
                         menu.close()
                         onSelect(option)

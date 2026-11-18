@@ -23,12 +23,14 @@
     <string name="brew_picker_tea_menu">Optionen</string>
     <string name="brew_picker_remove">Archivieren</string>
     <!-- E15: the tea of the active brew session can't be archived. -->
-    <string name="brew_picker_remove_blocked">Erst die Sitzung beenden</string>
+    <string name="brew_picker_remove_blocked">Erst die Session beenden</string>
     <string name="brew_picker_removed">%1$s archiviert</string>
     <string name="brew_picker_undo">Rückgängig</string>
 
     <!-- Brew setup (SCR-04) -->
-    <string name="brew_setup_title">Brühen</string>
+    <string name="brew_setup_title">Neue Session</string>
+    <!-- SCR-04 opened from a running timer's ⋮ (the route carries the active session's id, D-128). -->
+    <string name="brew_setup_title_adjust">Session anpassen</string>
     <!-- The top bar's ⋮ (TalkBack) and its items: the tea's detail for every tea (SCR-04, D-100), the catalog
          page for a tea with a catalog entry (D-098). -->
     <string name="brew_setup_more">Weitere Optionen</string>
@@ -46,7 +48,7 @@
     <string name="brew_setup_stock_empty">Leer</string>
     <!-- TalkBack: „doppeltippen zum Bestand korrigieren" on „38,0 g übrig" (BRW-02, INV-03). -->
     <string name="brew_setup_stock_correct">Bestand korrigieren</string>
-    <!-- So nochmal brühen of a session whose recipe is gone (BRW-06, D-100): the first recipe chip. -->
+    <!-- So nochmal aufgießen of a session whose recipe is gone (BRW-06, D-100): the first recipe chip. -->
     <string name="brew_setup_without_recipe">Ohne Rezept</string>
     <string name="brew_setup_vessel">Gefäß</string>
     <string name="brew_setup_vessel_none">Kein Gefäß</string>
@@ -83,7 +85,7 @@
     <string name="brew_setup_pre_alert_spoken_separator">",\u0020"</string>
     <string name="brew_setup_save_to_recipe">Im Rezept speichern</string>
     <string name="brew_setup_saved_to_recipe">Im Rezept gespeichert</string>
-    <string name="brew_setup_start">Brühen starten</string>
+    <string name="brew_setup_start">Session starten</string>
     <string name="brew_setup_not_found_title">Dieser Tee ist nicht mehr da</string>
     <string name="brew_setup_not_found_body">Wähl einen anderen Tee aus deiner Sammlung.</string>
 </resources>

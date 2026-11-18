@@ -14,7 +14,7 @@ import kotlinx.coroutines.runBlocking
 /**
  * Stands in for the BrewSessionController at its two seams the journal sees: the
  * session repository's data effects and the saved sheet port, in the order the
- * controller runs them for *Sitzung beenden* (CreateSession, RecordStep …,
+ * controller runs them for *Session beenden* (CreateSession, RecordStep …,
  * CompleteSession, ShowSavedSheet; 04 §4, D-047).
  */
 class FakeBrewController(
@@ -54,7 +54,7 @@ class FakeBrewController(
         )
     }
 
-    /** *Sitzung beenden*: the session is completed, then the sheet is due. */
+    /** *Session beenden*: the session is completed, then the sheet is due. */
     fun finish(id: String) = runBlocking {
         sessions.completeSession(id, autoFinished = false)
         savedSheet.showSavedSheet(id)

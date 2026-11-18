@@ -195,7 +195,7 @@ class AccuracyRunTest {
     }
 
     /**
-     * One session of [count] steps, started in the foreground and ended with *Sitzung beenden*; in the variant
+     * One session of [count] steps, started in the foreground and ended with *Session beenden*; in the variant
      * `alongside` each step with its quick timer, the first one replacing the quick timer an earlier session left
      * running.
      */
@@ -242,12 +242,12 @@ class AccuracyRunTest {
         }
         if (alongside) {
             tap(brewNotificationWith(finishSession, "FINISHED after the last step"), finishSession)
-            eventually("the session ended after Sitzung beenden", TIMEOUT) {
+            eventually("the session ended after Session beenden", TIMEOUT) {
                 Unit.takeIf { brewNotification() == null }
             }
         } else {
             tap(liveUpdateWith(finishSession, "FINISHED after the last step"), finishSession)
-            eventually("the session ended after Sitzung beenden", TIMEOUT) {
+            eventually("the session ended after Session beenden", TIMEOUT) {
                 Unit.takeIf { activeNotification(TimerNotifications.ID_LIVE_UPDATE) == null }
             }
         }
@@ -335,7 +335,7 @@ class AccuracyRunTest {
      * One session pair of the variant `two-brews` (D-108): two brew sessions of [count] steps, the first ([TEA], slot
      * `BREW`) of [STEP] and the second ([SECOND_TEA], slot `BREW_2`) of [SECOND_STEP], started together in the
      * foreground; every next step pair started with *Start* on the first's notification, then the second's; both
-     * ended with *Sitzung beenden*.
+     * ended with *Session beenden*.
      */
     private fun runTwoBrewsSession(
         count: Int,
@@ -367,7 +367,7 @@ class AccuracyRunTest {
         }
         listOf(TEA, SECOND_TEA).forEach { tea ->
             tap(brewNotificationWith(finishSession, "$tea FINISHED after the last step", tea), finishSession)
-            eventually("$tea's session ended after Sitzung beenden", TIMEOUT) {
+            eventually("$tea's session ended after Session beenden", TIMEOUT) {
                 Unit.takeIf { brewNotification(tea) == null }
             }
         }

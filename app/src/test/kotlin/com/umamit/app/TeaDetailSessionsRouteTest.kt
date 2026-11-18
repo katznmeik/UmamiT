@@ -60,7 +60,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /**
- * The tea detail's LETZTE SITZUNGEN as routes of the root (TEA-13, SCR-09, SCR-15, SCR-16, D-112, #232): a row opens
+ * The tea detail's LETZTE SESSIONS as routes of the root (TEA-13, SCR-09, SCR-15, SCR-16, D-112, #232): a row opens
  * the session's page in the Sammlung stack, back returns to the detail; *Alle anzeigen* switches to the Journal tab
  * at its root, filtered to the tea, and does so again for the same tea after the chip was cleared; the stack of
  * Sammlung is left as it was. The real root, detail, session page and journal on fakes; an invented tea (D-016).
@@ -191,7 +191,7 @@ class TeaDetailSessionsRouteTest {
 
     private fun showAll() {
         // By its action: scrolled to the viewport's lower edge, the pencil FAB covers the button's centre.
-        compose.onNodeWithContentDescription("Alle anzeigen: Letzte Sitzungen").performScrollTo()
+        compose.onNodeWithContentDescription("Alle anzeigen: Letzte Sessions").performScrollTo()
             .performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
         // The Journal builds its list off the main thread; its filter chip shows once the list is there.

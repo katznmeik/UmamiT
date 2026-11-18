@@ -1,6 +1,6 @@
 # 08 · Content & Catalog Import
 
-> Status: **Draft v0.2** · Last updated: 2026-11-11 (descriptor keys, §4, D-112; 2026-10-31: the rows of the other categories ship with v0.4.0's *Sorte wählen*, D-100; 2026-10-29: a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-11-17 (taste sets and the slider info, §4a, D-128; 2026-11-11: descriptor keys, §4, D-112; 2026-10-31: the rows of the other categories ship with v0.4.0's *Sorte wählen*, D-100; 2026-10-29: a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
 > v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
@@ -796,6 +796,53 @@ table's order. The group names read as in the table's first column
 („Meer", „Gemüse", „Süß", „Geröstet & nussig", „Blumig", „Fruchtig", „Erdig
 & holzig", „Würzig & kräutrig", „Mundgefühl", „Fehlnoten"). There are no
 custom descriptors (an idea kept for later).
+
+## 4a. Taste sets and the slider info
+
+v0.8.0 ([D-128](10-open-questions-and-decisions.md#d-128); JRN-03). Until v0.7.2 every tea had the same six sliders.
+
+### Sets
+
+Always six sliders, in this order (it is the radar's order, clockwise from
+the top):
+
+| `TasteSet` | Name in the app | Kategorien | Sliders |
+|---|---|---|---|
+| `GREEN` | Grüntee | Grün, Weiß, Gelb, Sonstige | Umami · Süße · Bitterkeit · Adstringenz · Körper · Aroma |
+| `OXIDISED` | Schwarz · Oolong · Pu-Erh | Oolong, Schwarz, Pu-Erh | Röstung/Malz · Süße · Bitterkeit · Adstringenz · Körper · Aroma |
+| `HERBAL` | Kräuter · Rotbusch · Früchte | Kräuter, Rotbusch, Früchte | Süße · Säure · Frische · Würze · Bitterkeit · Körper |
+
+The sets and their sliders are the PO's (D-128 Q12–Q14); *Sonstige* in the
+Grüntee set and the names in the app are Claude's. Smells (blumig,
+fruchtig, …) are not sliders: they are descriptors (§4).
+
+### The info „Was bedeuten die Regler?"
+
+The how-to, shown first (the PO's, D-128 Q17):
+
+> 0 = nicht wahrnehmbar, 5 = sehr stark. Bewerte, was du schmeckst – wie
+> gut es dir gefällt, sagen die Sterne. Unberührte Regler zählen nicht mit.
+
+Then one entry per slider of the set shown, in the set's order: one line
+and what 0 and 5 mean (the form is the PO's, D-128 Q18). The PO saw the
+entries marked „PO"; the others are Claude's drafts for the PO to change.
+
+| Slider | Line | 0 = … · 5 = … | |
+|---|---|---|---|
+| Umami | Herzhafte, brühige Fülle – wie Dashi oder Nori. | 0 = keine · 5 = dicht wie Brühe | PO |
+| Süße | Weiche, natürliche Süße, oft im Nachklang. | 0 = keine · 5 = deutlich süß | Claude |
+| Bitterkeit | Herb, hinten auf der Zunge. | 0 = keine · 5 = kräftig herb | Claude |
+| Adstringenz | Trockenes, zusammenziehendes Mundgefühl. | 0 = weich, rund · 5 = pelzig, rau | PO |
+| Körper | Wie voll sich der Tee anfühlt. | 0 = wässrig · 5 = sämig, ölig | PO |
+| Aroma | Wie stark der Duft ist, in der Tasse und danach. | 0 = kaum Duft · 5 = duftet lange nach | Claude |
+| Röstung/Malz | Geröstete, malzige Tiefe – wie Brotkruste oder Kakao. | 0 = keine · 5 = kräftig geröstet | Claude |
+| Säure | Frische Säure – wie Hibiskus oder Zitrone. | 0 = keine · 5 = spritzig sauer | Claude |
+| Frische | Kühlend, minzig, zitronig. | 0 = keine · 5 = stark kühlend | Claude |
+| Würze | Warm und würzig – wie Ingwer, Zimt, Fenchel. | 0 = keine · 5 = scharf, wärmend | Claude |
+
+Every string is in `strings.xml` (`core:ui`). TalkBack reads an entry as
+„Umami. Herzhafte, brühige Fülle – wie Dashi oder Nori. 0 bedeutet keine, 5
+bedeutet dicht wie Brühe."
 
 ## 5. (Removed) Sample teas
 

@@ -310,7 +310,7 @@ class RecipeEditorScreenTest {
     }
 
     @Test
-    fun `the recipe of the running brew stays - Erst die Sitzung beenden (E15, D-101)`() {
+    fun `the recipe of the running brew stays - Erst die Session beenden (E15, D-101)`() {
         runBlocking {
             FakeSessions(collection).startActiveBrew(
                 SessionSnapshot(
@@ -334,7 +334,7 @@ class RecipeEditorScreenTest {
         show()
         compose.onNodeWithTag(RecipeEditorTags.MORE).performClick()
         compose.onNodeWithText("Rezept löschen").assertIsNotEnabled()
-        compose.onNodeWithText("Erst die Sitzung beenden").assertIsDisplayed()
+        compose.onNodeWithText("Erst die Session beenden").assertIsDisplayed()
         assertThat(deleted).isEqualTo(0)
     }
 

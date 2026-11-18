@@ -14,7 +14,7 @@ data class TimerScreenSettings(val keepScreenOn: Boolean = true, val dimWhileSte
 
 /** The overflow ⋮ items of the timer screen, in menu order (03 SCR-05). */
 enum class TimerMenuItem {
-    /** *Brühen anpassen*: back to the setup, only before the first step started. */
+    /** *Session anpassen*: back to the setup, only before the first step started. */
     AdjustBrew,
 
     /** *Aufguss jetzt beenden* (TMR-05). */
@@ -29,10 +29,10 @@ enum class TimerMenuItem {
     /** *Weiterer Aufguss* (TMR-10), then the Schritte-Sheet. */
     AddStep,
 
-    /** *Sitzung beenden* (TMR-12). */
+    /** *Session beenden* (TMR-12). */
     FinishSession,
 
-    /** *Sitzung verwerfen* (TMR-13). */
+    /** *Session verwerfen* (TMR-13). */
     DiscardSession,
 
     /** *Abbrechen*: ends the quick timer, nothing recorded (SCR-07, 04 §10). */

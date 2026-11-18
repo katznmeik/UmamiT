@@ -12,6 +12,7 @@ import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UmamiLevel
@@ -78,6 +79,8 @@ data class TeaEntity(
     @ColumnInfo(name = "cover_photo_id") val coverPhotoId: String?,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    /** The *Geschmacksprofil* (schema v9, TEA-02, D-128), by name; null = from [category]. The table's last column. */
+    @ColumnInfo(name = "taste_set") val tasteSet: TasteSet? = null,
 )
 
 /** Table `brew_profile`, a recipe (05 §3.2). */

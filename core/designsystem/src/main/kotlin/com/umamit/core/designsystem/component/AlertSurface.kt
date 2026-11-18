@@ -39,6 +39,9 @@ import kotlinx.coroutines.withContext
  * ink without liquor and `PillButton` becomes an ink pill with washi text, so
  * every element keeps ≥ 4.5:1 (text) and ≥ 3:1 (controls) in both pulse phases.
  *
+ * In the light timer ([com.umamit.core.designsystem.theme.TimerTheme]) the strong phase is sage instead of matcha
+ * (`LightTimerAlertColors`, D-128 item 36): the same timing, first frame and reduce-motion rule, washi ↔ sage.
+ *
  * Compose it only while ALERTING; it starts pulsing at full matcha when it enters
  * the composition and again each time the app returns to the foreground.
  */

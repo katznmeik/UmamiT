@@ -3,11 +3,14 @@ package com.umamit.feature.brew.timer
 import android.content.Context
 import android.os.Looper
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -21,10 +24,13 @@ import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
+import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
@@ -41,12 +47,15 @@ import com.umamit.core.testing.FakeTimerService
 import com.umamit.core.testing.FakeTimerWakeUp
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.BrewStart
+import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerPorts
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.send
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.ui.tasteSliderTag
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Rule
@@ -77,16 +86,26 @@ class TimerTasteFlowTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val clock = FakeClock()
     private val settings = FakeSettingsRepository(UserSettings(preAlertSeconds = 10))
-    private val db = Room.inMemoryDatabaseBuilder(context, UmamiDatabase::class.java).allowMainThreadQueries().build()
+
+    // On disk, so a test can open it again as a new process would (JRN-03 AC5).
+    private val db = openDb()
     private val wakeUp = FakeTimerWakeUp(clock)
     private val alert = FakeTimerAlertPlayer()
     private val alarms = FakeTimerAlarms()
     private val sessions = RoomSessionRepository(db, settings, clock)
-    private val controller = BrewSessionController(
+    private val controller = controllerOn(db, alarms, alert, wakeUp)
+
+    /** The real controller on [database], fakes at its ports. */
+    private fun controllerOn(
+        database: UmamiDatabase,
+        alarms: FakeTimerAlarms = FakeTimerAlarms(),
+        alert: FakeTimerAlertPlayer = FakeTimerAlertPlayer(),
+        wakeUp: FakeTimerWakeUp = FakeTimerWakeUp(clock),
+    ) = BrewSessionController(
         clocks = TimerClocks(clock, clock),
-        sessions = sessions,
-        activeBrew = RoomActiveBrewStore(db, clock),
-        transactions = RoomDatabaseTransactions(db),
+        sessions = RoomSessionRepository(database, settings, clock),
+        activeBrew = RoomActiveBrewStore(database, clock),
+        transactions = RoomDatabaseTransactions(database),
         settings = settings,
         ports = TimerPorts(
             alarms = alarms,
@@ -115,8 +134,14 @@ class TimerTasteFlowTest {
         )
     }
 
+    private fun openDb(): UmamiDatabase =
+        Room.databaseBuilder(context, UmamiDatabase::class.java, DB_NAME).allowMainThreadQueries().build()
+
     @After
-    fun tearDown() = db.close()
+    fun tearDown() {
+        db.close()
+        context.deleteDatabase(DB_NAME)
+    }
 
     /** What the timer holds: the UI state, the stored timer row, the armed due times and the step rows from [from]. */
     private fun timerSnapshot(sessionId: String, from: Int) = runBlocking {
@@ -145,9 +170,9 @@ class TimerTasteFlowTest {
     private fun active() = controller.state.value as TimerUiState.Active
 
     /** A session of 1:00, 0:20 and 0:40 whose 1st infusion is poured: the 2nd waits in READY. */
-    private fun pouredFirst(): String {
+    private fun pouredFirst(snapshot: SessionSnapshot = SNAPSHOT): String {
         runBlocking {
-            controller.startSession(BrewStart(SNAPSHOT, STEPS, recipePreAlertSeconds = null))
+            controller.startSession(BrewStart(snapshot, STEPS, recipePreAlertSeconds = null))
             controller.send(TimerEvent.Start)
             wakeUp.advanceBy(60_000)
             controller.send(TimerEvent.Poured)
@@ -224,7 +249,7 @@ class TimerTasteFlowTest {
         compose.onNodeWithTag(TIMER_TASTE_BUTTON_TAG).performClick()
         idle()
         viewModel.tasteWrites.setTaste(id, 0, TasteAxis.BODY, 3)
-        viewModel.tasteWrites.clearTaste(id, 0)
+        viewModel.tasteWrites.clearTaste(id, 0, TasteSet.GREEN.axes)
         viewModel.tasteWrites.setTaste(id, 0, TasteAxis.AROMA, 4)
         awaitStored(id, 0, TasteProfile(aroma = 4), "Süß")
         assertThat(timerSnapshot(id, from = 1)).isEqualTo(running)
@@ -269,7 +294,48 @@ class TimerTasteFlowTest {
         assertThat(recorded(id, 1)).isEqualTo(UNTASTED_SECOND)
     }
 
+    /**
+     * JRN-03 AC5 (D-128): a black tea's sheet offers Röstung/Malz first and no Umami; the value set on its slider
+     * survives the app killed right after (the database opened again, the timer recovered by a new controller) and
+     * is on the session page once that recovered session ended.
+     */
+    @Test
+    fun `a black tea's sheet writes Roestung, on the session page after a kill and the session's end`() {
+        val id = pouredFirst(SNAPSHOT.copy(teaType = "Assam", category = TeaCategory.BLACK))
+        showRoute()
+        compose.onNodeWithTag(TIMER_TASTE_BUTTON_TAG).performClick()
+        idle()
+
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.UMAMI)).assertDoesNotExist()
+        val sliders = TasteSet.OXIDISED.axes.map {
+            compose.onNodeWithTag(tasteSliderTag(it)).fetchSemanticsNode().boundsInRoot.top
+        }
+        assertThat(sliders).isInOrder()
+        compose.onNodeWithTag(tasteSliderTag(TasteAxis.ROAST)).performScrollTo()
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(4f) }
+        awaitStored(id, 0, TasteProfile(roast = 4), note = null)
+
+        // Killed with the sheet open: a new process opens the database again and recovers the waiting session.
+        db.close()
+        val reopened = openDb()
+        try {
+            val recovered = controllerOn(reopened)
+            runBlocking { recovered.recover(RecoveryTrigger.APP_START) }
+            assertThat((recovered.state.value as TimerUiState.Active).sessionId).isEqualTo(id)
+            runBlocking { recovered.send(TimerEvent.FinishSession) }
+
+            // Read as the session page reads it.
+            val page = runBlocking { checkNotNull(RoomJournalRepository(reopened, photos).observeSession(id).first()) }
+            assertThat(page.session.status).isEqualTo(SessionStatus.COMPLETED)
+            assertThat(page.session.tasteSet).isEqualTo(TasteSet.OXIDISED)
+            assertThat(page.session.stepTastings[0]?.taste).isEqualTo(TasteProfile(roast = 4))
+        } finally {
+            reopened.close()
+        }
+    }
+
     private companion object {
+        const val DB_NAME = "timer-taste-flow.db"
         const val TIMEOUT_MS = 5_000L
         const val POLL_MS = 10L
 

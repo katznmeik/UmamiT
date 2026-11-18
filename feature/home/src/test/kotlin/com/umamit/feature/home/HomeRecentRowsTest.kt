@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The rows of *Zuletzt gebrüht* brew their tea again, and TalkBack names the tap so (BRW-11, SCR-02, D-110). */
+/** The rows of *Zuletzt aufgegossen* brew their tea again, and TalkBack names the tap so (BRW-11, SCR-02, D-110). */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
 class HomeRecentRowsTest {
@@ -47,8 +47,8 @@ class HomeRecentRowsTest {
         compose.onNodeWithTag(homeRecentTag("b")).performClick()
 
         assertThat(brewed).containsExactly("b")
-        val labelled = SemanticsMatcher("a click action labelled Nochmal brühen") { node ->
-            node.config.getOrNull(SemanticsActions.OnClick)?.label == "Nochmal brühen"
+        val labelled = SemanticsMatcher("a click action labelled Nochmal aufgießen") { node ->
+            node.config.getOrNull(SemanticsActions.OnClick)?.label == "Nochmal aufgießen"
         }
         compose.onNodeWithTag(homeRecentTag("a")).onChildAt(0).assert(labelled)
     }

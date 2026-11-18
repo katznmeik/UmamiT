@@ -20,6 +20,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.designsystem.theme.SteepingColorScheme
+import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.designsystem.theme.WashiColorScheme
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.lastRinging
@@ -29,7 +31,7 @@ import com.umamit.core.ui.rememberPhotoPainter
 
 /**
  * The timer route (SCR-05; SCR-07 once the quick timer runs). Back keeps the timer running (03 §2.3); the
- * route closes itself ([onClose]) once its timer is no longer active, e.g. after *Sitzung beenden*, *Sitzung
+ * route closes itself ([onClose]) once its timer is no longer active, e.g. after *Session beenden*, *Session
  * verwerfen* or *Fertig*; not before the controller has recovered the timer of a new process (D-068).
  *
  * **Two timers (D-098).** A route shows one timer: [slot]'s, or, opened for none, the one in front of the
@@ -39,7 +41,7 @@ import com.umamit.core.ui.rememberPhotoPainter
  * below the band: a tap on it asks for the other timer's route ([onShowOther]), its button acts on that timer
  * only. When the route's timer ends, it closes, unless the other timer's alert rings: it shows that until *Fertig*.
  *
- * @param onAdjustBrew *Brühen anpassen*: the setup (SCR-04) of the waiting session, by its id (BRW-11).
+ * @param onAdjustBrew *Session anpassen*: the setup (SCR-04) of the waiting session, by its id (BRW-11).
  * @param slot the timer this route shows; null: the one in front when it opened.
  * @param onPin opened for none, the timer it then keeps showing, once known (the navigation reads it when a
  *   notification asks for a timer, 04 §8.2).
@@ -76,9 +78,11 @@ fun BrewTimerRoute(
     // fades the timer out instead of an empty frame (A-15). Not saved: a restored route has none.
     var last by remember { mutableStateOf<TimerUiState.Active?>(null) }
     val closing = view.shown == null
-    // Under everything, the Steeping background: before recovery and while closing the route is never the light
-    // window background under the dark timer (A-05, A-15). It draws no content and delays nothing (rule 8).
-    Box(modifier.fillMaxSize().background(SteepingColorScheme.background)) {
+    // Under everything, the timer's background in the app's theme (D-128 Q20): before recovery and while closing the
+    // route is never the window background of the other theme under the timer (A-05, A-15). It draws no content and
+    // delays nothing (rule 8).
+    val routeBackground = if (UmamiTheme.isDark) SteepingColorScheme.background else WashiColorScheme.background
+    Box(modifier.fillMaxSize().background(routeBackground)) {
         if (closing && recovered) {
             // Restored after process death (from recents, or a notification of a session the new process has not
             // read yet), the route sees Idle before recovery: it waits for it and closes only on a known end
@@ -114,6 +118,8 @@ fun BrewTimerRoute(
                 .collectAsStateWithLifecycle()
             val tastings by remember(viewModel, active.slot) { viewModel.stepTastings(active.slot) }
                 .collectAsStateWithLifecycle()
+            val tasteSet by remember(viewModel, active.slot) { viewModel.tasteSet(active.slot) }
+                .collectAsStateWithLifecycle()
             val refusals by viewModel.tasteWrites.refusals.collectAsStateWithLifecycle()
             TimerScreen(
                 state = active,
@@ -140,17 +146,18 @@ fun BrewTimerRoute(
                 // no row: the other timer is only ever beside a shown one.
                 onOtherEvent = { event -> other?.let { viewModel.send(it.slot, event) } },
                 onOpenOther = { other?.let { onShowOther(it.slot) } },
-                // The shown session's taste (D-114): read and written beside the timer, never as an engine event; a
-                // read of another session (the slot's previous one) is not used.
+                // The shown session's taste and taste set (D-114, D-128): read and written beside the timer, never as
+                // an engine event; a read of another session (the slot's previous one) is not used.
                 tasting = active.sessionId?.let { sessionId ->
                     TimerTasting(
                         byPosition = tastings?.takeIf { it.sessionId == sessionId }?.byPosition,
                         onTaste = { position, axis, value ->
                             viewModel.tasteWrites.setTaste(sessionId, position, axis, value)
                         },
-                        onReset = { position -> viewModel.tasteWrites.clearTaste(sessionId, position) },
+                        onReset = { position, axes -> viewModel.tasteWrites.clearTaste(sessionId, position, axes) },
                         onNote = { position, note -> viewModel.tasteWrites.setNote(sessionId, position, note) },
                         refusals = refusals,
+                        set = tasteSet?.takeIf { it.sessionId == sessionId }?.set,
                     )
                 },
             )

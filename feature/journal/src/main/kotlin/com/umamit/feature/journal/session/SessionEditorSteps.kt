@@ -34,7 +34,7 @@ import com.umamit.feature.journal.R
 
 // SCR-17's SCHRITTE rows (JRN-11): the brewed steps' *Zeit* and *°C*, the others greyed.
 
-/** „1 · Aufguss" with *Zeit* and *°C* when brewed; greyed with „übersprungen" or „nicht gebrüht" otherwise. */
+/** „1 · Aufguss" with *Zeit* and *°C* when brewed; greyed with „übersprungen" or „nicht aufgegossen" otherwise. */
 @Composable
 internal fun StepRow(row: SessionEditorStepRow, actions: SessionEditorActions) {
     val step = row.form

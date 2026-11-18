@@ -33,9 +33,12 @@ internal class InfusionTastingWrites(
         write(onRefused) { tasting.setInfusionTaste(sessionId, position, axis, value) }
     }
 
-    /** *Zurücksetzen*: the six taste values of the infusion at [position] are unset; its note stays. */
-    fun clearTaste(position: Int, onRefused: () -> Unit = {}) {
-        write(onRefused) { tasting.clearInfusionTaste(sessionId, position) }
+    /**
+     * *Zurücksetzen*: the six taste values of the infusion at [position] that the page shows, [axes] (its tea's set,
+     * D-128 Q16), are unset; the other axes and its note stay.
+     */
+    fun clearTaste(position: Int, axes: Collection<TasteAxis>, onRefused: () -> Unit = {}) {
+        write(onRefused) { tasting.clearInfusionTaste(sessionId, position, axes) }
     }
 
     /**

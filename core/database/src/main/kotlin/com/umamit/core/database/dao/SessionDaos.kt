@@ -17,6 +17,8 @@ import com.umamit.core.database.entity.SessionStepEntity
 import com.umamit.core.database.entity.SessionStepTimerColumns
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TasteSet
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TimerSlot
 import kotlinx.coroutines.flow.Flow
 
@@ -31,6 +33,10 @@ data class JournalSessionRow(
     @Relation(parentColumn = "id", entityColumn = "session_id")
     val descriptors: List<SessionDescriptorEntity>,
     @ColumnInfo(name = "tea_cover_photo_id") val teaCoverPhotoId: String?,
+    /** The tea's `category` now; null when the tea is gone (schema v9, D-128: the session's taste set). */
+    @ColumnInfo(name = "tea_category") val teaCategory: TeaCategory? = null,
+    /** The tea's `taste_set` now; null for „Automatisch" and when the tea is gone (schema v9, D-128). */
+    @ColumnInfo(name = "tea_taste_set") val teaTasteSet: TasteSet? = null,
 )
 
 /**
@@ -101,6 +107,19 @@ data class TasteAveragesRow(
     @ColumnInfo(name = "astringency") val astringency: Double?,
     @ColumnInfo(name = "body") val body: Double?,
     @ColumnInfo(name = "aroma") val aroma: Double?,
+    @ColumnInfo(name = "roast") val roast: Double? = null,
+    @ColumnInfo(name = "acidity") val acidity: Double? = null,
+    @ColumnInfo(name = "freshness") val freshness: Double? = null,
+    @ColumnInfo(name = "spice") val spice: Double? = null,
+)
+
+/**
+ * A tea's `category` and `taste_set` (schema v9, D-128): what decides its taste set ([TasteSet.effective]), so its
+ * taste averages take that set's six axes only (JRN-03).
+ */
+data class TeaTasteSetRow(
+    @ColumnInfo(name = "category") val category: TeaCategory,
+    @ColumnInfo(name = "taste_set") val tasteSet: TasteSet?,
 )
 
 /** How often [descriptorKey] was ticked on a tea's sessions (TEA-13). */
@@ -122,6 +141,10 @@ data class StepTastingRow(
     @ColumnInfo(name = "taste_body") val tasteBody: Int?,
     @ColumnInfo(name = "taste_aroma") val tasteAroma: Int?,
     @ColumnInfo(name = "tasting_note") val tastingNote: String?,
+    @ColumnInfo(name = "taste_roast") val tasteRoast: Int? = null,
+    @ColumnInfo(name = "taste_acidity") val tasteAcidity: Int? = null,
+    @ColumnInfo(name = "taste_freshness") val tasteFreshness: Int? = null,
+    @ColumnInfo(name = "taste_spice") val tasteSpice: Int? = null,
 )
 
 /** What an infusion tasting write checks of its target row (05 §3.7 „Infusion tasting writes"). */
@@ -167,7 +190,7 @@ interface TastingDao {
     )
     suspend fun infusionTarget(sessionId: String, position: Int): InfusionTargetRow?
 
-    /** Sets the taste column of [axis] (a `TasteAxis` name) of one infusion to [value]; the other five stay. */
+    /** Sets the taste column of [axis] (a `TasteAxis` name) of one infusion to [value]; the other nine stay. */
     @Query(
         "UPDATE session_step SET " +
             "taste_umami = CASE WHEN :axis = 'UMAMI' THEN :value ELSE taste_umami END, " +
@@ -175,17 +198,34 @@ interface TastingDao {
             "taste_bitterness = CASE WHEN :axis = 'BITTERNESS' THEN :value ELSE taste_bitterness END, " +
             "taste_astringency = CASE WHEN :axis = 'ASTRINGENCY' THEN :value ELSE taste_astringency END, " +
             "taste_body = CASE WHEN :axis = 'BODY' THEN :value ELSE taste_body END, " +
-            "taste_aroma = CASE WHEN :axis = 'AROMA' THEN :value ELSE taste_aroma END " +
+            "taste_aroma = CASE WHEN :axis = 'AROMA' THEN :value ELSE taste_aroma END, " +
+            "taste_roast = CASE WHEN :axis = 'ROAST' THEN :value ELSE taste_roast END, " +
+            "taste_acidity = CASE WHEN :axis = 'ACIDITY' THEN :value ELSE taste_acidity END, " +
+            "taste_freshness = CASE WHEN :axis = 'FRESHNESS' THEN :value ELSE taste_freshness END, " +
+            "taste_spice = CASE WHEN :axis = 'SPICE' THEN :value ELSE taste_spice END " +
             "WHERE $INFUSION_ROW",
     )
     suspend fun setInfusionTaste(sessionId: String, position: Int, axis: String, value: Int?): Int
 
-    /** *Zurücksetzen* (JRN-03): the infusion's six taste columns null; its note stays. */
+    /**
+     * *Zurücksetzen* (JRN-03, D-128): the infusion's taste columns of [axes] (`TasteAxis` names, the six of the set
+     * shown) null; the other columns and its note stay.
+     */
     @Query(
-        "UPDATE session_step SET taste_umami = NULL, taste_sweetness = NULL, taste_bitterness = NULL, " +
-            "taste_astringency = NULL, taste_body = NULL, taste_aroma = NULL WHERE $INFUSION_ROW",
+        "UPDATE session_step SET " +
+            "taste_umami = CASE WHEN 'UMAMI' IN (:axes) THEN NULL ELSE taste_umami END, " +
+            "taste_sweetness = CASE WHEN 'SWEETNESS' IN (:axes) THEN NULL ELSE taste_sweetness END, " +
+            "taste_bitterness = CASE WHEN 'BITTERNESS' IN (:axes) THEN NULL ELSE taste_bitterness END, " +
+            "taste_astringency = CASE WHEN 'ASTRINGENCY' IN (:axes) THEN NULL ELSE taste_astringency END, " +
+            "taste_body = CASE WHEN 'BODY' IN (:axes) THEN NULL ELSE taste_body END, " +
+            "taste_aroma = CASE WHEN 'AROMA' IN (:axes) THEN NULL ELSE taste_aroma END, " +
+            "taste_roast = CASE WHEN 'ROAST' IN (:axes) THEN NULL ELSE taste_roast END, " +
+            "taste_acidity = CASE WHEN 'ACIDITY' IN (:axes) THEN NULL ELSE taste_acidity END, " +
+            "taste_freshness = CASE WHEN 'FRESHNESS' IN (:axes) THEN NULL ELSE taste_freshness END, " +
+            "taste_spice = CASE WHEN 'SPICE' IN (:axes) THEN NULL ELSE taste_spice END " +
+            "WHERE $INFUSION_ROW",
     )
-    suspend fun clearInfusionTaste(sessionId: String, position: Int): Int
+    suspend fun clearInfusionTaste(sessionId: String, position: Int, axes: List<String>): Int
 
     /** The infusion's short note (JRN-05, D-114). */
     @Query("UPDATE session_step SET tasting_note = :note WHERE $INFUSION_ROW")
@@ -197,10 +237,12 @@ interface TastingDao {
      */
     @Query(
         "SELECT position, taste_umami, taste_sweetness, taste_bitterness, taste_astringency, taste_body, " +
-            "taste_aroma, tasting_note FROM session_step WHERE session_id = :sessionId AND (" +
+            "taste_aroma, tasting_note, taste_roast, taste_acidity, taste_freshness, taste_spice " +
+            "FROM session_step WHERE session_id = :sessionId AND (" +
             "taste_umami IS NOT NULL OR taste_sweetness IS NOT NULL OR taste_bitterness IS NOT NULL OR " +
             "taste_astringency IS NOT NULL OR taste_body IS NOT NULL OR taste_aroma IS NOT NULL OR " +
-            "tasting_note IS NOT NULL)",
+            "taste_roast IS NOT NULL OR taste_acidity IS NOT NULL OR taste_freshness IS NOT NULL OR " +
+            "taste_spice IS NOT NULL OR tasting_note IS NOT NULL)",
     )
     fun observeStepTastings(sessionId: String): Flow<List<StepTastingRow>>
 
@@ -255,20 +297,29 @@ interface TastingDao {
      * each axis averages the infusions that set it. Every step row counts: the writes set values on infusions only,
      * and a v0.6.0 session whose steps never brewed keeps its values on the row the v7 migration chose (05 §9). A
      * v0.6.0 session without any step row kept its values on its own row, which counts too, so the tea's radar is
-     * the one it had before the update (JRN-03 AC3); from v7 nothing writes a session's own taste columns.
+     * the one it had before the update (JRN-03 AC3); from v7 nothing writes a session's own taste columns. All ten
+     * axes are averaged; the repository keeps the tea's set's six (schema v9, D-128). `brew_session` has none of the
+     * four v9 columns, so its branch adds nulls.
      */
     @Query(
         "SELECT AVG(umami) AS umami, AVG(sweetness) AS sweetness, AVG(bitterness) AS bitterness, " +
-            "AVG(astringency) AS astringency, AVG(body) AS body, AVG(aroma) AS aroma FROM (" +
+            "AVG(astringency) AS astringency, AVG(body) AS body, AVG(aroma) AS aroma, AVG(roast) AS roast, " +
+            "AVG(acidity) AS acidity, AVG(freshness) AS freshness, AVG(spice) AS spice FROM (" +
             "SELECT session_step.taste_umami AS umami, session_step.taste_sweetness AS sweetness, " +
             "session_step.taste_bitterness AS bitterness, session_step.taste_astringency AS astringency, " +
-            "session_step.taste_body AS body, session_step.taste_aroma AS aroma FROM session_step " +
+            "session_step.taste_body AS body, session_step.taste_aroma AS aroma, " +
+            "session_step.taste_roast AS roast, session_step.taste_acidity AS acidity, " +
+            "session_step.taste_freshness AS freshness, session_step.taste_spice AS spice FROM session_step " +
             "JOIN brew_session ON brew_session.id = session_step.session_id " +
             "WHERE brew_session.tea_id = :teaId AND brew_session.$FINISHED " +
             "UNION ALL SELECT taste_umami, taste_sweetness, taste_bitterness, taste_astringency, taste_body, " +
-            "taste_aroma FROM brew_session WHERE tea_id = :teaId AND $FINISHED)",
+            "taste_aroma, NULL, NULL, NULL, NULL FROM brew_session WHERE tea_id = :teaId AND $FINISHED)",
     )
     fun observeTasteAverages(teaId: String): Flow<TasteAveragesRow>
+
+    /** [teaId]'s `category` and `taste_set` (schema v9, D-128); null while there is no such tea. */
+    @Query("SELECT category, taste_set FROM tea WHERE id = :teaId")
+    fun observeTeaTasteSet(teaId: String): Flow<TeaTasteSetRow?>
 
     /** [teaId]'s descriptor keys with how many of its sessions ticked each, most frequent first, then by key. */
     @Query(
@@ -300,7 +351,7 @@ interface JournalDao {
      */
     @Transaction
     @Query(
-        "SELECT brew_session.*, tea.cover_photo_id AS tea_cover_photo_id FROM brew_session " +
+        "SELECT brew_session.*, $TEA_COLUMNS FROM brew_session " +
             "LEFT JOIN tea ON tea.id = brew_session.tea_id ORDER BY brew_session.started_at DESC",
     )
     fun observeSessions(): Flow<List<JournalSessionRow>>
@@ -308,11 +359,15 @@ interface JournalDao {
     /** [sessionId]'s row as [observeSessions] has it; null while there is no such session. */
     @Transaction
     @Query(
-        "SELECT brew_session.*, tea.cover_photo_id AS tea_cover_photo_id FROM brew_session " +
+        "SELECT brew_session.*, $TEA_COLUMNS FROM brew_session " +
             "LEFT JOIN tea ON tea.id = brew_session.tea_id WHERE brew_session.id = :sessionId",
     )
     fun observeSession(sessionId: String): Flow<JournalSessionRow?>
 }
+
+/** The joined tea's columns a [JournalSessionRow] carries: its cover photo and what decides its taste set (v9). */
+private const val TEA_COLUMNS = "tea.cover_photo_id AS tea_cover_photo_id, tea.category AS tea_category, " +
+    "tea.taste_set AS tea_taste_set"
 
 /** The `active_brew` rows (05 §3.12), from schema v4 one per [TimerSlot] (D-098). */
 @Dao

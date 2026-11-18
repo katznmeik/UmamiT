@@ -114,7 +114,7 @@ class StepsSheetMotionRecordingTest {
         record(1_000)
         val sheet = compose.onNode(
             SemanticsMatcher.keyIsDefined(SemanticsProperties.PaneTitle) and
-                hasAnyDescendant(hasText("Schritte für diese Sitzung")),
+                hasAnyDescendant(hasText("Schritte für diese Session")),
         )
         sheet.performTouchInput { down(Offset(centerX, top + 60f)) }
         repeat(DRAG_STEPS) {

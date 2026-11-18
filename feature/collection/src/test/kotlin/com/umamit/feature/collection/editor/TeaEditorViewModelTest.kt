@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.TeaPurchase
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
@@ -318,6 +319,20 @@ class TeaEditorViewModelTest {
     }
 
     @Test
+    fun `a Sorte changed away and back restores the stored Kategorie and its Automatisch set (TEA-03)`() = runTest {
+        collection.teas.saveTea(catalogTea.copy(category = TeaCategory.HERBAL))
+        val vm = viewModel(teaId = "t1")
+
+        vm.update { it.withStyle("black_generic") }
+        assertThat(vm.ready.form.category).isEqualTo(TeaCategory.BLACK)
+        vm.update { it.withStyle("gyokuro") }
+
+        assertThat(vm.ready.form.category).isEqualTo(TeaCategory.HERBAL)
+        assertThat(vm.ready.form.effectiveTasteSet).isEqualTo(TasteSet.HERBAL)
+        assertThat(vm.ready.hasChanges).isFalse()
+    }
+
+    @Test
     fun `the form survives a process death`() {
         val saved = SavedStateHandle()
         viewModel(styleKey = "sencha", saved = saved).update { it.copy(name = "Halb getippt") }
@@ -326,6 +341,44 @@ class TeaEditorViewModelTest {
 
         assertThat(again.ready.form.name).isEqualTo("Halb getippt")
         assertThat(again.ready.hasChanges).isTrue()
+    }
+
+    @Test
+    fun `Geschmacksprofil is saved, survives a Sorte change, and Automatisch follows the Kategorie (TEA-02)`() =
+        runTest {
+            val vm = viewModel(teaId = "t1")
+            // Automatisch: the set of the Kategorie (Grün: Grüntee).
+            assertThat(vm.ready.form.tasteSet).isNull()
+            assertThat(vm.ready.form.effectiveTasteSet).isEqualTo(TasteSet.GREEN)
+
+            // A Sorte change keeps Automatisch and the set follows the new Kategorie.
+            vm.update { it.withStyle("black_generic") }
+            assertThat(vm.ready.form.tasteSet).isNull()
+            assertThat(vm.ready.form.effectiveTasteSet).isEqualTo(TasteSet.OXIDISED)
+
+            // A choice is kept over a Sorte change and saved.
+            vm.update { it.copy(tasteSet = TasteSet.HERBAL) }
+            vm.update { it.withStyle("sencha") }
+            assertThat(vm.ready.form.tasteSet).isEqualTo(TasteSet.HERBAL)
+            assertThat(vm.ready.form.effectiveTasteSet).isEqualTo(TasteSet.HERBAL)
+            assertThat(vm.ready.hasChanges).isTrue()
+            vm.save()
+            assertThat(collection.teas.getTea("t1")!!.tasteSet).isEqualTo(TasteSet.HERBAL)
+
+            // Back to Automatisch: stored as none.
+            vm.update { it.copy(tasteSet = null) }
+            vm.save()
+            assertThat(collection.teas.getTea("t1")!!.tasteSet).isNull()
+        }
+
+    @Test
+    fun `a stored Geschmacksprofil is shown again by the editor`() = runTest {
+        collection.teas.saveTea(catalogTea.copy(tasteSet = TasteSet.OXIDISED))
+
+        val vm = viewModel(teaId = "t1")
+
+        assertThat(vm.ready.form.tasteSet).isEqualTo(TasteSet.OXIDISED)
+        assertThat(vm.ready.hasChanges).isFalse()
     }
 
     @Test

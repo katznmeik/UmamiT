@@ -279,7 +279,7 @@ class SessionEditorScreenTest {
         viewModel.setTime(hour = 11, minute = 30)
         compose.waitForIdle()
 
-        compose.onNodeWithText("Die Sitzung kann nicht in der Zukunft liegen.").assertExists()
+        compose.onNodeWithText("Die Session kann nicht in der Zukunft liegen.").assertExists()
         save().assertIsNotEnabled()
 
         viewModel.setTime(hour = 8, minute = 0)
@@ -311,7 +311,7 @@ class SessionEditorScreenTest {
         show(editor)
 
         compose.onNodeWithText("3 · Aufguss · übersprungen").performScrollTo().assertExists()
-        compose.onNodeWithText("4 · Aufguss · nicht gebrüht").performScrollTo().assertExists()
+        compose.onNodeWithText("4 · Aufguss · nicht aufgegossen").performScrollTo().assertExists()
         compose.onNodeWithTag(SessionEditorTags.STEP_TIME + 0).assertExists()
         compose.onNodeWithTag(SessionEditorTags.STEP_TIME + 2).assertDoesNotExist()
         compose.onNodeWithTag(SessionEditorTags.STEP_TIME + 3).assertDoesNotExist()

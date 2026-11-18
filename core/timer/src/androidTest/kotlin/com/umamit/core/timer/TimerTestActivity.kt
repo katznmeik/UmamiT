@@ -23,7 +23,7 @@ import java.io.File
 
 /**
  * Starts a brew session through the real controller, in the main process of the test APK and
- * while it is in the foreground, as *Brühen starten* and *Start* do in the app; then closes.
+ * while it is in the foreground, as *Session starten* and *Start* do in the app; then closes.
  * By default the session has one step without a pre-alert, so its deadline alarm is its only
  * alarm; the accuracy run (#52) starts sessions of several steps with a pre-alert. A quick timer
  * can run alongside (D-098), started after the brew's step, or alone beside a brew that runs

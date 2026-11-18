@@ -8,6 +8,7 @@ import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeClock
@@ -106,13 +107,13 @@ class InfusionTastingTest {
     @Test
     fun `every axis has its own column, Zuruecksetzen clears the six and keeps the note`() = runTest {
         runningAtSecondInfusion()
-        TasteAxis.entries.forEachIndexed { i, axis -> tasting.setInfusionTaste(SESSION_ID, 1, axis, i) }
+        TasteSet.GREEN.axes.forEachIndexed { i, axis -> tasting.setInfusionTaste(SESSION_ID, 1, axis, i) }
         tasting.setInfusionNote(SESSION_ID, 1, "Notiz")
 
         val taste = session().infusions.single().taste
-        assertThat(TasteAxis.entries.map { taste[it] }).containsExactly(0, 1, 2, 3, 4, 5).inOrder()
+        assertThat(TasteSet.GREEN.axes.map { taste[it] }).containsExactly(0, 1, 2, 3, 4, 5).inOrder()
 
-        assertThat(tasting.clearInfusionTaste(SESSION_ID, 1)).isEqualTo(TastingWrite.SAVED)
+        assertThat(tasting.clearInfusionTaste(SESSION_ID, 1, TasteSet.GREEN.axes)).isEqualTo(TastingWrite.SAVED)
         assertThat(session().infusions.single()).isEqualTo(Infusion(1, 1, TasteProfile.EMPTY, "Notiz"))
     }
 
@@ -140,7 +141,7 @@ class InfusionTastingTest {
         listOf(0, 2, 3, 9).forEach { position ->
             val results = listOf(
                 tasting.setInfusionTaste(SESSION_ID, position, TasteAxis.UMAMI, 4),
-                tasting.clearInfusionTaste(SESSION_ID, position),
+                tasting.clearInfusionTaste(SESSION_ID, position, TasteSet.GREEN.axes),
                 tasting.setInfusionNote(SESSION_ID, position, "Notiz"),
             )
             assertWithMessage("position $position").that(results.distinct())
@@ -165,7 +166,7 @@ class InfusionTastingTest {
         assertThat(tasting.setInfusionNote(SESSION_ID, 0, "Übersprungen")).isEqualTo(TastingWrite.SAVED)
         assertThat(session().infusions.first()).isEqualTo(Infusion(0, 1, TasteProfile(umami = 3), "Übersprungen"))
 
-        assertThat(tasting.clearInfusionTaste(SESSION_ID, 0)).isEqualTo(TastingWrite.SAVED)
+        assertThat(tasting.clearInfusionTaste(SESSION_ID, 0, TasteSet.GREEN.axes)).isEqualTo(TastingWrite.SAVED)
         assertThat(session().infusions.first().taste).isEqualTo(TasteProfile.EMPTY)
     }
 
@@ -190,7 +191,7 @@ class InfusionTastingTest {
         val before = rows()
 
         assertThat(tasting.setInfusionTaste(SESSION_ID, 1, TasteAxis.UMAMI, 4)).isEqualTo(TastingWrite.NOT_COMPLETED)
-        assertThat(tasting.clearInfusionTaste(SESSION_ID, 1)).isEqualTo(TastingWrite.NOT_COMPLETED)
+        assertThat(tasting.clearInfusionTaste(SESSION_ID, 1, TasteSet.GREEN.axes)).isEqualTo(TastingWrite.NOT_COMPLETED)
         assertThat(tasting.setInfusionNote(SESSION_ID, 1, "Notiz")).isEqualTo(TastingWrite.NOT_COMPLETED)
 
         assertThat(rows()).isEqualTo(before)
@@ -208,7 +209,7 @@ class InfusionTastingTest {
 
             tasting.setInfusionTaste(SESSION_ID, 1, TasteAxis.UMAMI, 5)
             tasting.setInfusionNote(SESSION_ID, 1, "Notiz")
-            tasting.clearInfusionTaste(SESSION_ID, 1)
+            tasting.clearInfusionTaste(SESSION_ID, 1, TasteSet.GREEN.axes)
             tasting.setInfusionTaste(SESSION_ID, 1, TasteAxis.BODY, 3)
 
             val after = rows()

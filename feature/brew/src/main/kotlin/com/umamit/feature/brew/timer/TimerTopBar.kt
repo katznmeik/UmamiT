@@ -48,6 +48,10 @@ internal object TimerTopBarDefaults {
      * there is no band; the circle takes the alert's container colour, ink with a washi
      * icon like the *Abgegossen* pill (13.5:1), and stands out from both pulse
      * phases (13.5:1 on washi, 4.55:1 on matcha).
+     *
+     * The light timer (D-128 Q20) uses the same roles in the Washi scheme: the circle is the light surface at 60 %
+     * with the ink icon, 12.6:1 over washi and at least 4.5:1 over the darkest ink of the band (03 §3.1). Over
+     * washi the circle itself is barely there (1.03:1); the icon carries the control.
      */
     @Composable
     fun colors(): TimerTopBarColors {

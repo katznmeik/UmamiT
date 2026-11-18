@@ -133,11 +133,14 @@ interface SessionTasting {
      */
     suspend fun setBrewingRating(sessionId: String, rating: Double?): TastingWrite
 
-    /** One taste value of the infusion at [position], 0–5 (JRN-03), or null to unset that axis; the other five stay. */
+    /** One taste value of the infusion at [position], 0–5 (JRN-03), or null to unset that axis; the others stay. */
     suspend fun setInfusionTaste(sessionId: String, position: Int, axis: TasteAxis, value: Int?): TastingWrite
 
-    /** *Zurücksetzen* (JRN-03): the six taste values of the infusion at [position] unset; its note stays. */
-    suspend fun clearInfusionTaste(sessionId: String, position: Int): TastingWrite
+    /**
+     * *Zurücksetzen* (JRN-03, D-128): the taste values of [axes] (the six of the set shown) of the infusion at
+     * [position] unset; the other axes and its note stay. An empty [axes] changes no value.
+     */
+    suspend fun clearInfusionTaste(sessionId: String, position: Int, axes: Collection<TasteAxis>): TastingWrite
 
     /** The note of the infusion at [position] (JRN-05, D-114): trimmed, blank stored as null, at most 200 chars. */
     suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): TastingWrite

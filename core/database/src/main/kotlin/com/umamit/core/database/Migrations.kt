@@ -192,6 +192,24 @@ internal val MIGRATION_7_8: Migration = object : Migration(7, 8) {
     }
 }
 
+/**
+ * Schema 8 → 9 (v0.8.0, JRN-03, TEA-02, D-128): the taste sets. `tea` gains `taste_set` (TEXT, nullable, its last
+ * column), `session_step` gains `taste_roast`, `taste_acidity`, `taste_freshness` and `taste_spice` (INTEGER,
+ * nullable, in this order, its last columns). No row is rewritten: the six existing taste columns keep every value,
+ * also on sessions of teas whose set no longer shows them (D-128 Q16), and `taste_set` starts null everywhere, so
+ * each tea takes its category's set. Timers running during the update keep their `active_brew` rows and alert on time
+ * (rule 8). Room runs it in one transaction: it applies whole or not at all, and the database is never opened
+ * destructively (05 §9).
+ */
+internal val MIGRATION_8_9: Migration = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `tea` ADD COLUMN `taste_set` TEXT")
+        listOf("taste_roast", "taste_acidity", "taste_freshness", "taste_spice").forEach { column ->
+            db.execSQL("ALTER TABLE `session_step` ADD COLUMN `$column` INTEGER")
+        }
+    }
+}
+
 /** The six taste columns of `brew_session` (v1–v6) and of `session_step` (from v7), in their order. */
 private val TASTE_COLUMNS = listOf(
     "taste_umami",
@@ -225,4 +243,13 @@ private const val TARGET_POSITION = "COALESCE(" +
  * so a version bump whose migration is missing here fails the unit tests.
  */
 internal val UMAMI_MIGRATIONS: List<Migration> =
-    listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+    listOf(
+        MIGRATION_1_2,
+        MIGRATION_2_3,
+        MIGRATION_3_4,
+        MIGRATION_4_5,
+        MIGRATION_5_6,
+        MIGRATION_6_7,
+        MIGRATION_7_8,
+        MIGRATION_8_9,
+    )

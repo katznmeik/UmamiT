@@ -73,7 +73,7 @@ class SessionEditorActions(
 )
 
 /**
- * Sitzung bearbeiten (SCR-17; JRN-11, D-112): ✕ · „Sitzung bearbeiten" · *Speichern* (enabled once something changed
+ * Session bearbeiten (SCR-17; JRN-11, D-112): ✕ · „Session bearbeiten" · *Speichern* (enabled once something changed
  * and every field is valid); *Datum*, *Uhrzeit*, *Gefäß*, *Blattmenge* and *Wasser* with the setup's limits; SCHRITTE
  * with *Zeit* and *°C* for each brewed step, never started and skipped ones greyed. Leaving with changes asks
  * „Änderungen verwerfen?". The pickers, the menu and the question give way to another alert than the one they were

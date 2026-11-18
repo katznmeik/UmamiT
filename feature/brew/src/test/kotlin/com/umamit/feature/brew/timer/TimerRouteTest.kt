@@ -1,6 +1,10 @@
 package com.umamit.feature.brew.timer
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -15,11 +19,17 @@ import androidx.compose.ui.test.performTextInput
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.SessionStart
 import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TastingWrite
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.SessionSnapshot
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.StepTasting
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteSet
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeClock
@@ -28,6 +38,7 @@ import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.ui.INFUSION_NOTE_TAG
@@ -35,6 +46,7 @@ import com.umamit.core.ui.tasteSliderTag
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -156,7 +168,7 @@ class TimerRouteTest {
         compose.waitForIdle()
         assertThat(timer.sent).isEmpty()
         assertThat(closed).isEqualTo(1)
-        compose.onNodeWithText("Sitzung verwerfen").assertDoesNotExist()
+        compose.onNodeWithText("Session verwerfen").assertDoesNotExist()
     }
 
     @Test
@@ -304,7 +316,7 @@ class TimerRouteTest {
         timer.show(brew = alert, quick = held, front = alert)
         show(timer, slot = TimerSlot.BREW)
 
-        // *Sitzung beenden* during the brew's alert: the held quick alert rings in the same turn.
+        // *Session beenden* during the brew's alert: the held quick alert rings in the same turn.
         val ringing = TimerStates.quick(TimerPhase.ALERTING)
         timer.show(brew = TimerUiState.Idle, quick = ringing, front = ringing)
         compose.waitForIdle()
@@ -376,6 +388,81 @@ class TimerRouteTest {
 
         assertThat(written).isNotEmpty()
         assertThat(written.distinct()).containsExactly("s1/0")
+    }
+
+    private fun startSession(id: String, category: TeaCategory?) = runBlocking {
+        val snapshot = SessionSnapshot(
+            teaId = null,
+            teaName = "Tee $id",
+            teaSecondaryName = null,
+            teaType = null,
+            styleKey = null,
+            category = category,
+            profileId = null,
+            profileName = "Kyusu",
+            method = BrewMethod.KYUSU,
+            vesselId = null,
+            vesselName = "Kyusu",
+            leafGrams = 4.0,
+            waterMl = 250,
+            baseTempC = 60,
+        )
+        sessions.sessions.startSession(
+            SessionStart(id, snapshot, listOf(PlannedStep(StepKind.INFUSION, 60, 60)), 15, 1_000, "UTC"),
+        )
+    }
+
+    /** The open sheet's sliders, by the axis of each. */
+    private fun shownSliders(): List<TasteAxis> = TasteAxis.entries.filter { axis ->
+        compose.onAllNodes(hasTestTag(tasteSliderTag(axis))).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    /** JRN-03, D-128, D-108: a Grüntee brew and a Schwarztee brew, each route's sheet with its own tea's six. */
+    @Test
+    fun `two brews of different sets each show their own six`() {
+        startSession("s1", TeaCategory.GREEN)
+        startSession("s2", TeaCategory.BLACK)
+        val timer = FakeBrewTimer()
+        val first = TimerStates.running(stepIndex = 1)
+        timer.showSlots(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to secondBrew), front = first)
+        val viewModel = TimerViewModel(
+            timer,
+            clock,
+            FakeSettingsRepository(),
+            FakeTimerReliability(),
+            sessions.sessions,
+            collection.teas,
+            PhotoFiles(folder.newFolder()),
+            collection.stock,
+            sessions.journal,
+            sessions.tasting,
+        )
+        var routeSlot by mutableStateOf(TimerSlot.BREW)
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                key(routeSlot) {
+                    BrewTimerRoute(
+                        onClose = {},
+                        onAdjustBrew = {},
+                        onOpenTimerSettings = {},
+                        slot = routeSlot,
+                        viewModel = viewModel,
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(TIMER_TASTE_BUTTON_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(shownSliders()).containsExactlyElementsIn(TasteSet.GREEN.axes)
+
+        // The 2nd brew's route: its sheet shows Röstung/Malz and no Umami.
+        routeSlot = TimerSlot.BREW_2
+        compose.waitForIdle()
+        compose.onNodeWithTag(TIMER_TASTE_BUTTON_TAG).performClick()
+        compose.waitForIdle()
+        assertThat(shownSliders()).containsExactlyElementsIn(TasteSet.OXIDISED.axes)
     }
 
     @Test

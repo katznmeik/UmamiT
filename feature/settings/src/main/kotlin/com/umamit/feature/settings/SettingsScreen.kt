@@ -65,6 +65,8 @@ object SettingsTags {
     const val ABOUT = "SettingsAbout"
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
+    const val CATALOG_REFRESH = "SettingsCatalogRefresh"
+    const val CATALOG_REFRESH_LINE = "SettingsCatalogRefreshLine"
 
     /** The *Teegeschirr* row (SET-30, D-100). */
     const val TEAWARE = "SettingsTeaware"
@@ -174,6 +176,10 @@ fun SettingsRoute(
             viewModel.stopPreview()
         }
     }
+    // The refresh result shows until the settings are left (SET-23); a re-creation of the activity does not leave.
+    DisposableEffect(catalogViewModel) {
+        onDispose { if (context.findActivity()?.isChangingConfigurations != true) catalogViewModel.leave() }
+    }
     val fix = rememberReliabilityFixAction(
         notifications = ReliabilityCheck.Notifications,
         openPage = { check: ReliabilityCheck -> context.startFirstIntent(viewModel.open(check)) },
@@ -222,7 +228,7 @@ fun SettingsRoute(
 
 /**
  * SCR-25 without state: the reliability card first, then *Darstellung* (D-114), *Timer & Alarm*,
- * *Brühen & Vorrat*, *Katalog*, *Teegeschirr* and *Über* (SET-30).
+ * *Aufguss & Vorrat*, *Katalog*, *Teegeschirr* and *Über* (SET-30).
  */
 @Composable
 fun SettingsScreen(

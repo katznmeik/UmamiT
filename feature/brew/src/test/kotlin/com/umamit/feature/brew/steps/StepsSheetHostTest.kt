@@ -60,7 +60,7 @@ class StepsSheetHostTest {
     private val done = mutableListOf<TimerEvent.EditSteps>()
     private var dismissals = 0
 
-    private val title = "Schritte für diese Sitzung"
+    private val title = "Schritte für diese Session"
     private val sheet =
         SemanticsMatcher.keyIsDefined(SemanticsProperties.PaneTitle) and hasAnyDescendant(hasText(title))
 

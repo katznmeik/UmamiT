@@ -29,8 +29,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * SCR-05 in every state, at font scale 1.0 and 2.0 (03 §6), inside the light
- * and the dark app theme: the timer is always dark, so both look the same.
- * The alert is captured in both pulse phases (matcha and washi) and with the
+ * and the dark app theme, which the timer follows (SET-05, D-128 Q20). The alert is captured in both pulse phases
+ * (matcha, in the light timer sage, and washi) and with the
  * prominent overtime; the content must stay readable in each (D-055). The top
  * is the ink-wash band A13; a brew's seal shows a synthetic white-backed tea
  * photo (never a Tee-Kontor photo, D-016), a plain white one, or the leaf

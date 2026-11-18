@@ -109,7 +109,7 @@ class TimerAlertOverLockScreenTest {
 
     @Test
     fun theAlertOpensTheTimerOverTheLockScreen() {
-        // *Brühen starten* and *Start* in the app, then the app is closed.
+        // *Session starten* and *Start* in the app, then the app is closed.
         ActivityScenario.launch(MainActivity::class.java).use {
             runBlocking {
                 assertEquals(TransitionOutcome.Accepted, controller.startSession(brew()))

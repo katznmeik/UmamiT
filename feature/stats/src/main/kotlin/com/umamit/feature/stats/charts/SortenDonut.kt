@@ -101,7 +101,7 @@ internal fun assignSliceColors(slices: List<DonutSlice>, palette: List<Color>, o
 /**
  * The share of sessions per Sorte as a ring (SCR-18): at most six slices (five Sorten and „Andere"), 2 dp
  * gaps, sweeping from 12 o'clock once on first show; the legend sits right of the ring, below it at font scale
- * ≥ 1.5, with „42 %". A tap on a slice shows „Sencha · 42 % · 21 Sitzungen"; a second tap or a tap elsewhere hides it.
+ * ≥ 1.5, with „42 %". A tap on a slice shows „Sencha · 42 % · 21 Sessions"; a second tap or a tap elsewhere hides it.
  * [title] opens the TalkBack list.
  */
 @Composable

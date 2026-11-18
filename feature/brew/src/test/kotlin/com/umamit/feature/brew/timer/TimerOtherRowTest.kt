@@ -283,7 +283,7 @@ class TimerOtherRowTest {
             TimerStates.running() to "Pause",
             TimerStates.paused() to "Weiter",
             TimerStates.alerting(overtimeMs = 7_000, stepIndex = 2) to "Abgegossen",
-            TimerStates.finished() to "Sitzung beenden",
+            TimerStates.finished() to "Session beenden",
         ).map { (shown, pill) -> shown.copy(teaName = teaName) to pill }
         return phases.map { (shown, pill) ->
             state = shown

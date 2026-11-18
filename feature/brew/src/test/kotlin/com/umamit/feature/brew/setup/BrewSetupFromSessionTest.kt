@@ -2,6 +2,7 @@ package com.umamit.feature.brew.setup
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.DeleteResult
 import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.SaveRecipeResult
 import com.umamit.core.data.SessionStart
@@ -22,6 +23,7 @@ import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.Dispatchers
@@ -340,7 +342,9 @@ class BrewSetupFromSessionTest {
     @Test
     fun `a session whose tea is gone shows the not-found state`() = runTest {
         brewed(profileId = STRONG)
-        collection.deleteTeaRows(TEA)
+        // The user's *Löschen*, as on Room: the session keeps its name, its snapshot's tea id becomes null (#313).
+        assertThat(FakeTeaArchive(sessions).delete(TEA)).isEqualTo(DeleteResult.Deleted)
+        assertThat(sessions.sessions.getSession(PAST)?.snapshot?.teaId).isNull()
 
         assertThat(viewModel().state.value).isEqualTo(BrewSetupUiState.NotFound)
     }

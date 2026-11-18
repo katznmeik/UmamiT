@@ -6,6 +6,7 @@ import com.umamit.core.data.PhotoFiles
 import com.umamit.core.model.DescriptorCount
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TeaRating
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeCatalogRepository
@@ -31,7 +32,7 @@ import org.junit.rules.TemporaryFolder
 import java.time.LocalDate
 
 /**
- * The tea detail's rating, GESCHMACK and LETZTE SITZUNGEN (TEA-13, JRN-02, JRN-03, JRN-04, D-112, #232): the figures
+ * The tea detail's rating, GESCHMACK and LETZTE SESSIONS (TEA-13, JRN-02, JRN-03, JRN-04, D-112, #232): the figures
  * come from the sessions' tasting inputs and follow them at once; every one is absent without data.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -214,6 +215,22 @@ class TeaDetailTastingViewModelTest {
 
         assertThat(taste.averages).containsExactly(TasteAxis.UMAMI, 4.5, TasteAxis.BODY, 2.0, TasteAxis.AROMA, 3.0)
         assertThat(taste.hasData).isTrue()
+    }
+
+    @Test
+    fun `GESCHMACK follows the tea's Geschmacksprofil, also when it changes (D-128)`() = runTest {
+        TeaDetailFixture.seed(collection)
+        brewed("s1")
+        sessions.tasting.setInfusionTaste("s1", 0, TasteAxis.UMAMI, 5)
+        sessions.tasting.setInfusionTaste("s1", 0, TasteAxis.BODY, 2)
+        val vm = viewModel()
+        assertThat(vm.tea.taste.tasteSet).isEqualTo(TasteSet.GREEN)
+
+        collection.teas.saveTea(TeaDetailFixture.tea.copy(tasteSet = TasteSet.HERBAL))
+
+        assertThat(vm.tea.taste.tasteSet).isEqualTo(TasteSet.HERBAL)
+        // Umami is outside the herbal six: its average is not shown.
+        assertThat(vm.tea.taste.averages).containsExactly(TasteAxis.BODY, 2.0)
     }
 
     @Test

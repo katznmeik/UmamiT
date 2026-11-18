@@ -42,7 +42,12 @@ data class Tea(
     val isFavorite: Boolean = false,
     val isArchived: Boolean = false,
     val coverPhotoId: String? = null,
+    /** The *Geschmacksprofil* (TEA-02, umamit.db v9, D-128): a [TasteSet], or null for „Automatisch". */
+    val tasteSet: TasteSet? = null,
 ) {
+    /** The taste set the tea's sessions show (JRN-03): [tasteSet], else its [category]'s. */
+    val effectiveTasteSet: TasteSet get() = TasteSet.effective(tasteSet, category)
+
     companion object {
         /** A tea's own „Knapp ab" (SCR-09, D-108): whole grams from 1 to 500. */
         val OWN_LOW_STOCK_GRAMS: IntRange = 1..500

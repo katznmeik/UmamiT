@@ -49,7 +49,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The setup (SCR-04) with its real view model on fake repositories and a fake
- * controller (spec #40 seam 4): *Brühen starten* → READY, *Im Rezept
+ * controller (spec #40 seam 4): *Session starten* → READY, *Im Rezept
  * speichern* only after a change, the TMR-21 question, and the Schritte-Sheet
  * giving way to an alert (rule 8).
  */
@@ -76,9 +76,11 @@ class BrewSetupScreenTest {
         SeedData.recipes.forEach { collection.recipes.saveRecipe(it) }
     }
 
-    private fun show(reduceMotion: Boolean = true) {
+    private fun show(reduceMotion: Boolean = true, adjustedSessionId: String? = null) {
+        val args = mapOf(BrewSetupViewModel.TEA_ID to SeedData.HISUI_TEA_ID) +
+            adjustedSessionId?.let { mapOf(BrewSetupViewModel.SESSION_ID to it) }.orEmpty()
         val viewModel = BrewSetupViewModel(
-            SavedStateHandle(mapOf(BrewSetupViewModel.TEA_ID to SeedData.HISUI_TEA_ID)),
+            SavedStateHandle(args),
             collection.teas,
             collection.recipes,
             collection.vessels,
@@ -116,6 +118,24 @@ class BrewSetupScreenTest {
         assertThat((starter.state.value as TimerUiState.Active).phase).isEqualTo(TimerPhase.READY)
         assertThat(starter.starts.single().snapshot.leafGrams).isEqualTo(5.0)
         assertThat(timerOpened).isEqualTo(1)
+    }
+
+    @Test
+    fun `the setup of a new brew reads Neue Session, with Session starten (SCR-04, D-128)`() {
+        show()
+
+        compose.onNodeWithText("Neue Session").assertIsDisplayed()
+        compose.onNodeWithText("Session anpassen").assertDoesNotExist()
+        compose.onNodeWithText("Session starten").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `the setup opened from the running timer reads Session anpassen, with Session starten (SCR-04, D-128)`() {
+        show(adjustedSessionId = "s1")
+
+        compose.onNodeWithText("Session anpassen").assertIsDisplayed()
+        compose.onNodeWithText("Neue Session").assertDoesNotExist()
+        compose.onNodeWithText("Session starten").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -309,7 +329,7 @@ class BrewSetupScreenTest {
         show(reduceMotion = false)
 
         compose.onNodeWithTag(SETUP_STEPS_EDIT_TAG).performScrollTo().performClick()
-        compose.onNodeWithText("Schritte für diese Sitzung").assertIsDisplayed()
+        compose.onNodeWithText("Schritte für diese Session").assertIsDisplayed()
 
         compose.mainClock.autoAdvance = false
         starter.state.value = waiting.copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
@@ -319,7 +339,7 @@ class BrewSetupScreenTest {
             compose.waitForIdle()
         }
 
-        compose.onNodeWithText("Schritte für diese Sitzung").assertDoesNotExist()
+        compose.onNodeWithText("Schritte für diese Session").assertDoesNotExist()
     }
 
     @Test
@@ -333,7 +353,7 @@ class BrewSetupScreenTest {
 
         compose.onNodeWithTag(SETUP_PRE_ALERT_TAG).performClick()
 
-        compose.onNodeWithText("Schritte für diese Sitzung").assertIsDisplayed()
+        compose.onNodeWithText("Schritte für diese Session").assertIsDisplayed()
         compose.onNodeWithText("Auto · 10\u00A0s", useUnmergedTree = true).assertIsDisplayed()
     }
 

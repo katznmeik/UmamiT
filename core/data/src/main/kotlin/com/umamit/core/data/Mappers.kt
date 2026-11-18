@@ -55,6 +55,7 @@ internal fun TeaEntity.toModel() = Tea(
     isFavorite = isFavorite,
     isArchived = isArchived,
     coverPhotoId = coverPhotoId,
+    tasteSet = tasteSet,
 )
 
 internal fun Tea.toEntity(createdAt: Long, updatedAt: Long) = TeaEntity(
@@ -93,6 +94,7 @@ internal fun Tea.toEntity(createdAt: Long, updatedAt: Long) = TeaEntity(
     coverPhotoId = coverPhotoId,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    tasteSet = tasteSet,
 )
 
 internal fun TeaWithDetails.toOverview() = TeaOverview(
@@ -210,7 +212,10 @@ internal fun InventoryEvent.toEntity(createdAt: Long, updatedAt: Long) = Invento
     updatedAt = updatedAt,
 )
 
-/** A step row's six `taste_*` columns and its `tasting_note` as a [StepTasting] (umamit.db v7, D-114). */
+/**
+ * A step row's ten `taste_*` columns and its `tasting_note` as a [StepTasting] (umamit.db v7, D-114; the last four
+ * from v9, D-128).
+ */
 @Suppress("LongParameterList")
 internal fun stepTasting(
     umami: Int?,
@@ -219,6 +224,10 @@ internal fun stepTasting(
     astringency: Int?,
     body: Int?,
     aroma: Int?,
+    roast: Int?,
+    acidity: Int?,
+    freshness: Int?,
+    spice: Int?,
     note: String?,
 ) = StepTasting(
     taste = TasteProfile(
@@ -228,6 +237,10 @@ internal fun stepTasting(
         astringency = astringency,
         body = body,
         aroma = aroma,
+        roast = roast,
+        acidity = acidity,
+        freshness = freshness,
+        spice = spice,
     ),
     note = note,
 )

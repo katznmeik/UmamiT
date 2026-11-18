@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SessionTasting
 import com.umamit.core.data.TastingWrite
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteSet
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import kotlinx.coroutines.CoroutineScope
@@ -46,8 +47,11 @@ class TimerTasteWritesTest {
             value: Int?,
         ): TastingWrite = answer("taste:$sessionId/$position/$axis=$value")
 
-        override suspend fun clearInfusionTaste(sessionId: String, position: Int): TastingWrite =
-            answer("clear:$sessionId/$position")
+        override suspend fun clearInfusionTaste(
+            sessionId: String,
+            position: Int,
+            axes: Collection<TasteAxis>,
+        ): TastingWrite = answer("clear:$sessionId/$position/${axes.joinToString(",")}")
 
         override suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): TastingWrite =
             answer("note:$sessionId/$position=$note")
@@ -66,14 +70,14 @@ class TimerTasteWritesTest {
     fun `the writes run one after another in the order given`() {
         writes.setTaste("s1", 0, TasteAxis.UMAMI, 4)
         writes.setNote("s1", 0, "Süß")
-        writes.clearTaste("s1", 0)
+        writes.clearTaste("s1", 0, TasteSet.OXIDISED.axes)
         writes.setTaste("s1", 0, TasteAxis.BODY, 2)
         scheduler.advanceUntilIdle()
 
         assertThat(received).containsExactly(
             "taste:s1/0/UMAMI=4",
             "note:s1/0=Süß",
-            "clear:s1/0",
+            "clear:s1/0/ROAST,SWEETNESS,BITTERNESS,ASTRINGENCY,BODY,AROMA",
             "taste:s1/0/BODY=2",
         ).inOrder()
         assertThat(writes.refusals.value).isEqualTo(0)

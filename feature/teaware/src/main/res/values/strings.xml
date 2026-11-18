@@ -27,9 +27,9 @@
     <string name="vessel_editor_more">Weitere Optionen</string>
     <string name="vessel_editor_archive">Archivieren</string>
     <!-- E10: the vessel of the active brew session can't be archived. -->
-    <string name="vessel_editor_archive_blocked">Erst die Sitzung beenden</string>
+    <string name="vessel_editor_archive_blocked">Erst die Session beenden</string>
     <string name="vessel_editor_restore">Wiederherstellen</string>
-    <string name="vessel_editor_archived_note">Dieses Gefäß ist archiviert und wird beim Brühen nicht angeboten.</string>
+    <string name="vessel_editor_archived_note">Dieses Gefäß ist archiviert und wird beim Aufguss nicht angeboten.</string>
     <string name="vessel_editor_name">Name</string>
     <string name="vessel_editor_type">Art</string>
     <string name="vessel_editor_capacity">Volumen</string>

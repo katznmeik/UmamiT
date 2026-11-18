@@ -84,6 +84,7 @@ object TeaEditorTags {
     const val SECONDARY_NAME = "TeaEditorSecondaryName"
     const val SORTE = "TeaEditorSorte"
     const val UMAMI = "TeaEditorUmami"
+    const val TASTE_SET = "TeaEditorTasteSet"
     const val FLAVORED = "TeaEditorFlavored"
     const val COUNTRY = "TeaEditorCountry"
     const val REGION = "TeaEditorRegion"

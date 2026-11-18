@@ -20,6 +20,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TeaRating
 import org.junit.Rule
 import org.junit.Test
@@ -29,7 +30,7 @@ import org.robolectric.annotation.Config
 import java.time.LocalDate
 
 /**
- * The tea detail's rating, GESCHMACK and LETZTE SITZUNGEN (TEA-13, D-112, #232): what shows with and without data,
+ * The tea detail's rating, GESCHMACK and LETZTE SESSIONS (TEA-13, D-112, #232): what shows with and without data,
  * and what a row and *Alle anzeigen* do, also above the setup where they open nothing.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -63,7 +64,7 @@ class TeaDetailTastingScreenTest {
         compose.onNodeWithTag(TEA_DETAIL_TASTE_TAG).assertDoesNotExist()
         compose.onNodeWithTag(TEA_DETAIL_RECENT_TAG).assertDoesNotExist()
         compose.onNodeWithText("GESCHMACK").assertDoesNotExist()
-        compose.onNodeWithText("LETZTE SITZUNGEN").assertDoesNotExist()
+        compose.onNodeWithText("LETZTE SESSIONS").assertDoesNotExist()
     }
 
     @Test
@@ -75,7 +76,7 @@ class TeaDetailTastingScreenTest {
         compose.onNodeWithTag(TEA_DETAIL_RATING_TAG).assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
-                listOf("Bewertung 4,5 von 5, aus 12 Sitzungen"),
+                listOf("Bewertung 4,5 von 5, aus 12 Sessions"),
             ),
         )
     }
@@ -89,7 +90,7 @@ class TeaDetailTastingScreenTest {
         compose.onNodeWithTag(TEA_DETAIL_BREWING_RATING_TAG).assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
-                listOf("Zubereitung im Schnitt 3,8 von 5, aus 10 Sitzungen"),
+                listOf("Zubereitung im Schnitt 3,8 von 5, aus 10 Sessions"),
             ),
         )
         val header = compose.onNodeWithTag(TEA_DETAIL_RATING_TAG).fetchSemanticsNode().boundsInRoot
@@ -112,7 +113,7 @@ class TeaDetailTastingScreenTest {
         compose.onNodeWithTag(TEA_DETAIL_RATING_TAG).assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
-                listOf("Bewertung 4,0 von 5, aus 1 Sitzung"),
+                listOf("Bewertung 4,0 von 5, aus 1 Session"),
             ),
         )
     }
@@ -128,10 +129,10 @@ class TeaDetailTastingScreenTest {
     }
 
     @Test
-    fun `GESCHMACK comes after FRISCHE and before LETZTE SITZUNGEN`() {
+    fun `GESCHMACK comes after FRISCHE and before LETZTE SESSIONS`() {
         show(TASTED.copy(freshness = DetailFreshness(com.umamit.core.model.Freshness.FRESH, null, null)))
 
-        val order = listOf("Frische", "Geschmack", "Letzte Sitzungen").map { title ->
+        val order = listOf("Frische", "Geschmack", "Letzte Sessions").map { title ->
             compose.onNode(hasContentDescription(title)).fetchSemanticsNode().boundsInRoot.top
         }
         // Scrolled content keeps its layout order, so the tops grow down the page.
@@ -188,7 +189,7 @@ class TeaDetailTastingScreenTest {
         show(TASTED)
 
         // By its action: scrolled to the viewport's lower edge, the pencil FAB covers the button's centre.
-        compose.onNodeWithContentDescription("Alle anzeigen: Letzte Sitzungen").performScrollTo()
+        compose.onNodeWithContentDescription("Alle anzeigen: Letzte Sessions").performScrollTo()
             .performSemanticsAction(SemanticsActions.OnClick)
 
         assertThat(shownAll).isEqualTo(1)
@@ -200,7 +201,7 @@ class TeaDetailTastingScreenTest {
         show(TASTED.copy(sessionCount = 2, recentSessions = TASTED.recentSessions.take(2)))
 
         compose.onNodeWithTag(TEA_DETAIL_RECENT_TAG).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Alle anzeigen: Letzte Sitzungen").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Alle anzeigen: Letzte Sessions").assertDoesNotExist()
     }
 
     @Test
@@ -209,9 +210,36 @@ class TeaDetailTastingScreenTest {
 
         compose.onNodeWithTag(TEA_DETAIL_RECENT_TAG).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(teaDetailSessionTag("s1")).assertHasNoClickAction()
-        compose.onNodeWithContentDescription("Alle anzeigen: Letzte Sitzungen").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Alle anzeigen: Letzte Sessions").assertDoesNotExist()
         assertThat(opened).isEmpty()
         assertThat(shownAll).isEqualTo(0)
+    }
+
+    @Test
+    fun `a herbal tea's radar reads its six axes in the set's order`() {
+        show(TASTED_HERBAL)
+
+        compose.onNodeWithTag("taste_radar").performScrollTo().assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf(
+                    "Geschmacksprofil: Süße 3 von 5, Säure 4 von 5, Frische 2 von 5, Würze 1 von 5, " +
+                        "Bitterkeit 0,5 von 5, Körper 2 von 5",
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `a green tea's radar is as before`() {
+        show(TASTED)
+
+        compose.onNodeWithTag("taste_radar").performScrollTo().assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf("Geschmacksprofil: Umami 4,5 von 5, Süße 3 von 5, Bitterkeit 1,5 von 5, Körper 3,5 von 5"),
+            ),
+        )
     }
 
     companion object {
@@ -239,6 +267,36 @@ class TeaDetailTastingScreenTest {
                 RecentSession("s1", LocalDate.of(2026, 6, 8), 55, 60, 3, 3, 4.5, 3.5),
                 RecentSession("s2", LocalDate.of(2026, 10, 21), 70, 45, 2, 3, null, 3.5),
                 RecentSession("s3", LocalDate.of(2026, 10, 19), 70, 45, 3, 3, 4.0),
+            ),
+        )
+
+        /** [TASTED] for a black tea (Schwarz · Oolong · Pu-Erh set, D-128). */
+        val TASTED_OXIDISED = TASTED.copy(
+            taste = TASTED.taste.copy(
+                averages = mapOf(
+                    TasteAxis.ROAST to 4.0,
+                    TasteAxis.SWEETNESS to 2.0,
+                    TasteAxis.BITTERNESS to 1.0,
+                    TasteAxis.ASTRINGENCY to 3.0,
+                    TasteAxis.BODY to 3.5,
+                    TasteAxis.AROMA to 4.5,
+                ),
+                tasteSet = TasteSet.OXIDISED,
+            ),
+        )
+
+        /** [TASTED] for a herbal tea (Kräuter · Rotbusch · Früchte set, D-128). */
+        val TASTED_HERBAL = TASTED.copy(
+            taste = TASTED.taste.copy(
+                averages = mapOf(
+                    TasteAxis.SWEETNESS to 3.0,
+                    TasteAxis.ACIDITY to 4.0,
+                    TasteAxis.FRESHNESS to 2.0,
+                    TasteAxis.SPICE to 1.0,
+                    TasteAxis.BITTERNESS to 0.5,
+                    TasteAxis.BODY to 2.0,
+                ),
+                tasteSet = TasteSet.HERBAL,
             ),
         )
     }

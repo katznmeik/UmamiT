@@ -74,7 +74,7 @@ class TeaDetailHistoryScreenTest {
         compose.onNodeWithText("Bestand korrigiert").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("−15 g").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("23. Okt. 2026").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Gebrüht").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Aufgegossen").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("−5 g").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Kauf").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("+100 g · 18,90 €").performScrollTo().assertIsDisplayed()
@@ -86,7 +86,7 @@ class TeaDetailHistoryScreenTest {
 
         row("p1").assert(hasDescription("Kauf am 20. Okt. 2026: 100 g dazu für 18,90 €"))
         row("a1").assert(hasDescription("Bestand korrigiert am 23. Okt. 2026: 15 g weniger"))
-        row("b1").assert(hasDescription("Gebrüht am 21. Okt. 2026: 5 g verbraucht"))
+        row("b1").assert(hasDescription("Aufgegossen am 21. Okt. 2026: 5 g verbraucht"))
             .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.OnClick))
     }
 

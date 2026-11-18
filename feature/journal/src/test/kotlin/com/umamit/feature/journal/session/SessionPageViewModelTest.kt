@@ -15,6 +15,7 @@ import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteAxis
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
@@ -260,7 +261,7 @@ class SessionPageViewModelTest {
             assertThat(first.note).isEqualTo("Weich")
             assertThat(first.hasData).isTrue()
 
-            vm.infusionTasting.clearTaste(1)
+            vm.infusionTasting.clearTaste(1, TasteSet.GREEN.axes)
             assertThat(vm.page.infusions.single().taste.setCount).isEqualTo(0)
             assertThat(vm.page.infusions.single().note).isEqualTo("Weich")
         }

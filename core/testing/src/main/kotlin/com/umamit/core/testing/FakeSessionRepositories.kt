@@ -25,7 +25,9 @@ import com.umamit.core.model.StockSummary
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteDescriptor
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TastingLimits
+import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaRating
 import com.umamit.core.model.TeaTasting
 import com.umamit.core.model.TimerSlot
@@ -112,6 +114,16 @@ class FakeSessions(
      */
     fun storeSessionRowTaste(sessionId: String, taste: TasteProfile) =
         sessionRowTastes.update { it + (sessionId to taste) }
+
+    /**
+     * [session] with the taste set it shows, as Room's reads fill it (JRN-03, D-128): its tea's now among [teas],
+     * else the set of its snapshot category.
+     */
+    internal fun withTasteSet(session: BrewSession, teas: Map<String, Tea> = collection.teaRows.value): BrewSession {
+        val tea = session.snapshot.teaId?.let { teas[it] }
+        val set = tea?.effectiveTasteSet ?: TasteSet.of(session.snapshot.category)
+        return if (session.tasteSet == set) session else session.copy(tasteSet = set)
+    }
 
     internal fun updateSession(id: String, transform: (BrewSession) -> BrewSession) = sessionRows.update { map ->
         map[id]?.let { map + (id to transform(it)) } ?: map
@@ -231,13 +243,14 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
         s.sessionRows.update { it - sessionId }
     }
 
-    override suspend fun getSession(id: String): BrewSession? = s.sessionRows.value[id]
+    override suspend fun getSession(id: String): BrewSession? = s.sessionRows.value[id]?.let(s::withTasteSet)
 
     override suspend fun inProgressSessionIds(): List<String> =
         s.sessionRows.value.values.filter { it.status == SessionStatus.IN_PROGRESS }.map { it.id }
 
     override fun observeRecentSessions(limit: Int): Flow<List<BrewSession>> = s.sessionRows.map { map ->
         map.values.filter { it.status != SessionStatus.IN_PROGRESS }.sortedByDescending { it.startedAtMs }.take(limit)
+            .map(s::withTasteSet)
     }
 
     private fun PlannedStep.row(position: Int) = SessionStepRow(
@@ -263,11 +276,12 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
 class FakeJournalRepository internal constructor(private val s: FakeSessions) : JournalRepository {
     val coverPhotos = MutableStateFlow<Map<String, java.io.File>>(emptyMap())
 
-    override fun observeSessions(): Flow<List<JournalSession>> = s.sessionRows.map { rows ->
-        rows.values.sortedByDescending { it.startedAtMs }.map { session ->
-            JournalSession(session, session.snapshot.teaId?.let { coverPhotos.value[it] })
+    override fun observeSessions(): Flow<List<JournalSession>> =
+        combine(s.sessionRows, s.collection.teaRows) { rows, teas ->
+            rows.values.sortedByDescending { it.startedAtMs }.map { session ->
+                JournalSession(s.withTasteSet(session, teas), session.snapshot.teaId?.let { coverPhotos.value[it] })
+            }
         }
-    }
 
     /** As on Room: a finished session goes with its stock event and its descriptors; one in progress stays (D-102). */
     override suspend fun deleteSession(sessionId: String) {
@@ -277,16 +291,18 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
         s.sessionRows.update { it - sessionId }
     }
 
-    override fun observeSession(sessionId: String): Flow<JournalSession?> = s.sessionRows.map { rows ->
-        rows[sessionId]?.let { session ->
-            JournalSession(session, session.snapshot.teaId?.let { coverPhotos.value[it] })
+    override fun observeSession(sessionId: String): Flow<JournalSession?> =
+        combine(s.sessionRows, s.collection.teaRows) { rows, teas ->
+            rows[sessionId]?.let { session ->
+                JournalSession(s.withTasteSet(session, teas), session.snapshot.teaId?.let { coverPhotos.value[it] })
+            }
         }
-    }
 
     override fun observeTeaTasting(teaId: String): Flow<TeaTasting> = combine(
         s.sessionRows,
         s.sessionRowTastes,
-    ) { rows, rowTastes ->
+        s.collection.teaRows,
+    ) { rows, rowTastes, teas ->
         val sessions = finished(rows).filter { it.snapshot.teaId == teaId }
         // Every step row's values count, and a session's own columns too, as on Room's union (05 §3.7, D-114).
         val tastes = sessions.flatMap { session ->
@@ -295,7 +311,8 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
         TeaTasting(
             rating = ratingOf(sessions) { it.rating },
             brewingRating = ratingOf(sessions) { it.brewingRating },
-            tasteAverages = TasteProfile.averages(tastes),
+            // The tea's set's six axes only (D-128); without the tea, the Grüntee six, as on Room.
+            tasteAverages = TasteProfile.averages(tastes, teas[teaId]?.effectiveTasteSet ?: TasteSet.GREEN),
             descriptorCounts = sessions.flatMap { it.descriptorKeys }.groupingBy { it }.eachCount()
                 .map { (key, count) -> DescriptorCount(key, count) }
                 .sortedWith(compareByDescending<DescriptorCount> { it.count }.thenBy { it.key }),
@@ -342,8 +359,11 @@ class FakeSessionTasting internal constructor(private val s: FakeSessions) : Ses
         return infusionWrite(sessionId, position, invalid) { it.copy(taste = it.taste.with(axis, value)) }
     }
 
-    override suspend fun clearInfusionTaste(sessionId: String, position: Int): TastingWrite =
-        infusionWrite(sessionId, position) { it.copy(taste = TasteProfile.EMPTY) }
+    override suspend fun clearInfusionTaste(
+        sessionId: String,
+        position: Int,
+        axes: Collection<TasteAxis>,
+    ): TastingWrite = infusionWrite(sessionId, position) { it.copy(taste = it.taste.without(axes)) }
 
     override suspend fun setInfusionNote(sessionId: String, position: Int, note: String?): TastingWrite {
         val trimmed = note?.trim()?.takeIf { it.isNotEmpty() }

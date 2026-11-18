@@ -27,7 +27,7 @@ import java.time.LocalDate
 /**
  * The tea detail (SCR-09, D-100) in light and dark at font scale 1.0 and 2.0 (03 §6), with the placeholder leaf
  * instead of a photo and an invented tea (D-016): the top of the page with the figures and REZEPTE, and the tea
- * *Knapp* and archived, scrolled to VORRAT (the filled reorder button, *Brühen* greyed out); the photo pager
+ * *Knapp* and archived, scrolled to VORRAT (the filled reorder button, *Session starten* greyed out); the photo pager
  * (SCR-28) over placeholder photos and its limit of 10, the photo's ⋮ and „Foto löschen?" (#186); FRISCHE with
  * *Bald genießen* (INV-06); VORRAT's stock warning on and off with *Knapp ab* (D-108).
  * Goldens: `src/test/screenshots/`.
@@ -169,7 +169,7 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
     )
 }
 
-/** SCR-09 on a short screen (384 × 832 dp) at font scale 2.0: *Brühen* and the FAB stay reachable. */
+/** SCR-09 on a short screen (384 × 832 dp) at font scale 2.0: *Session starten* and the FAB stay reachable. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [36], qualifiers = "w384dp-h832dp-xhdpi")

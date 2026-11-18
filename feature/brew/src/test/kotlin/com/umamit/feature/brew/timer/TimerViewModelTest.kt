@@ -18,6 +18,8 @@ import com.umamit.core.model.StepTasting
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.StockSummary
 import com.umamit.core.model.TasteProfile
+import com.umamit.core.model.TasteSet
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
@@ -120,14 +122,18 @@ class TimerViewModelTest {
         InventoryEvent(id, SeedData.HISUI_TEA_ID, InventoryEventType.PURCHASE, grams, occurredAtMillis = 1),
     )
 
-    private suspend fun startHisuiSession(id: String, teaId: String? = SeedData.HISUI_TEA_ID) {
+    private suspend fun startHisuiSession(
+        id: String,
+        teaId: String? = SeedData.HISUI_TEA_ID,
+        category: TeaCategory? = null,
+    ) {
         val snapshot = SessionSnapshot(
             teaId = teaId,
             teaName = "Bio Sencha Hisui",
             teaSecondaryName = null,
             teaType = "Sencha",
             styleKey = "sencha",
-            category = null,
+            category = category,
             profileId = null,
             profileName = "Kyusu",
             method = BrewMethod.KYUSU,
@@ -317,6 +323,39 @@ class TimerViewModelTest {
             .isEqualTo(TimerSessionTastings("s2", stepTastings.getValue("s2")))
         assertThat(tasteReads).containsExactly("s1", "s2")
         assertThat(vm.stepTastings(TimerSlot.QUICK).value).isNull()
+    }
+
+    /** JRN-03, D-128, D-108: each brew's sheet shows its own tea's set; the quick timer has none. */
+    @Test
+    fun `each brew slot has its own tea's taste set, which follows the tea, and the quick timer none`() = runTest {
+        collection.teas.saveTea(SeedData.hisui)
+        collection.teas.saveTea(SeedData.tanabata.copy(category = TeaCategory.BLACK))
+        startHisuiSession("s1")
+        startTanabataSession("s2")
+        val first = TimerStates.ready(stepIndex = 1)
+        timer.showSlots(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to secondBrew), front = secondBrew)
+        val vm = viewModel()
+
+        assertThat(vm.tasteSet(TimerSlot.BREW).value).isEqualTo(TimerTasteSet("s1", TasteSet.GREEN))
+        assertThat(vm.tasteSet(TimerSlot.BREW_2).value).isEqualTo(TimerTasteSet("s2", TasteSet.OXIDISED))
+        assertThat(vm.tasteSet(TimerSlot.QUICK).value).isNull()
+
+        // The tea's *Geschmacksprofil* edited during the brew: the sheet follows it; the other brew keeps its own.
+        collection.teas.saveTea(SeedData.hisui.copy(tasteSet = TasteSet.HERBAL))
+        assertThat(vm.tasteSet(TimerSlot.BREW).value).isEqualTo(TimerTasteSet("s1", TasteSet.HERBAL))
+        assertThat(vm.tasteSet(TimerSlot.BREW_2).value).isEqualTo(TimerTasteSet("s2", TasteSet.OXIDISED))
+    }
+
+    @Test
+    fun `a session whose tea is gone shows its snapshot category's set, and a quick timer none`() = runTest {
+        // The session's tea is not in the collection (deleted): the set of the snapshot's *Schwarztee*.
+        startHisuiSession("s1", category = TeaCategory.BLACK)
+        timer.show(TimerStates.ready(stepIndex = 1))
+        val vm = viewModel()
+        assertThat(vm.tasteSet(TimerSlot.BREW).value).isEqualTo(TimerTasteSet("s1", TasteSet.OXIDISED))
+
+        timer.show(TimerStates.quick(TimerPhase.RUNNING))
+        assertThat(vm.tasteSet(TimerSlot.BREW).value).isNull()
     }
 
     @Test

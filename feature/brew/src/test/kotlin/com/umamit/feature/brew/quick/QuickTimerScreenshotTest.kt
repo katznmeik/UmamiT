@@ -21,7 +21,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * SCR-07 before its *Start*, at font scale 1.0 and 2.0 (03 §6), inside the
- * light and the dark app theme (the screen is always dark): the chips, a
+ * light and the dark app theme, which the screen follows (SET-05, D-128 Q20): the chips, a
  * custom duration, the duration picker, the second-timer question, and the
  * *Vorwarnung* row with each kind of label and its menu (TMR-22, D-097):
  * „Auto · 10 s" (chips), „Auto · keine" (custom, a long step), „Aus", „20 s"

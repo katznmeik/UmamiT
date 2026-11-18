@@ -192,7 +192,7 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         BrewSetupScreen(kyusu.copy(stockGrams = 38.0))
     }
 
-    /** A session of this tea runs: the sheet says what it still deducts at *Sitzung beenden* (D-096). */
+    /** A session of this tea runs: the sheet says what it still deducts at *Session beenden* (D-096). */
     @Test
     fun setupStockSheetDuringSession() = capture("BrewSetup_stockSession", act = { tapStock() }) {
         BrewSetupScreen(kyusu.copy(stockGrams = 38.0, sessionLeafGrams = 5.0))
@@ -351,7 +351,7 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         PickerHost(TeaPickerUiState(favorites = listOf(hisui), all = listOf(hisui, tanabata), loading = false))
     }
 
-    /** The tea of the active brew session: greyed out with „Erst die Sitzung beenden" (E15). */
+    /** The tea of the active brew session: greyed out with „Erst die Session beenden" (E15). */
     @Test
     fun pickerMenuBlocked() = capture("TeaPicker_menuBlocked", act = { longPress("Bio Sencha Tanabata") }) {
         PickerHost(

@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Color
  * values; the overrides stay.
  */
 
-/** Light „Washi" scheme (03 §3.1). */
+/** Light „Washi" scheme (03 §3.1): the light theme, the light timer included (D-128 Q20). */
 val WashiColorScheme: ColorScheme = lightColorScheme(
     primary = Color(0xFF4A5643), // 03 §3.1 (generated 0xFF426833)
     onPrimary = Color(0xFFF6F3EC), // 03 §3.1 (generated 0xFFFFFFFF)
@@ -64,7 +64,7 @@ val WashiColorScheme: ColorScheme = lightColorScheme(
     surfaceContainerLowest = Color(0xFFFFFFFF), // generated
 )
 
-/** Dark „Steeping" scheme: the dark theme, and the timer in both themes (03 §3.1). */
+/** Dark „Steeping" scheme: the dark theme, the dark timer included (03 §3.1, D-128 Q20). */
 val SteepingColorScheme: ColorScheme = darkColorScheme(
     primary = Color(0xFFB9C8A6), // 03 §3.1 (generated 0xFFA8D293)
     onPrimary = Color(0xFF1F271B), // 03 §3.1 (generated 0xFF153809)

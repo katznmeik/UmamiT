@@ -262,7 +262,7 @@ class RecoveryTableTest {
     }
 
     @Test
-    fun `midnight passed while dead - saved silently with Sitzung gespeichert, no saved sheet`() = runTest {
+    fun `midnight passed while dead - saved silently with Session gespeichert, no saved sheet`() = runTest {
         before.controller.startSession(brewStart(infusion(60), infusion(30)))
         val id = before.sessionId
         before.controller.send(TimerEvent.Start)

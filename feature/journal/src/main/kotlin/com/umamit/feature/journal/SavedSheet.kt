@@ -127,7 +127,7 @@ private data class SavedSheetContent(
 
 /**
  * The „Gespeichert" sheet (SCR-06, TMR-12): „Gespeichert im Journal · 3
- * Aufgüsse · 2:20" after *Sitzung beenden*, without a scrim: ignoring it is
+ * Aufgüsse · 2:20" after *Session beenden*, without a scrim: ignoring it is
  * fine. It leaves after 10 s, on a swipe down, or at once when an alert
  * starts. While [alerting] it is not composed at all, so no exit animation
  * runs over the alert, and a sheet due then is dropped (rule 8, D-061).

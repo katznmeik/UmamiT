@@ -182,7 +182,7 @@ class TransitionJankTest {
         launchOnStart()
         tab(context.getString(Tab.Journal.label)).click()
         Thread.sleep(SETTLE_MS)
-        // The loaded page is the hero layout (SCR-16, D-112) without a „Sitzung" title (that shows only while it
+        // The loaded page is the hero layout (SCR-16, D-112) without a „Session" title (that shows only while it
         // loads or for a missing session), so its ← (Zurück) marks it: nothing on the Journal tab carries one.
         val page = By.desc(context.getString(DsR.string.ds_back))
         repeat(JankGate.runs) {
@@ -243,12 +243,12 @@ class TransitionJankTest {
         launchOnStart()
         repeat(JankGate.runs) {
             openSetup()
-            val start = find(By.text(context.getString(BrewR.string.brew_setup_start)), "Brühen starten")
+            val start = find(By.text(context.getString(BrewR.string.brew_setup_start)), "Session starten")
             // The session waits for its first step: nothing is scheduled and no alert can come (rule 8).
             record("setup → timer") { start.click() }
-            // Fails loudly should *Brühen starten* ever start the step: a step here would arm a real alert.
+            // Fails loudly should *Session starten* ever start the step: a step here would arm a real alert.
             val phase = (controller.state.value as? TimerUiState.Active)?.phase
-            check(phase == TimerPhase.READY) { "the session after Brühen starten is $phase, not waiting (READY)" }
+            check(phase == TimerPhase.READY) { "the session after Session starten is $phase, not waiting (READY)" }
             // Discarding the waiting session closes the timer route (TimerRoute's onClose) into the shell.
             record("timer → shell") { endTimer() }
             // Not the „Start" text: the waiting timer shows a Start button too.
@@ -271,14 +271,14 @@ class TransitionJankTest {
             launchOnStart()
             repeat(JankGate.runs) {
                 openSetup()
-                await(By.text(context.getString(BrewR.string.brew_setup_start)), "Brühen starten").click()
+                await(By.text(context.getString(BrewR.string.brew_setup_start)), "Session starten").click()
                 // The session appears asynchronously after the click: poll for READY instead of reading once.
                 var phase: TimerPhase? = null
                 val ready = waitFor {
                     phase = (controller.state.value as? TimerUiState.Active)?.phase
                     phase == TimerPhase.READY
                 }
-                check(ready) { "the session after Brühen starten is $phase, not waiting (READY)" }
+                check(ready) { "the session after Session starten is $phase, not waiting (READY)" }
                 Thread.sleep(SETTLE_MS)
                 shell("input keyevent KEYCODE_SLEEP")
                 if (!waitFor {

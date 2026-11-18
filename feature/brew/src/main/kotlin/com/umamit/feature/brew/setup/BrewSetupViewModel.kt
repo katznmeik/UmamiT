@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -64,11 +65,11 @@ import javax.inject.Inject
 /**
  * The setup's view model (SCR-04; BRW-02, BRW-03, BRW-10, TMR-01, TMR-21). It
  * opens on the tea `teaId` with its default recipe (or with `recipeId`, a recipe
- * tapped on the tea detail, SCR-09), or, for *Brühen anpassen*
+ * tapped on the tea detail, SCR-09), or, for *Session anpassen*
  * (BRW-11), on the waiting session `sessionId` with that session's values, or, for *So nochmal brühen* (BRW-06),
  * on the past session `pastSessionId` as brewed: its set times, its recipe while it exists, else *Ohne Rezept*.
  * Every change applies to this session only, until *Im Rezept speichern*.
- * *Brühen starten* goes through the [BrewStarter]; nothing else here touches
+ * *Session starten* goes through the [BrewStarter]; nothing else here touches
  * the timer. The [catalog] only tells whether the tea's catalog tea exists, for
  * ⋮ *Im Katalog ansehen* (D-098).
  */
@@ -88,8 +89,14 @@ class BrewSetupViewModel @Inject constructor(
     private val catalog: CatalogRepository,
 ) : ViewModel() {
 
-    /** The session *Brühen anpassen* came from; it is replaced without asking while it still waits. */
+    /** The session *Session anpassen* came from; it is replaced without asking while it still waits. */
     private val adjustedSessionId: String? = savedState[SESSION_ID]
+
+    /**
+     * The setup was opened from a running timer's ⋮ *Session anpassen* (the route carries the active session's
+     * id): its title reads „Session anpassen", else „Neue Session" (SCR-04, D-128).
+     */
+    val adjusting: Boolean = adjustedSessionId != null
 
     /** The past session *So nochmal brühen* came from (BRW-06, D-100); it is only read, never replaced. */
     private val pastSessionId: String? = savedState[PAST_SESSION_ID]
@@ -133,7 +140,8 @@ class BrewSetupViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            source.first { it != null }?.let { s ->
+            // A session whose tea is gone: `source` ends after one null, the state stays NotFound (BRW-06, #313).
+            source.firstOrNull { it != null }?.let { s ->
                 if (edits.value == null) setEdits(s.initialEdits(savedState[RECIPE_ID]))
             }
         }
@@ -206,11 +214,11 @@ class BrewSetupViewModel @Inject constructor(
         stock.correctStock(s.tea.tea.id, newTotalGrams)
     }
 
-    /** *Brühen starten* (TMR-01): the session waits in READY and the timer opens. */
+    /** *Session starten* (TMR-01): the session waits in READY and the timer opens. */
     fun startBrew() = launchWithSource { s ->
         val current = edits.value ?: return@launchWithSource
         val request = current.startRequest(s)
-        // *Brühen anpassen* replaces the session it came from in its own slot (BREW or BREW_2, D-108).
+        // *Session anpassen* replaces the session it came from in its own slot (BREW or BREW_2, D-108).
         val adjusted = TimerSlot.entries.firstOrNull { starter.activeIn(it)?.isAdjustable() == true }
         val before = starter.activeSessionIds()
         val outcome = if (adjusted != null) {
@@ -304,7 +312,7 @@ class BrewSetupViewModel @Inject constructor(
     }
 
     /**
-     * The leaf the active session of [teaId] still deducts at *Sitzung beenden* (INV-03, D-096): its
+     * The leaf the active session of [teaId] still deducts at *Session beenden* (INV-03, D-096): its
      * snapshot's leaf while deduction is on; null without such a session (another tea, a quick timer).
      */
     private fun sessionLeaf(teaId: String): Flow<Double?> = combine(

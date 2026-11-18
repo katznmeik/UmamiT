@@ -8,6 +8,8 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.HarvestSeason
+import com.umamit.core.model.TasteSet
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.UmamiLevel
 import org.junit.Rule
 import org.junit.Test
@@ -53,6 +55,12 @@ internal object TeaEditorStates {
         hasChanges = false,
         errors = emptySet(),
     )
+
+    /** A stored Gyokuro with *Geschmacksprofil* on „Automatisch": its supporting line is the set in effect. */
+    val tasteSetAutomatic = edit.copy(form = edit.form.copy(category = TeaCategory.GREEN))
+
+    /** A stored herbal tea with *Geschmacksprofil* chosen (TEA-02, D-128). */
+    val tasteSetHerbal = edit.copy(form = edit.form.copy(category = TeaCategory.HERBAL, tasteSet = TasteSet.HERBAL))
 
     /** The stored tea with both dates; the opening date is the one a refused *Speichern* flags when [future]. */
     fun withDates(future: Boolean = false) = edit.copy(
@@ -107,6 +115,16 @@ class TeaEditorScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     @Test
     fun edit() = capture("TeaEditor_edit") { TeaEditorScreen(TeaEditorStates.edit, TeaEditorActions()) }
+
+    @Test
+    fun tasteSetAutomatic() = capture("TeaEditor_tasteSetAutomatic", scrollToTag = TeaEditorTags.TASTE_SET) {
+        TeaEditorScreen(TeaEditorStates.tasteSetAutomatic, TeaEditorActions())
+    }
+
+    @Test
+    fun tasteSetChosen() = capture("TeaEditor_tasteSetChosen", scrollToTag = TeaEditorTags.TASTE_SET) {
+        TeaEditorScreen(TeaEditorStates.tasteSetHerbal, TeaEditorActions())
+    }
 
     @Test
     fun freshness() = capture("TeaEditor_freshness", scrollToTag = TeaEditorTags.BEST_BEFORE) {

@@ -185,7 +185,7 @@ private fun stepLabel(step: SessionPageStep): String = when (step.kind) {
     StepKind.WHISK -> stringResource(R.string.session_step_whisk)
 }
 
-/** The measured time „1:35", „übersprungen" or „nicht gebrüht" (Q-19). */
+/** The measured time „1:35", „übersprungen" or „nicht aufgegossen" (Q-19). */
 @Composable
 @ReadOnlyComposable
 private fun actualText(step: SessionPageStep): String = when {

@@ -19,7 +19,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 /**
- * Sitzung bearbeiten (SCR-17, JRN-11, D-112) in light and dark at font scale 1.0 and 2.0 (03 §6): untouched; with a
+ * Session bearbeiten (SCR-17, JRN-11, D-112) in light and dark at font scale 1.0 and 2.0 (03 §6): untouched; with a
  * leaf change and its stock line; with the future refused. A synthetic session (D-016): a rinse, an infusion run into
  * overtime, a skipped one and one never started. Goldens: `src/test/screenshots/`.
  */
@@ -95,7 +95,7 @@ class SessionEditorScreenshotTest(private val dark: Boolean, private val fontSca
         ),
     )
 
-    /** A start after now: „Die Sitzung kann nicht in der Zukunft liegen.", *Speichern* greyed out. */
+    /** A start after now: „Die Session kann nicht in der Zukunft liegen.", *Speichern* greyed out. */
     @Test
     fun error() = capture(
         "error",

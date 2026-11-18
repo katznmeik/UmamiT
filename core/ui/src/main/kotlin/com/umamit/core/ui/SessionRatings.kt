@@ -55,7 +55,7 @@ fun SessionRatings(
 
 /**
  * „Tee 4,5 von 5, Zubereitung 3,5 von 5" for TalkBack, only the set one; null when neither is set. A row that
- * reads its parts as one sentence (LETZTE SITZUNGEN) takes it into its own description.
+ * reads its parts as one sentence (LETZTE SESSIONS) takes it into its own description.
  */
 @Composable
 fun sessionRatingsSpoken(rating: Double?, brewingRating: Double?): String? {

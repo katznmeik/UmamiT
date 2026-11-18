@@ -37,7 +37,7 @@ import com.umamit.core.designsystem.component.TimerRingDefaults
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
-import com.umamit.core.designsystem.theme.SteepingTheme
+import com.umamit.core.designsystem.theme.TimerTheme
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerSlot
@@ -62,7 +62,10 @@ internal val PreAlertMarkKey = SemanticsPropertyKey<Float?>("PreAlertMark")
 private val PillMinHeight = 72.dp
 private val PillMinWidth = 200.dp
 
-/** onSurfaceVariant at 60 % on the steeping background: 3.3:1. */
+/**
+ * onSurfaceVariant at 60 % on the steeping background: 3.3:1. On washi 60 % is only 2.3:1, so the light timer
+ * outlines in full onSurfaceVariant (4.8:1; for the design check, #323).
+ */
 private const val CHIP_BORDER_ALPHA = 0.6f
 
 /** What a tap on SCR-07 does. */
@@ -77,7 +80,7 @@ class QuickTimerActions(
 )
 
 /**
- * The quick timer before its *Start* (SCR-07, TMR-22): dark like SCR-05 with
+ * The quick timer before its *Start* (SCR-07, TMR-22): in the app's theme like SCR-05 (D-128 Q20), with
  * its ink-wash band and no seal (D-095), the ring with the chosen duration and its pre-alert mark, the chips
  * 1:00 … 15:00 (D-114), the *Vorwarnung* selector (D-097) and *Start*. A tap on
  * the ring opens the duration picker (5 s – 24 h, PRF-04 increments). Once it
@@ -94,7 +97,7 @@ class QuickTimerActions(
 fun QuickTimerScreen(state: QuickTimerUiState, actions: QuickTimerActions, modifier: Modifier = Modifier) {
     val picker = rememberAlertGate(state.alertKey)
 
-    SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
+    TimerTheme(reduceMotion = UmamiTheme.reduceMotion) {
         Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             QuickTimerBody(
                 state = state,
@@ -257,8 +260,9 @@ private fun DurationChips(selected: Int, onSelect: (Int) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XXSmall),
     ) {
-        // Unselected chips are outlined at ≥ 3:1 against the steeping background (WCAG 1.4.11, D-065).
-        val borderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = CHIP_BORDER_ALPHA)
+        // Unselected chips are outlined at ≥ 3:1 against the timer's background in both themes (WCAG 1.4.11, D-065).
+        val variant = MaterialTheme.colorScheme.onSurfaceVariant
+        val borderColor = if (UmamiTheme.isDark) variant.copy(alpha = CHIP_BORDER_ALPHA) else variant
         QuickDuration.CHIPS.forEach { seconds ->
             val spoken = spokenDuration(seconds)
             val isSelected = seconds == selected

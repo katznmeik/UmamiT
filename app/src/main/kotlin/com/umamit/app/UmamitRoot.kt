@@ -36,6 +36,7 @@ import androidx.navigation.toRoute
 import com.umamit.app.timer.TimerRequest
 import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.designsystem.theme.WashiColorScheme
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.ui.LocalPhotoViewer
 import com.umamit.core.ui.PhotoViewerScreen
@@ -67,7 +68,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * A notification opens the timer the same way (03 §2.4; D-064): each new [timerRequest] token
  * (its content or full-screen intent) brings the timer to the top, the timer the notification names (04 §8.2,
  * D-098: a notification opens its own timer, whichever role it has). Until it is there, the root
- * draws the timer's dark background over the shell and reports the timer as visible, so the
+ * draws the timer's background in the app's theme over the shell (SET-05) and reports the timer as visible, so the
  * shell never shows over the lock screen, not even for one frame (D-058). One place decides
  * both ([rememberTimerFirst]).
  *
@@ -83,7 +84,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   content or full-screen intent), with the timer it names; token 0 for none.
  * @param onConsumeTimerRequest consumes that token: the timer was opened for it.
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
- *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11), its fourth
+ *   Its third argument opens the setup of the waiting session (*Session anpassen*, BRW-11), its fourth
  *   names the timer the route shows and opens the other one's (D-098).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
  * @param statsScreen the Statistik tab's content; the app passes [StatsTabContent].
@@ -93,7 +94,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param collectionScreens *Meine Tees*, a collection tea's detail (SCR-09) and its archive snackbar; tests
  *   replace them.
  * @param journalScreens a past session's page (SCR-16, D-100) in the Journal tab; tests replace it. Its *So nochmal
- *   brühen* opens the setup of that session above the shell ([BrewSetupRoute.pastSessionId], BRW-06).
+ *   aufgießen* opens the setup of that session above the shell ([BrewSetupRoute.pastSessionId], BRW-06).
  * @param setupScreen the setup route's content (SCR-04); tests replace it. Its [SetupHost] opens a catalog tea's
  *   detail (SCR-21) above it by its key (⋮ *Im Katalog ansehen*, D-098), shown with [catalogScreens]; a collection
  *   tea's detail (SCR-09) by its id (⋮ *Tee ansehen*, D-100), shown with [collectionScreens]; and the vessel editor
@@ -265,7 +266,8 @@ internal fun UmamitRoot(
         openSetup = { teaId -> openSetupWith(teaId, null) },
         openSetupWith = openSetupWith,
         openTimer = openTimer,
-        // *So nochmal brühen* (BRW-06): the setup holding a past session as brewed, the same setup → *Brühen starten*
+        // *So nochmal aufgießen* (BRW-06): the setup holding a past session as brewed, the same setup → *Session
+        // starten*
         // path as every brew; during an alert the alerting timer instead (rule 8).
         openSetupFromSession = { sessionId ->
             unlessAlerting({ currentAlerting }, instead = openTimer) {
@@ -273,6 +275,8 @@ internal fun UmamitRoot(
             }
         },
         openTimerOf = openTimerOf,
+        // From the back stack, so it changes when navigation starts, and back from that route ends it (D-129).
+        shellCovered = { entry.coversShell() },
         // A route above the shell like the setup: it gives way to a new alert (rule 8). During an alert,
         // *Schnelltimer* and *Ohne Tee (Schnelltimer)* open the alerting timer instead (D-062 S3, D-065).
         openQuickTimer = {
@@ -371,7 +375,7 @@ internal fun UmamitRoot(
                             closeTimer,
                             { navigateAbove(TimerSettingsRoute) {} },
                             { sessionId ->
-                                // The setup replaces the timer; *Brühen starten* there opens it again (BRW-11).
+                                // The setup replaces the timer; *Session starten* there opens it again (BRW-11).
                                 navigateAbove(BrewSetupRoute(sessionId = sessionId)) {
                                     popUpTo<TimerRoute> { inclusive = true }
                                 }
@@ -436,7 +440,8 @@ internal fun UmamitRoot(
                         ),
                     )
                 }
-                // ⋮ *Tee ansehen* (D-100): the tea's detail above the setup. *Brühen* there starts a new setup in place
+                // ⋮ *Tee ansehen* (D-100): the tea's detail above the setup. *Session starten* there starts a new setup
+                // in place
                 // of this one (the alerting timer during an alert, rule 8); *Archivieren* and *Löschen* close the setup
                 // too, as its tea has left the collection.
                 composable<SetupTeaRoute> { entry ->
@@ -626,7 +631,7 @@ private fun NavGraphBuilder.setupEditorRoutes(
 
 /**
  * What the tea detail (SCR-09) above the setup gets (⋮ *Tee ansehen*, D-100): back returns to the setup;
- * *Brühen* (or a recipe's tap) hands [openSetup] a new setup of the tea, which replaces the old one;
+ * *Session starten* (or a recipe's tap) hands [openSetup] a new setup of the tea, which replaces the old one;
  * *Archivieren* and *Löschen* close the detail and the setup; its pencils open the tea and recipe editors above it
  * (F5). Each acts only while [entry] is on top, so a quick
  * double tap or a late outcome never pops another screen (D-090).
@@ -734,11 +739,16 @@ private fun rememberTimerFirst(
     )
 }
 
-/** Opened from a notification, the timer comes next: its dark background covers the shell until then. */
+/**
+ * Opened from a notification, the timer comes next: its background covers the shell until then, in the app's theme
+ * like the timer route's (SET-05, D-128 Q21): washi with *Design* „Hell", Steeping with „Dunkel", never dynamic
+ * colour. It reads no setting and delays nothing (rule 8).
+ */
 @Composable
 private fun ShellCover(requestPending: Boolean, timerOnTop: Boolean) {
     if (requestPending && !timerOnTop) {
-        Box(Modifier.fillMaxSize().background(SteepingColorScheme.background).testTag(SHELL_COVER_TAG))
+        val cover = if (UmamiTheme.isDark) SteepingColorScheme.background else WashiColorScheme.background
+        Box(Modifier.fillMaxSize().background(cover).testTag(SHELL_COVER_TAG))
     }
 }
 

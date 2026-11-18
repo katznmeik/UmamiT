@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,9 +31,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalAccessibilityManager
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -51,7 +61,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.AlertGate
-import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.SheetHandOver
 import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.core.ui.showUndo
@@ -70,6 +80,12 @@ const val TEA_PICKER_TAG = "tea_picker"
  * remembers the alert it was opened in. While another alert plays the sheet is
  * not composed, so it leaves in the same frame without animation, and the gate
  * closes it for good.
+ *
+ * **Hand-over to the setup (SCR-03, D-129):** with a [handOver], a tea row's tap
+ * freezes the sheet's frame, and the sheet stays (closed in its [gate], so nothing
+ * saved reopens it) until [handOver]'s stand-in has taken over below the setup. It
+ * stays behind the same gate: an alert removes it in its first frame. The other
+ * exits are unchanged, and nothing else in the sheet acts during the hand-over.
  */
 @Composable
 fun TeaPickerHost(
@@ -78,30 +94,47 @@ fun TeaPickerHost(
     onQuickTimer: () -> Unit,
     onDismissRequest: () -> Unit,
     onCatalog: () -> Unit = {},
+    handOver: SheetHandOver? = null,
     viewModel: TeaPickerViewModel = hiltViewModel(),
 ) {
-    // A closed picker forgets its search and its undo, so it opens on the sections again.
-    LaunchedEffect(gate.isOpen, viewModel) {
-        if (!gate.isOpen) {
+    val held = handOver?.holdsSheet == true
+    // A closed picker forgets its search and its undo, so it opens on the sections again; a held one shows as it was.
+    val kept = gate.isOpen || held
+    LaunchedEffect(kept, viewModel) {
+        if (!kept) {
             viewModel.setQuery("")
             viewModel.dismissRemoved()
         }
     }
-    AlertGated(gate) {
+    // Never held longer than a bound, whatever the stand-in does (rule 8).
+    LaunchedEffect(held) {
+        if (held) {
+            val start = withFrameNanos { it }
+            while (withFrameNanos { it } - start < MAX_HOLD_NANOS) Unit
+            handOver?.releaseSheet()
+        }
+    }
+    // The same gate as AlertGated: shown, or held for the hand-over while no other alert covers it.
+    if (gate.shown || (held && !gate.covered)) {
         val state by viewModel.state.collectAsStateWithLifecycle()
+        val idle = { handOver?.active != true }
         TeaPickerSheet(
             state = state,
             onQueryChange = viewModel::setQuery,
             onPickTea = onPickTea,
-            onQuickTimer = onQuickTimer,
+            onQuickTimer = { if (idle()) onQuickTimer() },
             onDismissRequest = onDismissRequest,
-            onCatalog = onCatalog,
+            onCatalog = { if (idle()) onCatalog() },
             onRemoveTea = viewModel::remove,
             onUndoRemove = viewModel::undoRemove,
             onRemovedDismiss = viewModel::dismissRemoved,
+            handOver = handOver,
         )
     }
 }
+
+/** The longest the sheet's window stays for a hand-over (D-129): far more than its few frames. */
+private const val MAX_HOLD_NANOS = 500_000_000L
 
 /**
  * The stateless tea picker sheet (SCR-03): search, *Zuletzt*, *Favoriten*,
@@ -110,10 +143,15 @@ fun TeaPickerHost(
  * motion it appears without the slide. A pick calls back in the tap's frame:
  * the host closes the sheet and opens the next route, whose fade is the only
  * transition (no sheet exit before it), and nothing can navigate after an
- * alert has started (rule 8, D-062).
+ * alert has started (rule 8, D-062). With a [handOver] there is still no sheet
+ * exit: the pick freezes the sheet's frame, which stands in for the sheet below
+ * the next route, and the route fades in over that frame (D-129). The sheet's
+ * own window stays until the stand-in is on screen, then hands its scrim over
+ * and fades out over it in a few frames ([SheetHandOver.sheetScrimShare],
+ * [SheetHandOver.sheetAlpha]) and goes; a further pick during it does nothing.
  *
  * A long press on a tea opens its menu with *Archivieren* ([onRemoveTea]; greyed out
- * with „Erst die Sitzung beenden" for the active session's tea, E15). While [TeaPickerUiState.removed]
+ * with „Erst die Session beenden" for the active session's tea, E15). While [TeaPickerUiState.removed]
  * is set, a snackbar of about 8 s offers *Rückgängig* ([onUndoRemove]); when it goes,
  * [onRemovedDismiss] is called (TEA-04, D-093 Q21).
  */
@@ -129,22 +167,56 @@ fun TeaPickerSheet(
     onRemoveTea: (teaId: String) -> Unit = {},
     onUndoRemove: () -> Unit = {},
     onRemovedDismiss: () -> Unit = {},
+    handOver: SheetHandOver? = null,
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
     val sheetState = rememberExpandedSheetState(reduceMotion)
     val snackbarHostState = remember { SnackbarHostState() }
     RemovedSnackbar(state.removed, snackbarHostState, onUndoRemove, onRemovedDismiss)
+    val container = MaterialTheme.colorScheme.surface
+    val shape = BottomSheetDefaults.ExpandedShape
+    val scrim = BottomSheetDefaults.ScrimColor
+    val sheetSpan = remember { SheetSpan() }
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        modifier = Modifier.testTag(TEA_PICKER_TAG),
-        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .testTag(TEA_PICKER_TAG)
+            .onGloballyPositioned { sheetSpan.bounds = it.boundsInWindow() }
+            // Before Material's offset: an offscreen layer would clip the lowered sheet to these bounds.
+            .graphicsLayer {
+                alpha = handOver?.sheetAlpha ?: 1f
+                compositingStrategy = CompositingStrategy.ModulateAlpha
+            },
+        shape = shape,
+        containerColor = container,
+        scrimColor = scrim.copy(alpha = scrim.alpha * (handOver?.sheetScrimShare ?: 1f)),
     ) {
         // The window's first frame holds only the sheet, below the screen; its content follows a frame later.
         val contentReady = rememberSheetContentReady(reduceMotion)
+        val view = LocalView.current
+        val density = LocalDensity.current
+        val layoutDirection = LocalLayoutDirection.current
+        val pick: (String) -> Unit = { teaId ->
+            if (handOver?.active != true) {
+                onPickTea(teaId)
+                // After the pick, which navigates at once; recorded in this tap, from the sheet's last frame.
+                handOver?.freeze(
+                    sheetView = view,
+                    sheetLeft = sheetSpan.bounds.left,
+                    sheetTop = sheetState.requireOffset(),
+                    sheetRight = sheetSpan.bounds.right,
+                    shape = shape,
+                    density = density,
+                    layoutDirection = layoutDirection,
+                    container = container,
+                    scrim = scrim,
+                )
+            }
+        }
         // The snackbar overlays the end of the sheet, above the navigation bar.
         Box {
-            if (contentReady) PickerContent(state, onQueryChange, onPickTea, onQuickTimer, onCatalog, onRemoveTea)
+            if (contentReady) PickerContent(state, onQueryChange, pick, onQuickTimer, onCatalog, onRemoveTea)
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
@@ -154,6 +226,9 @@ fun TeaPickerSheet(
         }
     }
 }
+
+/** The sheet's horizontal span in its window (its top is the sheet state's offset), for a hand-over. */
+private class SheetSpan(var bounds: Rect = Rect.Zero)
 
 /**
  * Shows the snackbar „*Tanabata* archiviert" · *Rückgängig* for [removed]: about
@@ -296,7 +371,7 @@ private fun Section(title: String?, teas: List<PickerTea>, actions: TeaRowAction
 
 /**
  * A tea of the picker, with its small freshness chip (INV-06, D-104), read with the row. A long
- * press opens its menu with *Archivieren*, greyed out with „Erst die Sitzung beenden" for the
+ * press opens its menu with *Archivieren*, greyed out with „Erst die Session beenden" for the
  * active session's tea (E15); TalkBack offers the removal as a custom action on the row (SCR-03).
  */
 @Composable

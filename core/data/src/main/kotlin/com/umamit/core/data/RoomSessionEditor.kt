@@ -25,7 +25,11 @@ class RoomSessionEditor @Inject constructor(private val db: UmamiDatabase, priva
         val row =
             sessions.get(sessionId)?.takeIf { it.status == SessionStatus.COMPLETED } ?: return@withTransaction null
         EditableSession(
-            session = row.toModel(sessions.steps(sessionId), db.tastingDao().descriptors(sessionId)),
+            session = row.toModel(
+                sessions.steps(sessionId),
+                db.tastingDao().descriptors(sessionId),
+                tasteSetOf(db, row),
+            ),
             hasStockDeduction = brewEvent(row) != null,
         )
     }

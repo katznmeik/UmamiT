@@ -210,11 +210,11 @@ class NextDueLiveUpdateTest {
         }
 
     @Test
-    fun `Sitzung beenden during the brew's alert rings the held quick alert as a new alert that takes the screen`() =
+    fun `Session beenden during the brew's alert rings the held quick alert as a new alert that takes the screen`() =
         endedDuringItsAlertReleasesTheQuickAlert(TimerEvent.FinishSession)
 
     @Test
-    fun `Sitzung verwerfen during the brew's alert rings the held quick alert as a new alert that takes the screen`() =
+    fun `Session verwerfen during the brew's alert rings the held quick alert as a new alert that takes the screen`() =
         endedDuringItsAlertReleasesTheQuickAlert(TimerEvent.Discard)
 
     /**

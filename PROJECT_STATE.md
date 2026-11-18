@@ -5,17 +5,37 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-17 (v0.7.2 session 14, #310: the PO's approval, merge, final). **`v0.7.2` is released** (full release, versionCode 70299, from `main` `c5f19e8e`, certificate verified; details in `docs/history.md`). The cleanup review is closed (#296–#310). **Next:** the PO decides what follows (see below); nothing is specified or approved yet.
+**Last updated:** 2026-11-18 (v0.8.0 session 5: #331 built, `v0.8.0-rc.2` published, its checklist line with the PO on PR #328). **Next:** the PO's check of rc.2, then v0.8.0 session 6 (#327, merge and final).
 
-## Next: the PO's decision
+## Next: the PO's check of `v0.8.0-rc.2`, then v0.8.0 session 6 (#327)
 
-- **v0.7.2 is done:** no open milestone, no open milestone PR. The plan of record for the next release does not exist yet: the PO says what comes next (M5 1.0 per 09 §2, or feedback on `v0.7.2`), then a grilling round → specs and decision → tickets (CLAUDE.md rule 1). No development before that go.
-- **#313** (`needs-triage`, found in v0.7.2 session 10) is still open and was kept out of v0.7.2; triage it with the next release.
-- **Notes left by the v0.7.2 reviews** (R-7, T-1 and others; `docs/history.md` „v0.7.2: milestone and timer review done") need a ticket only if the PO wants one.
+- **Waiting for the PO:** the rc.2 checklist line and the request to approve the **whole** checklist explicitly are in comment 6966407229 on PR #328 (push notification sent, 2026-11-18). If the PO reports a failure instead, that is a new feedback round (grilling → spec → ticket), not session 6.
+- **#331, built in session 5 (T3):**
+  - The mechanism (Claude's, D-129 „Claude's details"): in the tap, the sheet records its window into a `Picture` (`SheetHandOver`, `core:ui`). The shell draws it below the routes, so the setup fades in over it. The real sheet window hands over its scrim and fades out over that frame in about four frames, then goes.
+  - The setup is never delayed. Its fade is fully visible only from about five frames after the tap (≈ 80 ms at 60 Hz of 300 ms). Not seen on a device yet: the PO's check decides.
+  - No T4 read was needed: there is no change to `rememberTimerFirst`, `TimerRoute`, `LeavingOverKeyguard`, the NavHost transitions or `AlertGate`. `UmamitRoot` has one line, `shellCovered`.
+  - The test `PickerHandOverTest` failed on its own commit `9017da60` (checked by the orchestrator).
+- **rc.2 facts:**
+  - `95da6ad5` (40-character SHA `95da6ad5fd7156f8ff69bac0cff5295d3ed1e6c7`), versionCode 80002, APK SHA-256 `b0396be0…7f79`, release run 44211626516 (one rerun: `JournalPerformanceTest` budget).
+  - Gates: timer tests 263 / 513 / 776; full local gate PASS; CI run 44198004897 green on attempt 3 (API 36: `ProcessDeathTest` two-brews, then `TransitionJankTest.savedSheetInAndOut` on a slow emulator); accuracy 44201903920, 44201908972, 44201912905, all PASS.
+- **Session 6 (Sonnet `medium`, #327):** on the PO's explicit approval of the whole checklist on rc.2:
+  0. Environment first: the mirror init script and `gw.sh` (below, „Session facts").
+  1. Tick 09 §4 „v0.8.0".
+  2. Set `umamit.version=0.8.0` (80099).
+  3. Mark PR #328 ready and merge it (merge commit) once CI is green.
+  4. CI green on the merge commit in `main`.
+  5. All three accuracy variants on its full SHA.
+  6. Dispatch `release.yml` from `main` for `0.8.0`.
+- **rc.1 facts:** `9c0e4225` (80001); its checklist is in comment 6960458943 on PR #328.
+- **Done in this milestone:** #316–#323, #325, #313, #329, #331 and the reviews (#326). #324 closed. #330 is a v0.9.0 ticket (D-128 item 41).
+- **`/review-animations` is user-invoke only:** for v0.8.0 the PO picked an ad-hoc T2 motion review.
+- **v0.9.0 (planned, D-128 Q4–Q11):** its own specify session after v0.8.0 (D-128 „Open for the v0.9.0 specify session", #330).
+- **1.0 (M5) is postponed** (D-128 Q3).
+- **Branch:** `claude/inspiring-ritchie-8hfw00`; PR #328 (draft). Sessions 4 and 5 were assigned other branches and did not use them. A new session with another assigned branch works here directly.
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
-  - **Worktrees:** brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
-  - **Environment:** the mirror init script lives in the session scratchpad and `gw.sh` passes it with `--init-script`. It has to be written again in a new container: a `maven { name = 'gcsMirror' }` made first (`remove` + `addFirst`) in `pluginManagement`, `dependencyResolutionManagement` and every `buildscript` (`beforeSettings` and `settingsEvaluated`), URL rewrites only on project repositories. Written so on 2026-11-16 (sessions 9 and 10), it worked first time. The three timer test tasks take ≈ 8½ min cold.
+  - **Worktrees:** never remove an agent worktree while a Gradle build runs: `spotlessCheck` scans `.claude/worktrees/` and fails on a vanished path (2026-11-17). Brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
+  - **Environment:** the mirror init script lives in the session scratchpad and `gw.sh` passes it with `--init-script`. It has to be written again in a new container: a `maven { name = 'gcsMirror' }` made first (`remove` + `addFirst`) in `pluginManagement`, `dependencyResolutionManagement` and every `buildscript` (`beforeSettings` and `settingsEvaluated`), URL rewrites only on project repositories. Written so on 2026-11-16 (sessions 9 and 10), it worked first time; in `beforeSettings` reach the settings' buildscript as `mirrorFirst(s.buildscript.repositories)` (a `s.buildscript { … }` closure fails, 2026-11-17). The three timer test tasks take ≈ 8½ min cold.
 
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle
   init script (`~/.gradle/init.d/mirror.gradle`, not in the repository) points every
@@ -31,19 +51,23 @@
   repositories (`FAIL_ON_PROJECT_REPOS`).
 - **Release token (D-118):** `RELEASE_TOKEN` (the PO's fine-grained token, UmamiT only, Contents + Workflows read and write) publishes; it expires (the PO chose the date) and is renewed by the PO; an expired token fails „Create tag and GitHub Release" with 401/403. `main` has used it since the merge of #290; it published `v0.7.1`.
 - **Release dispatch:** `release.yml` refuses a commit without a successful CI run, so dispatch it only after CI on the merge commit in `main` has finished. `accuracy.yml` needs the full 40-character SHA as `ref`.
+- **Known flakes (rerun the failed job once; seen on rc.2, 2026-11-18):**
+  - API 36 emulator: `ProcessDeathTest`'s two-brews case, and `TransitionJankTest.savedSheetInAndOut` on a slow emulator.
+  - `release.yml`'s „Unit tests" step: `JournalPerformanceTest`'s wall-clock budget. It fails before the tag is made, so rerunning the failed jobs is safe.
+- **Jank coverage of #331:** `TransitionJankTest` taps a tea row (`openSetup()`) but measures only the picker's in and out and setup → timer, not the tap → setup hand-over itself. The PO's eye is the check.
 - **accuracy.yml, alongside:** its setup guard can stop the run before any step on a slow emulator („too slow, 14 s of step 1 passed before the screen went off"); rerun the failed job (2026-11-14).
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | none open. **v0.7.2** (cleanup review, D-119, D-120) is **released** (2026-11-17); **v0.7.1** (two ratings, smooth transitions) released 2026-11-15; next release not yet decided |
+| Current milestone | **v0.8.0** (D-128): `v0.8.0-rc.2` published 2026-11-18 (#331, D-129), **with the PO for the whole checklist**; design approved on rc.1; **v0.9.0** planned (export/import, shared recipes); M5 / 1.0 postponed until the PO's go. **v0.7.2** (cleanup review) released 2026-11-17 |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/wonderful-davinci-fu8tqi` (restarted from `main` `c5f19e8e` after the v0.7.2 merge) |
+| Working branch | `claude/inspiring-ritchie-8hfw00` (build session 1's assigned branch, fast-forwarded to `claude/magical-heisenberg-qev7fe` `0fd54c84`, which carries the v0.8.0 specs, D-128 and the plan) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none (#312, the v0.7.2 milestone PR, is merged) |
-| Latest APK | [`v0.7.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2) (full release, versionCode 70299, from `main` `c5f19e8e`, APK SHA-256 `efc2cca6…20fa`, certificate verified); earlier: rc [`v0.7.2-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2-rc.1) (pre-release, 70201, from `a8f78d4f`, certificate verified); [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) (full release, versionCode 70199, from `main` `6192bff5`, certificate verified); rc [`v0.7.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.2) (pre-release, 70102, from `e57861e0`); rc [`v0.7.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.1) (pre-release, 70101, from `3fe102c0`); [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-127** used; the next free is **D-128** |
+| Open PR | [#328](https://github.com/katznmeik/UmamiT/pull/328) (draft, v0.8.0 milestone) |
+| Latest APK | rc [`v0.8.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0-rc.2) (pre-release, 80002, from `95da6ad5`, APK SHA-256 `b0396be0…7f79`, certificate verified); rc [`v0.8.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0-rc.1) (pre-release, 80001, from `9c0e4225`, certificate verified); [`v0.7.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2) (full release, versionCode 70299, from `main` `c5f19e8e`, APK SHA-256 `efc2cca6…20fa`, certificate verified); earlier: rc [`v0.7.2-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2-rc.1) (pre-release, 70201, from `a8f78d4f`, certificate verified); [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) (full release, versionCode 70199, from `main` `6192bff5`, certificate verified); rc [`v0.7.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.2) (pre-release, 70102, from `e57861e0`); rc [`v0.7.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.1) (pre-release, 70101, from `3fe102c0`); [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
+| Decision numbers | Up to **D-129** used; the next free is **D-130** |
 
 ## Working agreements in effect
 
@@ -59,7 +83,7 @@
 
 ## Waiting on the PO
 
-1. **What comes next:** the PO's decision on the next release (see „Next").
+1. **Nothing until `v0.8.0-rc.2`:** then check its new checklist line (D-129) on PR #328.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
@@ -78,4 +102,5 @@
 - Tee-Kontor uses Cloudflare; refreshes may get blocked (handled by stopping without changes).
 - After a reboot, alerts fire only once the phone has been unlocked (E2); Samsung's automatic overnight restart should be disabled (ONB-02).
 - `ProcessDeathTest` (two brews, process death; emulator, API 36) can fail on its single read of the diagnostics log; rerun CI (D-112 Q19). Its brew-and-quick-timer test failed once on API 35 on a timing bound (2327 ms against 2 s, run 43094657346, runners degraded).
+- `TransitionJankTest` on the API 36 emulator failed once with „Start is not shown" in all its cases (CI run 44153741694, `9c0e4225`, 2026-11-17; nothing in `app` or `feature:home` had changed) and passed on the rerun: rerun once before investigating.
 - Robolectric fetches its runtime jar at test time; a network hiccup has failed CI before. Rerun once and comment on the PR.

@@ -59,7 +59,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * Start on the real controller (#47 hand-off, #48; BRW-11, TMR-01): *Nochmal brühen* on Start
+ * Start on the real controller (#47 hand-off, #48; BRW-11, TMR-01): *Nochmal aufgießen* on Start
  * starts the tea's last session again through the app's `BrewStarter` binding (the controller
  * behind `ControllerBrewStarter`), and the brew waits in READY. Real engine, controller, Room
  * repositories and Start's view model; fakes only at the controller's ports.

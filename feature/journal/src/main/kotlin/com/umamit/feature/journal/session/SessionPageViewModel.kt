@@ -52,7 +52,8 @@ sealed interface SessionPageEvent {
 /**
  * The session page's view model (SCR-16, BRW-06, D-100) of the session `sessionId`. The session comes from
  * the journal's read and its tea's state from the collection, both as flows, so *Wiederherstellen* enables *So
- * nochmal brühen* at once and a deleted tea drops the link. Nothing here starts a brew: *So nochmal brühen* is the
+ * nochmal aufgießen* at once and a deleted tea drops the link. Nothing here starts a brew: *So nochmal aufgießen* is
+ * the
  * host's way to the setup (BRW-01). *Löschen* (D-102) removes a finished session and tells the host.
  *
  * The rating, the taste and the notes are saved at once through [SessionTasting] (JRN-02, JRN-03, JRN-05,
@@ -110,7 +111,7 @@ class SessionPageViewModel @Inject constructor(
         }
     }
 
-    /** *Wiederherstellen* of the session's archived tea (TEA-04, D-100): *So nochmal brühen* is offered again. */
+    /** *Wiederherstellen* of the session's archived tea (TEA-04, D-100): *So nochmal aufgießen* is offered again. */
     fun restore() {
         val teaId = (state.value as? SessionPageUiState.Ready)?.page?.teaId ?: return
         viewModelScope.launch { archive.restore(teaId) }
