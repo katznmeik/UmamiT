@@ -427,6 +427,7 @@
     <!-- PRF-08, SCR-12 (D-130): the ⋮ item and the share sheet's title; greyed out while the editor has changes. -->
     <string name="recipe_editor_share">Rezept teilen</string>
     <string name="recipe_editor_share_unsaved">Erst speichern</string>
+    <string name="recipe_editor_share_failed">Das Rezept konnte nicht geteilt werden.</string>
     <string name="recipe_editor_delete">Rezept löschen</string>
     <string name="recipe_editor_delete_last">Ein Tee braucht mindestens ein Rezept.</string>
     <!-- E15 (D-101 F12): the recipe of the running brew stays until the session ends. -->

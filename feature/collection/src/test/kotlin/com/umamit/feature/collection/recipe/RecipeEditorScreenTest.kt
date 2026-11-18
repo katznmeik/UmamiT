@@ -45,6 +45,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.io.IOException
 
 /** Rezept bearbeiten (SCR-12) with its view model on fakes: what the PO taps, drags and reads. */
 @RunWith(RobolectricTestRunner::class)
@@ -59,7 +60,7 @@ class RecipeEditorScreenTest {
     private var deleted = 0
     private var alertKey by mutableStateOf<String?>(null)
     private val shared = mutableListOf<SharedRecipe>()
-    private val sharer = RecipeSharer { recipe ->
+    private var sharer = RecipeSharer { recipe ->
         shared += recipe
         Intent(Intent.ACTION_CHOOSER)
     }
@@ -116,6 +117,14 @@ class RecipeEditorScreenTest {
     }
 
     private fun stored() = runBlocking { collection.recipes.getRecipe("kyusu") }!!
+
+    /** The share's snackbar is up; the clock stops meanwhile, as waitForIdle would run the short snackbar out. */
+    private fun assertShareFailedShown() {
+        compose.mainClock.autoAdvance = false
+        compose.mainClock.advanceTimeBy(SNACKBAR_IN_MS)
+        compose.onNodeWithText("Das Rezept konnte nicht geteilt werden.").assertIsDisplayed()
+        compose.mainClock.autoAdvance = true
+    }
 
     @Test
     fun `a renamed recipe is stored on Speichern`() {
@@ -261,6 +270,29 @@ class RecipeEditorScreenTest {
     }
 
     @Test
+    fun `a recipe file that can't be written shows the share message (PRF-08)`() {
+        sharer = RecipeSharer { throw IOException("cache full") }
+        show()
+        compose.onNodeWithTag(RecipeEditorTags.MORE).performClick()
+        compose.onNodeWithText("Rezept teilen").performClick()
+        assertShareFailedShown()
+
+        assertThat(shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity).isNull()
+    }
+
+    @Test
+    fun `no app to take the share shows the share message (PRF-08)`() {
+        // Robolectric then throws ActivityNotFoundException for an intent no activity resolves, as the chooser here.
+        shadowOf(RuntimeEnvironment.getApplication()).checkActivities(true)
+        show()
+        compose.onNodeWithTag(RecipeEditorTags.MORE).performClick()
+        compose.onNodeWithText("Rezept teilen").performClick()
+        assertShareFailedShown()
+
+        assertThat(shared.map { it.name }).containsExactly("Kyusu")
+    }
+
+    @Test
     fun `with unsaved changes Rezept teilen is greyed out - Erst speichern`() {
         show()
         compose.onNodeWithTag(RecipeEditorTags.NAME).performTextReplacement("Kyusu, neu")
@@ -374,5 +406,8 @@ class RecipeEditorScreenTest {
 
     private companion object {
         const val STEPS_OF_DRAG = 6
+
+        /** Well inside a short snackbar's 4 s, past its enter. */
+        const val SNACKBAR_IN_MS = 1_000L
     }
 }
