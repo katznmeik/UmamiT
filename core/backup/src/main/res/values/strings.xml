@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- The recipe file (PRF-08, 05 §8a, D-130): the reader's refusals (PRF-08 AC5). -->
     <string name="recipe_file_refused_not_a_recipe">Das ist keine UmamiT-Rezeptdatei.</string>
     <string name="recipe_file_refused_newer_version">Diese Datei stammt aus einer neueren UmamiT-Version. Aktualisiere die App und versuch es noch mal.</string>
@@ -46,4 +46,53 @@
     <string name="recipe_file_vessel_type_chawan">Chawan</string>
     <string name="recipe_file_vessel_type_cold_brew_bottle">Cold-Brew-Flasche</string>
     <string name="recipe_file_vessel_type_other">Andere</string>
+    <!-- The journal CSV (BAK-04, D-130 Q9, Q10): the header row, in BAK-04's column order. -->
+    <string name="csv_header_date">Datum</string>
+    <string name="csv_header_time">Uhrzeit</string>
+    <string name="csv_header_tea">Tee</string>
+    <string name="csv_header_category">Kategorie</string>
+    <string name="csv_header_recipe">Rezept</string>
+    <string name="csv_header_vessel">Gefäß</string>
+    <string name="csv_header_leaf">Blatt (g)</string>
+    <string name="csv_header_water">Wasser (ml)</string>
+    <string name="csv_header_infusions">Aufgüsse</string>
+    <string name="csv_header_duration">Dauer</string>
+    <string name="csv_header_rating_tea">Bewertung Tee</string>
+    <string name="csv_header_rating_brewing">Bewertung Zubereitung</string>
+    <string name="csv_header_cost">Kosten (€)</string>
+    <string name="csv_header_descriptors">Beschreibungen</string>
+    <string name="csv_header_notes">Notizen</string>
+    <string name="csv_header_steps">Aufgüsse im Detail</string>
+    <string name="csv_header_taste_umami">Umami</string>
+    <string name="csv_header_taste_sweetness">Süße</string>
+    <string name="csv_header_taste_bitterness">Bitterkeit</string>
+    <string name="csv_header_taste_astringency">Adstringenz</string>
+    <string name="csv_header_taste_body">Körper</string>
+    <string name="csv_header_taste_aroma">Aroma</string>
+    <string name="csv_header_taste_roast">Röstung/Malz</string>
+    <string name="csv_header_taste_acidity">Säure</string>
+    <string name="csv_header_taste_freshness">Frische</string>
+    <string name="csv_header_taste_spice">Würze</string>
+
+    <!-- „Aufgüsse": %1$d poured infusions, %2$d planned („3 von 4"); a cell, no noun to inflect. -->
+    <string name="csv_infusions_of" tools:ignore="PluralsCandidate">%1$d von %2$d</string>
+    <!-- „Aufgüsse im Detail": a step's temperature (a no-break space before the unit, 05 §7), the rinse's word. -->
+    <string name="csv_celsius">%1$d\u00A0°C</string>
+    <string name="csv_rinse">Spülen</string>
+    <!-- Between a step's temperature and its time („80 °C 1:00"), between the steps, between the descriptors. -->
+    <string name="csv_step_parts_separator">" "</string>
+    <string name="csv_steps_separator">" | "</string>
+    <string name="csv_descriptors_separator">", "</string>
+
+    <!-- „Kategorie": the short names of BAK-04 and JRN-03 („Grün"). -->
+    <string name="csv_category_green">Grün</string>
+    <string name="csv_category_white">Weiß</string>
+    <string name="csv_category_yellow">Gelb</string>
+    <string name="csv_category_oolong">Oolong</string>
+    <string name="csv_category_black">Schwarz</string>
+    <string name="csv_category_dark">Pu-Erh</string>
+    <string name="csv_category_herbal">Kräuter</string>
+    <string name="csv_category_rooibos">Rotbusch</string>
+    <string name="csv_category_fruit">Früchte</string>
+    <string name="csv_category_other">Sonstige</string>
 </resources>
