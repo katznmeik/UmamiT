@@ -770,9 +770,12 @@ v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q
   JSON entry, a compression ratio of at most 100 : 1 per entry; Claude's
   numbers, far above what 06 §5.2's photos (2048 px JPEG 85, catalog copies
   1200 px) and ten years of sessions produce); every
-  entry name relative, without `..`, backslash or a drive, and only the
-  paths above (zip-slip); the manifest (format id, versions); every
-  checksum; JSON types, enums (an unknown name refuses the file), §3's
+  entry name relative, without `..`, backslash or a drive, no duplicate
+  (zip-slip; these and the limits are read from the central directory
+  before any entry is staged); the manifest (format id, versions, a newer
+  `settingsSchemaVersion` included), so a foreign ZIP reads as „keine
+  UmamiT-Sicherung" and a newer file as „neuere Version"; only then the
+  paths above only, every checksum; JSON types, enums (an unknown name refuses the file), §3's
   ranges and constraints (one default recipe per tea, unique positions, …);
   referential integrity (every id a row points to exists, every `photos`
   row has its file and every file its row); every photo decodes as a JPEG
