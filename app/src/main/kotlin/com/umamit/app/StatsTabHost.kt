@@ -12,12 +12,14 @@ import com.umamit.feature.stats.StatsUiState
  * What the shell hands the Statistik tab (SCR-18).
  *
  * @property openTea opens a collection tea's detail (SCR-09) in the tab's stack, from the resumed screen only.
+ * @property alertKey the alert playing now, or null: the ⋮ menu gives way to another (rule 8, D-058).
  */
 internal class StatsTabHost(
     val openSettings: () -> Unit,
     val scrollToTopRequest: Int,
     val openTea: (teaId: String) -> Unit,
     val modifier: Modifier = Modifier,
+    val alertKey: String? = null,
 )
 
 /** Statistik with its view model (#259). */
@@ -28,6 +30,7 @@ internal fun StatsTabContent(tab: StatsTabHost) {
         onOpenTea = tab.openTea,
         modifier = tab.modifier,
         scrollToTopRequest = tab.scrollToTopRequest,
+        alertKey = tab.alertKey,
     )
 }
 
@@ -41,5 +44,6 @@ internal fun PlaceholderStats(tab: StatsTabHost) {
         onOpenSettings = tab.openSettings,
         modifier = tab.modifier,
         scrollToTopRequest = tab.scrollToTopRequest,
+        alertKey = tab.alertKey,
     )
 }

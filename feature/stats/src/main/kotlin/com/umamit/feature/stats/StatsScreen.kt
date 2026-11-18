@@ -66,7 +66,9 @@ import com.umamit.core.model.MonthSpan
 import com.umamit.core.model.StatsRange
 import com.umamit.core.model.StatsRankingBy
 import com.umamit.core.model.StatsTab
+import com.umamit.core.ui.AlertGate
 import com.umamit.core.ui.fadeInOnArrival
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.stats.charts.ChartPageState
 import com.umamit.feature.stats.charts.ChartSelectionHolder
 import com.umamit.feature.stats.charts.ChartSelectionHost
@@ -88,6 +90,7 @@ private val TAB_HEIGHT = 48.dp
 /**
  * Statistik (SCR-18; INS-07, INS-08, D-115) with its [StatsViewModel]. [onOpenTea] opens a collection tea's detail
  * (SCR-09) from a tab's content; the host decides how (the resumed screen only, rule 8's gating of the shell).
+ * [alertKey] is the alert playing now (null: none): the ⋮ menu gives way to one it was not opened in (D-058).
  */
 @Composable
 fun StatsRoute(
@@ -95,6 +98,7 @@ fun StatsRoute(
     onOpenTea: (teaId: String) -> Unit,
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
+    alertKey: String? = null,
     viewModel: StatsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -111,6 +115,7 @@ fun StatsRoute(
         scrollToTopRequest = scrollToTopRequest,
         onCustomRange = viewModel::selectCustom,
         onFoldedChange = viewModel::setFolded,
+        alertKey = alertKey,
     ) { tab, _, scrollState ->
         when (tab) {
             StatsTab.OVERVIEW -> OverviewTab(
@@ -140,7 +145,8 @@ fun StatsRoute(
 /**
  * The screen for a [state]: nothing while loading, A9 alone when there is no finished session, else the header, the
  * pinned selector and tabs, and the swipeable pages. [tabContent] draws a tab's page: the tab, the [StatsRange] and
- * the [ScrollState] the page scrolls with (kept by the shell); by default the three slots without figures.
+ * the [ScrollState] the page scrolls with (kept by the shell); by default the three slots without figures. The header's
+ * ⋮ menu gives way to an alert it was not opened in ([alertKey], the alert playing now; rule 8, D-058).
  */
 @Composable
 @Suppress("LongParameterList") // the state, its three callbacks and the page slot
@@ -153,9 +159,12 @@ fun StatsContent(
     scrollToTopRequest: Int = 0,
     onCustomRange: (from: YearMonth, to: YearMonth) -> Unit = { _, _ -> },
     onFoldedChange: (key: String, folded: Boolean) -> Unit = { _, _ -> },
+    alertKey: String? = null,
     tabContent: @Composable (tab: StatsTab, range: StatsRange, scrollState: ScrollState) -> Unit =
         { tab, _, scrollState -> PlaceholderTab(tab, scrollState) },
 ) {
+    // Here, not in the header: one gate for the empty state and the pages, whichever shows.
+    val menu = rememberAlertGate(alertKey)
     Scaffold(
         modifier = modifier,
         contentWindowInsets = WindowInsets.safeDrawing.only(
@@ -167,13 +176,14 @@ fun StatsContent(
             when (state) {
                 StatsUiState.Loading -> Unit
 
-                StatsUiState.Empty -> EmptyStats(onOpenSettings)
+                StatsUiState.Empty -> EmptyStats(onOpenSettings, menu)
 
                 is StatsUiState.Data -> StatsPages(
                     state = state,
                     onRangeChange = onRangeChange,
                     onTabChange = onTabChange,
                     onOpenSettings = onOpenSettings,
+                    menu = menu,
                     scrollToTopRequest = scrollToTopRequest,
                     onCustomRange = onCustomRange,
                     onFoldedChange = onFoldedChange,
@@ -195,7 +205,7 @@ private fun PlaceholderTab(tab: StatsTab, scrollState: ScrollState) {
 
 /** „Deine Tee-Reise" (displayLarge) with the ⋮ menu: it scrolls away with a tab's content (SCR-18). */
 @Composable
-private fun StatsHeader(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
+private fun StatsHeader(onOpenSettings: () -> Unit, menu: AlertGate, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -211,13 +221,13 @@ private fun StatsHeader(onOpenSettings: () -> Unit, modifier: Modifier = Modifie
             style = MaterialTheme.typography.displayLarge,
             color = MaterialTheme.colorScheme.onBackground,
         )
-        OverflowSettingsAction(onOpenSettings)
+        OverflowSettingsAction(onOpenSettings, menu.shown, menu.keepsPopup, menu::open, menu::close)
     }
 }
 
 /** No finished session at all: A9 alone, centred while it fits, scrollable at a large font scale (INS-08). */
 @Composable
-private fun EmptyStats(onOpenSettings: () -> Unit) {
+private fun EmptyStats(onOpenSettings: () -> Unit, menu: AlertGate) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val half = maxHeight / 2
         Column(
@@ -225,7 +235,7 @@ private fun EmptyStats(onOpenSettings: () -> Unit) {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            StatsHeader(onOpenSettings)
+            StatsHeader(onOpenSettings, menu)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -255,6 +265,7 @@ private fun StatsPages(
     onRangeChange: (StatsRange) -> Unit,
     onTabChange: (StatsTab) -> Unit,
     onOpenSettings: () -> Unit,
+    menu: AlertGate,
     scrollToTopRequest: Int,
     onCustomRange: (YearMonth, YearMonth) -> Unit,
     onFoldedChange: (String, Boolean) -> Unit,
@@ -310,7 +321,7 @@ private fun StatsPages(
     ChartSelectionHost(selection, Modifier.fillMaxSize()) {
         CollapsingColumn(
             header = header,
-            title = { StatsHeader(onOpenSettings) },
+            title = { StatsHeader(onOpenSettings, menu) },
             // The pinned chrome keeps its labels on one line: it scales up to 1.15, the content below up to 2.0.
             pinned = {
                 CappedFontScale {
