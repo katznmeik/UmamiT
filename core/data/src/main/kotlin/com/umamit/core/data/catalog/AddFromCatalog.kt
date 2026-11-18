@@ -79,6 +79,13 @@ interface AddFromCatalog {
 
     /** Adds the tea of [purchase], or records the repurchase when it is owned; one transaction. */
     suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult
+
+    /**
+     * *Neuen Tee anlegen* for a received recipe (PRF-08 AC6, 05 §8a): the catalog tea [catalogKey] added as [add]
+     * adds it, but without a package, so it has no stock event (no stock is invented, as without catalog). A key a
+     * collection tea already links to writes nothing and answers [AddFromCatalogResult.Repurchased] with that tea.
+     */
+    suspend fun addWithoutPackage(catalogKey: String): AddFromCatalogResult
 }
 
 /** [AddFromCatalog] from `catalog.db` and its photos into `umamit.db` and `filesDir/photos/`. */
@@ -96,8 +103,13 @@ class RoomAddFromCatalog @Inject constructor(
     override fun observeOwner(catalogKey: String): Flow<String?> =
         db.teaDao().observeIdByCatalogKey(catalogKey).distinctUntilChanged()
 
-    override suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult = try {
-        val entry = catalog.tea(purchase.catalogKey)
+    override suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult = add(purchase.catalogKey, purchase)
+
+    override suspend fun addWithoutPackage(catalogKey: String): AddFromCatalogResult = add(catalogKey, null)
+
+    /** [purchase] null: no package, and an owned key is only named (PRF-08). */
+    private suspend fun add(catalogKey: String, purchase: CatalogPurchase?): AddFromCatalogResult = try {
+        val entry = catalog.tea(catalogKey)
         if (entry == null) {
             AddFromCatalogResult.NotInCatalog
         } else {
@@ -124,18 +136,19 @@ class RoomAddFromCatalog @Inject constructor(
 
     private suspend fun write(
         entry: CatalogTeaEntity,
-        purchase: CatalogPurchase,
+        purchase: CatalogPurchase?,
         cover: CoverFile?,
     ): AddFromCatalogResult = photoFiles.withCoverFile(cover, kept = { it is AddFromCatalogResult.Added }) {
         db.withTransaction {
-            // The tea leaves the Merkliste with the add, in its transaction: a failed add keeps the mark (CAT-18).
-            db.catalogBookmarkDao().delete(entry.key)
             // Read again inside the transaction: a tea added meanwhile turns this into a repurchase.
             val owner = db.teaDao().idByCatalogKey(entry.key)
-            if (owner != null) {
-                repurchase(owner, purchase)
-            } else {
-                AddFromCatalogResult.Added(copy(entry, purchase, cover))
+            // The tea leaves the Merkliste with the add, in its transaction: a failed add keeps the mark (CAT-18). A
+            // package-less add of an owned key writes nothing.
+            if (owner == null || purchase != null) db.catalogBookmarkDao().delete(entry.key)
+            when {
+                owner == null -> AddFromCatalogResult.Added(copy(entry, purchase, cover))
+                purchase == null -> AddFromCatalogResult.Repurchased(owner)
+                else -> repurchase(owner, purchase)
             }
         }
     }
@@ -148,7 +161,7 @@ class RoomAddFromCatalog @Inject constructor(
     }
 
     /** Writes the collection copy of [entry] and returns its id. */
-    private suspend fun copy(entry: CatalogTeaEntity, purchase: CatalogPurchase, cover: CoverFile?): String {
+    private suspend fun copy(entry: CatalogTeaEntity, purchase: CatalogPurchase?, cover: CoverFile?): String {
         val teaId = UUID.randomUUID().toString()
         val tea = entry.toTea(teaId)
         // Saving a recipe clears „Rezept prüfen" (TEA-17), so the tea's reason is written after its recipes.
@@ -157,7 +170,7 @@ class RoomAddFromCatalog @Inject constructor(
             recipes.saveRecipe(template.toRecipe(UUID.randomUUID().toString(), teaId, position))
         }
         if (tea.recipeCheckReason != null) teas.saveTea(tea)
-        stock.addEvent(event(teaId, InventoryEventType.INITIAL, purchase))
+        purchase?.let { stock.addEvent(event(teaId, InventoryEventType.INITIAL, it)) }
         if (cover != null) teas.saveCover(teaId, cover)
         return teaId
     }
