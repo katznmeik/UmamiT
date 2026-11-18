@@ -21,6 +21,7 @@
   - [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) is built from `main` `60e07bbe`, not a pre-release, with the tag on the merge commit.
   - versionCode 80099, APK SHA-256 `b67a6901…2016`, the release digest of the downloaded APK.
   - `scripts/verify-release-apk.sh` on that APK: the signature is valid, the certificate `a500e2c6…2f67` matches `signing/release-cert-sha256.txt`, `com.umamit.app` 0.8.0 / 80099, not debuggable.
+- **Issues:** #326 and #327 closed. #330 stays open for v0.9.0. #104 („Timer folgt dem hellen Design", `needs-triage`) is still open although the light timer shipped; closing it is the PO's call.
 - **Branch:** the working branch `claude/inspiring-ritchie-8hfw00` was restarted from `main`. The session was assigned `claude/pensive-hypatia-xl1eq9` and did not use it.
 - **Session 6 (Sonnet `medium` orchestrator, no subagents):** mostly waiting on CI, accuracy and the release run.
 
