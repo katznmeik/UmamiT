@@ -9,7 +9,7 @@ import com.umamit.core.backup.restore.UndoPreview
 import kotlinx.coroutines.flow.Flow
 import java.io.Closeable
 
-/** „Letzte Sicherung: 3. Nov. 2026 · 12 neue Sessions" (BAK-01 AC4, D-130 Q12): the export's time, the sessions since. */
+/** „Letzte Sicherung: 3. Nov. 2026 · 12 neue Sessions" (BAK-01 AC4, D-130 Q12). */
 data class LastBackup(val atMs: Long, val newSessions: Int)
 
 /**

@@ -139,7 +139,7 @@ internal class SettingsScreens(
     val dataBackup: @Composable (DataBackupHost) -> Unit = { host ->
         com.umamit.feature.settings.backup.DataBackupRoute(
             onBack = host.onBack,
-            onImported = host.onImported,
+            onImportFinish = host.onImported,
             alertKey = host.alertKey,
         )
     },

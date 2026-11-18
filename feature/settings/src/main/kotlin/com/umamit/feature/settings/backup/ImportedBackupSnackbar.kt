@@ -13,44 +13,9 @@ import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
-import com.umamit.core.backup.restore.RestoreResult
 import com.umamit.core.ui.showUndo
 import com.umamit.feature.settings.R
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import javax.inject.Inject
-
-/**
- * The snackbar's *Rückgängig machen* on Start (BAK-02 AC6, D-130 item 22): the undo of the import just done, refused
- * like the one on SCR-26 while a timer is active. [result] is its text, until [resultShown].
- */
-@HiltViewModel
-class ImportUndoViewModel @Inject constructor(private val backup: DataBackup) : ViewModel() {
-    private val mutable = MutableStateFlow<Int?>(null)
-
-    @get:StringRes
-    val result: StateFlow<Int?> = mutable.asStateFlow()
-
-    fun undo() {
-        viewModelScope.launch {
-            mutable.value = when (val done = backup.undo()) {
-                is RestoreResult.Done -> R.string.backup_undone
-                is RestoreResult.Refused -> done.refusal.messageRes
-                RestoreResult.NoSafetyCopy -> null
-            }
-        }
-    }
-
-    fun resultShown() {
-        mutable.value = null
-    }
-}
 
 /**
  * „Sicherung eingespielt · 142 Sessions, 23 Tees" · *Rückgängig machen* over Start after an import (03 SCR-26), for
@@ -69,7 +34,7 @@ fun ImportedBackupSnackbar(
         onUndo = viewModel::undo,
         onDone = onDone,
         result = result,
-        onResultShown = viewModel::resultShown,
+        onResultEnd = viewModel::resultShown,
         modifier = modifier,
     )
 }
@@ -82,7 +47,7 @@ fun ImportedBackupSnackbar(
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
     @StringRes result: Int? = null,
-    onResultShown: () -> Unit = {},
+    onResultEnd: () -> Unit = {},
 ) {
     val hostState = remember { SnackbarHostState() }
     val message = imported?.let { importedMessage(it) }
@@ -97,10 +62,10 @@ fun ImportedBackupSnackbar(
         if (undone) currentOnUndo()
     }
     val resources = LocalResources.current
-    val currentOnResultShown by rememberUpdatedState(onResultShown)
+    val currentOnResultEnd by rememberUpdatedState(onResultEnd)
     LaunchedEffect(result) {
         val text = result?.let(resources::getString) ?: return@LaunchedEffect
-        currentOnResultShown()
+        currentOnResultEnd()
         hostState.showSnackbar(text)
     }
     SnackbarHost(hostState = hostState, modifier = modifier)

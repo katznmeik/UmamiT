@@ -2,9 +2,9 @@ package com.umamit.feature.settings.backup
 
 import android.content.ContentResolver
 import android.content.Context
-import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
+import androidx.core.net.toUri
 import com.umamit.core.backup.archive.BackupEstimate
 import com.umamit.core.backup.archive.BackupExport
 import com.umamit.core.backup.archive.BackupReadResult
@@ -99,7 +99,7 @@ class UseCaseDataBackup @Inject constructor(
     override suspend fun delete(document: String) {
         withContext(Dispatchers.IO) {
             try {
-                DocumentsContract.deleteDocument(resolver, Uri.parse(document))
+                DocumentsContract.deleteDocument(resolver, document.toUri())
             } catch (
                 @Suppress("TooGenericExceptionCaught") e: Exception, // a provider without delete: the file stays
             ) {
@@ -110,7 +110,7 @@ class UseCaseDataBackup @Inject constructor(
 
     override suspend fun check(document: String): BackupCheck = withContext(Dispatchers.IO) {
         val read = try {
-            resolver.openInputStream(Uri.parse(document))?.use { readBackup.read(it, paths.staging) }
+            resolver.openInputStream(document.toUri())?.use { readBackup.read(it, paths.staging) }
         } catch (e: IOException) {
             Log.w(TAG, "the picked file cannot be read or staged", e)
             null
@@ -152,7 +152,7 @@ class UseCaseDataBackup @Inject constructor(
 
     /** The picked document for writing, truncated; null when the provider gives none. */
     private fun open(document: String): OutputStream? = try {
-        resolver.openOutputStream(Uri.parse(document), "wt")
+        resolver.openOutputStream(document.toUri(), "wt")
     } catch (e: FileNotFoundException) {
         Log.w(TAG, "document not opened", e)
         null

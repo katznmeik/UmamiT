@@ -74,13 +74,13 @@ class DataBackupActions(
 
 /**
  * *Daten & Sicherung* (SCR-26) with its view model and the three system pickers (BAK-01 AC1, BAK-02 AC1, BAK-04).
- * [onImported] gets a finished import: the host opens Start with its snackbar (BAK-02 AC6). [alertKey] is the alert
+ * [onImportFinish] gets a finished import: the host opens Start with its snackbar (BAK-02 AC6). [alertKey] is the alert
  * playing now: no dialog is composed over it (rule 8).
  */
 @Composable
 fun DataBackupRoute(
     onBack: () -> Unit,
-    onImported: (ImportedBackup) -> Unit,
+    onImportFinish: (ImportedBackup) -> Unit,
     alertKey: String?,
     modifier: Modifier = Modifier,
     viewModel: DataBackupViewModel = hiltViewModel(),
@@ -111,11 +111,11 @@ fun DataBackupRoute(
             is BackupPick.CreateJournal -> createJournal.launch(pick.fileName)
         }
     }
-    val currentOnImported by rememberUpdatedState(onImported)
+    val currentOnImportFinish by rememberUpdatedState(onImportFinish)
     LaunchedEffect(state.imported) {
         val imported = state.imported ?: return@LaunchedEffect
         viewModel.importHandled()
-        currentOnImported(imported)
+        currentOnImportFinish(imported)
     }
     DataBackupScreen(
         state = state,
@@ -203,57 +203,59 @@ fun DataBackupScreen(
 
 @Composable
 private fun BackupSection(state: DataBackupUiState, actions: DataBackupActions, zone: ZoneId) {
-    SectionHeader(title = stringResource(R.string.backup_section_backup), modifier = Modifier.fillMaxWidth())
-    Text(
-        text = lastBackupLine(state.lastBackup, zone),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurface,
-    )
-    ButtonBlock {
-        val export = state.export
-        if (export == null) {
-            Button(onClick = actions.createBackup, modifier = Modifier.testTag(DataBackupTags.CREATE)) {
-                Text(stringResource(R.string.backup_create))
-            }
-        } else {
-            ExportProgressBar(export, onCancel = actions.cancelExport)
-        }
-    }
-    val timerDetail = stringResource(R.string.backup_timer_active).takeIf { state.timerActive }
-    ButtonBlock(detail = timerDetail) {
-        OutlinedButton(
-            onClick = actions.importBackup,
-            enabled = !state.timerActive,
-            modifier = Modifier.testTag(DataBackupTags.IMPORT),
-        ) {
-            Text(stringResource(R.string.backup_import))
-        }
-    }
-    state.undo?.let { undo ->
-        val until = stringResource(
-            R.string.backup_undo_until,
-            GermanFormat.day(undo.availableUntil, zone),
-            GermanFormat.time(java.time.Instant.ofEpochMilli(undo.availableUntil).atZone(zone)),
+    Column(modifier = Modifier.fillMaxWidth()) {
+        SectionHeader(title = stringResource(R.string.backup_section_backup), modifier = Modifier.fillMaxWidth())
+        Text(
+            text = lastBackupLine(state.lastBackup, zone),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
         )
-        ButtonBlock(detail = timerDetail ?: until) {
-            TextButton(
-                onClick = actions.askUndo,
-                enabled = !state.timerActive,
-                modifier = Modifier.testTag(DataBackupTags.UNDO),
-            ) {
-                Text(stringResource(R.string.backup_undo))
+        ButtonBlock {
+            val export = state.export
+            if (export == null) {
+                Button(onClick = actions.createBackup, modifier = Modifier.testTag(DataBackupTags.CREATE)) {
+                    Text(stringResource(R.string.backup_create))
+                }
+            } else {
+                ExportProgressBar(export, onCancel = actions.cancelExport)
             }
         }
+        val timerDetail = stringResource(R.string.backup_timer_active).takeIf { state.timerActive }
+        ButtonBlock(detail = timerDetail) {
+            OutlinedButton(
+                onClick = actions.importBackup,
+                enabled = !state.timerActive,
+                modifier = Modifier.testTag(DataBackupTags.IMPORT),
+            ) {
+                Text(stringResource(R.string.backup_import))
+            }
+        }
+        state.undo?.let { undo ->
+            val until = stringResource(
+                R.string.backup_undo_until,
+                GermanFormat.day(undo.availableUntil, zone),
+                GermanFormat.time(java.time.Instant.ofEpochMilli(undo.availableUntil).atZone(zone)),
+            )
+            ButtonBlock(detail = timerDetail ?: until) {
+                TextButton(
+                    onClick = actions.askUndo,
+                    enabled = !state.timerActive,
+                    modifier = Modifier.testTag(DataBackupTags.UNDO),
+                ) {
+                    Text(stringResource(R.string.backup_undo))
+                }
+            }
+        }
+        SwitchRow(
+            title = stringResource(R.string.backup_reminder),
+            checked = state.reminderEnabled,
+            onCheckedChange = actions.setReminder,
+            detail = stringResource(R.string.backup_reminder_detail),
+        )
     }
-    SwitchRow(
-        title = stringResource(R.string.backup_reminder),
-        checked = state.reminderEnabled,
-        onCheckedChange = actions.setReminder,
-        detail = stringResource(R.string.backup_reminder_detail),
-    )
 }
 
 /** „Letzte Sicherung: 3. Nov. 2026 · 12 neue Sessions" or „Noch keine Sicherung" (D-130 Q12). */

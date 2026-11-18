@@ -180,7 +180,7 @@ internal data object DiagnosticsRoute
 @Serializable
 internal data object TeawareRoute
 
-/** *Daten & Sicherung* (SCR-26, v0.9.0) from *Einstellungen › Daten & Sicherung*: in a tab's stack or above the timer. */
+/** *Daten & Sicherung* (SCR-26, v0.9.0) from the settings: in a tab's stack or above the timer. */
 @Serializable
 internal data object DataBackupRoute
 

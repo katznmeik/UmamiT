@@ -218,15 +218,9 @@ internal fun UmamitRoot(
         request = startRequest,
         onConsume = onConsumeStartRequest,
     )
-    // A finished backup import (BAK-02 AC6): Start at its root with „Sicherung eingespielt · …“ over it. No timer
-    // can run then (the import is refused during one), so nothing above the shell is an alert.
-    var importedBackup by rememberSaveable(stateSaver = ImportedBackup.Saver) { mutableStateOf<ImportedBackup?>(null) }
-    var importedStart by rememberSaveable { mutableLongStateOf(0L) }
-    val onBackupImported: (ImportedBackup) -> Unit = { imported ->
-        navController.popBackStack<ShellRoute>(inclusive = false)
-        importedBackup = imported
-        importedStart++
-    }
+    // A finished backup import (BAK-02 AC6): Start at its root with „Sicherung eingespielt · …“ over it.
+    val backupImport = rememberBackupImportStart()
+    val onBackupImported: (ImportedBackup) -> Unit = { backupImport.finish(navController, it) }
 
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
@@ -330,9 +324,9 @@ internal fun UmamitRoot(
             archivedTea = archivedTea,
             onArchivedTeaChange = { archivedTea = it },
             // Only the app's shell: the import pops the refresh shell above it.
-            importStartRequest = if (opening == ShellOpening.Start) importedStart else 0L,
-            importedBackup = importedBackup.takeIf { opening == ShellOpening.Start },
-            onImportedBackupChange = { importedBackup = it },
+            importStartRequest = backupImport.requestFor(opening),
+            importedBackup = backupImport.importedFor(opening),
+            onImportedBackupChange = { backupImport.imported = it },
         )
     }
     CompositionLocalProvider(LocalPhotoViewer provides photoViewer) {
