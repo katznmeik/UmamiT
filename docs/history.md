@@ -11,6 +11,20 @@
 
 ## Releases and plans
 
+### v0.8.0: released (2026-11-18)
+
+- **PO approval (2026-11-18, in session 6):** the session found no reply on PR #328 after the rc.2 comment, stopped and asked. The PO answered „all approved, nothing fails": the whole checklist 09 §4 „v0.8.0" on rc.2. Recorded on PR #328 (comment 6972174736). The design review was approved on rc.1 (session 4, D-129).
+- **Version:** 09 §4 ticked and `umamit.version=0.8.0` (versionCode 80099) in `c658d496`. CI run 44259893817 went green on attempt 2: the first „Checks" failed on Maven Central's HTTP 429 for a Robolectric jar.
+- **Merge:** PR #328 merged into `main` with a merge commit (`60e07bbe`). CI run 44265347019 was green on it on the first attempt.
+- **Accuracy on `60e07bbe` (09 §4a, API 36, 50 steps, full SHA):** standard (44265373167), alongside (44265378630) and two-brews (44265383876) all PASS on the first attempt.
+- **Release:** run 44275090504 with `RELEASE_TOKEN` (D-118) passed on the first attempt.
+  - [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) is built from `main` `60e07bbe`, not a pre-release, with the tag on the merge commit.
+  - versionCode 80099, APK SHA-256 `b67a6901…2016`, the release digest of the downloaded APK.
+  - `scripts/verify-release-apk.sh` on that APK: the signature is valid, the certificate `a500e2c6…2f67` matches `signing/release-cert-sha256.txt`, `com.umamit.app` 0.8.0 / 80099, not debuggable.
+- **Issues:** #326 and #327 closed. #330 stays open for v0.9.0. #104 („Timer folgt dem hellen Design", `needs-triage`) is still open although the light timer shipped; closing it is the PO's call.
+- **Branch:** the working branch `claude/inspiring-ritchie-8hfw00` was restarted from `main`. The session was assigned `claude/pensive-hypatia-xl1eq9` and did not use it.
+- **Session 6 (Sonnet `medium` orchestrator, no subagents):** mostly waiting on CI, accuracy and the release run.
+
 ### v0.8.0: session 5, #331 and rc.2 published (2026-11-18)
 
 - **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/youthful-ride-nxyb6e`). The environment (mirror init script, `gw.sh`, Robolectric jars) was written again.
@@ -750,6 +764,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-18 | **v0.8.0 session 6:** the PO approved the whole checklist on rc.2; `umamit.version=0.8.0` (80099); PR #328 merged (`60e07bbe`), CI and all three accuracy variants green on it; [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) released and verified. Next: the v0.9.0 specify session. |
 | 2026-11-17 | **v0.8.0 build session 3:** the PO confirmed the sage alarm (bar static sage too); #325 and #329 built; the T3, T4 and ad-hoc motion reviews with one fix round; the full gate, CI and all three accuracy variants green on `9c0e4225`; `v0.8.0-rc.1` (80001) published with the checklist and the design review. Next: session 4 (the PO's check, merge, final `v0.8.0`). |
 | 2026-11-17 | **v0.8.0 build session 2:** #319, #320, #313, #321 and #322 merged and verified on PR #328; #325 step 1 (the sage alarm of the light timer) built and its renders posted on #324; the swing figures corrected to the measured 1.73 / 2.97. Next: the PO's confirmation, then build session 3 (the rest of #325, #326). |
 | 2026-11-17 | **v0.8.0 build session 1:** the PO approved spec #315, the tickets and the plan; PR #328 (draft) opened; #317, #318, #316 (+ a brew test follow-up) and #323 merged and verified; the light timer's renders posted on #324 and answered by the PO (band ink, fill as today, sage alarm for the light timer; D-128 34–37). Next: build session 2 (#320, #319, #321, #313, #322, #325). |
