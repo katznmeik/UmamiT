@@ -96,7 +96,8 @@ class UmamitApplication :
         recoveryScope.launch { lowStockReminders.get().follow() }
         // The safety copy's 7 × 24 h (05 §8 „Expiry") and what a crash left of an import.
         recoveryScope.launch { safetyCopyExpiry.get().atAppStart() }
-        // Shared recipe files older than a day (PRF-08, 06 §5.7): last, off the main thread, after the timer's recovery.
+        // Shared recipe files older than a day (PRF-08, 06 §5.7): last, off the main thread, after the timer's
+        // recovery.
         recoveryScope.launch(Dispatchers.IO) { SharedRecipeFiles.deleteStale(cacheDir, System.currentTimeMillis()) }
     }
 
