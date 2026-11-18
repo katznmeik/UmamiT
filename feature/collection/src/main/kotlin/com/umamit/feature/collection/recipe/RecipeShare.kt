@@ -103,20 +103,22 @@ class AndroidRecipeSharer(private val context: Context, private val now: () -> O
 }
 
 /**
- * Opens the share sheet for [event]'s recipe. A file that can't be written (a full cache) or a phone without any
- * share target leaves the editor as it is; 03 §5 has no message for either (logged only).
+ * Opens the share sheet for [event]'s recipe; false (logged) when the file can't be written (a full cache) or no app
+ * takes the share, and the editor then shows „Das Rezept konnte nicht geteilt werden." (PRF-08).
  */
-internal suspend fun Context.share(sharer: RecipeSharer, event: RecipeEditorEvent.Share) {
+internal suspend fun Context.share(sharer: RecipeSharer, event: RecipeEditorEvent.Share): Boolean {
     val chooser = try {
         sharer.chooser(event.recipe)
     } catch (e: IOException) {
         Log.w(LOG_TAG, "recipe file not written", e)
-        return
+        return false
     }
-    try {
+    return try {
         startActivity(chooser)
+        true
     } catch (e: ActivityNotFoundException) {
         Log.w(LOG_TAG, "no share sheet", e)
+        false
     }
 }
 

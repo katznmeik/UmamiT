@@ -81,6 +81,9 @@ enum class RecipeEditorMessage {
 
     /** The recipe of the running brew stays until the session ends (E15, D-101 F12). */
     InActiveSession,
+
+    /** *Rezept teilen* failed: the file wasn't written, or no app takes the share (PRF-08). */
+    ShareFailed,
 }
 
 /** What the editor asks its host to do. */
@@ -231,6 +234,11 @@ class RecipeEditorViewModel @Inject constructor(
             val vessel = stored.vesselId?.let { id -> vessels.observeVessels().first().firstOrNull { it.id == id } }
             navigation.send(RecipeEditorEvent.Share(SharedRecipe.of(tea, stored, vessel?.type)))
         }
+    }
+
+    /** The host couldn't open the share sheet of a [share]: „Das Rezept konnte nicht geteilt werden." (PRF-08). */
+    fun shareFailed() {
+        message.value = RecipeEditorMessage.ShareFailed
     }
 
     private fun store(b: Base, f: RecipeForm) {

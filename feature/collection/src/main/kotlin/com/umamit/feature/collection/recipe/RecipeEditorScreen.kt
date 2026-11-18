@@ -108,7 +108,7 @@ fun RecipeEditorRoute(
             when (event) {
                 is RecipeEditorEvent.Saved -> currentOnSave(event.recipeId)
                 RecipeEditorEvent.Deleted -> currentOnDelete()
-                is RecipeEditorEvent.Share -> context.share(sharer, event)
+                is RecipeEditorEvent.Share -> if (!context.share(sharer, event)) viewModel.shareFailed()
             }
         }
     }
@@ -160,11 +160,13 @@ fun RecipeEditorScreen(
     val limit = stringResource(R.string.recipe_editor_limit_reached)
     val last = stringResource(R.string.recipe_editor_delete_last)
     val brewing = stringResource(R.string.recipe_editor_delete_brewing)
+    val shareFailed = stringResource(R.string.recipe_editor_share_failed)
     LaunchedEffect(ready?.message) {
         val text = when (ready?.message) {
             RecipeEditorMessage.LimitReached -> limit
             RecipeEditorMessage.LastRecipe -> last
             RecipeEditorMessage.InActiveSession -> brewing
+            RecipeEditorMessage.ShareFailed -> shareFailed
             null -> return@LaunchedEffect
         }
         actions.messageShown()

@@ -468,6 +468,15 @@ class RecipeEditorViewModelTest {
     }
 
     @Test
+    fun `a failed share shows its message once (PRF-08)`() = runTest {
+        val vm = viewModel("kyusu")
+        vm.shareFailed()
+        assertThat(vm.ready.message).isEqualTo(RecipeEditorMessage.ShareFailed)
+        vm.messageShown()
+        assertThat(vm.ready.message).isNull()
+    }
+
+    @Test
     fun `Rezept teilen waits for Speichern - Erst speichern`() = runTest {
         val vm = viewModel("kyusu")
         vm.update { it.copy(name = "Kyusu, neu") }
