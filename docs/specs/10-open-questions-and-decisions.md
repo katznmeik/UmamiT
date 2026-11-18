@@ -436,6 +436,19 @@ built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
 - **#336, undo after a step finished at the next start** · *Accepted (PO, 2026-11-18, build session 1, as options)*: undo is offered right after the import and counts from the import's time, as Q6 and the late-failure answer say; the as-built case (hidden until the next start, `safetyCopyAt` = that start) is **fixed in the rc round (#343)**. Not taken: keeping it as built.
 
 <a id="d-129"></a>
+- **Build note, #341 (Rezept teilen, build session 2, PO 2026-11-18):** a new
+  recipe has no ⋮ (as before), so *Rezept teilen* is not offered until it is
+  saved, rather than greyed out (PO: keep it). A file that can't be written
+  or a phone without a share target shows the snackbar „Das Rezept konnte
+  nicht geteilt werden." (PO). The provider is `RecipeFileProvider`, a
+  `FileProvider` subclass that names the recipe MIME type (D-130 item 18's
+  octet-stream risk); authority `${applicationId}.files`. The day-old
+  cleanup of `cache/shared/` is the last start-up launch, on IO, after timer
+  recovery. Seen once in `:app:testDebugUnitTest`: `RemoveTeaFlowTest` failed
+  with `UncaughtExceptionsBeforeTest` from #336's `safetyCopyExpiry` start-up
+  launch (`NameNotFoundException` in `NetworkModule`); passed on rerun — for
+  #343's review of the start gate.
+
 ### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*
 
 **Context.** The PO checked `v0.8.0-rc.1` (PR #328) and named one failure from a screen recording (2026-11-17 21:58). Tapping a tea in *Tee wählen* (SCR-03) removes the sheet within one frame, so Start shows bare for ≈ 150–200 ms while *Neue Session* (SCR-04) fades in over it. A second recording (cold and warm start) felt „a tiny bit jumpy": the system's splash and window zoom are as usual, but the tea photos in Start's „Zuletzt aufgegossen" are missing for the first frames and pop in a moment later. The same recording's longer view of Start (setup → Start → timer) was two taps of the PO's (the setup's back arrow, then a recent row), not a fault.

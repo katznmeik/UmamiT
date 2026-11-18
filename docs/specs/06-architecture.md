@@ -327,7 +327,10 @@ recorded here first.
 
 **Recipe files (v0.9.0, PRF-08, [D-130](10-open-questions-and-decisions.md#d-130)).** No new permission;
 `checkManifestPermissions` stays unchanged.
-- **Sending:** an `androidx.core.content.FileProvider` in `app`
+- **Sending:** an `androidx.core.content.FileProvider` in `app` (as built,
+  #341: the subclass `RecipeFileProvider`, which reports
+  `application/vnd.umamit.recipe+json` for `.umamit-rezept` instead of
+  `application/octet-stream`)
   (authority `com.umamit.app.files`, **not exported**,
   `grantUriPermissions`), its paths only `cache/shared/`. The share intent
   grants read access to that one URI. Files there older than a day are
