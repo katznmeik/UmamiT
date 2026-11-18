@@ -1403,8 +1403,11 @@ v0.4.0 (D-100):
     *Weiterer Aufguss* (TMR-10), up to 30 steps.
   - ⋮ *Rezept teilen* (v0.9.0, PRF-08, D-130) above *Rezept löschen*: the
     Android share sheet with the text and the file `Gyokuro Asahi.umamit-rezept`.
-    Greyed out with „Erst speichern" for a new recipe or while the editor
-    has unsaved changes. The text, for example:
+    Greyed out with „Erst speichern" while the editor has unsaved changes;
+    a new recipe has no ⋮ at all, so it can be shared once saved (PO,
+    2026-11-18, D-130 build note). If the file can't be written or no app
+    takes the share: the snackbar „Das Rezept konnte nicht geteilt werden."
+    (PO, 2026-11-18). The text, for example:
 
     ```
     Gyokuro Asahi (Uji) – Rezept „Kyusu"
@@ -2126,7 +2129,7 @@ tokens (§3.6); reduce motion: they appear at once.
 
 ### SCR-26 Daten & Sicherung
 
-Until v0.9.0: the device-backup explanation and *Alle Daten löschen*. From
+Planned before v0.9.0 as the device-backup explanation and *Alle Daten löschen*, neither built until v0.9.0 ([D-131](10-open-questions-and-decisions.md#d-131)). From
 v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q8, [D-130](10-open-questions-and-decisions.md#d-130)), top to bottom:
 
 - **SICHERUNG** (overline)
@@ -2165,9 +2168,16 @@ v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-de
 - **EXPORT** (overline): ***Journal als CSV*** (outlined) with „Alle
   Sessions als Tabelle, z. B. für Excel. Kann nicht eingespielt werden." →
   the picker (`UmamiT-Journal-2026-11-18.csv`) → „Journal gespeichert".
-- **GERÄTE-BACKUP** (overline): the device-backup explanation as before,
-  plus „Fotos sind nur in der Sicherung enthalten.".
-- ***Alle Daten löschen*** as before (SET-33).
+- **GERÄTE-BACKUP** (overline): „Dein Handy sichert Tees, Journal und
+  Einstellungen automatisch mit dem Geräte-Backup. Fotos sind nur in der
+  Sicherung enthalten." (D-131 Q6).
+- ***Alle Daten löschen*** (SET-33, destructive text button; D-131, #346):
+  the dialog „Alle Daten löschen?" · „Alle Tees, Sessions, Rezepte, Gefäße,
+  Fotos und Einstellungen werden von diesem Gerät gelöscht. Das kann nicht
+  rückgängig gemacht werden. Erstelle vorher eine Sicherung." · a field
+  „Tippe LÖSCHEN zur Bestätigung" · *Abbrechen* / *Löschen* (enabled only by
+  exactly „LÖSCHEN"). Then the app starts as after installing it
+  (onboarding). Greyed out during a timer like the import.
 - TalkBack: the progress bar reads „Sicherung wird erstellt, 12 von 61
   Fotos"; the typed field „Bestätigungswort, ERSETZEN eintippen".
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- *Rezept teilen* (PRF-08, 06 §5.7): the FileProvider serves cache/shared/ and nothing else. -->
+<paths>
+    <cache-path
+        name="shared"
+        path="shared/" />
+</paths>

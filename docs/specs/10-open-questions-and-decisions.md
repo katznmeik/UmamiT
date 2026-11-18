@@ -324,6 +324,49 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-130"></a>
+### D-132 — A „What's new" for every release, on its GitHub Release page (09 §2; CLAUDE.md rule 6; `release.yml`) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q4 below (build session 2 of v0.9.0, asked as options)
+
+1. **Q1, language: English.**
+2. **Q2, where: a file per release and the release page.** `docs/whats-new/vX.Y.Z.md`
+   is written with the milestone; `release.yml` puts its text at the top of
+   the GitHub Release body, above the version and checksum table. The
+   workflow change reaches `main` through its own housekeeping PR (D-039).
+3. **Q3, which releases: final and release candidates.** An rc shows the
+   release's whole what's new plus a short „Since rc.N" part for what
+   changed since the previous rc; the final drops that part.
+4. **Q4, length: 3–8 bullets**, grouped as *New*, *Improved*, *Fixed*, one
+   line each, user-visible changes only, no ticket numbers.
+5. **Claude (defaults):** the file is named after the version without its
+   `-rc.N` suffix; a final release without its file fails before the tag is
+   made, an rc or probe without one publishes the table alone. Probes get
+   none. Starts with v0.9.0.
+
+### D-131 — v0.9.0: *Alle Daten löschen* (SET-33) built in this release, like a fresh install; the device-backup note's wording (SET-33, BAK-05; SCR-26) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q6 below (build session 2, asked as options); ticket #346 and the dialog's copy (Claude's proposal) **approved by the PO as written on 2026-11-18**; it is built in build session 3
+
+Context: build session 2 found that SCR-26's „as before" parts were never
+built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
+
+1. **Q1, what is deleted: like a fresh install.** The database, own
+   photos, the catalog cache and its photos, all settings (device-bound keys
+   included), the import's safety copy and the shared-recipe cache; the app
+   is as after installing it.
+2. **Q2, a timer: greyed out, like the import.** While a timer is active the
+   row is disabled with „Während ein Timer läuft, nicht möglich" (SCR-26's
+   `TimerActivity`); no timer code (D-130 Q16 stays).
+3. **Q3, the safety net: a hint to back up first.** The dialog says it
+   cannot be undone and suggests a backup; typing „LÖSCHEN" confirms. No
+   safety copy, no undo.
+4. **Q4, afterwards: onboarding again.** The next start is a first start
+   (onboarding, seed teas and their photo download, seed teaware).
+5. **Q5, the release: a new ticket in v0.9.0** (#346, T3, after step 5 of
+   the plan), not part of #338.
+6. **Q6, the GERÄTE-BACKUP note** (SCR-26, BAK-05): „Dein Handy sichert
+   Tees, Journal und Einstellungen automatisch mit dem Geräte-Backup. Fotos
+   sind nur in der Sicherung enthalten."
+7. **Claude (approved by the PO, 2026-11-18):** the dialog's copy in 03
+   SCR-26; the wipe's mechanism is proposed by #346's implementer as a build
+   note before the code.
+
 ### D-130 — v0.9.0 specified: recipe file and how it arrives, newer files refused, the shop page only on a tap, the safety copy and its undo, all photos in the backup, the export's size note, the journal CSV, the reminder switch, „Letzte Sicherung", matching a received tea, tiers, #330 (GEN-01, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08, SET-20; SCR-08, SCR-12, SCR-26, SCR-32; 05 §8, §8a; 06 §2.2, §5.4, §5.7; 09 §2, §4 „v0.9.0"; amends D-128 Q9 and D-036's rule 7 wording) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q16 below. The spec #333, its tickets (#334–#344, #330), `docs/plans/v0.9.0.md` and the details marked „Claude" (items 17–27) **approved by the PO as written on 2026-11-18** (build session 1, asked as options); items 17–27 stay Claude's defaults inside the approved spec, not the PO's answers to Q1–Q16
 
 **Context.** D-128 Q4–Q11 planned v0.9.0 (export and a replacing import, the backup reminder, „Letzte Sicherung", the journal CSV, shared recipes) and left a list „Open for the v0.9.0 specify session". #330 (the tabs' ⋮ menu does not give way to an alert) was put into v0.9.0 by D-128 item 41.
@@ -393,6 +436,19 @@ personal data or shop content).
 - **#336, undo after a step finished at the next start** · *Accepted (PO, 2026-11-18, build session 1, as options)*: undo is offered right after the import and counts from the import's time, as Q6 and the late-failure answer say; the as-built case (hidden until the next start, `safetyCopyAt` = that start) is **fixed in the rc round (#343)**. Not taken: keeping it as built.
 
 <a id="d-129"></a>
+- **Build note, #341 (Rezept teilen, build session 2, PO 2026-11-18):** a new
+  recipe has no ⋮ (as before), so *Rezept teilen* is not offered until it is
+  saved, rather than greyed out (PO: keep it). A file that can't be written
+  or a phone without a share target shows the snackbar „Das Rezept konnte
+  nicht geteilt werden." (PO). The provider is `RecipeFileProvider`, a
+  `FileProvider` subclass that names the recipe MIME type (D-130 item 18's
+  octet-stream risk); authority `${applicationId}.files`. The day-old
+  cleanup of `cache/shared/` is the last start-up launch, on IO, after timer
+  recovery. Seen once in `:app:testDebugUnitTest`: `RemoveTeaFlowTest` failed
+  with `UncaughtExceptionsBeforeTest` from #336's `safetyCopyExpiry` start-up
+  launch (`NameNotFoundException` in `NetworkModule`); passed on rerun — for
+  #343's review of the start gate.
+
 ### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*
 
 **Context.** The PO checked `v0.8.0-rc.1` (PR #328) and named one failure from a screen recording (2026-11-17 21:58). Tapping a tea in *Tee wählen* (SCR-03) removes the sheet within one frame, so Start shows bare for ≈ 150–200 ms while *Neue Session* (SCR-04) fades in over it. A second recording (cold and warm start) felt „a tiny bit jumpy": the system's splash and window zoom are as usual, but the tea photos in Start's „Zuletzt aufgegossen" are missing for the first frames and pop in a moment later. The same recording's longer view of Start (setup → Start → timer) was two taps of the PO's (the setup's back arrow, then a recent row), not a fault.
@@ -8537,6 +8593,8 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-18 | D-132: a „What's new" (English, 3–8 bullets, New/Improved/Fixed) for every final and rc release, from `docs/whats-new/vX.Y.Z.md` at the top of the GitHub Release page. |
+| 2026-11-18 | D-131: *Alle Daten löschen* (SET-33) joins v0.9.0 as #346, like a fresh install, greyed out during a timer, a hint to back up first, onboarding again; the device-backup note's wording (build session 2). |
 | 2026-11-18 | D-130: v0.9.0 specified with the PO (Q1–Q16, four rounds). A recipe file (`.umamit-rezept`, readable JSON `umamit-recipe` v1) arrives by „Öffnen mit", by sharing it to UmamiT or by *Rezept importieren* in Meine Tees' ⋮; newer file versions are refused; the shop page of a received tea is fetched only on a tap (amends D-128 Q9, GEN-01 (d), rule 7's wording); a private safety copy for 7 × 24 h with an undo that counts what is lost; all photos in the backup; a size note and a progress bar on export; the journal CSV for German Excel with infusions and taste; the reminder switch on; „Letzte Sicherung" by export only; a received tea matched by catalog key, else name; tiers T4 import, T3 the rest of the backup and recipe code and #330, T2 screen and reminder; #330 without a timer review. Spec #333, tickets #334–#344, `docs/plans/v0.9.0.md`, waiting for the PO. |
 | 2026-11-17 | D-128: the PO's nine points after v0.7.2, grilled Q1–Q31. **v0.8.0:** „Session" for „Sitzung", „Session starten", „aufgießen"/„Aufguss" for „brühen", the setup titled „Neue Session" / „Session anpassen"; three taste sets of six sliders by kind of tea with a per-tea „Geschmacksprofil" (umamit.db v9), a foldable „Was bedeuten die Regler?"; the timer follows *Design* (supersedes D-012) with an early design check; refresh progress in the settings; the ⋮ menu anchored on every tab; #313 guarded. **v0.9.0 (planned):** export and a replacing import with four safeguards, backup reminder, „Letzte Sicherung", journal CSV; recipes shared as text plus a file (amends D-036). 1.0 starts only on the PO's go. |
 | 2026-11-16 | D-121–D-127: the v0.7.2 triage (#303). The PO picked all 60 audit findings (overlaps as one choice each); the seven restructurings get one decision each (CAT-A-05 `CatalogRefresher` split, CAT-A-07 shared fake shop, CAT-A-08 + UI-A-04 helpers and date picker in `core:ui`, CAT-A-14 link-sheet holder, UI-A-01 + UI-A-10 settings routes, DAT-A-14 + TMR-A-06 the session repositories and the timer's store, TMR-A-09 accuracy tooling); their designs wait for #304. |
