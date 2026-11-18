@@ -445,6 +445,7 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 - [ ] Font 2.0 and TalkBack spot checks of the light timer, the info section and *Geschmacksprofil*.
 - [ ] **rc.2 (D-129, #331):** tapping a tea in *Tee wählen* opens *Neue Session* over the sheet. Start never shows between them, not even for a frame, in light and dark. Back from the setup returns to Start. *Ohne Tee (Schnelltimer)* and *Aus dem Katalog* work as in rc.1. An alert while the picker is open still takes the screen at once.
 - [x] The rc's PR shows the timer tests and the emulator jobs green and all three accuracy variants PASS (§4a): `9c0e4225`, CI run 44153741694, accuracy runs 44153741187, 44153745560, 44153749225 (Claude, 2026-11-17).
+- [x] rc.2: the timer tests and the emulator jobs green and all three accuracy variants PASS (§4a): `95da6ad5`, CI run 44198004897, accuracy runs 44201903920, 44201908972, 44201912905 (Claude, 2026-11-18).
 
 ### M5 — 1.0 (postponed: starts only on the PO's go, D-128)
 

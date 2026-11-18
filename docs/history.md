@@ -11,6 +11,20 @@
 
 ## Releases and plans
 
+### v0.8.0: session 5, #331 and rc.2 published (2026-11-18)
+
+- **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/youthful-ride-nxyb6e`). The environment (mirror init script, `gw.sh`, Robolectric jars) was written again.
+- **#331 (T3, Opus `medium` implementer):**
+  - The failing test came first (`9017da60`, `PickerHandOverTest`; seen failing by the orchestrator), then the fix (`78ca92a8`, `16f41215`) and the docs (`e6aed920`: D-129 „Claude's details", 03 SCR-03).
+  - The mechanism: a frozen frame of the sheet (`SheetHandOver` in `core:ui`). It is recorded synchronously in the tap into a `Picture` and drawn by the shell below the routes. The real sheet hands over its scrim and fades out over it in about four frames.
+  - No change to the timer wiring, so there was no T4 read. A container restart mid-session lost only a wait.
+- **rc:** `95da6ad5` (`0.8.0-rc.2`, versionCode 80002).
+  - Timer tests 263 / 513 / 776; full local gate PASS.
+  - CI run 44198004897 green on attempt 3. API 36 failed first in `ProcessDeathTest`'s two-brews case (the known flake), then in `TransitionJankTest.savedSheetInAndOut` on a slow emulator (the reference fade at ≈ 120 ms frames).
+  - Accuracy standard, alongside and two-brews PASS (44201903920, 44201908972, 44201912905).
+  - Release run 44211626516 needed one rerun for `JournalPerformanceTest`'s wall-clock budget. APK SHA-256 `b0396be0…7f79`.
+  - The checklist line is with the PO in comment 6966407229 on PR #328, with a request to approve the whole checklist.
+
 ### v0.8.0: session 4, the PO's check of rc.1 (2026-11-17)
 
 - **The PO's check:** the design review is approved as built, with Claude's four details. The checklist passed except one item.

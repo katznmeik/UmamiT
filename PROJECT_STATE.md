@@ -5,44 +5,33 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-17 (v0.8.0 session 4: the PO checked rc.1; the design review is approved, and one checklist item fails: the picker's hand-over to the setup shows Start for a few frames. D-129, ticket #331). **Next:** v0.8.0 session 5 (#331, `v0.8.0-rc.2`).
+**Last updated:** 2026-11-18 (v0.8.0 session 5: #331 built, `v0.8.0-rc.2` published, its checklist line with the PO on PR #328). **Next:** the PO's check of rc.2, then v0.8.0 session 6 (#327, merge and final).
 
-## Next: v0.8.0 session 5 (fix #331, rc.2)
+## Next: the PO's check of `v0.8.0-rc.2`, then v0.8.0 session 6 (#327)
 
-- **The PO's check of `v0.8.0-rc.1` (D-129):**
-  - The design review (`docs/design/review/v0.8.0/`) is **approved as built**, Claude's four details included.
-  - The checklist passed except one item. Tapping a tea in *Tee wählen* removes the sheet within one frame, so Start shows bare for ≈ 150–200 ms before *Neue Session* fades in (the PO's recording, 2026-11-17 21:58).
-  - The PO's answers:
-    - fix only a tea row's tap;
-    - the setup covers the sheet: the sheet stays until SCR-04's enter fade has finished, then leaves underneath;
-    - the late tea photos on launch stay as they are.
-  - Recorded in 03 SCR-03 „Hand-over to the setup", plus a 09 §4 „v0.8.0" line for rc.2.
-- **Session 5 (Opus `medium` orchestrator):**
-  0. Environment first: the mirror init script and `gw.sh` (below, „Session facts").
-  1. Build #331 at T3 (`/implement-spec`, a test that fails first). The picker is a `ModalBottomSheet` in its own window. If the PO's visible result (Start never seen, today's fade from sheet to setup) cannot be reached, stop and ask the PO with options.
-  2. If the fix touches the app's timer wiring (`rememberTimerFirst`, `TimerRoute` navigation, `LeavingOverKeyguard`), add a T4 read of that delta.
-  3. Commit `umamit.version=0.8.0-rc.2` (80002). That commit is the rc commit.
-  4. On the rc commit: the timer tests, the full local gate, and CI green with both emulator jobs. If `TransitionJankTest` fails with „Start is not shown" on API 36, rerun once before investigating.
-  5. All three accuracy variants on the rc commit's full 40-character SHA (09 §4a).
-  6. Dispatch `release.yml` from the PR branch.
-  7. Post the new checklist line on PR #328 for the PO, with a push notification. Ask for explicit approval of the whole checklist: the rest of rc.1's was inferred from the ticked boxes (D-129).
-  - **Stop there.**
+- **Waiting for the PO:** the rc.2 checklist line and the request to approve the **whole** checklist explicitly are in comment 6966407229 on PR #328 (push notification sent, 2026-11-18). If the PO reports a failure instead, that is a new feedback round (grilling → spec → ticket), not session 6.
+- **#331, built in session 5 (T3):**
+  - The mechanism (Claude's, D-129 „Claude's details"): in the tap, the sheet records its window into a `Picture` (`SheetHandOver`, `core:ui`). The shell draws it below the routes, so the setup fades in over it. The real sheet window hands over its scrim and fades out over that frame in about four frames, then goes.
+  - The setup is never delayed. Its fade is fully visible only from about five frames after the tap (≈ 80 ms at 60 Hz of 300 ms). Not seen on a device yet: the PO's check decides.
+  - No T4 read was needed: there is no change to `rememberTimerFirst`, `TimerRoute`, `LeavingOverKeyguard`, the NavHost transitions or `AlertGate`. `UmamitRoot` has one line, `shellCovered`.
+  - The test `PickerHandOverTest` failed on its own commit `9017da60` (checked by the orchestrator).
+- **rc.2 facts:**
+  - `95da6ad5` (40-character SHA `95da6ad5fd7156f8ff69bac0cff5295d3ed1e6c7`), versionCode 80002, APK SHA-256 `b0396be0…7f79`, release run 44211626516 (one rerun: `JournalPerformanceTest` budget).
+  - Gates: timer tests 263 / 513 / 776; full local gate PASS; CI run 44198004897 green on attempt 3 (API 36: `ProcessDeathTest` two-brews, then `TransitionJankTest.savedSheetInAndOut` on a slow emulator); accuracy 44201903920, 44201908972, 44201912905, all PASS.
 - **Session 6 (Sonnet `medium`, #327):** on the PO's explicit approval of the whole checklist on rc.2:
+  0. Environment first: the mirror init script and `gw.sh` (below, „Session facts").
   1. Tick 09 §4 „v0.8.0".
   2. Set `umamit.version=0.8.0` (80099).
   3. Mark PR #328 ready and merge it (merge commit) once CI is green.
   4. CI green on the merge commit in `main`.
   5. All three accuracy variants on its full SHA.
   6. Dispatch `release.yml` from `main` for `0.8.0`.
-- **rc.1 facts:**
-  - `9c0e4225`, versionCode 80001, APK SHA-256 `869caee7…57b6`, release run 44169609103.
-  - Gates: CI run 44153741694; accuracy runs 44153741187, 44153745560, 44153749225, all PASS.
-  - The checklist is in comment 6960458943 on PR #328.
-- **Done in this milestone:** #316–#323, #325, #313, #329 and the reviews (#326). #324 closed. #330 is a v0.9.0 ticket (D-128 item 41).
+- **rc.1 facts:** `9c0e4225` (80001); its checklist is in comment 6960458943 on PR #328.
+- **Done in this milestone:** #316–#323, #325, #313, #329, #331 and the reviews (#326). #324 closed. #330 is a v0.9.0 ticket (D-128 item 41).
 - **`/review-animations` is user-invoke only:** for v0.8.0 the PO picked an ad-hoc T2 motion review.
 - **v0.9.0 (planned, D-128 Q4–Q11):** its own specify session after v0.8.0 (D-128 „Open for the v0.9.0 specify session", #330).
 - **1.0 (M5) is postponed** (D-128 Q3).
-- **Branch:** `claude/inspiring-ritchie-8hfw00`; PR #328 (draft). Session 4 was assigned `claude/sharp-einstein-te907a` and did not use it. A new session with another assigned branch works here directly.
+- **Branch:** `claude/inspiring-ritchie-8hfw00`; PR #328 (draft). Sessions 4 and 5 were assigned other branches and did not use them. A new session with another assigned branch works here directly.
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
   - **Worktrees:** never remove an agent worktree while a Gradle build runs: `spotlessCheck` scans `.claude/worktrees/` and fails on a vanished path (2026-11-17). Brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
@@ -68,12 +57,12 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.8.0** (D-128): `v0.8.0-rc.1` checked by the PO (2026-11-17): design approved, one failure (D-129, #331), **rc.2 next**; **v0.9.0** planned (export/import, shared recipes); M5 / 1.0 postponed until the PO's go. **v0.7.2** (cleanup review) released 2026-11-17 |
+| Current milestone | **v0.8.0** (D-128): `v0.8.0-rc.2` published 2026-11-18 (#331, D-129), **with the PO for the whole checklist**; design approved on rc.1; **v0.9.0** planned (export/import, shared recipes); M5 / 1.0 postponed until the PO's go. **v0.7.2** (cleanup review) released 2026-11-17 |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00` (build session 1's assigned branch, fast-forwarded to `claude/magical-heisenberg-qev7fe` `0fd54c84`, which carries the v0.8.0 specs, D-128 and the plan) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | [#328](https://github.com/katznmeik/UmamiT/pull/328) (draft, v0.8.0 milestone) |
-| Latest APK | rc [`v0.8.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0-rc.1) (pre-release, 80001, from `9c0e4225`, certificate verified); [`v0.7.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2) (full release, versionCode 70299, from `main` `c5f19e8e`, APK SHA-256 `efc2cca6…20fa`, certificate verified); earlier: rc [`v0.7.2-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2-rc.1) (pre-release, 70201, from `a8f78d4f`, certificate verified); [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) (full release, versionCode 70199, from `main` `6192bff5`, certificate verified); rc [`v0.7.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.2) (pre-release, 70102, from `e57861e0`); rc [`v0.7.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.1) (pre-release, 70101, from `3fe102c0`); [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
+| Latest APK | rc [`v0.8.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0-rc.2) (pre-release, 80002, from `95da6ad5`, APK SHA-256 `b0396be0…7f79`, certificate verified); rc [`v0.8.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0-rc.1) (pre-release, 80001, from `9c0e4225`, certificate verified); [`v0.7.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2) (full release, versionCode 70299, from `main` `c5f19e8e`, APK SHA-256 `efc2cca6…20fa`, certificate verified); earlier: rc [`v0.7.2-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2-rc.1) (pre-release, 70201, from `a8f78d4f`, certificate verified); [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) (full release, versionCode 70199, from `main` `6192bff5`, certificate verified); rc [`v0.7.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.2) (pre-release, 70102, from `e57861e0`); rc [`v0.7.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.1) (pre-release, 70101, from `3fe102c0`); [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
 | Decision numbers | Up to **D-129** used; the next free is **D-130** |
 
 ## Working agreements in effect
