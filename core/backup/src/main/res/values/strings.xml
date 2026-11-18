@@ -46,4 +46,9 @@
     <string name="recipe_file_vessel_type_chawan">Chawan</string>
     <string name="recipe_file_vessel_type_cold_brew_bottle">Cold-Brew-Flasche</string>
     <string name="recipe_file_vessel_type_other">Andere</string>
+    <!-- The backup reader (BAK-02 AC2, 05 §8, D-130 Q3): its refusals. -->
+    <string name="backup_refused_not_a_backup">Das ist keine UmamiT-Sicherung.</string>
+    <string name="backup_refused_newer_version">Diese Datei stammt aus einer neueren UmamiT-Version. Aktualisiere die App und versuch es noch mal.</string>
+    <string name="backup_refused_damaged">Die Sicherung ist beschädigt und wurde nicht eingespielt.</string>
+
 </resources>
