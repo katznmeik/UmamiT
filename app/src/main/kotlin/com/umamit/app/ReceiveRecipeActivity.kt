@@ -43,7 +43,7 @@ class ReceiveRecipeActivity : Activity() {
         val MIME_TYPES = setOf(RecipeFile.MIME_TYPE, "application/json")
 
         /** The longest wait for the copy: a provider that hangs never keeps the activity. */
-        const val READ_TIMEOUT_MS = 5_000L
+        const val READ_TIMEOUT_MS = 2_000L
 
         /**
          * The file's URI of a `VIEW` or `SEND` with one of [MIME_TYPES]; null for any other intent. A `VIEW` without

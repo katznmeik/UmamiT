@@ -269,7 +269,7 @@ private fun Summary(recipe: SharedRecipe) {
     val kind = listOfNotNull(
         stringResource(tea.category.label),
         tea.styleKey?.let(::sorteNameRes)?.let { stringResource(it) },
-    ).joinToString(" · ")
+    ).joinToString(stringResource(R.string.collection_tea_recipe_separator))
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = MaterialTheme.shapes.large,
@@ -428,7 +428,7 @@ private fun TeaSheet(
                     else -> listOfNotNull(
                         tea.sorte ?: stringResource(tea.category.label),
                         archived.takeIf { tea.isArchived },
-                    ).joinToString(" · ")
+                    ).joinToString(stringResource(R.string.collection_tea_recipe_separator))
                 }
                 TeaListItem(
                     title = tea.name,

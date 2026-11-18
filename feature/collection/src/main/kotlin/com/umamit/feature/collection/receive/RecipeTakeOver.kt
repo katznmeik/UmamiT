@@ -1,5 +1,6 @@
 package com.umamit.feature.collection.receive
 
+import android.database.SQLException
 import com.umamit.core.backup.recipe.SharedRecipe
 import com.umamit.core.backup.recipe.SharedTea
 import com.umamit.core.data.AddWithoutCatalog
@@ -60,8 +61,13 @@ class RecipeTakeOver @Inject constructor(
             is TakeOverTarget.Existing -> target.teaId
             is TakeOverTarget.NewTea -> newTea(recipe.tea, target.catalogKey) ?: return TakeOverResult.Failed
         }
-        val existing = recipes.observeRecipes(teaId).first()
-        return if (existing.size >= Recipe.MAX_PER_TEA) TakeOverResult.LimitReached else add(recipe, teaId, existing)
+        return try {
+            val existing = recipes.observeRecipes(teaId).first()
+            if (existing.size >= Recipe.MAX_PER_TEA) TakeOverResult.LimitReached else add(recipe, teaId, existing)
+        } catch (_: SQLException) {
+            // Rule 8: the timer runs in this process; a failed write is said on SCR-32, never a crash.
+            TakeOverResult.Failed
+        }
     }
 
     private suspend fun add(recipe: SharedRecipe, teaId: String, existing: List<Recipe>): TakeOverResult {

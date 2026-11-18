@@ -347,8 +347,9 @@ recorded here first.
   `MainActivity` with the app's own action; the reader (05 §8a) decides.
   While the timer or another full-screen route is on top, the file waits
   (rule 8). As built (#342): the copy runs on a worker thread that
-  `onCreate` waits for (at most 5 s), since a `NoDisplay` activity finishes
-  before it resumes and the URI grant ends with it; a `file://` URI, or one
+  `onCreate` waits for, at most 2 s, since a `NoDisplay` activity finishes
+  before it resumes and the URI grant ends with it (at worst the main
+  thread waits that long, the price of `NoDisplay`); a `file://` URI, or one
   that can't be read in time, is handed on empty, so the reader refuses it
   („Die Rezeptdatei ist beschädigt."). `MainActivity` caps the bytes again
   and keeps them (`ReceivedRecipeFiles`, in its saved state) until SCR-32
