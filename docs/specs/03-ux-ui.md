@@ -149,7 +149,7 @@ unsaved changes trigger GEN-08 (the Schritte-Sheet too, SCR-31, D-055).
 | Timer notification / Live Update / alert | SCR-05; from v0.3.0 (D-098) the screen of the notification's timer: SCR-05 for the brew, SCR-07 for the quick timer |
 | „Session gespeichert" notification | SCR-16 |
 | Catalog refresh progress and result notifications | Sammlung › Katalog with SCR-22 open: the progress while the refresh runs, its summary after it (v0.2.2, D-097; until v0.2.1 the app where it was, D-079). Before the setup is finished: the app where it was |
-| Reminder notification | SCR-08 (filtered) or SCR-26 |
+| Reminder notification | SCR-08 (filtered) or SCR-26; the backup reminder (BAK-06, v0.9.0, D-130 Q11) opens SCR-26 in Start's stack, below it *Einstellungen*; already open, it stays as it is; during an alert it waits, before the setup is finished it is discarded |
 | Daily low-stock reminder (v0.3.0, INV-11, D-098) | Start (SCR-02) at its root; during an alert the tap waits until it ends (as the catalog tap, D-097); before the setup is finished it is discarded |
 | Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`; from v0.3.0 alarm volume `ACTION_SOUND_SETTINGS`, D-098) |
 
@@ -2159,7 +2159,9 @@ v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-de
     is valid), with „Möglich bis 25. Nov. 2026, 08:30": the dialog „Import
     rückgängig machen?" · „Deine Daten von vor dem Import kommen zurück. Seit
     dem Import: 3 neue Sessions, 1 geänderter Tee und alle anderen
-    Änderungen – sie gehen verloren." (with neither: „Seit dem Import gibt
+    Änderungen – sie gehen verloren." (a zero count is left out: „Seit dem
+    Import: 3 neue Sessions und alle anderen Änderungen – sie gehen
+    verloren."; with neither: „Seit dem Import gibt
     es keine neuen Sessions und keine geänderten Tees.") · *Abbrechen* /
     *Rückgängig machen*. Greyed
     out during a timer like the import. Done: „Import rückgängig gemacht".

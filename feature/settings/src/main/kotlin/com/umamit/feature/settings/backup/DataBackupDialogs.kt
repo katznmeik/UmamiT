@@ -108,15 +108,15 @@ private fun ReplaceDialog(preview: BackupPreview, state: DataBackupUiState, acti
 
 /** „Import rückgängig machen?" with what is lost since the import (BAK-02 AC7, D-130 Q6). */
 @Composable
-private fun UndoDialog(preview: UndoPreview, actions: DataBackupActions) {
-    val body = if (preview.sessions == 0 && preview.teas == 0) {
-        stringResource(R.string.backup_undo_body_none)
-    } else {
-        stringResource(
-            R.string.backup_undo_body,
-            pluralStringResource(R.plurals.backup_new_sessions, preview.sessions, preview.sessions),
-            pluralStringResource(R.plurals.backup_undo_teas, preview.teas, preview.teas),
-        )
+internal fun UndoDialog(preview: UndoPreview, actions: DataBackupActions) {
+    // A zero count is dropped from the sentence (PO, 2026-11-18); with neither, the sentence says so.
+    val sessions = pluralStringResource(R.plurals.backup_new_sessions, preview.sessions, preview.sessions)
+    val teas = pluralStringResource(R.plurals.backup_undo_teas, preview.teas, preview.teas)
+    val body = when {
+        preview.sessions == 0 && preview.teas == 0 -> stringResource(R.string.backup_undo_body_none)
+        preview.teas == 0 -> stringResource(R.string.backup_undo_body_one, sessions)
+        preview.sessions == 0 -> stringResource(R.string.backup_undo_body_one, teas)
+        else -> stringResource(R.string.backup_undo_body, sessions, teas)
     }
     BackupAlert(
         title = stringResource(R.string.backup_undo_title),

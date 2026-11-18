@@ -159,6 +159,7 @@
     <string name="backup_undo_until">Möglich bis %1$s, %2$s</string>
     <string name="backup_undo_title">Import rückgängig machen?</string>
     <string name="backup_undo_body">Deine Daten von vor dem Import kommen zurück. Seit dem Import: %1$s, %2$s und alle anderen Änderungen – sie gehen verloren.</string>
+    <string name="backup_undo_body_one">Deine Daten von vor dem Import kommen zurück. Seit dem Import: %1$s und alle anderen Änderungen – sie gehen verloren.</string>
     <string name="backup_undo_body_none">Deine Daten von vor dem Import kommen zurück. Seit dem Import gibt es keine neuen Sessions und keine geänderten Tees.</string>
     <plurals name="backup_undo_teas">
         <item quantity="one">%d geänderter Tee</item>
