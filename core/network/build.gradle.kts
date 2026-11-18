@@ -9,4 +9,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.okhttp.mockwebserver3)
+    // NetworkModuleTest: the User-Agent's version against a real (and an unknown) package.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }
