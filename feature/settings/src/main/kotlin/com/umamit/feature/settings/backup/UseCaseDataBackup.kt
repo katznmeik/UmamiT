@@ -19,6 +19,7 @@ import com.umamit.core.backup.restore.TimerActivity
 import com.umamit.core.backup.restore.UndoImport
 import com.umamit.core.backup.restore.UndoPreview
 import com.umamit.core.data.SettingsRepository
+import com.umamit.core.data.reminder.BackupReminderScheduler
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.datastore.SettingsDataSource
 import com.umamit.core.model.TasteDescriptor
@@ -62,6 +63,7 @@ class UseCaseDataBackup @Inject constructor(
     private val stored: SettingsDataSource,
     private val db: UmamiDatabase,
     private val timer: BrewSessionController,
+    private val reminders: BackupReminderScheduler,
 ) : DataBackup {
     private val resolver: ContentResolver get() = context.contentResolver
 
@@ -78,8 +80,15 @@ class UseCaseDataBackup @Inject constructor(
     override val timerActive: Flow<Boolean> =
         combine(timer.slotStates.values) { states -> states.any { it !is TimerUiState.Idle } }.distinctUntilChanged()
 
+    /** SET-20 (BAK-06): on counts the 30 days from now and replaces the job; off cancels it. */
     override suspend fun setReminderEnabled(on: Boolean): Boolean = try {
-        settings.update { it.copy(backupReminderEnabled = on) }
+        val save: suspend () -> Unit = { settings.update { it.copy(backupReminderEnabled = on) } }
+        if (on) {
+            reminders.turnOn(save)
+        } else {
+            save()
+            reminders.turnOff()
+        }
         true
     } catch (e: IOException) {
         Log.w(TAG, "SET-20 not saved", e)
@@ -103,7 +112,11 @@ class UseCaseDataBackup @Inject constructor(
             return@flow
         }
         try {
-            createBackup.export(output).collect { emit(it) }
+            createBackup.export(output).collect {
+                // Before `Done` is emitted: a collector that stops there never runs what follows (BAK-06).
+                if (it is BackupExport.Done) rescheduleReminder()
+                emit(it)
+            }
         } finally {
             // A failing close after the file is complete never throws into the app (BAK-01 AC3: a timer may run).
             withContext(Dispatchers.IO + NonCancellable) {
@@ -113,6 +126,16 @@ class UseCaseDataBackup @Inject constructor(
                     Log.w(TAG, "backup document not closed", e)
                 }
             }
+        }
+    }
+
+    /** A finished export replaces the reminder's job; a failure there never fails the export (BAK-06). */
+    @Suppress("TooGenericExceptionCaught") // WorkManager's store or the settings file: the next app start recovers
+    private suspend fun rescheduleReminder() {
+        try {
+            withContext(NonCancellable) { reminders.exported() }
+        } catch (e: Exception) {
+            Log.w(TAG, "backup reminder not rescheduled", e)
         }
     }
 

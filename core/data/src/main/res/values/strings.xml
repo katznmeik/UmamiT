@@ -43,4 +43,11 @@
     <string name="data_stock_reminder_line">%1$s · %2$s g</string>
     <string name="data_stock_reminder_line_empty">%1$s · leer</string>
     <string name="data_stock_reminder_separator">", "</string>
+    <!-- The backup reminder (BAK-06, D-130 Q11; 03 §5): channel „Erinnerungen", its notification opens SCR-26. -->
+    <string name="data_reminders_channel">Erinnerungen</string>
+    <string name="data_reminders_channel_description">Erinnerung an die Sicherung deiner Daten</string>
+    <string name="data_backup_reminder_title">Zeit für eine Sicherung</string>
+    <!-- At least 20 sessions, so always the plural. -->
+    <string name="data_backup_reminder_text" tools:ignore="PluralsCandidate">%1$d neue Sessions seit der letzten Sicherung.</string>
+    <string name="data_backup_reminder_text_never">Du hast noch keine Sicherung erstellt.</string>
 </resources>

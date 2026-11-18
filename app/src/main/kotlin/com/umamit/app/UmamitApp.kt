@@ -123,6 +123,9 @@ private const val SLIDE_FRACTION = 12
  *   notification opens above what was shown ([ShellOpening.CatalogRefresh], D-097).
  * @param startRequest a new non-zero token for each tap on the daily low-stock reminder (INV-11, D-098): the
  *   shell turns to Start at its root; the picker's catalog flow ends quietly.
+ * @param backupRequest a new non-zero token for each tap on the backup reminder (BAK-06, D-130 Q11): the shell turns
+ *   to Start and opens *Daten & Sicherung* (SCR-26) in its stack, through *Einstellungen* so that a tab change closes
+ *   it (D-104); already open, it stays as it is, with a running export or a staged import.
  * @param importStartRequest a new non-zero count for each finished backup import (BAK-02 AC6): the same turn.
  * @param importedBackup the import just done, for its snackbar over the shell (03 SCR-26);
  *   [onImportedBackupChange] clears it once the snackbar is gone.
@@ -160,6 +163,7 @@ internal fun UmamitApp(
     startRequest: Long = 0L,
     archivedTea: ArchivedTea? = null,
     onArchivedTeaChange: (ArchivedTea?) -> Unit = {},
+    backupRequest: Long = 0L,
     importStartRequest: Long = 0L,
     importedBackup: ImportedBackup? = null,
     onImportedBackupChange: (ImportedBackup?) -> Unit = {},
@@ -200,6 +204,11 @@ internal fun UmamitApp(
     OnNewToken(startRequest) {
         brewFlow.quit()
         controllers.getValue(Tab.Start).popToRoot(Tab.Start)
+        select(Tab.Start)
+    }
+    // The backup reminder's tap (BAK-06): SCR-26 in Start's stack. Its graph exists once the tab is composed.
+    BackupReminderTap(backupRequest, controllers.getValue(Tab.Start)) {
+        brewFlow.quit()
         select(Tab.Start)
     }
     // A finished backup import (BAK-02 AC6): the same, with its snackbar over Start.
@@ -876,7 +885,7 @@ private fun NavHostController.closeSettings() {
 }
 
 /** Pops this tab's stack to [tab]'s root; a tab never shown has no graph yet, so only a deeper stack is popped. */
-private fun NavHostController.popToRoot(tab: Tab) {
+internal fun NavHostController.popToRoot(tab: Tab) {
     if (previousBackStackEntry != null) popBackStack(tab.root, inclusive = false)
 }
 
