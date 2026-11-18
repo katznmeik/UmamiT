@@ -103,21 +103,19 @@ class MainActivity : ComponentActivity() {
     /** Taps on the daily low-stock reminder (INV-11, D-098); a pending one survives a recreation. */
     private val startRequests = StartRequests()
 
+    /** Taps on the backup reminder (BAK-06, D-130 Q11); a pending one survives a recreation. */
+    private val backupRequests = BackupRequests()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // A recreated activity has seen its intent already, but keeps a request not handled yet (S1, #47).
         if (savedInstanceState == null) {
             openTimerIfAsked(intent)
-            teaLinkShares.offer(intent)
-            catalogRefreshRequests.offer(intent)
-            startRequests.offer(intent)
-        } else {
-            if (timerRequests.restore(savedInstanceState, intent)) showTimerOverLockScreen()
-            teaLinkShares.restore(savedInstanceState)
-            catalogRefreshRequests.restore(savedInstanceState)
-            startRequests.restore(savedInstanceState)
+        } else if (timerRequests.restore(savedInstanceState, intent)) {
+            showTimerOverLockScreen()
         }
+        takeTaps(intent, savedInstanceState)
         // Exported: `ACTION_USER_PRESENT` is a protected broadcast that only the system (SystemUI) can send, so no app
         // can spoof it; a not-exported receiver is not guaranteed to get a broadcast sent from another process.
         registerReceiver(userPresent, IntentFilter(Intent.ACTION_USER_PRESENT), RECEIVER_EXPORTED)
@@ -158,6 +156,8 @@ class MainActivity : ComponentActivity() {
                     onConsumeCatalogRefreshRequest = catalogRefreshRequests::handled,
                     startRequest = startRequests.token,
                     onConsumeStartRequest = startRequests::handled,
+                    backupRequest = backupRequests.token,
+                    onConsumeBackupRequest = backupRequests::handled,
                     startScreen = { StartTabContent(it) },
                     statsScreen = { StatsTabContent(it) },
                     catalogScreen = { CatalogTabContent(it) },
@@ -205,9 +205,25 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         openTimerIfAsked(intent)
-        teaLinkShares.offer(intent)
-        catalogRefreshRequests.offer(intent)
-        startRequests.offer(intent)
+        takeTaps(intent, null)
+    }
+
+    /**
+     * The taps other than the timer's (a shared link, the catalog refresh, Start, the backup reminder): the intent's
+     * when there is no saved state, else the ones still pending when the activity was recreated.
+     */
+    private fun takeTaps(intent: Intent?, savedState: Bundle?) {
+        if (savedState == null) {
+            teaLinkShares.offer(intent)
+            catalogRefreshRequests.offer(intent)
+            startRequests.offer(intent)
+            backupRequests.offer(intent)
+        } else {
+            teaLinkShares.restore(savedState)
+            catalogRefreshRequests.restore(savedState)
+            startRequests.restore(savedState)
+            backupRequests.restore(savedState)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -216,6 +232,7 @@ class MainActivity : ComponentActivity() {
         teaLinkShares.save(outState)
         catalogRefreshRequests.save(outState)
         startRequests.save(outState)
+        backupRequests.save(outState)
     }
 
     private fun openTimerIfAsked(intent: Intent?) {

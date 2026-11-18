@@ -468,6 +468,19 @@ class SettingsDataSourceTest {
     }
 
     @Test
+    fun backupReminderLastAtIsNullUntilSetAndSurvivesASettingsUpdate() = runTest {
+        // BAK-06 (05 §6): only the reminder writes it; an update of the user's settings keeps it.
+        val source = dataSource()
+        assertThat(source.backupReminderLastAt.first()).isNull()
+
+        source.markBackupReminderLastAt(4_321L)
+        source.update { it.copy(vibration = false) }
+
+        assertThat(source.backupReminderLastAt.first()).isEqualTo(4_321L)
+        assertThat(source.stored().backupReminderLastAt).isEqualTo(4_321L)
+    }
+
+    @Test
     fun safetyCopyAtIsSetAndClearedAndSurvivesASettingsUpdate() = runTest {
         // BAK-02 (05 §6): only the import writes it; an update of the user's settings keeps it.
         val source = dataSource()

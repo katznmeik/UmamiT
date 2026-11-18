@@ -2104,7 +2104,9 @@ stays out, BAK-03).
 - AC7: **Import rückgängig machen** (D-130 Q5, Q6) on SCR-26 until 7 × 24 h
   after the import or the next import; a dialog counts what is lost
   („Seit dem Import: 3 neue Sessions, 1 geänderter Tee und alle anderen
-  Änderungen – sie gehen verloren."; with neither: „Seit dem Import gibt
+  Änderungen – sie gehen verloren."; a zero count is left out: „Seit dem
+  Import: 3 neue Sessions und alle anderen Änderungen – sie gehen
+  verloren."; with neither: „Seit dem Import gibt
   es keine neuen Sessions und keine geänderten Tees.") with *Rückgängig
   machen*; no typed word; refused while a timer is active. It brings back
   the safety copy and deletes it.

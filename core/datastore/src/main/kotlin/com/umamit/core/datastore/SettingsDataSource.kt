@@ -105,6 +105,12 @@ data class StoredSettings(
      */
     val lastBackupAt: Long? = null,
     /**
+     * The backup reminder's last check or turn-on of SET-20 (BAK-06, v0.9.0, D-130 Q11), epoch ms; null = none yet.
+     * Its 30 days count from the later of this and [lastBackupAt]. Written by the reminder only; device-bound (05 §8);
+     * a file of v0.8.x has no key, no migration.
+     */
+    val backupReminderLastAt: Long? = null,
+    /**
      * When the safety copy of the last import was made (BAK-02, v0.9.0, D-130 Q5), epoch ms; null = no copy. Set and
      * cleared by the import, its undo and the copy's expiry only; device-bound (05 §8); no migration.
      */
@@ -231,6 +237,14 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
         dataStore.updateData { it.copy(lastBackupAt = atMs) }
     }
 
+    /** The backup reminder's last check or turn-on (BAK-06, 05 §6), epoch ms; null = none yet. */
+    val backupReminderLastAt: Flow<Long?> = dataStore.data.map { it.backupReminderLastAt }
+
+    /** Records the reminder's check or turn-on at [atMs] (BAK-06); only the backup reminder calls it. */
+    suspend fun markBackupReminderLastAt(atMs: Long) {
+        dataStore.updateData { it.copy(backupReminderLastAt = atMs) }
+    }
+
     /** When the safety copy was made (BAK-02, 05 §6), epoch ms; null = none. */
     val safetyCopyAt: Flow<Long?> = dataStore.data.map { it.safetyCopyAt }
 
@@ -330,5 +344,6 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     seedTeaLinksDone = markersOf.seedTeaLinksDone,
     seedVesselsV2Added = markersOf.seedVesselsV2Added,
     lastBackupAt = markersOf.lastBackupAt,
+    backupReminderLastAt = markersOf.backupReminderLastAt,
     safetyCopyAt = markersOf.safetyCopyAt,
 )

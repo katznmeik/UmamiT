@@ -9,6 +9,7 @@ import com.umamit.core.backup.restore.SafetyCopyExpiry
 import com.umamit.core.data.FirstStart
 import com.umamit.core.data.catalog.CatalogRefreshHost
 import com.umamit.core.data.catalog.CatalogRefreshServicePort
+import com.umamit.core.data.reminder.BackupReminderScheduler
 import com.umamit.core.data.reminder.LowStockReminderScheduler
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.RecoveryTrigger
@@ -61,6 +62,9 @@ class UmamitApplication :
     lateinit var lowStockReminders: Lazy<LowStockReminderScheduler>
 
     @Inject
+    lateinit var backupReminders: Lazy<BackupReminderScheduler>
+
+    @Inject
     lateinit var importRecovery: Lazy<ImportRecovery>
 
     @Inject
@@ -94,6 +98,8 @@ class UmamitApplication :
         recoveryScope.launch { firstStart.get().retrySeedAtAppStart() }
         // The daily low-stock reminder (INV-11): keeps a waiting job, follows SET-28 and SET-29 from now on.
         recoveryScope.launch { lowStockReminders.get().follow() }
+        // The backup reminder (BAK-06): keeps a waiting job, follows SET-20 from now on.
+        recoveryScope.launch { backupReminders.get().follow() }
         // The safety copy's 7 × 24 h (05 §8 „Expiry") and what a crash left of an import.
         recoveryScope.launch { safetyCopyExpiry.get().atAppStart() }
         // Shared recipe files older than a day (PRF-08, 06 §5.7): last, off the main thread, after the timer's
