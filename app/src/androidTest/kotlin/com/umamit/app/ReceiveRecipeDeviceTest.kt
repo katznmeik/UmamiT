@@ -41,9 +41,9 @@ import java.time.OffsetDateTime
  * Receiving a recipe file on the device (PRF-08 (a) and (b), AC5, 06 §5.7): `VIEW` and `SEND` with each of the two
  * MIME types reach SCR-32 „Rezept übernehmen" through ReceiveRecipeActivity and MainActivity; a 65 KB stream and a
  * `file://` URI and a URI of the app's own FileProvider (D-133 Q4) are refused with the reader's message; nothing is
- * written before *Rezept übernehmen*. The files come from another app: [SenderRecipeProvider], in the test package's
- * own process, which grants the app read access to each one as a real sender does. Runs only in the CI emulator job
- * (no KVM here). Synthetic recipe (D-016).
+ * written before *Rezept übernehmen*. The files come from another app: [SenderRecipeProvider], under the test
+ * package's uid in a process of its own (not the one of androidx.test's helper activities), which grants the app read
+ * access to each one as a real sender does. Runs only in the CI emulator job (no KVM here). Synthetic recipe (D-016).
  */
 @RunWith(AndroidJUnit4::class)
 class ReceiveRecipeDeviceTest {

@@ -435,7 +435,14 @@ class TransitionJankTest {
         By.text(Pattern.compile(".*${Pattern.quote(value)}.*", Pattern.DOTALL))
 
     private fun await(selector: BySelector, what: String): UiObject2 =
-        device.wait(Until.findObject(selector), UI_TIMEOUT_MS) ?: throw AssertionError("$what is not shown")
+        device.wait(Until.findObject(selector), UI_TIMEOUT_MS)
+            ?: throw AssertionError("$what is not shown\n${screenState()}")
+
+    /** What the screen shows instead, for a failed wait: the resumed activities, the focused window, the keyguard. */
+    private fun screenState(): String = listOf(
+        Dumpsys.matchingLines(shell("dumpsys activity activities"), listOf("ResumedActivity", "mFocusedApp")),
+        Dumpsys.matchingLines(shell("dumpsys window"), listOf("mCurrentFocus", "mKeyguardShowing", "mDreaming")),
+    ).filter { it.isNotBlank() }.joinToString("\n")
 
     private fun awaitGone(selector: BySelector, what: String) {
         if (device.wait(Until.gone(selector), UI_TIMEOUT_MS) != true) throw AssertionError("$what is still shown")

@@ -14,10 +14,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 /**
- * Another app's provider for ReceiveRecipeDeviceTest (PRF-08, D-133 Q4): it lives in the test APK and runs in the
- * test package's own process, under its own uid, so the app reads its files as it reads a real sender's. Java, not
- * Kotlin: the test APK leaves out what the app already carries (the Kotlin runtime among it), and that process loads
- * the test APK alone.
+ * Another app's provider for ReceiveRecipeDeviceTest (PRF-08, D-133 Q4): it lives in the test APK and runs under the
+ * test package's uid, so the app reads its files as it reads a real sender's. Java, not Kotlin: the test APK leaves
+ * out what the app already carries (the Kotlin runtime among it), and its processes load the test APK alone.
+ *
+ * <p>It runs in a process of its own ({@code :sender}), not in the test package's main process: that one hosts
+ * androidx.test's {@code EmptyActivity} and {@code BootstrapActivity} (the app's manifest has neither), which
+ * ActivityScenario starts on every stop and close and finishes by broadcast on the next launch. The app's provider
+ * calls and copies started, bound and kept that process for the sender, and with it the API 36 emulator showed none
+ * of TransitionJankTest's ActivityScenario launches on screen (CI run 44610036789).
  *
  * <p>{@link #call} with {@link #METHOD_SEND} stores {@link #EXTRA_BYTES} under the file name {@code arg} and grants
  * the caller read access to that one URI ({@link #EXTRA_URI}), as a sender grants the app it shares with; the
