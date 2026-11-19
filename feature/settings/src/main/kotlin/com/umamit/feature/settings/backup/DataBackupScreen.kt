@@ -323,7 +323,7 @@ private fun ExportProgressBar(progress: ExportProgress, onCancel: () -> Unit) {
 
 /** A button (or the progress) with an optional line below it. */
 @Composable
-internal fun ButtonBlock(detail: String? = null, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+internal fun ButtonBlock(modifier: Modifier = Modifier, detail: String? = null, content: @Composable () -> Unit) {
     Column(
         modifier = modifier
             .fillMaxWidth()

@@ -41,11 +41,11 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * Empty storage is a first start (SET-33, D-131 Q4, #346): after an install's data — settings with the setup done, a
- * seeded database — is gone, as `clearApplicationUserData()` leaves it, the real settings file and database open as on a
- * fresh install: the setup shows (SCR-01), the seed teas and vessels are created again and the seed photo download is
- * still to come (ONB-06). It proves only „empty storage → first start"; the wipe itself is checked on the phone (09 §4
- * „v0.9.0").
+ * Empty storage is a first start (SET-33, D-131 Q4, #346): after an install's data — settings with the setup done,
+ * a seeded database — is gone, as `clearApplicationUserData()` leaves it, the real settings file and database open
+ * as on a fresh install: the setup shows (SCR-01), the seed teas and vessels are created again and the seed photo
+ * download is still to come (ONB-06). It proves only „empty storage → first start"; the wipe itself is checked on the
+ * phone (09 §4 „v0.9.0").
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
