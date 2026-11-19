@@ -11,6 +11,15 @@
 
 ## Releases and plans
 
+### v0.9.0: build session 2, steps 4–5 (2026-11-18/19)
+
+- **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/tender-archimedes-ax6bw9`, not used). PR #345 stays draft.
+- **Built and verified (diff review, local cross-module check, CI on the PR):** #341 Rezept teilen (T3, `RecipeFileProvider`), #338 SCR-26 Daten & Sicherung (escalated T2 → T3 because it adds `backupReminderEnabled` to the backup's settings), #339 backup reminder (T2, `BackupReminderWorker`, the tap to SCR-26), #342 Rezept übernehmen (T3, `ReceiveRecipeActivity`, SCR-32, the tap fetch) with two follow-ups from the PO's answers (package sheet, hidden rows, one transaction, the size message, an owned shop-link tea). The timer diff stayed empty after every ticket; `checkManifestPermissions` unchanged.
+- **CI fixes:** `RecipeShareDeviceTest` expected a plain space where the share text has a no-break space; `NetworkModule` threw `NameNotFoundException` from a start-up launch in Robolectric and leaked into the next test (`UncaughtExceptionsBeforeTest`); `ReceiveRecipeDeviceTest` waited on a compose rule that never saw the `MainActivity` the hand-over opened.
+- **New decisions:** **D-131** *Alle Daten löschen* (SET-33) was never built; the PO put it into v0.9.0 as **#346** (like a fresh install, greyed out during a timer, a hint to back up first, onboarding again; approved, built in build session 3) and chose the device-backup note's wording. **D-132** a „What's new" (English, 3–8 bullets) on every final and rc release page from `docs/whats-new/vX.Y.Z.md`; `release.yml` reads it (housekeeping PR #348, merged into `main` `6fc62c2a`); the v0.9.0 draft is in.
+- **PO answers during the build (as options, D-130 build notes):** #341 no ⋮ on a new recipe, a snackbar when sharing fails; #338 the snackbar's undo acts directly, no zero counts, two new texts, the as-built defaults; #339 first check 30 days after the update, back to Einstellungen, the channel text, an import's switch is followed; #342 the package sheet on *Rezept übernehmen*, a tea with the file's key gets the recipe, the shop link only without a match, the copy.
+- **Environment:** set up again (mirror init script, `gw.sh`, Robolectric jars). The container restarted twice; the scratchpad and the worktrees survived, #342's report was recovered from its transcript.
+
 ### v0.9.0: build session 1, steps 1–3 (2026-11-18)
 
 - **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/wizardly-fermi-djdpxn`, not used). Draft milestone PR [#345](https://github.com/katznmeik/UmamiT/pull/345).
