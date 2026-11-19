@@ -16,6 +16,7 @@ import com.umamit.feature.settings.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +38,12 @@ sealed interface BackupDialog {
 
     /** „Import rückgängig machen?" with the counts (BAK-02 AC7). */
     data class Undo(val preview: UndoPreview) : BackupDialog
+
+    /** „Alle Daten löschen?" with the typed LÖSCHEN (SET-33); [safetyCopy] adds its sentence (#346 answer 4). */
+    data class Wipe(val safetyCopy: Boolean) : BackupDialog
+
+    /** „Daten werden gelöscht. UmamiT schließt sich, …" for about a second, then the wipe (#346 answer 2). */
+    data object Wiping : BackupDialog
 }
 
 /** A system picker the screen opens (BAK-01 AC1, BAK-02 AC1, BAK-04). */
@@ -75,20 +82,37 @@ data class DataBackupUiState(
     /** *Ersetzen* is enabled only by exactly „ERSETZEN" (BAK-02 AC3, like SET-33's „LÖSCHEN"). */
     val canReplace: Boolean get() = confirmText == CONFIRM_WORD
 
+    /**
+     * *Alle Daten löschen* is offered: no timer (D-131 Q2), no export, no import, check or undo (#346 answer 3). Its
+     * dialog's *Löschen* needs exactly „LÖSCHEN" besides ([canWipe]).
+     */
+    val canAskWipe: Boolean get() = !timerActive && export == null && busy == null
+
+    /** *Löschen* is enabled only by exactly „LÖSCHEN": no trimming, no case folding (SET-33). */
+    val canWipe: Boolean get() = dialog is BackupDialog.Wipe && confirmText == WIPE_WORD && canAskWipe
+
     companion object {
         const val CONFIRM_WORD = "ERSETZEN"
+        const val WIPE_WORD = "LÖSCHEN"
+
+        /** How long „Daten werden gelöscht. …" shows before the wipe (#346 answer 2). */
+        const val WIPE_NOTICE_MS = 1_000L
     }
 }
 
 /**
- * *Daten & Sicherung* (SCR-26): export (BAK-01), import and its undo (BAK-02), the journal CSV (BAK-04) and SET-20,
- * through [DataBackup] only. An export runs while the screen is shown: leaving it, or *Abbrechen*, stops the write
- * and deletes the incomplete document. A checked file's staging is closed on every way out.
+ * *Daten & Sicherung* (SCR-26): export (BAK-01), import and its undo (BAK-02), the journal CSV (BAK-04) and SET-20
+ * through [DataBackup], and *Alle Daten löschen* (SET-33) through [AppDataWipe]. An export runs while the screen is
+ * shown: leaving it, or *Abbrechen*, stops the write and deletes the incomplete document. A checked file's staging
+ * is closed on every way out.
  */
 @HiltViewModel
 @Suppress("TooManyFunctions") // one function per action of SCR-26 and its pickers' results
-class DataBackupViewModel @Inject constructor(private val backup: DataBackup, private val clock: WallClock) :
-    ViewModel() {
+class DataBackupViewModel @Inject constructor(
+    private val backup: DataBackup,
+    private val clock: WallClock,
+    private val wipe: AppDataWipe,
+) : ViewModel() {
     private val mutable = MutableStateFlow(DataBackupUiState())
     val state: StateFlow<DataBackupUiState> = mutable.asStateFlow()
 
@@ -282,10 +306,52 @@ class DataBackupViewModel @Inject constructor(private val backup: DataBackup, pr
         }
     }
 
+    // --- Alle Daten löschen (SET-33, D-131) ---
+
+    /** The dialog, with the safety copy's sentence while *Import rückgängig machen* is offered (#346 answer 4). */
+    fun askWipe() {
+        if (!mutable.value.canAskWipe || mutable.value.dialog != null) return
+        viewModelScope.launch {
+            val safetyCopy = readUndo() != null
+            mutable.update {
+                if (!it.canAskWipe || it.dialog != null) {
+                    it
+                } else {
+                    it.copy(dialog = BackupDialog.Wipe(safetyCopy), confirmText = "")
+                }
+            }
+        }
+    }
+
+    /**
+     * *Löschen*: only with exactly „LÖSCHEN" typed and nothing running; „Daten werden gelöscht. …" for about a second,
+     * then the wipe, once. Done, the system ends the app and the notice stays; refused, the dialog closes with a
+     * snackbar.
+     */
+    fun confirmWipe() {
+        if (!mutable.value.canWipe) return
+        mutable.update { it.copy(dialog = BackupDialog.Wiping, confirmText = "") }
+        viewModelScope.launch {
+            delay(DataBackupUiState.WIPE_NOTICE_MS)
+            // A timer started meanwhile wins (D-131 Q2); the seam checks again at the moment of the wipe.
+            val result = if (mutable.value.timerActive) WipeResult.TimerActive else wipe.wipe()
+            when (result) {
+                WipeResult.Wiped -> Unit
+
+                WipeResult.TimerActive -> mutable.update {
+                    it.copy(dialog = null, message = R.string.backup_timer_active)
+                }
+
+                WipeResult.Failed -> mutable.update { it.copy(dialog = null, message = R.string.backup_wipe_failed) }
+            }
+        }
+    }
+
     // --- The screen's one-shot parts ---
 
-    /** Closes the open dialog; a checked file's staging is deleted. */
+    /** Closes the open dialog; a checked file's staging is deleted. The wipe's notice cannot be closed. */
     fun dismissDialog() {
+        if (mutable.value.dialog == BackupDialog.Wiping) return
         if (mutable.value.dialog is BackupDialog.Replace) closeStaged()
         mutable.update { it.copy(dialog = null, confirmText = "") }
     }

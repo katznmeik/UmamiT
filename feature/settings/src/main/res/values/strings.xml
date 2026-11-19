@@ -178,6 +178,18 @@
     <string name="backup_csv_failed">Das Journal konnte nicht gespeichert werden.</string>
     <string name="backup_section_device">Geräte-Backup</string>
     <string name="backup_device_body">Dein Handy sichert Tees, Journal und Einstellungen automatisch mit dem Geräte-Backup. Fotos sind nur in der Sicherung enthalten.</string>
+    <!-- Alle Daten löschen (SET-33, 03 SCR-26, D-131 and its #346 build notes). -->
+    <string name="backup_wipe">Alle Daten löschen</string>
+    <string name="backup_wipe_title">Alle Daten löschen?</string>
+    <string name="backup_wipe_body">Alle Tees, Sessions, Rezepte, Gefäße, Fotos und Einstellungen werden von diesem Gerät gelöscht. Das kann nicht rückgängig gemacht werden. Erstelle vorher eine Sicherung.</string>
+    <string name="backup_wipe_safety_copy">Auch die Rücksicherung des letzten Imports wird gelöscht.</string>
+    <string name="backup_wipe_confirm_hint">Tippe LÖSCHEN zur Bestätigung</string>
+    <string name="backup_wipe_confirm_talkback">LÖSCHEN eintippen</string>
+    <string name="backup_wipe_confirm">Löschen</string>
+    <string name="backup_wipe_notice">Daten werden gelöscht. UmamiT schließt sich, öffne die App danach neu.</string>
+    <string name="backup_wipe_failed">Löschen nicht möglich. Es wurde nichts gelöscht.</string>
+    <!-- Claude's wording (#346), open for the PO: SCR-26 names no text for a running export. -->
+    <string name="backup_wipe_export_running">Während die Sicherung erstellt wird, nicht möglich</string>
 
     <!-- Über (SCR-27). -->
     <string name="settings_section_about">Über</string>
