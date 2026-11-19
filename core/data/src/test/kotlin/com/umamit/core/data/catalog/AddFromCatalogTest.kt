@@ -605,38 +605,42 @@ class AddFromCatalogTest {
     }
 
     @Test
-    fun `a tea added without a package has its recipes and cover but no stock`() = runTest {
+    fun `the block runs in the add's transaction and sees the new tea's recipes`() = runTest {
         catalog(sencha() to packages())
-        catalogPhotos.write(KEY, syntheticWebp(1200, 900), syntheticWebp(341, 256))
+        var seen: List<String>? = null
 
-        val teaId = (add.addWithoutPackage(KEY) as AddFromCatalogResult.Added).teaId
+        val result = add.add(purchase()) { teaId -> seen = data.recipes.observeRecipes(teaId).first().map { it.name } }
 
-        val tea = data.teas.getTea(teaId)!!
-        assertThat(tea.name).isEqualTo("Morgennebel Sencha")
-        assertThat(tea.catalogKey).isEqualTo(KEY)
-        assertThat(data.recipes.observeRecipes(teaId).first().map { it.name })
-            .containsExactly("Kyusu", "Kaltaufguss").inOrder()
-        assertThat(data.teas.observeTea(teaId).first()!!.coverPhoto).isNotNull()
-        // No package, so no stock is invented (PRF-08, 05 §8a).
-        assertThat(data.stock.observeEvents(teaId).first()).isEmpty()
-    }
-
-    @Test
-    fun `a package-less add of an owned key writes nothing and names the owner`() = runTest {
-        catalog(sencha() to packages())
-        val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
-
-        val again = add.addWithoutPackage(KEY)
-
-        assertThat(again).isEqualTo(AddFromCatalogResult.Repurchased(teaId))
-        assertThat(data.teas.observeTeas().first().map { it.tea.id }).containsExactly(teaId)
+        val teaId = (result as AddFromCatalogResult.Added).teaId
+        // The derived recipes, uncommitted yet, are visible to the block (PRF-08: a received recipe's name and place).
+        assertThat(seen).containsExactly("Kyusu", "Kaltaufguss").inOrder()
         assertThat(data.stock.observeEvents(teaId).first()).hasSize(1)
     }
 
     @Test
-    fun `a package-less add of a key not in the catalog writes nothing`() = runTest {
-        assertThat(add.addWithoutPackage(KEY)).isEqualTo(AddFromCatalogResult.NotInCatalog)
+    fun `a throwing block leaves no tea, no package, no cover and keeps the mark`() = runTest {
+        catalog(sencha() to packages())
+        catalogPhotos.write(KEY, syntheticWebp(1200, 900), syntheticWebp(341, 256))
+        data.bookmarks.mark(KEY)
+
+        val result = add.add(purchase()) { throw SQLException("recipe save failed") }
+
+        assertThat(result).isEqualTo(AddFromCatalogResult.Failed)
         assertThat(data.teas.observeTeas().first()).isEmpty()
+        assertThat(data.db.query("SELECT * FROM inventory_event", null).use { it.count }).isEqualTo(0)
+        assertThat(photoFiles.dir.listFiles().orEmpty()).isEmpty()
+        assertThat(data.bookmarks.isMarked(KEY)).isTrue()
+    }
+
+    @Test
+    fun `a throwing block on a repurchase records no package`() = runTest {
+        catalog(sencha() to packages())
+        val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
+
+        val result = add.add(purchase(grams = 250.0)) { throw IllegalStateException("refused") }
+
+        assertThat(result).isEqualTo(AddFromCatalogResult.Failed)
+        assertThat(data.stock.observeEvents(teaId).first()).hasSize(1)
     }
 
     private companion object {

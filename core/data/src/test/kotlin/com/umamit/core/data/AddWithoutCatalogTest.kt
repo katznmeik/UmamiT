@@ -1,5 +1,6 @@
 package com.umamit.core.data
 
+import android.database.SQLException
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.InventoryEventType
@@ -119,5 +120,24 @@ class AddWithoutCatalogTest {
 
         assertThat(first.teaId).isNotEqualTo(second.teaId)
         assertThat(data.teas.observeTeas().first()).hasSize(2)
+    }
+
+    @Test
+    fun `the block runs in the add's transaction and a failing one leaves no tea`() = runTest {
+        var seen: List<String>? = null
+        val added = add.add(draft(), purchase = null) { teaId ->
+            seen = data.recipes.observeRecipes(teaId).first().map { it.name }
+        }
+        assertThat(added).isInstanceOf(AddWithoutCatalogResult.Added::class.java)
+        // The style's recipes, uncommitted yet, are visible to the block (PRF-08).
+        assertThat(seen).isNotEmpty()
+
+        val failed = add.add(draft(), TeaPurchase(50.0, null, LocalDate.of(2026, 10, 31))) {
+            throw SQLException("recipe save failed")
+        }
+
+        assertThat(failed).isEqualTo(AddWithoutCatalogResult.Failed)
+        assertThat(data.teas.observeTeas().first()).hasSize(1)
+        assertThat(data.db.query("SELECT * FROM inventory_event", null).use { it.count }).isEqualTo(0)
     }
 }

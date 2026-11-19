@@ -53,7 +53,7 @@ object RecipeFile {
 
     /**
      * [bytes] as a recipe file: [RecipeFileResult.Valid] when every check of 05 §8a passes, else the one
-     * [RecipeFileResult.Refused]. More than [MAX_BYTES] is refused unread.
+     * [RecipeFileResult.Refused]. More than [MAX_BYTES] is refused unread, as damaged.
      */
     fun read(bytes: ByteArray): RecipeFileResult = RecipeFileReader.read(bytes)
 
@@ -75,12 +75,15 @@ sealed interface RecipeFileResult {
 
 /** Why a file is refused (05 §8a, PRF-08 AC5); [messageRes] is its German text in this module's `strings.xml`. */
 enum class RecipeRefusal(val messageRes: Int) {
-    /** „Das ist keine UmamiT-Rezeptdatei.": another format id, no format id, or larger than 64 KB. */
+    /** „Das ist keine UmamiT-Rezeptdatei.": another format id or no format id. */
     NOT_A_RECIPE_FILE(R.string.recipe_file_refused_not_a_recipe),
 
     /** A `formatVersion` newer than [RecipeFile.FORMAT_VERSION] (D-130 Q3, the text of 05 §8 „Versions"). */
     NEWER_VERSION(R.string.recipe_file_refused_newer_version),
 
-    /** „Die Rezeptdatei ist beschädigt.": broken JSON or UTF-8, a field out of range, an unknown name or field. */
+    /**
+     * „Die Rezeptdatei ist beschädigt.": larger than 64 KB (03 §5), broken JSON or UTF-8, a field out of range, an
+     * unknown name or field.
+     */
     DAMAGED(R.string.recipe_file_refused_damaged),
 }

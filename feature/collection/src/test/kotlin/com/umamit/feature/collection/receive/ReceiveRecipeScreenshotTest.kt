@@ -73,6 +73,8 @@ class ReceiveRecipeScreenshotTest(private val dark: Boolean, private val fontSca
             choice = TeaChoice.Existing("t1"),
             teas = listOf(gyokuro, full),
             catalogKey = CATALOG_KEY,
+            // The tea with the file's key is in the collection: *Neuen Tee anlegen* is hidden (PO, 2026-11-18).
+            offersNewTea = false,
         ),
     )
 

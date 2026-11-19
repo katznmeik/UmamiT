@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.backup.recipe.RecipeFile
 import com.umamit.core.backup.recipe.RecipeRefusal
 import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.catalog.CatalogPurchase
 import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.TeaCategory
@@ -33,6 +34,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.time.LocalDate
+import com.umamit.core.backup.R as BackupR
 
 /**
  * SCR-32 „Rezept übernehmen" (PRF-08 AC5–AC9, D-130 Q4, Q13) on fakes: the reader's refusals, the preselected
@@ -86,11 +89,13 @@ class ReceiveRecipeViewModelTest {
     }
 
     @Test
-    fun `a file over 64 KB and an empty one get the reader's refusals`() = runTest {
+    fun `a file over 64 KB and an empty one are damaged`() = runTest {
         val viewModel = viewModel()
 
+        // 03 §5: „broken or too large" reads „Die Rezeptdatei ist beschädigt.".
         viewModel.open(1L, ByteArray(RecipeFile.MAX_BYTES + 1) { ' '.code.toByte() })
-        assertThat(viewModel.state.value).isEqualTo(ReceiveRecipeUiState.Refused(RecipeRefusal.NOT_A_RECIPE_FILE))
+        assertThat(viewModel.state.value).isEqualTo(ReceiveRecipeUiState.Refused(RecipeRefusal.DAMAGED))
+        assertThat(RecipeRefusal.DAMAGED.messageRes).isEqualTo(BackupR.string.recipe_file_refused_damaged)
 
         viewModel.open(2L, ByteArray(0))
         assertThat(viewModel.state.value).isEqualTo(ReceiveRecipeUiState.Refused(RecipeRefusal.DAMAGED))
@@ -186,7 +191,7 @@ class ReceiveRecipeViewModelTest {
     }
 
     @Test
-    fun `Neuen Tee anlegen copies the catalog tea when its key is in the local catalog`() = runTest {
+    fun `Neuen Tee anlegen aus dem Katalog asks for a package first and writes nothing until Aufnehmen`() = runTest {
         inCatalog()
         val viewModel = viewModel()
         viewModel.open(1L, bytes())
@@ -195,12 +200,98 @@ class ReceiveRecipeViewModelTest {
         viewModel.choose(TeaChoice.NewTea)
         viewModel.takeOver()
 
-        val event = viewModel.navigation.first() as ReceiveRecipeEvent.TakenOver
-        assertThat(fromCatalog.addedWithoutPackage).containsExactly(CATALOG_KEY)
+        assertThat(viewModel.ready().packageSheet).isEqualTo(PackageSheet(CATALOG_KEY))
+        assertThat(collection.teas.observeTeas().first()).isEmpty()
         assertThat(fromCatalog.purchases).isEmpty()
+        // A second *Rezept übernehmen* while the sheet is open writes nothing either.
+        viewModel.takeOver()
+        assertThat(collection.teas.observeTeas().first()).isEmpty()
+
+        viewModel.savePackage(CatalogPurchase(CATALOG_KEY, 100.0, 1240, LocalDate.of(2026, 11, 18)))
+
+        val event = viewModel.navigation.first() as ReceiveRecipeEvent.TakenOver
+        assertThat(fromCatalog.purchases).containsExactly(
+            CatalogPurchase(CATALOG_KEY, 100.0, 1240, LocalDate.of(2026, 11, 18)),
+        )
         assertThat(withoutCatalog.added).isEmpty()
         assertThat(collection.teas.getTea(event.teaId)?.catalogKey).isEqualTo(CATALOG_KEY)
+        assertThat(collection.stock.observeEvents(event.teaId).first().single().deltaGrams).isEqualTo(100.0)
         assertThat(collection.recipes.observeRecipes(event.teaId).first().map { it.name }).contains("Kyusu")
+        assertThat(viewModel.ready().packageSheet).isNull()
+    }
+
+    @Test
+    fun `closing the package sheet returns to SCR-32 with nothing written`() = runTest {
+        inCatalog()
+        val viewModel = viewModel()
+        viewModel.open(1L, bytes())
+        viewModel.choose(TeaChoice.NewTea)
+        viewModel.takeOver()
+
+        viewModel.dismissPackageSheet()
+
+        val ready = viewModel.ready()
+        assertThat(ready.packageSheet).isNull()
+        assertThat(ready.choice).isEqualTo(TeaChoice.NewTea)
+        assertThat(ready.canTakeOver).isTrue()
+        assertThat(collection.teas.observeTeas().first()).isEmpty()
+        assertThat(fromCatalog.purchases).isEmpty()
+        assertThat(withoutCatalog.added).isEmpty()
+    }
+
+    @Test
+    fun `an alert removes the package sheet at once and nothing is written`() = runTest {
+        inCatalog()
+        val viewModel = viewModel()
+        viewModel.open(1L, bytes())
+        viewModel.choose(TeaChoice.NewTea)
+        viewModel.takeOver()
+
+        viewModel.closePackageSheet()
+
+        assertThat(viewModel.ready().packageSheet).isNull()
+        assertThat(collection.teas.observeTeas().first()).isEmpty()
+    }
+
+    @Test
+    fun `Neuen Tee anlegen is hidden when a collection tea has the file's catalog key, archived included`() = runTest {
+        inCatalog()
+        collection.teas.saveTea(tea("old", "Asahi", catalogKey = CATALOG_KEY, archived = true))
+        val viewModel = viewModel()
+        viewModel.open(1L, bytes())
+
+        viewModel.choose(TeaChoice.NewTea)
+
+        val ready = viewModel.ready()
+        assertThat(ready.offersNewTea).isFalse()
+        assertThat(ready.choice).isEqualTo(TeaChoice.Existing("old"))
+    }
+
+    @Test
+    fun `Neuen Tee anlegen stays for a tea of the same name without the key`() = runTest {
+        collection.teas.saveTea(tea("t1", "Gyokuro Asahi"))
+        val viewModel = viewModel()
+        viewModel.open(1L, bytes())
+
+        assertThat(viewModel.ready().offersNewTea).isTrue()
+        viewModel.choose(TeaChoice.NewTea)
+        assertThat(viewModel.ready().choice).isEqualTo(TeaChoice.NewTea)
+    }
+
+    @Test
+    fun `the shop link is hidden when a collection tea matched by key or by name`() = runTest {
+        collection.teas.saveTea(tea("t1", "gyokuro asahi"))
+        val byName = viewModel()
+        byName.open(1L, bytes())
+        assertThat(byName.ready().matchKind).isEqualTo(MatchKind.NAME)
+        assertThat(byName.ready().offersShopLink).isFalse()
+
+        collection.teas.saveTea(tea("t2", "Asahi", catalogKey = CATALOG_KEY))
+        val byKey = viewModel()
+        byKey.open(1L, bytes())
+        assertThat(byKey.ready().matchKind).isEqualTo(MatchKind.CATALOG)
+        assertThat(byKey.ready().offersShopLink).isFalse()
+        assertThat(links.loaded).isEmpty()
     }
 
     @Test
@@ -219,14 +310,15 @@ class ReceiveRecipeViewModelTest {
         assertThat(tea.styleKey).isEqualTo("bancha")
         assertThat(tea.teaType).isEqualTo("Bancha")
         assertThat(purchase).isNull()
-        assertThat(fromCatalog.addedWithoutPackage).isEmpty()
+        assertThat(fromCatalog.purchases).isEmpty()
+        assertThat(viewModel.ready().packageSheet).isNull()
         val added = collection.recipes.observeRecipes(event.teaId).first().single { it.name == "Becher" }
         assertThat(added.isDefault).isFalse()
     }
 
     @Test
     fun `opening a file sends no request`() = runTest {
-        collection.teas.saveTea(tea("t1", "Gyokuro Asahi"))
+        collection.teas.saveTea(tea("t1", "Sencha"))
         val viewModel = viewModel()
 
         viewModel.open(1L, bytes())

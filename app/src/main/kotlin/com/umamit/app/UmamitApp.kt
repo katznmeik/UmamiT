@@ -69,6 +69,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.ui.SheetHandOver
+import com.umamit.feature.catalog.CatalogPackageSheet
 import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.catalog.messageRes
 import com.umamit.feature.collection.CollectionScreen
@@ -851,6 +852,17 @@ private fun TabHost(
                         },
                         alertKey = alertKey,
                         linkMessage = { it.messageRes() },
+                        // *Neuen Tee anlegen* „aus dem Katalog" (PO, 2026-11-18): the catalog's package sheet, which
+                        // only hands back the purchase; SCR-32 writes the tea, its package and the recipe together.
+                        packageSheet = { request ->
+                            CatalogPackageSheet(
+                                catalogKey = request.catalogKey,
+                                saving = request.saving,
+                                failed = request.failed,
+                                onSave = request.onSave,
+                                onDismiss = request.onDismiss,
+                            )
+                        },
                     ),
                 )
             }

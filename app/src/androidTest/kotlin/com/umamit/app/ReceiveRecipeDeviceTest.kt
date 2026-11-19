@@ -4,12 +4,15 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.SystemClock
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.core.content.FileProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import com.umamit.core.backup.recipe.RecipeFile
 import com.umamit.core.backup.recipe.RecipeFileResult
 import com.umamit.core.backup.recipe.SharedRecipe
@@ -24,7 +27,9 @@ import com.umamit.feature.collection.recipe.SharedRecipeFiles
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,7 +54,8 @@ class ReceiveRecipeDeviceTest {
     @get:Rule(order = 2)
     val compose = createEmptyComposeRule()
 
-    private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val instrumentation = InstrumentationRegistry.getInstrumentation()
+    private val context: Context = instrumentation.targetContext
     private val teas = EntryPointAccessors
         .fromApplication(context.applicationContext as Application, TestDataEntryPoint::class.java)
         .teas()
@@ -75,12 +81,62 @@ class ReceiveRecipeDeviceTest {
 
     private fun teaCount(): Int = runBlocking { teas.observeTeas().first().size }
 
-    private fun awaitScreen() = compose.waitUntil(TIMEOUT_MS) {
-        compose.onAllNodesWithTag(ReceiveRecipeTags.SCREEN).fetchSemanticsNodes().isNotEmpty()
+    /**
+     * The hand-over starts MainActivity outside any scenario of the rule: first wait until it is resumed (so its
+     * `setContent` has run), then for SCR-32 in it. Until a compose hierarchy exists the rule throws instead of
+     * waiting, so that counts as „not yet".
+     */
+    private fun awaitScreen() {
+        awaitResumedMainActivity()
+        awaitNodes { compose.onAllNodesWithTag(ReceiveRecipeTags.SCREEN).fetchSemanticsNodes().isNotEmpty() }
     }
 
-    private fun awaitText(text: String) = compose.waitUntil(TIMEOUT_MS) {
-        compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+    private fun awaitText(text: String, partial: Boolean = false) = awaitNodes {
+        compose.onAllNodesWithText(text, substring = partial).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    private fun awaitNodes(found: () -> Boolean) = compose.waitUntil(TIMEOUT_MS) {
+        try {
+            found()
+        } catch (_: IllegalStateException) {
+            // „No compose hierarchies found": MainActivity's content is not attached yet.
+            false
+        }
+    }
+
+    private fun awaitResumedMainActivity() {
+        val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
+        while (mainActivities(Stage.RESUMED).isEmpty()) {
+            check(SystemClock.uptimeMillis() < deadline) { "MainActivity was not resumed by the hand-over" }
+            SystemClock.sleep(POLL_MS)
+        }
+    }
+
+    private fun mainActivities(vararg stages: Stage): List<MainActivity> {
+        var found = emptyList<MainActivity>()
+        instrumentation.runOnMainSync {
+            val monitor = ActivityLifecycleMonitorRegistry.getInstance()
+            found = stages.flatMap { monitor.getActivitiesInStage(it) }.filterIsInstance<MainActivity>()
+        }
+        return found
+    }
+
+    /**
+     * Each test starts without a MainActivity (all of them destroyed), so no screen of an earlier test can answer its
+     * waits: both refusals read the same message.
+     */
+    @Before
+    @After
+    fun finishMainActivities() {
+        mainActivities(*Stage.entries.toTypedArray()).forEach { activity ->
+            instrumentation.runOnMainSync { activity.finish() }
+        }
+        val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
+        val alive = Stage.entries.filter { it != Stage.DESTROYED }.toTypedArray()
+        while (mainActivities(*alive).isNotEmpty()) {
+            check(SystemClock.uptimeMillis() < deadline) { "an earlier MainActivity did not go" }
+            SystemClock.sleep(POLL_MS)
+        }
     }
 
     @Test
@@ -133,11 +189,8 @@ class ReceiveRecipeDeviceTest {
     private fun refusalOf(bytes: ByteArray): String =
         context.getString((RecipeFile.read(bytes) as RecipeFileResult.Refused).refusal.messageRes)
 
-    private fun awaitText(text: String, partial: Boolean) = compose.waitUntil(TIMEOUT_MS) {
-        compose.onAllNodesWithText(text, substring = partial).fetchSemanticsNodes().isNotEmpty()
-    }
-
     private companion object {
         const val TIMEOUT_MS = 10_000L
+        const val POLL_MS = 50L
     }
 }

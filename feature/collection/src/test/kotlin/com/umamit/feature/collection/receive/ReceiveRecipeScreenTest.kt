@@ -1,5 +1,8 @@
 package com.umamit.feature.collection.receive
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -36,7 +39,10 @@ class ReceiveRecipeScreenTest {
     private val sencha = TeaOption(id = "s", name = "Sencha Morgen", category = TeaCategory.GREEN, isArchived = true)
     private val full = TeaOption(id = "f", name = "Volle Dose", category = TeaCategory.GREEN, recipeCount = 10)
 
-    private fun show(state: ReceiveRecipeUiState) {
+    private val sheets = mutableListOf<PackageSheetRequest>()
+    private var closedSheets = 0
+
+    private fun show(state: ReceiveRecipeUiState, alertKey: () -> String? = { null }) {
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 ReceiveRecipeScreen(
@@ -48,8 +54,11 @@ class ReceiveRecipeScreenTest {
                         loadShopLink = { shopLinks++ },
                         takeOver = { takeOvers++ },
                         linkMessage = { R.string.receive_recipe_full },
+                        closePackageSheet = { closedSheets++ },
                     ),
+                    alertKey = alertKey(),
                     photo = { null },
+                    packageSheet = { sheets += it },
                 )
             }
         }
@@ -127,5 +136,50 @@ class ReceiveRecipeScreenTest {
         compose.onNodeWithTag(ReceiveRecipeTags.CLOSE_REFUSED).performClick()
 
         assertThat(closes).isEqualTo(1)
+    }
+
+    @Test
+    fun neuenTeeAnlegenIsHiddenWhenTheFileKeysTeaIsInTheCollection() {
+        val match = sencha.copy(catalogKey = "XY0170")
+        show(
+            ReceiveRecipeUiState.Ready(
+                recipe = kyusu,
+                match = match,
+                matchKind = MatchKind.CATALOG,
+                choice = TeaChoice.Existing("s"),
+                teas = listOf(match),
+                catalogKey = "XY0170",
+                offersNewTea = false,
+            ),
+        )
+
+        compose.onNodeWithTag(ReceiveRecipeTags.NEW_TEA).assertDoesNotExist()
+        compose.onNodeWithTag(ReceiveRecipeTags.SHOP_LINK).assertDoesNotExist()
+        compose.onNodeWithTag(ReceiveRecipeTags.tea("s")).assertIsSelected()
+    }
+
+    @Test
+    fun thePackageSheetShowsThroughTheHostAndAnotherAlertRemovesIt() {
+        var alert by mutableStateOf<String?>(null)
+        show(
+            ReceiveRecipeUiState.Ready(
+                recipe = kyusu,
+                choice = TeaChoice.NewTea,
+                catalogKey = "XY0170",
+                packageSheet = PackageSheet("XY0170"),
+            ),
+            alertKey = { alert },
+        )
+        compose.waitForIdle()
+        assertThat(sheets.last().catalogKey).isEqualTo("XY0170")
+        assertThat(closedSheets).isEqualTo(0)
+
+        val shown = sheets.size
+        alert = "slot-1"
+        compose.waitForIdle()
+
+        // Rule 8: the sheet is no longer composed and the view model is told to close it.
+        assertThat(closedSheets).isEqualTo(1)
+        assertThat(sheets.size).isEqualTo(shown)
     }
 }

@@ -34,8 +34,12 @@ fun ReceiveRecipeRoute(
             loadShopLink = viewModel::loadShopLink,
             takeOver = viewModel::takeOver,
             linkMessage = host.linkMessage,
+            savePackage = viewModel::savePackage,
+            dismissPackageSheet = viewModel::dismissPackageSheet,
+            closePackageSheet = viewModel::closePackageSheet,
         ),
         modifier = modifier,
         alertKey = host.alertKey,
+        packageSheet = host.packageSheet,
     )
 }

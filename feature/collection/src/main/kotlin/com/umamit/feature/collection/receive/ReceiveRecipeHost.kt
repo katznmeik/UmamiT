@@ -1,5 +1,7 @@
 package com.umamit.feature.collection.receive
 
+import androidx.compose.runtime.Composable
+import com.umamit.core.data.catalog.CatalogPurchase
 import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.feature.collection.R
 
@@ -13,6 +15,8 @@ import com.umamit.feature.collection.R
  *   „Rezept „…" übernommen".
  * @property alertKey the alert playing now: the tea sheet gives way to another (rule 8).
  * @property linkMessage CAT-17's message of a failed *Tee über Shop-Link laden* (03 §5), from the catalog.
+ * @property packageSheet the catalog's add-from-catalog package sheet (SCR-23) for *Neuen Tee anlegen* „aus dem
+ *   Katalog", from the app (features don't depend on each other); it only hands back the purchase.
  */
 class ReceiveRecipeHost(
     val token: Long,
@@ -21,4 +25,18 @@ class ReceiveRecipeHost(
     val onTakenOver: (teaId: String, recipeName: String) -> Unit,
     val alertKey: String? = null,
     val linkMessage: (TeaLinkOutcome) -> Int = { R.string.receive_recipe_failed },
+    val packageSheet: @Composable (PackageSheetRequest) -> Unit = {},
+)
+
+/**
+ * What SCR-32 asks of the package sheet: the catalog tea [catalogKey]; [saving] while the tea, its package and the
+ * recipe are written, [failed] after a failed write. [onSave] gets the purchase as entered (the sheet writes
+ * nothing), [onDismiss] closes it without a write.
+ */
+class PackageSheetRequest(
+    val catalogKey: String,
+    val saving: Boolean,
+    val failed: Boolean,
+    val onSave: (CatalogPurchase) -> Unit,
+    val onDismiss: () -> Unit,
 )

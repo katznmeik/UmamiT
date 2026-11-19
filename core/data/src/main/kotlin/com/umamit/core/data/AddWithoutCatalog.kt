@@ -53,7 +53,18 @@ interface AddWithoutCatalog {
      * only with a [purchase], the INITIAL stock event (INV-01). Without a package the tea has no stock
      * events: no stock is invented.
      */
-    suspend fun add(tea: Tea, purchase: TeaPurchase?): AddWithoutCatalogResult
+    suspend fun add(tea: Tea, purchase: TeaPurchase?): AddWithoutCatalogResult = add(tea, purchase) {}
+
+    /**
+     * [add], with [inTransaction] run on the new tea's id in the same transaction, e.g. a received recipe (PRF-08,
+     * SCR-32's *Neuen Tee anlegen* „ohne Katalog"). If it throws, nothing is written: a [android.database.SQLException]
+     * answers [AddWithoutCatalogResult.Failed], any other exception is rethrown after the rollback.
+     */
+    suspend fun add(
+        tea: Tea,
+        purchase: TeaPurchase?,
+        inTransaction: suspend (teaId: String) -> Unit,
+    ): AddWithoutCatalogResult
 }
 
 /** [AddWithoutCatalog] into `umamit.db`. */
@@ -64,7 +75,11 @@ class RoomAddWithoutCatalog @Inject constructor(
     private val stock: StockRepository,
     private val time: WallClock,
 ) : AddWithoutCatalog {
-    override suspend fun add(tea: Tea, purchase: TeaPurchase?): AddWithoutCatalogResult = try {
+    override suspend fun add(
+        tea: Tea,
+        purchase: TeaPurchase?,
+        inTransaction: suspend (teaId: String) -> Unit,
+    ): AddWithoutCatalogResult = try {
         val teaId = UUID.randomUUID().toString()
         db.withTransaction {
             teas.saveTea(
@@ -78,6 +93,8 @@ class RoomAddWithoutCatalog @Inject constructor(
                     purchaseEvent(teaId, InventoryEventType.INITIAL, it.grams, it.priceCents, it.purchasedOn, time),
                 )
             }
+            // A throw here rolls the whole add back (PRF-08).
+            inTransaction(teaId)
         }
         AddWithoutCatalogResult.Added(teaId)
     } catch (_: SQLException) {

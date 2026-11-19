@@ -21,7 +21,7 @@ import java.time.format.DateTimeParseException
 /**
  * The one reader of received recipe files (05 §8a, PRF-08 AC5). The file is untrusted, so the checks run in this
  * order and the first that fails decides:
- * 1. more than [RecipeFile.MAX_BYTES], refused unread: not a recipe file;
+ * 1. more than [RecipeFile.MAX_BYTES], refused unread: damaged (03 §5 „broken or too large");
  * 2. not strict UTF-8, nested deeper than [MAX_NESTING] (counted before parsing, so a hostile file never drives the
  *    parser's recursion), not JSON, or the top level not an object: damaged;
  * 3. `format` not the string `umamit-recipe`: not a recipe file;
@@ -46,7 +46,7 @@ internal object RecipeFileReader {
         val root = if (tooLarge) null else parse(bytes)
         val format = (root?.get(Keys.FORMAT) as? JsonPrimitive)?.takeIf { it.isString }?.content
         return when {
-            tooLarge -> Refused(RecipeRefusal.NOT_A_RECIPE_FILE)
+            tooLarge -> Refused(RecipeRefusal.DAMAGED)
             root == null -> Refused(RecipeRefusal.DAMAGED)
             format != RecipeFile.FORMAT -> Refused(RecipeRefusal.NOT_A_RECIPE_FILE)
             else -> versioned(root)

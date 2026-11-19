@@ -9,6 +9,7 @@ import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.SaveRecipeResult
 import com.umamit.core.data.catalog.AddFromCatalog
 import com.umamit.core.data.catalog.AddFromCatalogResult
+import com.umamit.core.data.catalog.CatalogPurchase
 import com.umamit.core.domain.style.BuiltInStyles
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Recipe
@@ -25,11 +26,11 @@ sealed interface TakeOverTarget {
     /** A collection tea the user chose or the match preselected. */
     data class Existing(val teaId: String) : TakeOverTarget
 
-    /**
-     * *Neuen Tee anlegen*: from the local catalog by [catalogKey] (`AddFromCatalog`, without a package), or without
-     * catalog ([catalogKey] null) with the file's name, Kategorie and Sorte.
-     */
-    data class NewTea(val catalogKey: String?) : TakeOverTarget
+    /** *Neuen Tee anlegen* „aus dem Katalog": the catalog tea with the sheet's package (`AddFromCatalog`). */
+    data class FromCatalog(val purchase: CatalogPurchase) : TakeOverTarget
+
+    /** *Neuen Tee anlegen* „ohne Katalog": the file's name, Kategorie and Sorte, no package (`AddWithoutCatalog`). */
+    data object WithoutCatalog : TakeOverTarget
 }
 
 /** How [RecipeTakeOver.takeOver] ended. */
@@ -47,8 +48,9 @@ sealed interface TakeOverResult {
 /**
  * *Rezept übernehmen* (PRF-08 AC6, AC7, 05 §8a): the only write of a received recipe. It adds a **new** recipe,
  * never the default, at the end of the tea's recipes, with *Kein Gefäß* (the file names only a vessel type) and the
- * file's leaf, water and steps, named as in the file or with „ (2)" ([RecipeMatch.recipeName]). A new tea is created
- * first ([TakeOverTarget.NewTea]); the recipe's save is one transaction of its own (`RecipeRepository.saveRecipe`).
+ * file's leaf, water and steps, named as in the file or with „ (2)" ([RecipeMatch.recipeName]). A new tea (with its
+ * package from the catalog, [TakeOverTarget.FromCatalog]) and the recipe are one transaction: a recipe that can't be
+ * saved leaves no new tea (#342).
  */
 class RecipeTakeOver @Inject constructor(
     private val recipes: RecipeRepository,
@@ -56,17 +58,60 @@ class RecipeTakeOver @Inject constructor(
     private val addWithoutCatalog: AddWithoutCatalog,
     private val sorteNames: SorteNames,
 ) {
-    suspend fun takeOver(recipe: SharedRecipe, target: TakeOverTarget): TakeOverResult {
-        val teaId = when (target) {
-            is TakeOverTarget.Existing -> target.teaId
-            is TakeOverTarget.NewTea -> newTea(recipe.tea, target.catalogKey) ?: return TakeOverResult.Failed
-        }
-        return try {
-            val existing = recipes.observeRecipes(teaId).first()
-            if (existing.size >= Recipe.MAX_PER_TEA) TakeOverResult.LimitReached else add(recipe, teaId, existing)
+    suspend fun takeOver(recipe: SharedRecipe, target: TakeOverTarget): TakeOverResult = when (target) {
+        is TakeOverTarget.Existing -> try {
+            addTo(recipe, target.teaId)
         } catch (_: SQLException) {
             // Rule 8: the timer runs in this process; a failed write is said on SCR-32, never a crash.
             TakeOverResult.Failed
+        }
+
+        is TakeOverTarget.FromCatalog -> inNewTea(recipe) { recipeStep ->
+            when (val result = addFromCatalog.add(target.purchase, recipeStep)) {
+                is AddFromCatalogResult.Added -> result.teaId
+                is AddFromCatalogResult.Repurchased -> result.teaId
+                AddFromCatalogResult.NotInCatalog, AddFromCatalogResult.Failed -> null
+            }
+        }
+
+        TakeOverTarget.WithoutCatalog -> inNewTea(recipe) { recipeStep ->
+            when (val result = addWithoutCatalog.add(withoutCatalog(recipe.tea), purchase = null, recipeStep)) {
+                is AddWithoutCatalogResult.Added -> result.teaId
+                AddWithoutCatalogResult.Failed -> null
+            }
+        }
+    }
+
+    /** The recipe added to [teaId] unless it has 10 recipes already. */
+    private suspend fun addTo(recipe: SharedRecipe, teaId: String): TakeOverResult {
+        val existing = recipes.observeRecipes(teaId).first()
+        return if (existing.size >= Recipe.MAX_PER_TEA) TakeOverResult.LimitReached else add(recipe, teaId, existing)
+    }
+
+    /**
+     * A new tea written by [newTea], with the recipe added in its transaction (the step it is given): a recipe that is
+     * not added throws, so the tea is rolled back with it.
+     */
+    private suspend fun inNewTea(
+        recipe: SharedRecipe,
+        newTea: suspend (recipeStep: suspend (teaId: String) -> Unit) -> String?,
+    ): TakeOverResult {
+        var outcome: TakeOverResult? = null
+        val teaId = try {
+            newTea { teaId ->
+                val added = addTo(recipe, teaId)
+                outcome = added
+                if (added !is TakeOverResult.TakenOver) throw RecipeNotAdded()
+            }
+        } catch (_: RecipeNotAdded) {
+            null
+        } catch (_: SQLException) {
+            null
+        }
+        return when {
+            teaId != null -> outcome ?: TakeOverResult.Failed
+            outcome == TakeOverResult.LimitReached -> TakeOverResult.LimitReached
+            else -> TakeOverResult.Failed
         }
     }
 
@@ -93,19 +138,6 @@ class RecipeTakeOver @Inject constructor(
         }
     }
 
-    private suspend fun newTea(file: SharedTea, catalogKey: String?): String? = if (catalogKey != null) {
-        when (val result = addFromCatalog.addWithoutPackage(catalogKey)) {
-            is AddFromCatalogResult.Added -> result.teaId
-            is AddFromCatalogResult.Repurchased -> result.teaId
-            AddFromCatalogResult.NotInCatalog, AddFromCatalogResult.Failed -> null
-        }
-    } else {
-        when (val result = addWithoutCatalog.add(withoutCatalog(file), purchase = null)) {
-            is AddWithoutCatalogResult.Added -> result.teaId
-            AddWithoutCatalogResult.Failed -> null
-        }
-    }
-
     /** SCR-11's tea without catalog from the file: its name, secondary name, Kategorie and Sorte (05 §8a). */
     private fun withoutCatalog(file: SharedTea): Tea {
         val style = file.styleKey?.let(BuiltInStyles::byKey)
@@ -120,6 +152,9 @@ class RecipeTakeOver @Inject constructor(
             teaType = style?.key?.let(sorteNames::name),
         )
     }
+
+    /** Rolls the new tea back when its recipe was not added. */
+    private class RecipeNotAdded : RuntimeException()
 
     private companion object {
         const val GENERIC_SUFFIX = "_generic"
