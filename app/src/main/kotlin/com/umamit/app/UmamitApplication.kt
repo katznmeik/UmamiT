@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.StrictMode
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.umamit.app.AppStart.launchGuarded
 import com.umamit.core.backup.restore.ImportRecovery
 import com.umamit.core.backup.restore.SafetyCopyExpiry
 import com.umamit.core.data.FirstStart
@@ -83,8 +84,8 @@ class UmamitApplication :
         super.onCreate()
         // An import interrupted by a crash is finished (or undone) before anything below reads the database, the
         // photos or the settings (05 §8 crash safety, BAK-02). Only after such a crash does it block, briefly; the
-        // usual start checks one file.
-        if (ImportRecovery.isNeeded(this)) importRecovery.get().recoverAtStart()
+        // usual start checks one file. A failure or a throw is logged and the start goes on (D-133 item 13).
+        AppStart.importGate({ ImportRecovery.isNeeded(this) }) { importRecovery.get().recoverAtStart() }
         if (BuildConfig.DEBUG) enableStrictMode()
         // The permission states of this process start, for *Diagnose* (06 §5.6); binder calls,
         // so off the main thread, and never in the way of an alarm that started the process.
@@ -95,16 +96,19 @@ class UmamitApplication :
         recoveryScope.launch { controller.get().recover(RecoveryTrigger.APP_START) }
         // A first start whose seed failed gets the seed teas now (D-075), off the main thread
         // (the graph is built there too); the seed photo download is never sent from here.
-        recoveryScope.launch { firstStart.get().retrySeedAtAppStart() }
+        // The start-up work below is guarded: a failure (the graph's `get()` included) is logged, never a crash.
+        recoveryScope.launchGuarded("seed retry") { firstStart.get().retrySeedAtAppStart() }
         // The daily low-stock reminder (INV-11): keeps a waiting job, follows SET-28 and SET-29 from now on.
-        recoveryScope.launch { lowStockReminders.get().follow() }
+        recoveryScope.launchGuarded("low-stock reminder") { lowStockReminders.get().follow() }
         // The backup reminder (BAK-06): keeps a waiting job, follows SET-20 from now on.
-        recoveryScope.launch { backupReminders.get().follow() }
-        // The safety copy's 7 × 24 h (05 §8 „Expiry") and what a crash left of an import.
-        recoveryScope.launch { safetyCopyExpiry.get().atAppStart() }
+        recoveryScope.launchGuarded("backup reminder") { backupReminders.get().follow() }
+        // The safety copy's 7 × 24 h (05 §8 „Expiry") and what a crash left of an import; builds no network graph.
+        recoveryScope.launchGuarded("safety copy expiry") { safetyCopyExpiry.get().atAppStart() }
         // Shared recipe files older than a day (PRF-08, 06 §5.7): last, off the main thread, after the timer's
         // recovery.
-        recoveryScope.launch(Dispatchers.IO) { SharedRecipeFiles.deleteStale(cacheDir, System.currentTimeMillis()) }
+        recoveryScope.launchGuarded("shared recipe files", Dispatchers.IO) {
+            SharedRecipeFiles.deleteStale(cacheDir, System.currentTimeMillis())
+        }
     }
 
     /** Debug builds only (06 §6): surface disk/network access on the main thread and leaks early. */
