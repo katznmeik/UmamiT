@@ -23,8 +23,8 @@ sealed interface RestoreResult {
     /**
      * The data is replaced: „Sicherung eingespielt · 142 Sessions, 23 Tees" ([preview]'s counts) or „Import rückgängig
      * gemacht". With [finishedAtNextStart] a step after the commit failed (e.g. the settings write on a full disk): the
-     * screen still says it is done, and the next app start finishes the rest; the undo stays (D-130 build note, the
-     * PO's answer).
+     * screen still says it is done, and the next app start finishes the rest; the undo is offered at once, counted
+     * from the import, and refused while the rest still fails (D-130 build note, D-133 Q3).
      */
     data class Done(val preview: BackupPreview, val finishedAtNextStart: Boolean) : RestoreResult
 
@@ -36,7 +36,8 @@ sealed interface RestoreResult {
 }
 
 /**
- * The undo dialog's counts (D-130 Q6, item 21): [sessions] completed and manual sessions started after the import,
+ * The undo dialog's counts (D-130 Q6, item 21): [sessions] completed and manual sessions saved after the import
+ * (`created_at`, D-133 Q9),
  * [teas] teas created or changed after it; both 0 is „Seit dem Import gibt es keine neuen Sessions und keine
  * geänderten Tees.". [availableUntil] (epoch ms) is „Möglich bis …": the import's time + 7 × 24 h.
  */

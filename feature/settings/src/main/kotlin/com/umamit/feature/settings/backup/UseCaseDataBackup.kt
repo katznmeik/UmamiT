@@ -37,9 +37,10 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -70,9 +71,14 @@ class UseCaseDataBackup @Inject constructor(
     /** A brew or the quick timer is active in memory, in any slot. */
     private val timerActivity = TimerActivity { timer.slotStates.values.any { it.value !is TimerUiState.Idle } }
 
+    /** „Letzte Sicherung · N neue Sessions" (D-133 Q9): by `created_at`, counted again whenever a session is saved. */
     @OptIn(ExperimentalCoroutinesApi::class)
-    override val lastBackup: Flow<LastBackup?> = stored.lastBackupAt.distinctUntilChanged().mapLatest { at ->
-        at?.let { LastBackup(it, db.restoreDao().sessionsStartedAfter(it)) }
+    override val lastBackup: Flow<LastBackup?> = stored.lastBackupAt.distinctUntilChanged().flatMapLatest { at ->
+        if (at == null) {
+            flowOf(null)
+        } else {
+            db.restoreDao().observeSessionsCreatedAfter(at).distinctUntilChanged().map { LastBackup(at, it) }
+        }
     }
 
     override val reminderEnabled: Flow<Boolean> = settings.settings.map { it.backupReminderEnabled }

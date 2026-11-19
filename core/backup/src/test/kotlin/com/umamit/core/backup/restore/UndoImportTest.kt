@@ -82,6 +82,19 @@ class UndoImportTest {
     }
 
     @Test
+    fun `a manual entry saved after the import counts whatever date it carries`() {
+        imported()
+        h.clock.advanceBy(60_000)
+        runBlocking {
+            // Backdated before the import, saved after it (D-133 Q9): the undo loses it, so it counts.
+            val backdated = session("backdated", SessionStatus.MANUAL, importedAt - 86_400_000)
+            h.db.sessionDao().insert(backdated.copy(createdAt = h.clock.wall, updatedAt = h.clock.wall))
+        }
+
+        assertThat(preview()).isEqualTo(UndoPreview(1, 0, importedAt + SAFETY_COPY_VALID_MS))
+    }
+
+    @Test
     fun `with nothing new since the import both counts are 0`() {
         imported()
 

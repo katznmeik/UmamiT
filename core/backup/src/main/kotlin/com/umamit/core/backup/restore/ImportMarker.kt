@@ -1,5 +1,6 @@
 package com.umamit.core.backup.restore
 
+import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -22,9 +23,21 @@ internal enum class ImportKind { IMPORT, UNDO }
  */
 internal enum class ImportPhase { PREPARED, SETTINGS_WRITTEN }
 
-/** The phase marker `import/marker.json`; [token] is the commit token the transaction sets (`application_id`). */
+/**
+ * The phase marker `import/marker.json`; [token] is the commit token the transaction sets (`application_id`).
+ * [importedAt] (epoch ms) is the import's time, which step 5 stores as `safetyCopyAt` even when it runs later
+ * (D-133 Q3); [durable] is set once the commit is checkpointed into the database file, so `photos.old/` is no longer
+ * needed for a roll back (D-133 item 13). Both have defaults, so a marker written without them still reads.
+ */
 @Serializable
-internal data class ImportMarker(val v: Int = VERSION, val kind: ImportKind, val token: Int, val phase: ImportPhase) {
+internal data class ImportMarker(
+    val v: Int = VERSION,
+    val kind: ImportKind,
+    val token: Int,
+    val phase: ImportPhase,
+    val importedAt: Long? = null,
+    val durable: Boolean = false,
+) {
     companion object {
         const val VERSION = 1
     }
@@ -52,6 +65,17 @@ internal object MarkerFile {
             paths.marker,
             json.encodeToString(ImportMarker.serializer(), marker).encodeToByteArray(),
         )
+    }
+
+    /**
+     * [marker] marked `durable` on disk (its commit is checkpointed), so the swap frees `photos.old/` at once; the
+     * marker unchanged if that write fails (then `photos.old/` waits for the clean up).
+     */
+    fun markDurable(paths: ImportPaths, marker: ImportMarker): ImportMarker = try {
+        marker.copy(durable = true).also { write(paths, it) }
+    } catch (e: IOException) {
+        Log.w("UmamiTImport", "marker not marked durable", e)
+        marker
     }
 
     /** Deletes the marker, durably: the last step of a finished or rolled back replace. */

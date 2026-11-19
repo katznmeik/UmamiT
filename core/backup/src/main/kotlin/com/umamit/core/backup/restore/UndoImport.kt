@@ -7,7 +7,6 @@ import com.umamit.core.backup.archive.ReadBackup
 import com.umamit.core.database.UmamiDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import javax.inject.Inject
@@ -28,17 +27,22 @@ class UndoImport @Inject constructor(
 
     /**
      * The dialog's counts, or null while there is nothing to undo (SCR-26 hides *Import rückgängig machen* then). An
-     * unfinished replace is finished first, so the copy and its time are the last import's.
+     * unfinished replace is finished first, so the copy and its time are the last import's. If an import's step after
+     * its commit still cannot finish, the undo is offered all the same, counted from the import (D-133 Q3), and
+     * [undo] refuses it with the replace-failed text while the step keeps failing.
      */
     suspend fun preview(): UndoPreview? = withContext(Dispatchers.IO) {
-        replacer.mutex.withLock {
-            // Until an unfinished replace is done, the copy and its date may still be the import before it.
-            val finished = replacer.finishPending()
-            if (finished) expiry.expireLocked()
-            validSince()?.takeIf { finished }?.let { at ->
+        replacer.lock.withLock {
+            val since = if (replacer.finishPending()) {
+                expiry.expireLocked()
+                validSince()
+            } else {
+                pendingImportAt()
+            }
+            since?.let { at ->
                 val counts = db.restoreDao()
                 UndoPreview(
-                    sessions = counts.sessionsStartedAfter(at),
+                    sessions = counts.sessionsCreatedAfter(at),
                     teas = counts.teasChangedAfter(at),
                     availableUntil = at + SAFETY_COPY_VALID_MS,
                 )
@@ -46,8 +50,26 @@ class UndoImport @Inject constructor(
         }
     }
 
+    /**
+     * The time of an import whose transaction committed (the database holds its token) but whose later steps still
+     * wait (its marker), while it can be undone (now < it + 7 × 24 h); else null (D-133 Q3). The caller holds the lock.
+     */
+    private fun pendingImportAt(): Long? {
+        val marker = MarkerFile.read(paths)?.takeIf { it.kind == ImportKind.IMPORT } ?: return null
+        val at = marker.importedAt?.takeIf { replacer.now < it + SAFETY_COPY_VALID_MS }
+        val committed = try {
+            at != null && CommitToken.read(db.openHelper.writableDatabase) == marker.token
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception, // SQLite: unknown, so no undo is offered
+        ) {
+            Log.w(TAG, "commit token unreadable", e)
+            false
+        }
+        return at.takeIf { committed }
+    }
+
     suspend fun undo(timer: TimerActivity): RestoreResult = withContext(Dispatchers.IO + NonCancellable) {
-        replacer.mutex.withLock { undoLocked(timer) }
+        replacer.lock.withLock { undoLocked(timer) }
     }
 
     private suspend fun undoLocked(timer: TimerActivity): RestoreResult {

@@ -7,6 +7,7 @@ import com.umamit.core.data.SeedPhotoProgress.Failed
 import com.umamit.core.data.SeedPhotoProgress.FailureCause
 import com.umamit.core.data.SeedPhotoProgress.Running
 import com.umamit.core.data.SeedPhotoProgress.Skipped
+import com.umamit.core.database.ImportLock
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.network.ShopClient
 import com.umamit.core.network.ShopFetch
@@ -49,6 +50,10 @@ import javax.inject.Singleton
  *   `photo` row with origin `CATALOG_COPY` (05 §3.9), and the tea's cover. Teas that are gone
  *   or already have a cover are left out, and so is an answer that is no complete JPEG.
  *
+ * - **Waits for an import:** the run holds [ImportLock], which the replacing import holds too, so an import waits
+ *   for a running download and a download waits for a running import (D-133 Q10): no photo file is written into a
+ *   `photos/` that the import's folder swap moves away.
+ *
  * A singleton, so the setup screen observes the same [progress] that the run updates.
  */
 @Singleton
@@ -58,6 +63,7 @@ class SeedPhotoDownloader @Inject constructor(
     private val teas: TeaRepository,
     private val settings: SettingsRepository,
     private val photoFiles: PhotoFiles,
+    private val importLock: ImportLock,
 ) {
     private val state = MutableStateFlow<SeedPhotoProgress>(SeedPhotoProgress.Idle)
 
@@ -126,7 +132,7 @@ class SeedPhotoDownloader @Inject constructor(
     /** [download] in a child that [skip] can cancel; a skip ends as [Skipped]. */
     private suspend fun runCancellable(): SeedPhotoProgress = try {
         coroutineScope {
-            val job = async { if (skipRequested) Skipped else download() }
+            val job = async { if (skipRequested) Skipped else importLock.withLock { download() } }
             work = job
             if (skipRequested) job.cancel()
             job.await()

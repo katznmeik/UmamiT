@@ -7,7 +7,6 @@ import com.umamit.core.backup.archive.CreateBackup
 import com.umamit.core.backup.archive.ReadBackup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.FileOutputStream
 import javax.inject.Inject
@@ -23,8 +22,8 @@ import kotlin.coroutines.cancellation.CancellationException
  *    `umamit-safety.new` with the export's writer and read back with the reader. If either fails it is deleted and the
  *    import refused; the previous copy and its `safetyCopyAt` stay.
  * 3.–5. [ImportReplacer.replace]: one Room transaction, the photo folder swap, one settings write, then the copy
- *    renamed over `umamit-safety.umamit` and `safetyCopyAt` = now. The install marker is never touched, so the device
- *    restore detection does not run.
+ *    renamed over `umamit-safety.umamit` and `safetyCopyAt` = the import's time. The install marker is never touched,
+ *    so the device restore detection does not run.
  *
  * It runs to its end once started (the screen has no back, 03 SCR-26); the caller closes [BackupContent] afterwards.
  */
@@ -38,7 +37,8 @@ class RestoreBackup @Inject constructor(
 
     suspend fun restore(content: BackupContent, timer: TimerActivity): RestoreResult =
         withContext(Dispatchers.IO + NonCancellable) {
-            replacer.mutex.withLock { restoreLocked(content, timer) }
+            // Waits for a running seed photo download (D-133 Q10): it holds the same lock.
+            replacer.lock.withLock { restoreLocked(content, timer) }
         }
 
     private suspend fun restoreLocked(content: BackupContent, timer: TimerActivity): RestoreResult {

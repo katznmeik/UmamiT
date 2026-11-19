@@ -12,21 +12,22 @@ import javax.inject.Inject
  * The start gate of the replace's crash safety (05 §8, the D-130 build note of #336). `UmamitApplication.onCreate`
  * calls [recoverAtStart] right after `super.onCreate()`, before the timer recovery, the seed retry and the reminder
  * start, so nothing reads the database, the photos or the settings before an interrupted import is complete one way or
- * the other: forward when the database holds the marker's commit token, else back.
+ * the other: forward when the database holds the marker's commit token, else back. `UmamitApplication` guards the call:
+ * a throw is logged and the start goes on, as for false (D-133 item 13).
  *
  * The token is read on a plain connection **before Room opens** `umamit.db`, so Room's restore detection can never
  * sweep imported photo rows whose files are still in `photos.new/`. It depends on the files, the settings and the clock
  * only (no Room, no catalog graph), and nothing else runs yet, so it takes no lock. The gate only renames and writes
- * the settings once; deleting `photos.old/` and the stagings is left to [SafetyCopyExpiry.atAppStart] in the
- * background. It blocks the main thread only while a marker exists, which only a crash or a failure after an import's
- * commit leaves.
+ * the settings once (and frees `photos.old/` of a commit marked durable); deleting the stagings is left to
+ * [SafetyCopyExpiry.atAppStart] in the background. It blocks the main thread only while a marker exists, which only a
+ * crash or a failure after an import's commit leaves.
  */
 class ImportRecovery @Inject constructor(
     private val paths: ImportPaths,
     settings: SettingsDataSource,
     clock: WallClock,
 ) {
-    private val engine = ImportEngine(paths, settings, clock) { ImportCheckpoints {} }
+    private val engine = ImportEngine(paths, settings, clock, PhotoRows.ofFile(paths.database)) { ImportCheckpoints {} }
 
     /** Finishes an interrupted replace, blocking; false when it could not (the next try or start does it). */
     fun recoverAtStart(): Boolean = runBlocking(Dispatchers.IO) {
