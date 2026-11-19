@@ -389,6 +389,85 @@ class ReceiveRecipeViewModelTest {
     }
 
     @Test
+    fun `a loaded tea you already own is preselected and gets the recipe, with no sheet and no purchase`() = runTest {
+        links.outcome = { TeaLinkOutcome.Opened("XY0100") }
+        inCatalog("XY0100")
+        collection.teas.saveTea(tea("own", "Ganz anders", catalogKey = "XY0100"))
+        val viewModel = viewModel()
+        viewModel.open(1L, bytes())
+        assertThat(viewModel.ready().offersShopLink).isTrue()
+        assertThat(links.loaded).isEmpty()
+
+        viewModel.loadShopLink()
+
+        assertThat(links.loaded).containsExactly(SHOP_URL)
+        val ready = viewModel.ready()
+        assertThat(ready.match?.id).isEqualTo("own")
+        assertThat(ready.matchKind).isEqualTo(MatchKind.CATALOG)
+        assertThat(ready.choice).isEqualTo(TeaChoice.Existing("own"))
+        assertThat(ready.offersNewTea).isFalse()
+        assertThat(ready.offersShopLink).isFalse()
+
+        viewModel.takeOver()
+
+        assertThat(viewModel.navigation.first()).isEqualTo(ReceiveRecipeEvent.TakenOver("own", "Kyusu"))
+        assertThat(viewModel.ready().packageSheet).isNull()
+        assertThat(fromCatalog.purchases).isEmpty()
+        assertThat(collection.stock.observeEvents("own").first()).isEmpty()
+        assertThat(collection.teas.observeTeas().first().map { it.tea.id }).containsExactly("own")
+        assertThat(collection.recipes.observeRecipes("own").first().map { it.name }).containsExactly("Kyusu")
+    }
+
+    @Test
+    fun `an archived owner of the loaded tea gets the recipe, also after Neuen Tee anlegen was chosen`() = runTest {
+        links.outcome = { TeaLinkOutcome.Opened("XY0100") }
+        inCatalog("XY0100")
+        collection.teas.saveTea(tea("old", "Ganz anders", catalogKey = "XY0100", archived = true))
+        val viewModel = viewModel()
+        viewModel.open(1L, bytes())
+        viewModel.choose(TeaChoice.NewTea)
+        assertThat(links.loaded).isEmpty()
+
+        viewModel.loadShopLink()
+
+        assertThat(links.loaded).containsExactly(SHOP_URL)
+        assertThat(viewModel.ready().offersNewTea).isFalse()
+        assertThat(viewModel.ready().choice).isEqualTo(TeaChoice.Existing("old"))
+        viewModel.takeOver()
+        assertThat(viewModel.navigation.first()).isEqualTo(ReceiveRecipeEvent.TakenOver("old", "Kyusu"))
+        assertThat(fromCatalog.purchases).isEmpty()
+        assertThat(collection.stock.observeEvents("old").first()).isEmpty()
+    }
+
+    @Test
+    fun `a loaded tea you own with 10 recipes is greyed out and leaves only Anderen Tee waehlen`() = runTest {
+        links.outcome = { TeaLinkOutcome.Opened("XY0100") }
+        inCatalog("XY0100")
+        collection.teas.saveTea(tea("full", "Ganz anders", catalogKey = "XY0100"))
+        repeat(10) { collection.recipes.saveRecipe(recipe("full", it)) }
+        val viewModel = viewModel()
+        viewModel.open(1L, bytes())
+        assertThat(links.loaded).isEmpty()
+
+        viewModel.loadShopLink()
+        viewModel.choose(TeaChoice.NewTea)
+        viewModel.takeOver()
+
+        assertThat(links.loaded).containsExactly(SHOP_URL)
+        val ready = viewModel.ready()
+        assertThat(ready.match?.id).isEqualTo("full")
+        assertThat(ready.match?.full).isTrue()
+        assertThat(ready.choice).isNull()
+        assertThat(ready.canTakeOver).isFalse()
+        assertThat(ready.offersNewTea).isFalse()
+        assertThat(ready.offersShopLink).isFalse()
+        assertThat(ready.packageSheet).isNull()
+        assertThat(fromCatalog.purchases).isEmpty()
+        assertThat(collection.teas.observeTeas().first()).hasSize(1)
+        assertThat(collection.recipes.observeRecipes("full").first()).hasSize(10)
+    }
+
+    @Test
     fun `the same token is read once, so a recreated screen keeps the choice`() = runTest {
         collection.teas.saveTea(tea("t1", "Sencha"))
         val viewModel = viewModel()
