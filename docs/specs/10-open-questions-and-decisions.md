@@ -489,7 +489,7 @@ built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
   *Tee über Shop-Link laden* only when no collection tea matched; the copy
   „Tee wählen", „archiviert", „Tee wird geladen …". Fixed with these: a file
   over 64 KB shows „Die Rezeptdatei ist beschädigt." (03 §5), and the new
-  tea and its recipe are saved in one transaction. Accepted as built: a key
+  tea and its recipe are saved in one transaction. Claude's defaults as built (not asked): a key
   without a match falls back to the name; a collection tea wins over an
   archived one; „ (2)", „ (3)" … for a taken recipe name; system back keeps
   the bytes until the next file.
