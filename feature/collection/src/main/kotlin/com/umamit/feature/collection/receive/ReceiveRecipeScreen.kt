@@ -32,6 +32,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -49,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.backup.recipe.RecipeShareText
 import com.umamit.core.backup.recipe.ResourceRecipeShareLabels
 import com.umamit.core.backup.recipe.SharedRecipe
+import com.umamit.core.data.catalog.CatalogPurchase
 import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.SectionHeader
@@ -57,6 +62,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.alertCovers
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.core.ui.rememberPhotoPainter
@@ -88,14 +94,18 @@ class ReceiveRecipeActions(
     val loadShopLink: () -> Unit = {},
     val takeOver: () -> Unit = {},
     val linkMessage: (TeaLinkOutcome) -> Int = { R.string.receive_recipe_failed },
+    val savePackage: (CatalogPurchase) -> Unit = {},
+    val dismissPackageSheet: () -> Unit = {},
+    val closePackageSheet: () -> Unit = {},
 )
 
 /**
  * SCR-32 „Rezept übernehmen" (03 SCR-32, PRF-08): a full-screen dialog like SCR-12 (✕ · title). A valid file shows its
  * summary, *Für welchen Tee?* as a radio group (the match, a tea picked with *Anderen Tee wählen …*, *Neuen Tee
  * anlegen*), *Tee über Shop-Link laden* when offered, and the sticky *Rezept übernehmen*; a refused file a centred
- * message with *Schließen*, nothing else. ✕ discards without asking: nothing was written. The tea sheet gives way to
- * an alert other than [alertKey] (rule 8).
+ * message with *Schließen*, nothing else. ✕ discards without asking: nothing was written. *Neuen Tee anlegen* „aus
+ * dem Katalog" shows the catalog's package sheet through [packageSheet] (from the app: features don't depend on each
+ * other). Both sheets give way to an alert other than [alertKey] (rule 8).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,6 +115,7 @@ fun ReceiveRecipeScreen(
     modifier: Modifier = Modifier,
     alertKey: String? = null,
     photo: @Composable (path: String?) -> Painter? = { rememberPhotoPainter(it) },
+    packageSheet: @Composable (PackageSheetRequest) -> Unit = {},
 ) {
     val sheet = rememberAlertGate(alertKey)
     val ready = state as? ReceiveRecipeUiState.Ready
@@ -164,6 +175,32 @@ fun ReceiveRecipeScreen(
                 onDismiss = sheet::close,
             )
         }
+        ready.packageSheet?.let { PackageSheetSlot(it, actions, alertKey, packageSheet) }
+    }
+}
+
+/** The package sheet while no alert plays that it was not opened in; such an alert removes it at once (rule 8). */
+@Composable
+private fun PackageSheetSlot(
+    sheet: PackageSheet,
+    actions: ReceiveRecipeActions,
+    alertKey: String?,
+    content: @Composable (PackageSheetRequest) -> Unit,
+) {
+    val openedIn = remember(sheet.catalogKey) { alertKey }
+    val covered = alertCovers(alertKey, openedIn)
+    val close by rememberUpdatedState(actions.closePackageSheet)
+    LaunchedEffect(covered) { if (covered) close() }
+    if (!covered) {
+        content(
+            PackageSheetRequest(
+                catalogKey = sheet.catalogKey,
+                saving = sheet.saving,
+                failed = sheet.failed,
+                onSave = actions.savePackage,
+                onDismiss = actions.dismissPackageSheet,
+            ),
+        )
     }
 }
 
@@ -227,11 +264,13 @@ private fun Ready(
                     actions.choose(TeaChoice.Existing(picked.id))
                 }
             }
-            NewTeaRow(
-                fromCatalog = state.catalogKey != null,
-                selected = state.choice == TeaChoice.NewTea,
-                onClick = { actions.choose(TeaChoice.NewTea) },
-            )
+            if (state.offersNewTea) {
+                NewTeaRow(
+                    fromCatalog = state.catalogKey != null,
+                    selected = state.choice == TeaChoice.NewTea,
+                    onClick = { actions.choose(TeaChoice.NewTea) },
+                )
+            }
         }
         TextButton(
             onClick = onOtherTea,

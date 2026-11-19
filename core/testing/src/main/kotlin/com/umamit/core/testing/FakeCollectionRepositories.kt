@@ -69,6 +69,26 @@ class FakeCollection {
         teaRows.update { it - id }
     }
 
+    /**
+     * Runs [block] as one transaction would: if it throws, every tea, recipe, photo and stock row is as before and
+     * the exception goes on. Without it the fakes cannot roll back.
+     */
+    internal suspend fun <R> rollingBack(block: suspend () -> R): R {
+        val teas = teaRows.value
+        val recipes = recipeRows.value
+        val photos = photoRows.value
+        val events = eventRows.value
+        return try {
+            block()
+        } catch (e: Throwable) {
+            teaRows.value = teas
+            recipeRows.value = recipes
+            photoRows.value = photos
+            eventRows.value = events
+            throw e
+        }
+    }
+
     /** „Rezept prüfen" of [teaId] goes (CAT-05, TEA-17); a tea that is gone is ignored. */
     internal fun clearRecipeCheck(teaId: String) = teaRows.update { map ->
         map[teaId]?.let { map + (teaId to it.copy(recipeCheckReason = null)) } ?: map

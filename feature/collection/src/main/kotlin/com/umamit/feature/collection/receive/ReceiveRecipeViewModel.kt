@@ -9,6 +9,7 @@ import com.umamit.core.backup.recipe.SharedRecipe
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.data.catalog.CatalogPurchase
 import com.umamit.core.data.catalog.CatalogRepository
 import com.umamit.core.data.catalog.TeaLinkLoader
 import com.umamit.core.data.catalog.TeaLinkOutcome
@@ -62,6 +63,13 @@ sealed interface TeaChoice {
     data object NewTea : TeaChoice
 }
 
+/**
+ * The add-from-catalog package sheet SCR-32 shows for *Neuen Tee anlegen* „aus dem Katalog" (03 SCR-32, PO
+ * 2026-11-18): the catalog tea [catalogKey]; [saving] while the tea, its package and the recipe are written, [failed]
+ * after a failed write.
+ */
+data class PackageSheet(val catalogKey: String, val saving: Boolean = false, val failed: Boolean = false)
+
 /** What SCR-32 „Rezept übernehmen" shows (03 SCR-32). */
 sealed interface ReceiveRecipeUiState {
     /** The file is read. */
@@ -78,8 +86,11 @@ sealed interface ReceiveRecipeUiState {
      * @property choice the tea *Rezept übernehmen* writes to; null until one is chosen.
      * @property teas every collection tea, archived ones included, for *Anderen Tee wählen …*.
      * @property catalogKey the local catalog tea *Neuen Tee anlegen* copies („aus dem Katalog"); null: „ohne Katalog".
+     * @property offersNewTea *Neuen Tee anlegen* shows: no collection tea (archived included) has the file's
+     *   `catalog_key` (that tea is preselected; PO, 2026-11-18).
      * @property offersShopLink *Tee über Shop-Link laden*: the file has a checked shop link whose tea is not in the
-     *   local catalog (D-130 Q4).
+     *   local catalog (D-130 Q4) and no collection tea matched (PO, 2026-11-18).
+     * @property packageSheet the package sheet of *Neuen Tee anlegen* „aus dem Katalog" while it is open.
      * @property linkLoading its one fetch runs.
      * @property linkFailure why the fetch led to no catalog tea (CAT-17's messages); null for none.
      * @property saving *Rezept übernehmen* runs.
@@ -93,11 +104,13 @@ sealed interface ReceiveRecipeUiState {
         val choice: TeaChoice? = null,
         val teas: List<TeaOption> = emptyList(),
         val catalogKey: String? = null,
+        val offersNewTea: Boolean = true,
         val offersShopLink: Boolean = false,
         val linkLoading: Boolean = false,
         val linkFailure: TeaLinkOutcome? = null,
         val saving: Boolean = false,
         val failure: TakeOverResult? = null,
+        val packageSheet: PackageSheet? = null,
     ) : ReceiveRecipeUiState {
         val canTakeOver: Boolean get() = choice != null && !saving
     }
@@ -113,7 +126,9 @@ sealed interface ReceiveRecipeEvent {
  * SCR-32 „Rezept übernehmen" (PRF-08 AC5–AC9, D-130 Q4, Q13): the received file through the one reader
  * ([RecipeFile.read]), the same tea preselected ([RecipeMatch]), *Anderen Tee wählen …*, *Neuen Tee anlegen* and, only
  * on its tap, *Tee über Shop-Link laden*'s one CAT-17 fetch ([TeaLinkLoader]). Opening a file writes nothing and
- * sends no request; *Rezept übernehmen* ([RecipeTakeOver]) is the only write.
+ * sends no request; *Rezept übernehmen* ([RecipeTakeOver]) is the only write. For *Neuen Tee anlegen* „aus dem
+ * Katalog" it first opens the package sheet ([PackageSheet]); its *Aufnehmen* ([savePackage]) writes the tea, its
+ * package and the recipe in one transaction, and closing it ([dismissPackageSheet]) writes nothing.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -192,10 +207,11 @@ class ReceiveRecipeViewModel internal constructor(
         }
     }
 
-    /** A tea's row, or *Neuen Tee anlegen*; a tea with 10 recipes can't be chosen. */
+    /** A tea's row, or *Neuen Tee anlegen* while it shows; a tea with 10 recipes can't be chosen. */
     fun choose(choice: TeaChoice) {
         val ready = state.value as? ReceiveRecipeUiState.Ready ?: return
         if (choice is TeaChoice.Existing && ready.teas.firstOrNull { it.id == choice.teaId }?.full != false) return
+        if (choice == TeaChoice.NewTea && !ready.offersNewTea) return
         form.update { it.copy(choice = choice, failure = null) }
     }
 
@@ -220,23 +236,60 @@ class ReceiveRecipeViewModel internal constructor(
         }
     }
 
-    /** *Rezept übernehmen*: the only write (PRF-08 AC7). */
+    /**
+     * *Rezept übernehmen*: the only write (PRF-08 AC7). For *Neuen Tee anlegen* „aus dem Katalog" it opens the
+     * package sheet instead; nothing is written until its *Aufnehmen* ([savePackage]).
+     */
     fun takeOver() {
-        val ready = (state.value as? ReceiveRecipeUiState.Ready)?.takeIf { !it.saving }
+        val ready = (state.value as? ReceiveRecipeUiState.Ready)?.takeIf { !it.saving && it.packageSheet == null }
         val choice = ready?.choice ?: return
+        val key = ready.catalogKey
+        when {
+            choice is TeaChoice.Existing -> write(ready, TakeOverTarget.Existing(choice.teaId))
+            key != null -> form.update { it.copy(sheetKey = key, sheetFailed = false, failure = null) }
+            else -> write(ready, TakeOverTarget.WithoutCatalog)
+        }
+    }
+
+    /**
+     * The package sheet's *Aufnehmen*: the catalog tea with [purchase] and the recipe, in one transaction. A failure
+     * keeps the sheet open with its message.
+     */
+    fun savePackage(purchase: CatalogPurchase) {
+        val ready = (state.value as? ReceiveRecipeUiState.Ready)?.takeIf { !it.saving }
+        val sheet = ready?.packageSheet ?: return
+        form.update { it.copy(sheetFailed = false) }
+        write(ready, TakeOverTarget.FromCatalog(purchase.copy(catalogKey = sheet.catalogKey)))
+    }
+
+    /** The package sheet closed without *Aufnehmen*: back to SCR-32, nothing written; ignored while it saves. */
+    fun dismissPackageSheet() {
+        if (form.value.saving) return
+        form.update { it.copy(sheetKey = null, sheetFailed = false) }
+    }
+
+    /**
+     * Removes the package sheet at once (an alert, rule 8). A save already running goes on: its tea opens, or its
+     * failure shows on SCR-32.
+     */
+    fun closePackageSheet() = form.update { it.copy(sheetKey = null, sheetFailed = false) }
+
+    private fun write(ready: ReceiveRecipeUiState.Ready, target: TakeOverTarget) {
         form.update { it.copy(saving = true, failure = null) }
         viewModelScope.launch {
-            val target = when (choice) {
-                is TeaChoice.Existing -> TakeOverTarget.Existing(choice.teaId)
-                TeaChoice.NewTea -> TakeOverTarget.NewTea(ready.catalogKey)
-            }
             when (val result = takeOver.takeOver(ready.recipe, target)) {
                 is TakeOverResult.TakenOver -> {
-                    form.update { it.copy(saving = false) }
+                    form.update { it.copy(saving = false, sheetKey = null) }
                     events.send(ReceiveRecipeEvent.TakenOver(result.teaId, result.recipeName))
                 }
 
-                else -> form.update { it.copy(saving = false, failure = result) }
+                else -> form.update {
+                    if (it.sheetKey != null) {
+                        it.copy(saving = false, sheetFailed = true)
+                    } else {
+                        it.copy(saving = false, failure = result)
+                    }
+                }
             }
         }
     }
@@ -244,12 +297,14 @@ class ReceiveRecipeViewModel internal constructor(
     private fun ready(recipe: SharedRecipe, teas: List<TeaOption>, key: String?, form: Form): ReceiveRecipeUiState {
         val match = RecipeMatch.find(recipe.tea, teas.map { it.asTea() })
         val matched = match?.let { m -> teas.firstOrNull { it.id == m.teaId } }
+        // A tea with the file's key gets the recipe: *Neuen Tee anlegen* is moot (PO, 2026-11-18).
+        val offersNewTea = recipe.tea.catalogKey?.let { fileKey -> teas.none { it.catalogKey == fileKey } } ?: true
         val picked = form.picked?.let { id -> teas.firstOrNull { it.id == id } }?.takeIf { it.id != matched?.id }
         // The match is preselected unless it is full; a choice made stays while its tea can take a recipe.
         val choice = when (val chosen = form.choice) {
             null -> matched?.takeIf { !it.full }?.let { TeaChoice.Existing(it.id) }
             is TeaChoice.Existing -> chosen.takeIf { teas.any { it.id == chosen.teaId && !it.full } }
-            TeaChoice.NewTea -> chosen
+            TeaChoice.NewTea -> chosen.takeIf { offersNewTea }
         }
         return ReceiveRecipeUiState.Ready(
             recipe = recipe,
@@ -259,11 +314,15 @@ class ReceiveRecipeViewModel internal constructor(
             choice = choice,
             teas = teas.sortedWith(compareBy({ it.isArchived }, { it.name.lowercase() })),
             catalogKey = key,
-            offersShopLink = recipe.tea.shopUrl != null && key == null,
+            offersNewTea = offersNewTea,
+            offersShopLink = recipe.tea.shopUrl != null && key == null && matched == null,
             linkLoading = form.linkLoading,
             linkFailure = form.linkFailure,
             saving = form.saving,
             failure = form.failure,
+            packageSheet = form.sheetKey?.takeIf { choice == TeaChoice.NewTea }?.let {
+                PackageSheet(catalogKey = it, saving = form.saving, failed = form.sheetFailed)
+            },
         )
     }
 
@@ -303,5 +362,7 @@ class ReceiveRecipeViewModel internal constructor(
         val linkFailure: TeaLinkOutcome? = null,
         val saving: Boolean = false,
         val failure: TakeOverResult? = null,
+        val sheetKey: String? = null,
+        val sheetFailed: Boolean = false,
     )
 }

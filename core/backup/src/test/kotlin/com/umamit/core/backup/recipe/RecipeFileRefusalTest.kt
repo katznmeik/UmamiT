@@ -74,15 +74,19 @@ class RecipeFileRefusalTest {
     }
 
     @Test
-    fun `a 65 KB file is refused unread`() {
+    fun `a 65 KB file is refused unread as damaged`() {
         val text = write()
         val padded = text + " ".repeat(65 * 1024 - text.toByteArray().size)
-        assertRefused(padded, RecipeRefusal.NOT_A_RECIPE_FILE)
+        // 03 §5: „broken or too large" reads „Die Rezeptdatei ist beschädigt.".
+        assertRefused(padded, RecipeRefusal.DAMAGED)
         // One byte over the limit, and only the size can refuse it.
         assertRefused(
             text + " ".repeat(RecipeFile.MAX_BYTES + 1 - text.toByteArray().size),
-            RecipeRefusal.NOT_A_RECIPE_FILE,
+            RecipeRefusal.DAMAGED,
         )
+        // At the limit the same file is read.
+        assertThat(RecipeFile.read((text + " ".repeat(RecipeFile.MAX_BYTES - text.toByteArray().size)).toByteArray()))
+            .isInstanceOf(RecipeFileResult.Valid::class.java)
     }
 
     @Test
@@ -91,7 +95,7 @@ class RecipeFileRefusalTest {
         val endless = object : InputStream() {
             override fun read(): Int = ' '.code.also { served++ }
         }
-        assertThat(RecipeFile.read(endless)).isEqualTo(RecipeFileResult.Refused(RecipeRefusal.NOT_A_RECIPE_FILE))
+        assertThat(RecipeFile.read(endless)).isEqualTo(RecipeFileResult.Refused(RecipeRefusal.DAMAGED))
         assertThat(served).isAtMost(RecipeFile.MAX_BYTES + 1)
         val small = RecipeFile.read(ByteArrayInputStream(write().toByteArray()))
         assertThat(small).isInstanceOf(RecipeFileResult.Valid::class.java)

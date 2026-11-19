@@ -78,14 +78,14 @@ interface AddFromCatalog {
     fun observeOwner(catalogKey: String): Flow<String?>
 
     /** Adds the tea of [purchase], or records the repurchase when it is owned; one transaction. */
-    suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult
+    suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult = add(purchase) {}
 
     /**
-     * *Neuen Tee anlegen* for a received recipe (PRF-08 AC6, 05 §8a): the catalog tea [catalogKey] added as [add]
-     * adds it, but without a package, so it has no stock event (no stock is invented, as without catalog). A key a
-     * collection tea already links to writes nothing and answers [AddFromCatalogResult.Repurchased] with that tea.
+     * [add], with [inTransaction] run on the added (or repurchased) tea's id in the same transaction, e.g. a
+     * received recipe (PRF-08, SCR-32's *Neuen Tee anlegen* „aus dem Katalog"). If it throws, nothing is written
+     * (no tea, package, cover or recipe; the Merkliste mark stays) and the add answers [AddFromCatalogResult.Failed].
      */
-    suspend fun addWithoutPackage(catalogKey: String): AddFromCatalogResult
+    suspend fun add(purchase: CatalogPurchase, inTransaction: suspend (teaId: String) -> Unit): AddFromCatalogResult
 }
 
 /** [AddFromCatalog] from `catalog.db` and its photos into `umamit.db` and `filesDir/photos/`. */
@@ -103,20 +103,18 @@ class RoomAddFromCatalog @Inject constructor(
     override fun observeOwner(catalogKey: String): Flow<String?> =
         db.teaDao().observeIdByCatalogKey(catalogKey).distinctUntilChanged()
 
-    override suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult = add(purchase.catalogKey, purchase)
-
-    override suspend fun addWithoutPackage(catalogKey: String): AddFromCatalogResult = add(catalogKey, null)
-
-    /** [purchase] null: no package, and an owned key is only named (PRF-08). */
-    private suspend fun add(catalogKey: String, purchase: CatalogPurchase?): AddFromCatalogResult = try {
-        val entry = catalog.tea(catalogKey)
+    override suspend fun add(
+        purchase: CatalogPurchase,
+        inTransaction: suspend (teaId: String) -> Unit,
+    ): AddFromCatalogResult = try {
+        val entry = catalog.tea(purchase.catalogKey)
         if (entry == null) {
             AddFromCatalogResult.NotInCatalog
         } else {
             // The photo is prepared outside the transaction; a repurchase never needs it.
             val owner = db.teaDao().idByCatalogKey(entry.key)
             val cover = if (owner == null) cover(entry) else null
-            withContext(NonCancellable + Dispatchers.IO) { write(entry, purchase, cover) }
+            withContext(NonCancellable + Dispatchers.IO) { write(entry, purchase, cover, inTransaction) }
         }
     } catch (_: SQLException) {
         AddFromCatalogResult.Failed
@@ -136,32 +134,30 @@ class RoomAddFromCatalog @Inject constructor(
 
     private suspend fun write(
         entry: CatalogTeaEntity,
-        purchase: CatalogPurchase?,
+        purchase: CatalogPurchase,
         cover: CoverFile?,
+        inTransaction: suspend (teaId: String) -> Unit,
     ): AddFromCatalogResult = photoFiles.withCoverFile(cover, kept = { it is AddFromCatalogResult.Added }) {
         db.withTransaction {
             // Read again inside the transaction: a tea added meanwhile turns this into a repurchase.
             val owner = db.teaDao().idByCatalogKey(entry.key)
-            // The tea leaves the Merkliste with the add, in its transaction: a failed add keeps the mark (CAT-18). A
-            // package-less add of an owned key writes nothing.
-            if (owner == null || purchase != null) db.catalogBookmarkDao().delete(entry.key)
-            when {
-                owner == null -> AddFromCatalogResult.Added(copy(entry, purchase, cover))
-                purchase == null -> AddFromCatalogResult.Repurchased(owner)
-                else -> repurchase(owner, purchase)
-            }
+            // The tea leaves the Merkliste with the add, in its transaction: a failed add keeps the mark (CAT-18).
+            db.catalogBookmarkDao().delete(entry.key)
+            val teaId = owner?.also { repurchase(it, purchase) } ?: copy(entry, purchase, cover)
+            // A throw here rolls the whole add back (PRF-08).
+            inTransaction(teaId)
+            if (owner == null) AddFromCatalogResult.Added(teaId) else AddFromCatalogResult.Repurchased(teaId)
         }
     }
 
-    private suspend fun repurchase(teaId: String, purchase: CatalogPurchase): AddFromCatalogResult {
+    private suspend fun repurchase(teaId: String, purchase: CatalogPurchase) {
         // A tea archived when it was used up, or removed from the collection, comes back (TEA-04, D-093 Q6).
         teas.getTea(teaId)?.takeIf { it.isArchived }?.let { teas.saveTea(it.copy(isArchived = false)) }
         stock.addEvent(event(teaId, InventoryEventType.PURCHASE, purchase))
-        return AddFromCatalogResult.Repurchased(teaId)
     }
 
     /** Writes the collection copy of [entry] and returns its id. */
-    private suspend fun copy(entry: CatalogTeaEntity, purchase: CatalogPurchase?, cover: CoverFile?): String {
+    private suspend fun copy(entry: CatalogTeaEntity, purchase: CatalogPurchase, cover: CoverFile?): String {
         val teaId = UUID.randomUUID().toString()
         val tea = entry.toTea(teaId)
         // Saving a recipe clears „Rezept prüfen" (TEA-17), so the tea's reason is written after its recipes.
@@ -170,7 +166,7 @@ class RoomAddFromCatalog @Inject constructor(
             recipes.saveRecipe(template.toRecipe(UUID.randomUUID().toString(), teaId, position))
         }
         if (tea.recipeCheckReason != null) teas.saveTea(tea)
-        purchase?.let { stock.addEvent(event(teaId, InventoryEventType.INITIAL, it)) }
+        stock.addEvent(event(teaId, InventoryEventType.INITIAL, purchase))
         if (cover != null) teas.saveCover(teaId, cover)
         return teaId
     }

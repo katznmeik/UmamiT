@@ -1,5 +1,6 @@
 package com.umamit.core.testing
 
+import android.database.SQLException
 import com.umamit.core.data.AddWithoutCatalog
 import com.umamit.core.data.AddWithoutCatalogResult
 import com.umamit.core.data.RoomAddWithoutCatalog
@@ -16,19 +17,33 @@ import com.umamit.core.model.Tea
 /**
  * [AddWithoutCatalog] on a [FakeCollection], as on Room: a new tea `manual-<n>` without photo, archive
  * flag or „Rezept prüfen", its style's recipes (the default first; *Westlich* 3 g / 250 ml / 85 °C / 3:00
- * without a known style) and an INITIAL event only with a package. Records every [added] call; [failNext]
- * makes the next add fail.
+ * without a known style) and an INITIAL event only with a package, then the block in the same „transaction" (a
+ * throw undoes the add; a [SQLException] answers Failed). Records every [added] call; [failNext] makes the next
+ * add fail.
  */
 class FakeAddWithoutCatalog(private val collection: FakeCollection) : AddWithoutCatalog {
     val added = mutableListOf<Pair<Tea, TeaPurchase?>>()
 
     var failNext = false
 
-    override suspend fun add(tea: Tea, purchase: TeaPurchase?): AddWithoutCatalogResult {
+    override suspend fun add(
+        tea: Tea,
+        purchase: TeaPurchase?,
+        inTransaction: suspend (teaId: String) -> Unit,
+    ): AddWithoutCatalogResult {
         if (failNext) {
             failNext = false
             return AddWithoutCatalogResult.Failed
         }
+        return try {
+            collection.rollingBack { write(tea, purchase).also { inTransaction(it) } }
+                .let(AddWithoutCatalogResult::Added)
+        } catch (_: SQLException) {
+            AddWithoutCatalogResult.Failed
+        }
+    }
+
+    private suspend fun write(tea: Tea, purchase: TeaPurchase?): String {
         added += tea to purchase
         val teaId = "manual-${added.size}"
         collection.teas.saveTea(tea.copy(id = teaId, isArchived = false, coverPhotoId = null, recipeCheckReason = null))
@@ -51,6 +66,6 @@ class FakeAddWithoutCatalog(private val collection: FakeCollection) : AddWithout
                 ),
             )
         }
-        return AddWithoutCatalogResult.Added(teaId)
+        return teaId
     }
 }
