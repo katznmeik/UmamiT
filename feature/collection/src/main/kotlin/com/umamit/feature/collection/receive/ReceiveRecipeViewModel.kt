@@ -132,6 +132,7 @@ sealed interface ReceiveRecipeEvent {
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
+@Suppress("TooManyFunctions") // SCR-32's actions, its package sheet's and the state they make
 class ReceiveRecipeViewModel internal constructor(
     teas: TeaRepository,
     private val recipes: RecipeRepository,
@@ -210,8 +211,11 @@ class ReceiveRecipeViewModel internal constructor(
     /** A tea's row, or *Neuen Tee anlegen* while it shows; a tea with 10 recipes can't be chosen. */
     fun choose(choice: TeaChoice) {
         val ready = state.value as? ReceiveRecipeUiState.Ready ?: return
-        if (choice is TeaChoice.Existing && ready.teas.firstOrNull { it.id == choice.teaId }?.full != false) return
-        if (choice == TeaChoice.NewTea && !ready.offersNewTea) return
+        val allowed = when (choice) {
+            is TeaChoice.Existing -> ready.teas.firstOrNull { it.id == choice.teaId }?.full == false
+            TeaChoice.NewTea -> ready.offersNewTea
+        }
+        if (!allowed) return
         form.update { it.copy(choice = choice, failure = null) }
     }
 

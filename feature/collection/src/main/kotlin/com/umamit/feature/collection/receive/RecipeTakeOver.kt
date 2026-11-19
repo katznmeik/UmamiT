@@ -26,7 +26,7 @@ sealed interface TakeOverTarget {
     /** A collection tea the user chose or the match preselected. */
     data class Existing(val teaId: String) : TakeOverTarget
 
-    /** *Neuen Tee anlegen* „aus dem Katalog": the local catalog tea with the package of the sheet (`AddFromCatalog`). */
+    /** *Neuen Tee anlegen* „aus dem Katalog": the catalog tea with the sheet's package (`AddFromCatalog`). */
     data class FromCatalog(val purchase: CatalogPurchase) : TakeOverTarget
 
     /** *Neuen Tee anlegen* „ohne Katalog": the file's name, Kategorie and Sorte, no package (`AddWithoutCatalog`). */

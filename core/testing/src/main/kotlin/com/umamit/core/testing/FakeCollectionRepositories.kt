@@ -80,7 +80,10 @@ class FakeCollection {
         val events = eventRows.value
         return try {
             block()
-        } catch (e: Throwable) {
+        } catch (
+            // A transaction rolls back on any throw, so the fake does too.
+            @Suppress("TooGenericExceptionCaught") e: Throwable,
+        ) {
             teaRows.value = teas
             recipeRows.value = recipes
             photoRows.value = photos

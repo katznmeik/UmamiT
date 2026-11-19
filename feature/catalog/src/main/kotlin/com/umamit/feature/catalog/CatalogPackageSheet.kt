@@ -115,11 +115,9 @@ class CatalogPackageSheetViewModel @Inject constructor(
     fun pickDate(day: LocalDate) = change { it.pickDate(day) }
 
     /** *Aufnehmen*: the purchase as entered, or null while the amount or the price is no valid number. */
-    fun purchase(): CatalogPurchase? {
-        val sheet = sheetState.value ?: return null
-        val state = sheet.state.copy(saving = false).takeIf { it.canSave } ?: return null
-        val grams = state.grams ?: return null
-        return CatalogPurchase(sheet.catalogKey, grams, state.priceCents, state.date)
+    fun purchase(): CatalogPurchase? = sheetState.value?.let { sheet ->
+        val state = sheet.state.copy(saving = false).takeIf { it.canSave }
+        state?.grams?.let { grams -> CatalogPurchase(sheet.catalogKey, grams, state.priceCents, state.date) }
     }
 
     private fun change(edit: (AddSheetState) -> AddSheetState) =
