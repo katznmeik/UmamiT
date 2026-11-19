@@ -2159,7 +2159,7 @@ v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-de
     an alert and stay closed after it (D-133 Q2). The checking cover shows
     only after 0,25 s, then for at least 0,4 s; after a successful import
     the cover stays until Start shows; the Start snackbar's *Rückgängig
-    machen* shows the cover „Wird rückgängig gemacht …" (D-133 Q5, Q6).
+    machen* shows SCR-26's cover „Import wird rückgängig gemacht …" (D-133 Q5, Q6).
   - ***Import rückgängig machen*** (text button, only while the safety copy
     is valid), with „Möglich bis 25. Nov. 2026, 08:30": the dialog „Import
     rückgängig machen?" · „Deine Daten von vor dem Import kommen zurück. Seit

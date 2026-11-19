@@ -340,7 +340,7 @@ personal data or shop content).
    The receiving step passes its read grant on to the app, which copies the
    file off the main thread. No freeze, no false „beschädigt" for a slow
    source; one more 09 §4 „v0.9.0" item on the phone.
-5. **Q5, the Start snackbar's *Rückgängig*: the busy cover** („Wird rückgängig
+5. **Q5, the Start snackbar's *Rückgängig*: the busy cover** („Import wird rückgängig
    gemacht …", as on SCR-26) until the result snackbar.
 6. **Q6, the busy cover: a delay and a minimum for the check.** Checking a file
    shows the cover only after 0,25 s, then for at least 0,4 s; import and
