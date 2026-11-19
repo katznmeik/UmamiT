@@ -466,6 +466,7 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 - [ ] **Reminder:** the switch is on and can be turned off (the reminder itself is tested on the JVM, not waited for).
 - [ ] **Rezept teilen:** a recipe's ⋮ *Rezept teilen* opens the share sheet; sent to yourself (a note, mail or a messenger chat with yourself), the text reads as in 03 SCR-12 and the file `<Tee>.umamit-rezept` is attached.
 - [ ] **Rezept übernehmen, three ways:** (a) tapping the received file, (b) sharing it to UmamiT, (c) Meine Tees ⋮ *Rezept importieren*. Record which of (a) and (b) your apps offer; (c) works. Each opens „Rezept übernehmen" with the tea preselected; *Rezept übernehmen* adds a new recipe (not the default), and the tea detail shows „Rezept „…" übernommen".
+- [ ] **A recipe file from a slow source (D-133 Q4):** opened or shared from a cloud drive (or another app that loads the file first), the app does not freeze and „Rezept übernehmen" opens with the recipe (not „beschädigt").
 - [ ] **Unknown tea:** for a file whose tea is not in the collection, *Neuen Tee anlegen* creates it from the catalog; for a catalog tea missing from the local catalog, *Tee über Shop-Link laden* fetches it only when tapped (in airplane mode it says so and nothing else happens).
 - [ ] **⋮ and the alarm (#330):** with the ⋮ menu of Journal, Sammlung or Statistik open, the alarm takes the screen at once and the menu is gone.
 - [ ] Font 2.0 and TalkBack spot checks of Daten & Sicherung, the import dialogs and „Rezept übernehmen", light and dark.

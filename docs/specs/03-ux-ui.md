@@ -2149,12 +2149,17 @@ v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-de
     „Sicherung vom 3. Nov. 2026 · 142 Sessions, 23 Tees, 61 Fotos. Sie
     ersetzt alle deine Daten auf diesem Gerät. Vorher wird eine
     Sicherheitskopie angelegt, die du 7 Tage lang zurückholen kannst." · a
-    field „Tippe ERSETZEN zur Bestätigung" · *Abbrechen* / *Ersetzen*
+    hint line „Tippe ERSETZEN zur Bestätigung" above a field without a
+    label (D-133 Q1) · *Abbrechen* / *Ersetzen*
     (enabled only by exactly „ERSETZEN", like SET-33's „LÖSCHEN"). Then a
     full-screen „Sicherung wird eingespielt …" (no back), then Start with
     the snackbar „Sicherung eingespielt · 142 Sessions, 23 Tees" ·
     *Rückgängig machen*. While a timer is active the button is greyed out
-    with „Während ein Timer läuft, nicht möglich".
+    with „Während ein Timer läuft, nicht möglich". These dialogs give way to
+    an alert and stay closed after it (D-133 Q2). The checking cover shows
+    only after 0,25 s, then for at least 0,4 s; after a successful import
+    the cover stays until Start shows; the Start snackbar's *Rückgängig
+    machen* shows the cover „Wird rückgängig gemacht …" (D-133 Q5, Q6).
   - ***Import rückgängig machen*** (text button, only while the safety copy
     is valid), with „Möglich bis 25. Nov. 2026, 08:30": the dialog „Import
     rückgängig machen?" · „Deine Daten von vor dem Import kommen zurück. Seit
@@ -2176,8 +2181,8 @@ v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-de
 - ***Alle Daten löschen*** (SET-33, destructive text button; D-131, #346):
   the dialog „Alle Daten löschen?" · „Alle Tees, Sessions, Rezepte, Gefäße,
   Fotos und Einstellungen werden von diesem Gerät gelöscht. Das kann nicht
-  rückgängig gemacht werden. Erstelle vorher eine Sicherung." · a field
-  „Tippe LÖSCHEN zur Bestätigung" · *Abbrechen* / *Löschen* (enabled only by
+  rückgängig gemacht werden. Erstelle vorher eine Sicherung." · a hint line
+  „Tippe LÖSCHEN zur Bestätigung" above a field without a label (D-133 Q1) · *Abbrechen* / *Löschen* (enabled only by
   exactly „LÖSCHEN"; no trimming, no case folding). While a safety copy
   exists (*Import rückgängig machen* is shown) the dialog adds the paragraph
   „Auch die Rücksicherung des letzten Imports wird gelöscht.". After

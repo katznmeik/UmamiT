@@ -672,7 +672,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `weeklyDigest` | Boolean | false | SET-19 |
 | `backupReminderEnabled` | Boolean | true | SET-20, BAK-06 (v0.9.0, [D-130](10-open-questions-and-decisions.md#d-130) Q11; replaces the planned `backupReminder` OFF/MONTHLY, never built) |
 | `backupReminderLastAt` | Long? (epoch ms) | null | BAK-06 (v0.9.0): the last check (a run, whether it posted or not) or the switch's last turn-on, which the 30 days count from (06 §5.4) |
-| `lastBackupAt` | Long? (epoch ms) | null | BAK-01, „Letzte Sicherung" (v0.9.0, D-130 Q12; was planned as `lastManualBackupAt`): set by a finished export only; „N neue Sessions" counts completed sessions with `started_at` after it |
+| `lastBackupAt` | Long? (epoch ms) | null | BAK-01, „Letzte Sicherung" (v0.9.0, D-130 Q12; was planned as `lastManualBackupAt`): set by a finished export only; „N neue Sessions" and the reminder's ≥ 20 count completed and manual sessions with `created_at` after it, whatever date they carry (D-133 Q9) |
 | `safetyCopyAt` | Long? (epoch ms) | null | BAK-02 (v0.9.0, D-130 Q5): when the safety copy was made; *Import rückgängig machen* shows while the copy exists and now < this + 7 × 24 h |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
 | `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 (v0.4.0, D-100): the *Sammlung* segment used last |
@@ -766,8 +766,9 @@ v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q
   one so far.
 - **Validation (BAK-02, before anything changes):** the reader copies the
   picked file to private staging, then checks, in order: ZIP limits (at
-  most 5 000 entries, 2 GB uncompressed in all, 20 MB per photo, 200 MB per
-  JSON entry, a compression ratio of at most 100 : 1 per entry; Claude's
+  most 5 000 entries, 2 GB uncompressed in all, 20 MB per photo, 1 MB for `manifest.json`
+  and `settings.json` and 64 MB for `data.json` (D-133; an out-of-memory
+  read counts as damaged), a compression ratio of at most 100 : 1 per entry; Claude's
   numbers, far above what 06 §5.2's photos (2048 px JPEG 85, catalog copies
   1200 px) and ten years of sessions produce); every
   entry name relative, without `..`, backslash or a drive, no duplicate
@@ -825,8 +826,11 @@ v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q
     does not run while a marker exists.
 - **Undo (*Import rückgängig machen*, D-130 Q6):** while the safety copy
   exists and now < `safetyCopyAt` + 7 × 24 h. Its dialog counts the
-  sessions (`COMPLETED`, `MANUAL`) with `started_at` after `safetyCopyAt`
-  and the teas with `created_at` or `updated_at` after it (D-130 item 21).
+  sessions (`COMPLETED`, `MANUAL`) with `created_at` after `safetyCopyAt`
+  and the teas with `created_at` or `updated_at` after it (D-130 item 21,
+  D-133 Q9). `safetyCopyAt` is the time of the import, also when the last
+  step finishes at a later start; while that step cannot finish, the undo is
+  offered and refused with the replace-failed text (D-133 Q3).
   It is the same replace (refused while a timer is active, steps 3–4 with
   the same crash safety) from the safety copy, which is then deleted and
   `safetyCopyAt` cleared. No new safety copy is made.

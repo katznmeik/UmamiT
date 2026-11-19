@@ -323,6 +323,59 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-133"></a>
+### D-133 — v0.9.0 rc fix round: the typed-word field, overlays after an alert, the late-failure undo, how a recipe file reaches the app, the busy cover, the session count, the seed photos during an import, motion on SCR-26 and SCR-32 (BAK-01, BAK-02, PRF-08, SET-20, SET-33; SCR-26, SCR-32; 03 §3.6; 05 §6, §8) · *Accepted (PO, 2026-11-19)*: the PO's answers Q1–Q12 below (rc session #343, asked as options after the T3/T4 milestone review and `/review-animations`)
+
+1. **Q1, the typed-word field (ERSETZEN, LÖSCHEN): the hint above the field.**
+   „Tippe … zur Bestätigung" is its own small text line above a field with no
+   label, at every font scale (it crowded the body at font 2.0).
+2. **Q2, an SCR-26 dialog during an alert: it stays closed.** The ERSETZEN,
+   LÖSCHEN and import-preview dialogs give way to an alert like every other
+   overlay (03 „Overlays give way") and do not come back after it.
+3. **Q3, the undo after a late failure:** the 7 × 24 h and the „N neue
+   Sessions" count start at the import (as answered 2026-11-18). If the
+   leftover step still cannot finish, *Rückgängig machen* is **offered and
+   refused** with the existing replace-failed text.
+4. **Q4, a recipe file from *Öffnen mit* / *Teilen*: handed to the main app.**
+   The receiving step passes its read grant on to the app, which copies the
+   file off the main thread. No freeze, no false „beschädigt" for a slow
+   source; one more 09 §4 „v0.9.0" item on the phone.
+5. **Q5, the Start snackbar's *Rückgängig*: the busy cover** („Wird rückgängig
+   gemacht …", as on SCR-26) until the result snackbar.
+6. **Q6, the busy cover: a delay and a minimum for the check.** Checking a file
+   shows the cover only after 0,25 s, then for at least 0,4 s; import and
+   undo show it at once. After a successful import the cover stays until
+   Start shows, so SCR-26 no longer flashes.
+7. **Q7, the *Alle Daten löschen* notice: about 1 s, as decided in D-131**,
+   now in the same window as the delete dialog (no scrim blink).
+8. **Q8, rows that appear on SCR-32: fade in and expand** (`fade` /
+   `exitFade`, height on the `sheet` spring, 03 §3.6), and the screen fades in
+   on arrival (A-12).
+9. **Q9, „N neue Sessions", the undo's count and the reminder's ≥ 20: by when
+   the session was saved** (`brew_session.created_at`), whatever date it
+   carries, so every session missing from the backup is counted (amends 05 §6
+   `lastBackupAt` and D-130 item 21).
+10. **Q10, a seed-photo download while an import runs: the import waits** for
+    the running download (no new text).
+11. **Q11, the export's progress bar: a soft ease of 0,3 s** per step
+    (`CalmEaseOut`).
+12. **Q12, the busy cover under „Animationen entfernen": the text is enough.**
+13. **Claude (plain fixes from the reviews, no design change):** both
+    SCR-32 sheets slide out on their own close (A-13); the export button ↔
+    progress and the undo row change without a layout jump; a failing
+    `lastBackupAt` write no longer crashes the app or deletes a finished
+    backup; a pending import marker no longer wipes a staged import;
+    `photos.old/` is freed once the commit is durable; photo files of rows
+    in the new database are kept by the swap; the reader's JSON caps are
+    1 MB (manifest, settings) and 64 MB (`data.json`), and an
+    `OutOfMemoryError` reads as damaged; the start gate and the non-timer
+    start-up launches are guarded (the timer's own recovery launch is
+    unchanged); the safety-copy expiry no longer builds the network graph;
+    the picker's recipe copy survives a rotation; one shell snackbar queue;
+    tests for SCR-26's adapter, the wipe adapter, the gate in `onCreate`, a
+    second import over a pending marker and the late-failure undo; #334's
+    fixture checked against the raw JSON with differing rows.
+
 <a id="d-130"></a>
 ### D-132 — A „What's new" for every release, on its GitHub Release page (09 §2; CLAUDE.md rule 6; `release.yml`) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q4 below (build session 2 of v0.9.0, asked as options)
 
@@ -8669,6 +8722,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-19 | D-133: the rc fix round of v0.9.0 — the PO's answers Q1–Q12 after the milestone review and `/review-animations` (typed-word hint above the field, SCR-26 dialogs stay closed after an alert, late-failure undo offered and refused, recipe file handed to the main app, busy cover timing, the session count by `created_at`, the import waits for the seed photos, motion on SCR-26/SCR-32). |
 | 2026-11-19 | D-131 build notes (#346): *Alle Daten löschen* wipes through `ActivityManager.clearApplicationUserData()`; the PO's answers 1–7 (the ~1 s notice, greyed out during export, import and undo, the safety-copy sentence, the failure snackbar, no device-backup hint, TalkBack); Claude's details as built. |
 | 2026-11-18 | D-132: a „What's new" (English, 3–8 bullets, New/Improved/Fixed) for every final and rc release, from `docs/whats-new/vX.Y.Z.md` at the top of the GitHub Release page. |
 | 2026-11-18 | D-131: *Alle Daten löschen* (SET-33) joins v0.9.0 as #346, like a fresh install, greyed out during a timer, a hint to back up first, onboarding again; the device-backup note's wording (build session 2). |
