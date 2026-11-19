@@ -31,7 +31,8 @@ class ReceiveRecipeHost(
 /**
  * What SCR-32 asks of the package sheet: the catalog tea [catalogKey]; [saving] while the tea, its package and the
  * recipe are written, [failed] after a failed write. [onSave] gets the purchase as entered (the sheet writes
- * nothing), [onDismiss] closes it without a write.
+ * nothing), [onDismiss] closes it without a write. [leaving] once the write is done: the sheet slides out, then
+ * [onLeft] removes it (A-13).
  */
 class PackageSheetRequest(
     val catalogKey: String,
@@ -39,4 +40,6 @@ class PackageSheetRequest(
     val failed: Boolean,
     val onSave: (CatalogPurchase) -> Unit,
     val onDismiss: () -> Unit,
+    val leaving: Boolean = false,
+    val onLeft: () -> Unit = {},
 )

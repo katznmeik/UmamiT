@@ -1,8 +1,14 @@
 package com.umamit.feature.collection.receive
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -63,9 +69,12 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.alertCovers
+import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.core.ui.rememberExpandedSheetState
+import com.umamit.core.ui.rememberLeavingSheet
 import com.umamit.core.ui.rememberPhotoPainter
+import com.umamit.core.ui.rememberSheetClose
 import com.umamit.core.ui.teaTypePlaceholderColor
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.editor.sorteNameRes
@@ -119,6 +128,8 @@ fun ReceiveRecipeScreen(
 ) {
     val sheet = rememberAlertGate(alertKey)
     val ready = state as? ReceiveRecipeUiState.Ready
+    // The file's data fades in when it comes after the route's own enter (A-12, D-133 Q8).
+    val arrived = state != ReceiveRecipeUiState.Loading
     Scaffold(
         modifier = modifier.testTag(ReceiveRecipeTags.SCREEN),
         topBar = {
@@ -139,7 +150,7 @@ fun ReceiveRecipeScreen(
         },
         bottomBar = {
             if (ready != null) {
-                Surface(color = MaterialTheme.colorScheme.background) {
+                Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fadeInOnArrival(arrived)) {
                     PillButton(
                         text = stringResource(R.string.receive_recipe_take_over),
                         onClick = actions.takeOver,
@@ -155,7 +166,7 @@ fun ReceiveRecipeScreen(
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding).fadeInOnArrival(arrived)) {
             when (state) {
                 ReceiveRecipeUiState.Loading -> Unit
                 is ReceiveRecipeUiState.Refused -> Refused(state, actions.close)
@@ -165,40 +176,51 @@ fun ReceiveRecipeScreen(
     }
     if (ready != null) {
         AlertGated(sheet) {
-            TeaSheet(
-                teas = ready.teas,
-                photo = photo,
-                onPick = { id ->
-                    sheet.close()
-                    actions.pick(id)
-                },
-                onDismiss = sheet::close,
-            )
+            // A picked tea shows behind the scrim while the sheet slides out (A-13).
+            TeaSheet(teas = ready.teas, photo = photo, onPick = actions.pick, onDismiss = sheet::close)
         }
-        ready.packageSheet?.let { PackageSheetSlot(it, actions, alertKey, packageSheet) }
     }
+    PackageSheetSlot(ready?.packageSheet, actions, alertKey, packageSheet)
 }
 
-/** The package sheet while no alert plays that it was not opened in; such an alert removes it at once (rule 8). */
+/** The alert a package sheet was opened in, kept until the sheet has left. */
+private class SheetOpening {
+    var open = false
+    var alertKey: String? = null
+}
+
+/**
+ * The package sheet while no alert plays that it was not opened in; such an alert removes it at once (rule 8). Closed
+ * by the view model (*Aufnehmen* written), it slides out with its last state, then is removed (A-13).
+ */
 @Composable
 private fun PackageSheetSlot(
-    sheet: PackageSheet,
+    sheet: PackageSheet?,
     actions: ReceiveRecipeActions,
     alertKey: String?,
     content: @Composable (PackageSheetRequest) -> Unit,
 ) {
-    val openedIn = remember(sheet.catalogKey) { alertKey }
-    val covered = alertCovers(alertKey, openedIn)
+    val opening = remember { SheetOpening() }
+    if (sheet != null && !opening.open) {
+        opening.open = true
+        opening.alertKey = alertKey
+    }
+    val covered = opening.open && alertCovers(alertKey, opening.alertKey)
     val close by rememberUpdatedState(actions.closePackageSheet)
     LaunchedEffect(covered) { if (covered) close() }
-    if (!covered) {
+    val leaving = rememberLeavingSheet(sheet, removeAtOnce = covered)
+    val shown = leaving.shown
+    if (shown == null) opening.open = false
+    if (shown != null && !covered) {
         content(
             PackageSheetRequest(
-                catalogKey = sheet.catalogKey,
-                saving = sheet.saving,
-                failed = sheet.failed,
+                catalogKey = shown.catalogKey,
+                saving = shown.saving,
+                failed = shown.failed,
                 onSave = actions.savePackage,
-                onDismiss = actions.dismissPackageSheet,
+                onDismiss = if (leaving.leaving) leaving.left else actions.dismissPackageSheet,
+                leaving = leaving.leaving,
+                onLeft = leaving.left,
             ),
         )
     }
@@ -259,7 +281,8 @@ private fun Ready(
                     actions.choose(TeaChoice.Existing(match.id))
                 }
             }
-            state.picked?.let { picked ->
+            // The tea picked with *Anderen Tee wählen …* fades in and expands (D-133 Q8).
+            Appearing(state.picked) { picked ->
                 TeaChoiceRow(picked, null, state.choice == TeaChoice.Existing(picked.id), photo) {
                     actions.choose(TeaChoice.Existing(picked.id))
                 }
@@ -279,8 +302,7 @@ private fun Ready(
             Text(stringResource(R.string.receive_recipe_other_tea))
         }
         if (state.offersShopLink) ShopLink(state, actions)
-        val failure = state.failure
-        if (failure != null) {
+        Appearing(state.failure) { failure ->
             Text(
                 text = stringResource(
                     if (failure == TakeOverResult.LimitReached) {
@@ -425,7 +447,7 @@ private fun ShopLink(state: ReceiveRecipeUiState.Ready, actions: ReceiveRecipeAc
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = UmamiSpacing.Small),
         )
-        state.linkFailure?.let { outcome ->
+        Appearing(state.linkFailure) { outcome ->
             Text(
                 text = stringResource(actions.linkMessage(outcome)),
                 style = MaterialTheme.typography.bodyMedium,
@@ -436,7 +458,33 @@ private fun ShopLink(state: ReceiveRecipeUiState.Ready, actions: ReceiveRecipeAc
     }
 }
 
-/** *Anderen Tee wählen …*: the collection, archived teas included; a tea with 10 recipes greyed out. */
+/**
+ * [value]'s rows while it is there: they fade in and expand, and fade out and shrink with the last value
+ * (`fade`/`exitFade`, height on `sheet`; 03 §3.6, D-133 Q8).
+ */
+@Composable
+private fun <T : Any> ColumnScope.Appearing(value: T?, content: @Composable (T) -> Unit) {
+    val motion = UmamiTheme.motion
+    // Not a state: the rows recompose with [value] anyway, and leaving draws what they showed last.
+    val last = remember { LastValue<T>() }
+    if (value != null) last.value = value
+    AnimatedVisibility(
+        visible = value != null,
+        enter = fadeIn(motion.fade()) + expandVertically(motion.sheet()),
+        exit = fadeOut(motion.exitFade()) + shrinkVertically(motion.sheet()),
+    ) {
+        last.value?.let { content(it) }
+    }
+}
+
+private class LastValue<T : Any> {
+    var value: T? = null
+}
+
+/**
+ * *Anderen Tee wählen …*: the collection, archived teas included; a tea with 10 recipes greyed out. A pick slides the
+ * sheet out before [onDismiss] removes it (A-13); a second tap meanwhile does nothing.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TeaSheet(
@@ -445,9 +493,11 @@ private fun TeaSheet(
     onPick: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val sheetState = rememberExpandedSheetState(UmamiTheme.reduceMotion)
+    val close = rememberSheetClose(sheetState, onDismiss)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberExpandedSheetState(UmamiTheme.reduceMotion),
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = Modifier.testTag(ReceiveRecipeTags.SHEET),
     ) {
@@ -475,7 +525,16 @@ private fun TeaSheet(
                     subtitle = tea.secondaryName,
                     thumbnail = photo(tea.photoPath),
                     placeholderColor = teaTypePlaceholderColor(tea.sorte),
-                    onClick = if (tea.full) null else ({ onPick(tea.id) }),
+                    onClick = if (tea.full) {
+                        null
+                    } else {
+                        {
+                            if (!close.leaving) {
+                                onPick(tea.id)
+                                close()
+                            }
+                        }
+                    },
                     modifier = Modifier
                         .testTag(ReceiveRecipeTags.sheetTea(tea.id))
                         .alpha(if (tea.full) DISABLED_ALPHA else 1f),
