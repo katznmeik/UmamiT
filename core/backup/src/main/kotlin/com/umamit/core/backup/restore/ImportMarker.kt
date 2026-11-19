@@ -10,6 +10,7 @@ import java.io.IOException
 import java.nio.channels.FileChannel
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 
@@ -132,13 +133,26 @@ internal object Durable {
                 file.copyTo(copy)
                 sync(copy)
             }
-            from.deleteRecursively()
+            try {
+                deleteTree(from)
+            } catch (_: IOException) {
+                // The copy is complete; what stays of [from] is a staging, which the clean up deletes later.
+            }
         }
         to.parentFile?.let(::syncDir)
     }
 
-    /** Deletes [dir] and everything in it; throws [IOException] if something stays. */
-    fun deleteTree(dir: File) {
-        if (dir.exists() && !dir.deleteRecursively()) throw IOException("Cannot delete $dir")
+    /**
+     * Deletes [file], and everything in it if it is a folder (a link is deleted, never followed); throws [IOException]
+     * if something stays. A file or folder that vanishes meanwhile counts as deleted: no existence check comes before
+     * the walk (unlike `deleteRecursively`, whose walk fails on a root that vanished after its check, #349).
+     */
+    fun deleteTree(file: File) {
+        val path = file.toPath()
+        if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+            // Null when the folder vanished since the check: nothing left to walk.
+            file.listFiles().orEmpty().forEach(::deleteTree)
+        }
+        Files.deleteIfExists(path)
     }
 }

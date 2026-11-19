@@ -3,6 +3,7 @@ package com.umamit.app
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.backup.restore.ImportRecovery
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -23,6 +24,8 @@ class ImportGateTest {
 
     @Test
     fun theGateRollsBackAnImportThatDidNotCommit() {
+        // The app's own start-up housekeeping finished first, so it never cleans the files laid out below (#349).
+        runBlocking { app.importHousekeeping?.join() }
         val photos = File(app.filesDir, "photos").apply { mkdirs() }
         val ownPhoto = File(photos, "own.jpg").apply { writeBytes(byteArrayOf(1, 2, 3)) }
         val staged = File(app.filesDir, "photos.new").apply { mkdirs() }

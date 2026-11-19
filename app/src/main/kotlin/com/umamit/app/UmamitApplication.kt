@@ -2,6 +2,7 @@ package com.umamit.app
 
 import android.app.Application
 import android.os.StrictMode
+import androidx.annotation.VisibleForTesting
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.umamit.app.AppStart.launchGuarded
@@ -22,6 +23,7 @@ import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -80,6 +82,11 @@ class UmamitApplication :
 
     private val recoveryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** The start's import housekeeping ([SafetyCopyExpiry.atAppStart]); tests wait for it before they lay out files. */
+    @VisibleForTesting
+    internal var importHousekeeping: Job? = null
+        private set
+
     override fun onCreate() {
         super.onCreate()
         // An import interrupted by a crash is finished (or undone) before anything below reads the database, the
@@ -103,7 +110,7 @@ class UmamitApplication :
         // The backup reminder (BAK-06): keeps a waiting job, follows SET-20 from now on.
         recoveryScope.launchGuarded("backup reminder") { backupReminders.get().follow() }
         // The safety copy's 7 × 24 h (05 §8 „Expiry") and what a crash left of an import; builds no network graph.
-        recoveryScope.launchGuarded("safety copy expiry") { safetyCopyExpiry.get().atAppStart() }
+        importHousekeeping = recoveryScope.launchGuarded("safety copy expiry") { safetyCopyExpiry.get().atAppStart() }
         // Shared recipe files older than a day (PRF-08, 06 §5.7): last, off the main thread, after the timer's
         // recovery.
         recoveryScope.launchGuarded("shared recipe files", Dispatchers.IO) {

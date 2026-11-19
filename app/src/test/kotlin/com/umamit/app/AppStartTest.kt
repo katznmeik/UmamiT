@@ -77,6 +77,8 @@ class AppStartTest {
 
     @Test
     fun onCreateRunsTheGateBeforeTheStartGoesOn() {
+        // The first start's housekeeping finished first, so it never cleans the files laid out below (#349).
+        runBlocking { app.importHousekeeping?.join() }
         // A crash before an import's commit: the marker (a token umamit.db does not hold) and its staged photos.
         val staged = File(app.filesDir, "photos.new").apply { mkdirs() }
         File(staged, "imported.jpg").writeBytes(byteArrayOf(4, 5, 6))

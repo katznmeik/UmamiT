@@ -132,7 +132,7 @@ class ImportHarness(val root: File) {
         scope.coroutineContext[Job]!!.cancelAndJoin()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         open()
-        if (gate) ImportRecovery(paths, settings, clock).recoverAtStart()
+        if (gate) ImportRecovery(lock, paths, settings, clock).recoverAtStart()
         expiry.atAppStart()
     }
 
