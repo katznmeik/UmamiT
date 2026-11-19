@@ -1,5 +1,6 @@
 package com.umamit.core.backup.archive
 
+import android.util.Log
 import com.umamit.core.common.WallClock
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.datastore.SettingsDataSource
@@ -87,8 +88,17 @@ class CreateBackup @Inject constructor(
             send(BackupExport.Failed(e))
             return@channelFlow
         }
-        // „N neue Sessions" counts from the snapshot's time, so a session started during the write still counts.
-        settings.markLastBackupAt(summary.manifest.createdAt)
+        // „N neue Sessions" counts from the snapshot's time, so a session started during the write still counts. The
+        // file is complete either way: a failing write here is logged and the export still done (D-133 item 13).
+        try {
+            settings.markLastBackupAt(summary.manifest.createdAt)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception, // DataStore: the date stays the previous one
+        ) {
+            Log.w(TAG, "lastBackupAt not saved; the backup is complete", e)
+        }
         send(BackupExport.Done(summary))
     }.buffer(Channel.RENDEZVOUS) // the write waits for the collector, so a cancel stops it at the next photo
 
@@ -121,6 +131,7 @@ class CreateBackup @Inject constructor(
     private companion object {
         const val MANIFEST_BASE_BYTES = 1_024L
         const val MANIFEST_BYTES_PER_ENTRY = 100L
+        const val TAG = "UmamiTBackup"
     }
 }
 

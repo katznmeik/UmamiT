@@ -98,7 +98,7 @@ class BackupConversionTest {
         val session = data.sessions.first { it.id == Ids.COMPLETED }
         assertThat(listOf(session.tasteUmami, session.tasteAroma)).containsExactly(null, null)
         val first = data.sessionSteps.first { it.id == "ss-1" }
-        assertThat(listOf(first.tasteUmami, first.tasteSweetness, first.tasteAroma)).containsExactly(5, 4, 4).inOrder()
+        assertThat(listOf(first.tasteUmami, first.tasteSweetness, first.tasteAroma)).containsExactly(5, 4, 0).inOrder()
         assertThat(first.tastingNote).isNull()
         assertThat(data.sessionSteps.first { it.id == "ss-2" }.tasteUmami).isNull()
     }

@@ -43,12 +43,12 @@ fun validRows() = BackupRows(
     vessels = listOf(readVessel()),
     sessions = listOf(
         session(Ids.COMPLETED, SessionStatus.COMPLETED, T0 + 10_000),
-        session(Ids.MANUAL, SessionStatus.MANUAL, T0 + 20_000).copy(brewingRating = null),
+        manualSession(),
     ),
     sessionSteps = listOf(
         sessionStep("ss-1", Ids.COMPLETED, 0),
-        sessionStep("ss-2", Ids.COMPLETED, 1),
-        sessionStep("ss-3", Ids.MANUAL, 0),
+        sessionStep("ss-2", Ids.COMPLETED, 1, variant = 1),
+        sessionStep("ss-3", Ids.MANUAL, 0, variant = 2),
     ),
     sessionDescriptors = listOf(SessionDescriptorEntity(Ids.COMPLETED, "marine.nori", T0)),
     inventoryEvents = listOf(

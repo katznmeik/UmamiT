@@ -138,7 +138,7 @@ fun session(id: String, status: SessionStatus, startedAt: Long) = BrewSessionEnt
     tasteBitterness = 1,
     tasteAstringency = 2,
     tasteBody = 3,
-    tasteAroma = 4,
+    tasteAroma = 0,
     notes = "Sitzungsnotiz",
     autoFinished = false,
     timesOffered = false,
@@ -148,7 +148,36 @@ fun session(id: String, status: SessionStatus, startedAt: Long) = BrewSessionEnt
     brewingRating = 3.5,
 )
 
-fun sessionStep(id: String, sessionId: String, position: Int) = SessionStepEntity(
+/**
+ * The MANUAL session: every value that repeats across sessions differs from the COMPLETED one's (ratings, amounts,
+ * temperature and the six tastes, each a value of its own), so a swapped column cannot round-trip unseen.
+ */
+fun manualSession() = session(Ids.MANUAL, SessionStatus.MANUAL, T0 + 20_000).copy(
+    brewingRating = null,
+    rating = 2.5,
+    leafGrams = 5.5,
+    waterMl = 150,
+    baseTempC = 70,
+    tasteUmami = 0,
+    tasteSweetness = 1,
+    tasteBitterness = 2,
+    tasteAstringency = 3,
+    tasteBody = 4,
+    tasteAroma = 5,
+)
+
+/**
+ * The ten step tastes of [variant] 0, 1 or 2 in the order umami, sweetness, bitterness, astringency, body, aroma,
+ * roast, acidity, freshness, spice: across the three, every pair of columns differs in at least one step (finding 3 of
+ * the T3 review), within 0–5.
+ */
+private val STEP_TASTES = listOf(
+    listOf(5, 4, 3, 2, 1, 0, 5, 4, 3, 2),
+    listOf(0, 1, 2, 3, 4, 5, 1, 2, 3, 4),
+    listOf(1, 2, 3, 4, 5, 0, 3, 4, 5, 0),
+)
+
+fun sessionStep(id: String, sessionId: String, position: Int, variant: Int = 0) = SessionStepEntity(
     id = id,
     sessionId = sessionId,
     position = position,
@@ -166,17 +195,17 @@ fun sessionStep(id: String, sessionId: String, position: Int) = SessionStepEntit
     createdAt = T0,
     updatedAt = T0,
     preAlertSeconds = null,
-    tasteUmami = 5,
-    tasteSweetness = 4,
-    tasteBitterness = 3,
-    tasteAstringency = 2,
-    tasteBody = 1,
-    tasteAroma = 0,
+    tasteUmami = STEP_TASTES[variant][0],
+    tasteSweetness = STEP_TASTES[variant][1],
+    tasteBitterness = STEP_TASTES[variant][2],
+    tasteAstringency = STEP_TASTES[variant][3],
+    tasteBody = STEP_TASTES[variant][4],
+    tasteAroma = STEP_TASTES[variant][5],
     tastingNote = "Nori",
-    tasteRoast = 1,
-    tasteAcidity = 2,
-    tasteFreshness = 3,
-    tasteSpice = 4,
+    tasteRoast = STEP_TASTES[variant][6],
+    tasteAcidity = STEP_TASTES[variant][7],
+    tasteFreshness = STEP_TASTES[variant][8],
+    tasteSpice = STEP_TASTES[variant][9],
 )
 
 private fun activeBrew(sessionId: String) = ActiveBrewEntity(
@@ -277,13 +306,13 @@ private suspend fun insertRecipe(db: UmamiDatabase) {
 private suspend fun insertSessions(db: UmamiDatabase) {
     val sessions = db.sessionDao()
     sessions.insert(session(Ids.COMPLETED, SessionStatus.COMPLETED, T0 + 10_000))
-    sessions.insert(session(Ids.MANUAL, SessionStatus.MANUAL, T0 + 20_000).copy(brewingRating = null))
+    sessions.insert(manualSession())
     sessions.insert(session(Ids.RUNNING, SessionStatus.IN_PROGRESS, T0 + 30_000))
     sessions.insertSteps(
         listOf(
             sessionStep("ss-1", Ids.COMPLETED, 0),
-            sessionStep("ss-2", Ids.COMPLETED, 1),
-            sessionStep("ss-3", Ids.MANUAL, 0),
+            sessionStep("ss-2", Ids.COMPLETED, 1, variant = 1),
+            sessionStep("ss-3", Ids.MANUAL, 0, variant = 2),
             sessionStep("ss-run", Ids.RUNNING, 0),
         ),
     )

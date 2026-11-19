@@ -15,13 +15,16 @@ import java.util.zip.ZipFile
 
 /**
  * The ZIP limits of 05 §8 „Validation" (Claude's numbers, far above what 06 §5.2's photos and ten years of sessions
- * produce). Sizes are uncompressed bytes as read, never only as declared.
+ * produce). Sizes are uncompressed bytes as read, never only as declared. The JSON entries are parsed into a tree, so
+ * their caps keep that tree within the heap (D-133 item 13): 64 MB for `data.json` (ten years of sessions are about
+ * 10 MB), 1 MB for `manifest.json` and `settings.json`.
  */
 internal data class BackupLimits(
     val maxEntries: Int = 5_000,
     val maxTotalBytes: Long = 2_000_000_000L,
     val maxPhotoBytes: Long = 20_000_000L,
-    val maxJsonBytes: Long = 200_000_000L,
+    val maxDataBytes: Long = 64_000_000L,
+    val maxSmallJsonBytes: Long = 1_000_000L,
     /** Uncompressed bytes per compressed byte of an entry, at most. */
     val maxRatio: Long = 100L,
     val maxPhotoSide: Int = PHOTO_SIDE,
@@ -159,8 +162,11 @@ internal class BackupFileReader(
         return entries
     }
 
-    private fun maxBytes(name: String): Long =
-        if (BackupPaths.photoId(name) != null) limits.maxPhotoBytes else limits.maxJsonBytes
+    private fun maxBytes(name: String): Long = when {
+        BackupPaths.photoId(name) != null -> limits.maxPhotoBytes
+        name == BackupFormat.DATA -> limits.maxDataBytes
+        else -> limits.maxSmallJsonBytes
+    }
 
     /** `manifest.json` as a JSON object with the backup's format id, or not a backup. */
     private fun manifestTree(zip: ZipFile, entries: Map<String, ZipEntry>): JsonObject {
@@ -183,7 +189,7 @@ internal class BackupFileReader(
     ): JsonObject {
         val temp = File(staging, "$name$TEMP_SUFFIX")
         try {
-            ensure(extract(zip, entries.getValue(name), temp, limits.maxJsonBytes) == manifest.checksums[name])
+            ensure(extract(zip, entries.getValue(name), temp, maxBytes(name)) == manifest.checksums[name])
             return BackupJson.parse(temp) as? JsonObject ?: refuse(BackupRefusal.DAMAGED)
         } finally {
             temp.delete()
@@ -193,7 +199,7 @@ internal class BackupFileReader(
     private fun parseManifest(zip: ZipFile, entry: ZipEntry): JsonElement {
         val temp = File(staging, "${BackupFormat.MANIFEST}$TEMP_SUFFIX")
         try {
-            extract(zip, entry, temp, limits.maxJsonBytes)
+            extract(zip, entry, temp, limits.maxSmallJsonBytes)
             return BackupJson.parse(temp)
         } finally {
             temp.delete()

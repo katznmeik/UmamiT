@@ -1,6 +1,8 @@
 package com.umamit.core.backup.archive
 
 import android.content.Context
+import android.database.Cursor
+import androidx.datastore.core.DataStore
 import androidx.room.Room
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
@@ -31,9 +33,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.longOrNull
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -126,6 +135,36 @@ class CreateBackupTest {
             while (cursor.moveToNext()) names += camelCase(cursor.getString(name))
         }
         return names
+    }
+
+    /** Every row of [table] as SQLite holds it: camelCase column → its value as text (NULL as null). */
+    private fun rawRows(table: String): List<Map<String, String?>> {
+        val rows = mutableListOf<Map<String, String?>>()
+        db.openHelper.readableDatabase.query("SELECT * FROM $table").use { cursor ->
+            while (cursor.moveToNext()) {
+                rows += (0 until cursor.columnCount).associate { i ->
+                    camelCase(cursor.getColumnName(i)) to when (cursor.getType(i)) {
+                        Cursor.FIELD_TYPE_NULL -> null
+                        Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(i).toString()
+                        Cursor.FIELD_TYPE_FLOAT -> cursor.getDouble(i).toString()
+                        else -> cursor.getString(i)
+                    }
+                }
+            }
+        }
+        return rows
+    }
+
+    /** A data.json row in [rawRows]' form, read off the raw JSON (booleans as SQLite's 1 and 0), not the mappers. */
+    private fun rawJson(row: JsonObject): Map<String, String?> = row.mapValues { (_, value) ->
+        val primitive = value.jsonPrimitive
+        when {
+            primitive is JsonNull -> null
+            primitive.isString -> primitive.content
+            primitive.booleanOrNull != null -> if (primitive.boolean) "1" else "0"
+            primitive.longOrNull != null -> primitive.long.toString()
+            else -> primitive.double.toString()
+        }
     }
 
     /** What exporting the fixture gives: the states, the entries and the file's size. */
@@ -228,6 +267,15 @@ class CreateBackupTest {
             rows.forEach { row -> assertWithMessage(array).that(row.jsonObject.keys).isEqualTo(columns(table)) }
         }
 
+        // Every value of data.json is the database's, column by column, read without the module's mappers (#334):
+        // the fixture's rows differ in every pair of repeated columns, so a swapped column shows here.
+        tables.forEach { (array, table) ->
+            val exported = rawRows(table).filter { it["id"] != Ids.RUNNING && it["sessionId"] != Ids.RUNNING }
+                .filter { it["id"] != Ids.PHOTO_RUNNING }
+            val written = data.getValue(array).jsonArray.map { rawJson(it.jsonObject) }
+            assertWithMessage(array).that(written).containsExactlyElementsIn(exported)
+        }
+
         // The rows read back equal the database's: ten taste columns, both ratings, the MANUAL session, photos.
         val decoded = BackupFormat.json.decodeFromString(
             BackupData.serializer(),
@@ -236,7 +284,7 @@ class CreateBackupTest {
         assertThat(decoded.toRows()).isEqualTo(db.backupDao().snapshot())
         assertThat(decoded.sessions.map { it.status }).containsExactly(SessionStatus.COMPLETED, SessionStatus.MANUAL)
         assertThat(decoded.sessions.first { it.id == Ids.COMPLETED }.brewingRating).isEqualTo(3.5)
-        assertThat(decoded.sessionSteps.first().tasteSpice).isEqualTo(4)
+        assertThat(decoded.sessionSteps.first().tasteSpice).isEqualTo(2)
         assertThat(decoded.photos.map { it.origin }.toSet()).hasSize(2)
     }
 
@@ -391,6 +439,30 @@ class CreateBackupTest {
 
         assertThat((states.last() as BackupExport.Failed).cause).isInstanceOf(IOException::class.java)
         assertThat(settings.stored().lastBackupAt).isNull()
+    }
+
+    @Test
+    fun `a failing lastBackupAt write is logged and the finished export still done`() = runBlocking {
+        insertFixture(db, photosDir)
+        val store = settingsDataStore(storeScope) { File(folder.root, "failing.json") }
+        val failingWrites = object : DataStore<StoredSettings> by store {
+            override suspend fun updateData(transform: suspend (t: StoredSettings) -> StoredSettings) =
+                throw IOException("Einstellungen nicht schreibbar")
+        }
+        val failing = CreateBackup(
+            db,
+            SettingsDataSource(failingWrites),
+            BackupPhotoDirectory(photosDir),
+            AppVersion("0.9.0", 9_00_99),
+            clock,
+        )
+        val out = ByteArrayOutputStream()
+
+        val states = failing.export(out).toList()
+
+        assertThat(states.last()).isInstanceOf(BackupExport.Done::class.java)
+        assertThat(manifestOf(entries(out.toByteArray())).counts.sessions).isEqualTo(2)
+        assertThat(SettingsDataSource(store).stored().lastBackupAt).isNull()
     }
 
     @Test
