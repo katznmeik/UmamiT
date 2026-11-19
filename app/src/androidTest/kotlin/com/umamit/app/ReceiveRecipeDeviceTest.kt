@@ -1,5 +1,6 @@
 package com.umamit.app
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -72,9 +73,13 @@ class ReceiveRecipeDeviceTest {
         steps = listOf(RecipeStep(StepKind.INFUSION, 120)),
     )
 
+    private val sender = "${instrumentation.context.packageName}.sent-recipes"
+
+    /** The app's own files a test wrote; deleted after it. */
+    private val ownFiles = mutableListOf<File>()
+
     /** [bytes] as another app sends them: a URI of its own provider, with read access granted to the app. */
     private fun sent(bytes: ByteArray, name: String = "Erfundener Bancha"): Uri {
-        val sender = "${instrumentation.context.packageName}.sent-recipes"
         val extras = Bundle().apply { putByteArray(SenderRecipeProvider.EXTRA_BYTES, bytes) }
         val result = context.contentResolver.call(
             sender,
@@ -87,7 +92,7 @@ class ReceiveRecipeDeviceTest {
 
     /** [bytes] behind the app's own FileProvider (`cache/shared/`), as *Rezept teilen* shares them. */
     private fun ownShared(bytes: ByteArray, name: String = "Erfundener Bancha"): Uri {
-        val file = SharedRecipeFiles.write(context.cacheDir, name, bytes)
+        val file = SharedRecipeFiles.write(context.cacheDir, name, bytes).also(ownFiles::add)
         return FileProvider.getUriForFile(context, "${context.packageName}.files", file)
     }
 
@@ -128,29 +133,48 @@ class ReceiveRecipeDeviceTest {
         }
     }
 
-    private fun mainActivities(vararg stages: Stage): List<MainActivity> {
-        var found = emptyList<MainActivity>()
+    private fun mainActivities(vararg stages: Stage): List<MainActivity> =
+        activities(*stages).filterIsInstance<MainActivity>()
+
+    /** The activities of the receive path (MainActivity and ReceiveRecipeActivity) in [stages]. */
+    private fun receivingActivities(vararg stages: Stage): List<Activity> =
+        activities(*stages).filter { it is MainActivity || it is ReceiveRecipeActivity }
+
+    private fun activities(vararg stages: Stage): List<Activity> {
+        var found = emptyList<Activity>()
         instrumentation.runOnMainSync {
             val monitor = ActivityLifecycleMonitorRegistry.getInstance()
-            found = stages.flatMap { monitor.getActivitiesInStage(it) }.filterIsInstance<MainActivity>()
+            found = stages.flatMap { monitor.getActivitiesInStage(it) }
         }
         return found
     }
 
     /**
-     * Each test starts without a MainActivity (all of them destroyed), so no screen of an earlier test can answer its
-     * waits: both refusals read the same message.
+     * Each test starts without a MainActivity or ReceiveRecipeActivity (all of them destroyed), so no screen of an
+     * earlier test can answer its waits: both refusals read the same message.
      */
     @Before
+    fun setUp() = finishReceivingActivities()
+
+    /**
+     * Leaves nothing for the later test classes: the receive path's activities (and so their tasks) gone, the
+     * sender's grants revoked and its files deleted, the app's own test files deleted.
+     */
     @After
-    fun finishMainActivities() {
-        mainActivities(*Stage.entries.toTypedArray()).forEach { activity ->
+    fun tearDown() {
+        finishReceivingActivities()
+        context.contentResolver.call(sender, SenderRecipeProvider.METHOD_FORGET, null, null)
+        ownFiles.forEach { check(!it.exists() || it.delete()) { "not deleted: ${it.name}" } }
+    }
+
+    private fun finishReceivingActivities() {
+        receivingActivities(*Stage.entries.toTypedArray()).forEach { activity ->
             instrumentation.runOnMainSync { activity.finish() }
         }
         val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
         val alive = Stage.entries.filter { it != Stage.DESTROYED }.toTypedArray()
-        while (mainActivities(*alive).isNotEmpty()) {
-            check(SystemClock.uptimeMillis() < deadline) { "an earlier MainActivity did not go" }
+        while (receivingActivities(*alive).isNotEmpty()) {
+            check(SystemClock.uptimeMillis() < deadline) { "an earlier receiving activity did not go" }
             SystemClock.sleep(POLL_MS)
         }
     }
@@ -190,7 +214,7 @@ class ReceiveRecipeDeviceTest {
     fun aFileUriIsRefused() {
         val file = File(context.cacheDir, "direkt.umamit-rezept").apply {
             writeBytes(RecipeFile.write(recipe, OffsetDateTime.now()))
-        }
+        }.also(ownFiles::add)
         val before = teaCount()
 
         receive(ReceiveRecipeActivity.view(context, Uri.fromFile(file)))

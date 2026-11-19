@@ -106,6 +106,7 @@ class TransitionJankTest {
         }
         runBlocking { seedData() }
         endTimer()
+        dismissForeignAnr()
     }
 
     @After
@@ -131,6 +132,7 @@ class TransitionJankTest {
             scenario?.close()
             scenario = null
             Thread.sleep(PAUSE_MS)
+            dismissForeignAnr()
             record("cold start → Start", COLD_SETTLE_MS) {
                 scenario = ActivityScenario.launch(MainActivity::class.java)
             }
@@ -406,11 +408,21 @@ class TransitionJankTest {
 
     /** The activity on Start; launched only when no activity is open (the reference may have launched it). */
     private fun launchOnStart() {
-        if (scenario == null) scenario = ActivityScenario.launch(MainActivity::class.java)
+        if (scenario == null) {
+            dismissForeignAnr()
+            scenario = ActivityScenario.launch(MainActivity::class.java)
+        }
         awaitStart()
         readBudget()
         Thread.sleep(SETTLE_MS)
     }
+
+    /**
+     * Another app's „isn't responding" dialog answered with „Wait" before a launch, so it does not cover the app's
+     * screen ([ForeignAnrDialog]); an ANR of UmamiT fails the test.
+     */
+    private fun dismissForeignAnr() =
+        ForeignAnrDialog.dismiss(device, ::shell, setOf(context.packageName, instrumentation.context.packageName))
 
     private fun awaitStart() {
         await(text(context.getString(HomeR.string.home_quick_timer)), "Start")
