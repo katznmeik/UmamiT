@@ -5,15 +5,16 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-19 (v0.9.0 build session 2: steps 4–5 done on PR #345). **Next:** v0.9.0 build session 3 (#346 *Alle Daten löschen*), then the rc session (#343).
+**Last updated:** 2026-11-19 (v0.9.0 build session 3: #346 done on PR #345). **Next:** the v0.9.0 rc session (#343).
 
-## Next: v0.9.0 build session 3 (#346), then the rc session (#343)
+## Next: the v0.9.0 rc session (#343)
 
 - **Approved and building:** spec #333, tickets #334–#344, #330 and (2026-11-18, D-131) **#346**, all `ready-for-agent`. Draft milestone PR [#345](https://github.com/katznmeik/UmamiT/pull/345).
-- **Done** (verified by the orchestrator, CI on the PR): build session 1: #334, #340, #335, #336, #337, #330. Build session 2: #341 Rezept teilen, #338 SCR-26, #339 backup reminder, #342 Rezept übernehmen (+ two follow-ups from the PO's answers). Details in `docs/history.md` „v0.9.0: build session 2".
-- **Build session 3 (Opus `medium` orchestrator):** #346 (T3, D-131): SET-33 on SCR-26 like a fresh install. Its implementer proposes the wipe's mechanism as a D-131 build note **before the code** (e.g. `ActivityManager.clearApplicationUserData()`: what it does to the notification permission and the exact-alarm grant). SCR-26 is `feature/settings/.../backup/` (`DataBackup`, `UseCaseDataBackup`, the timer-active state already there). Then hand over to the rc session.
-- **rc session (#343):** the T3 milestone review with the **import path at T4** (D-130 Q15: #335, #336, and #342's `ReceiveRecipeActivity`); `/review-animations` (T2); fix the findings; renders in `docs/design/review/v0.9.0/` (SCR-26 states incl. #346's dialog, the import dialogs, SCR-12 ⋮, SCR-32 incl. the package sheet); finish `docs/whats-new/v0.9.0.md` (D-132); the full local gate (`gate.sh`) on the rc commit; dispatch `v0.9.0-rc.1` (90001).
+- **Done** (verified by the orchestrator, CI on the PR): build session 1: #334, #340, #335, #336, #337, #330. Build session 2: #341 Rezept teilen, #338 SCR-26, #339 backup reminder, #342 Rezept übernehmen (+ two follow-ups from the PO's answers). Build session 3: #346 *Alle Daten löschen* (`clearApplicationUserData()`; the PO's answers in D-131's build notes). Details in `docs/history.md` „v0.9.0: build session 2" and „build session 3".
+- **rc session (#343):** the T3 milestone review with the **import path at T4** (D-130 Q15: #335, #336, and #342's `ReceiveRecipeActivity`); `/review-animations` (T2); fix the findings; renders in `docs/design/review/v0.9.0/` (SCR-26 states incl. #346's row, dialog and notice, the import dialogs, SCR-12 ⋮, SCR-32 incl. the package sheet); finish `docs/whats-new/v0.9.0.md` (D-132); the full local gate (`gate.sh`) on the rc commit; dispatch `v0.9.0-rc.1` (90001).
 - **Carried to #343 (fix or review):**
+  - #346 at font 2.0: the typed field's two-line label crowds the body's last line in the delete dialog, as in the ERSETZEN dialog (design review).
+  - #346's wipe is proven on the JVM only as „empty storage → first start"; the real wipe and which grants survive on One UI 9 are the new 09 §4 „v0.9.0" checklist item.
   - #336's late-failure undo (D-130 build note, PO 2026-11-18: undo right away, counted from the import).
   - The start gate in `UmamitApplication.onCreate` (a file check before timer recovery, on the path an alarm-started process takes) and **the start-up launches have no error guard**: a throw while building a `Lazy` graph escapes `recoveryScope` (seen as `UncaughtExceptionsBeforeTest`; the `NetworkModule` cause is fixed, the gap is not; a scope handler would also change timer-recovery failures — a design point for the PO).
   - `ReceiveRecipeActivity` waits on its main thread up to 2 s for the copy (the URI grant ends with the `NoDisplay` activity); the alternative is passing the read grant on to `MainActivity` and reading there (D-130 build note #342).
@@ -22,7 +23,7 @@
 - **Key rules for the build:** no timer code (an empty `git diff aed2b877 -- feature/brew core/timer core/timer-engine` after every ticket, else stop and ask), so no T4 timer review and no accuracy runs; no migration (umamit.db v9); no new permission (`checkManifestPermissions` unchanged).
 - **v0.8.0 is done:** PR #328 merged into `main` (`60e07bbe`), [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) released (80099).
 - **1.0 (M5) is postponed** (D-128 Q3).
-- **Branch:** `claude/inspiring-ritchie-8hfw00`, from `main` `60e07bbe`, PR #345. The specify session, build sessions 1 and 2 (assigned `claude/lucid-hopper-qc2hw0`, `claude/wizardly-fermi-djdpxn`, `claude/tender-archimedes-ax6bw9`) did not use their assigned branches. `main` has moved on by #348 (`release.yml`, D-132); no conflict with the branch. A new session with another assigned branch works here directly.
+- **Branch:** `claude/inspiring-ritchie-8hfw00`, from `main` `60e07bbe`, PR #345. The specify session and build sessions 1–3 (assigned `claude/lucid-hopper-qc2hw0`, `claude/wizardly-fermi-djdpxn`, `claude/tender-archimedes-ax6bw9`, `claude/youthful-bardeen-0yai1v`) did not use their assigned branches. `main` has moved on by #348 (`release.yml`, D-132); no conflict with the branch. A new session with another assigned branch works here directly.
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
   - **Worktrees:** never remove an agent worktree while a Gradle build runs: `spotlessCheck` scans `.claude/worktrees/` and fails on a vanished path (2026-11-17). Brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
@@ -52,7 +53,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.9.0** (export/import, CSV, reminder, shared recipes, *Alle Daten löschen*; D-128, D-130, D-131) specified 2026-11-18, spec #333, tickets and plan **approved by the PO 2026-11-18**; build sessions 1–2 done (steps 1–5), build session 3 (#346) next, then the rc session; **v0.8.0** released 2026-11-18; M5 / 1.0 postponed until the PO's go |
+| Current milestone | **v0.9.0** (export/import, CSV, reminder, shared recipes, *Alle Daten löschen*; D-128, D-130, D-131) specified 2026-11-18, spec #333, tickets and plan **approved by the PO 2026-11-18**; build sessions 1–3 done (steps 1–5b), the rc session next; **v0.8.0** released 2026-11-18; M5 / 1.0 postponed until the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00`, restarted from `main` `60e07bbe` after the v0.8.0 merge; v0.9.0 spec docs and steps 1–3 on top (PR #345) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -74,7 +75,7 @@
 
 ## Waiting on the PO
 
-1. **v0.9.0:** nothing until rc.1 (spec, tickets, plan, items 17–27 and #346 approved 2026-11-18).
+1. **v0.9.0:** nothing until rc.1 (spec, tickets, plan, items 17–27 and #346 approved 2026-11-18; #346's open points answered 2026-11-19).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.

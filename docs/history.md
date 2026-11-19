@@ -11,6 +11,13 @@
 
 ## Releases and plans
 
+### v0.9.0: build session 3, #346 Alle Daten löschen (2026-11-19)
+
+- **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/youthful-bardeen-0yai1v`, not used). PR #345 stays draft.
+- **#346 (T3, SET-33, SCR-26, D-131):** the implementer first proposed the wipe's mechanism (no code): `ActivityManager.clearApplicationUserData()`, its effects sourced from AOSP (the notification grant is revoked, so onboarding asks again; channels, `USE_EXACT_ALARM` and the full-screen app-op stay; the device backup is not restored until a reinstall). The PO answered seven points as options (the system call with grants kept; a ~1 s notice „Daten werden gelöscht. UmamiT schließt sich, …"; greyed out also during an export or import/undo; the safety-copy sentence; a failure snackbar; no device-backup hint; TalkBack „LÖSCHEN eintippen"), then accepted the export's disabled text. Recorded as D-131 build notes; 02 SET-33, 03 SCR-26 and a 09 §4 „v0.9.0" checklist item updated. Built by a second T3 implementer (the first was lost in a container restart after its proposal): the `AppDataWipe` seam, the row, the dialog and the notice, 11 ViewModel tests, 24 new goldens (32 SCR-26 font-1.0 goldens re-recorded for the new row), `EmptyStorageFirstStartTest` in `:app` (it proves only „empty storage → first start"; the wipe itself is checked on the Galaxy).
+- **Verified:** the orchestrator's diff review; the `:feature:settings` tests and screenshots, the `:app` test, `spotlessCheck detekt :feature:settings:lint :app:assembleDebug :app:assembleDebugAndroidTest :app:compileDebugUnitTestKotlin checkManifestPermissions` (unchanged); the timer diff against `aed2b877` empty; CI run 44547281859 green on `0053c733` (the „Checks" job after one rerun: `JournalPerformanceTest`'s wall-clock budget, the known flake).
+- **For the rc review:** at font 2.0 the typed field's two-line label crowds the body's last line in the delete dialog, as in the existing ERSETZEN dialog.
+
 ### v0.9.0: build session 2, steps 4–5 (2026-11-18/19)
 
 - **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/tender-archimedes-ax6bw9`, not used). PR #345 stays draft.
