@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-18 (D-130 v0.9.0 specified, Q1–Q16; 2026-11-17: D-129 the rc.1 check: the picker's hand-over to the setup, the launch kept, the design review approved; D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
+> Status: **Living document** · Last updated: 2026-11-19 (D-131 build notes for #346: the wipe's mechanism, the PO's answers 1–7, as built; 2026-11-18: D-130 v0.9.0 specified, Q1–Q16; 2026-11-17: D-129 the rc.1 check: the picker's hand-over to the setup, the launch kept, the design review approved; D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -366,6 +366,29 @@ built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
 7. **Claude (approved by the PO, 2026-11-18):** the dialog's copy in 03
    SCR-26; the wipe's mechanism is proposed by #346's implementer as a build
    note before the code.
+
+**Build notes.**
+
+- **#346, the wipe's mechanism (build session 3; proposed before the code)** · *Accepted (PO, 2026-11-19)* as #346 answer 1 below: `ActivityManager.clearApplicationUserData()` on the own package, no permission and no manifest change. It wipes credential- and device-encrypted and external app storage: `umamit.db` and `catalog.db` (with WAL), `files/photos/`, the catalog and guide photos, `datastore/settings.json` (device-bound keys included), `noBackupFilesDir` (`import/`, the safety copy, the install marker), the diagnostics log, `cache/shared/`, Coil's caches and WorkManager's database. The system then cancels the app's jobs (WorkManager), alarms, posted notifications, URI grants and recents, and kills the process. `true` means only „requested"; `false` or a `SecurityException` is a failure. Sources (AOSP aosp-mirror `main`, ≈ Android 15): `ActivityManagerService.clearApplicationUserData`, `PackageManagerService.clearApplicationUserDataLIF`, `PermissionManagerServiceImpl.resetRuntimePermissionsInternal`, `NotificationManagerService.clearData` (`fromApp = true` skips `PreferencesHelper.clearData`). Effects:
+
+  | Grant or state | After the wipe |
+  |---|---|
+  | `POST_NOTIFICATIONS` | revoked, user flags cleared (documented): ONB-02 item 1 asks again |
+  | Notification channels | keep their settings on a self-clear (AOSP) |
+  | `USE_EXACT_ALARM` | stays (install-time) |
+  | `USE_FULL_SCREEN_INTENT` app-op, promoted notifications, battery exemption | not reset per AOSP; One UI 9 only checkable on the Galaxy (09 §4 „v0.9.0") |
+  | Device backup | no auto-restore until a reinstall; the next nightly backup replaces it |
+
+  Rejected: an in-app wipe and restart (it misses stores added later, and would have to close Room and DataStore under the timer singleton, which is timer code).
+- **#346, the PO's answers (build session 3, asked as options)** · *Accepted (PO, 2026-11-19)*:
+  1. **Mechanism:** the system call above; the grants and channels that survive it are accepted, with no hint to the system settings.
+  2. **After *Löschen*:** the dialog shows „Daten werden gelöscht. UmamiT schließt sich, öffne die App danach neu." for about 1 s, then the wipe.
+  3. **Greyed out also while an export, an import or its undo runs** (besides a timer); a running catalog refresh is simply ended by the wipe.
+  4. **The dialog adds „Auch die Rücksicherung des letzten Imports wird gelöscht."** only while a safety copy exists.
+  5. **A failed wipe:** the dialog closes and the snackbar „Löschen nicht möglich. Es wurde nichts gelöscht." shows.
+  6. **No device-backup hint** in the dialog.
+  7. **TalkBack for the field:** „LÖSCHEN eintippen".
+- **#346, as built (Claude's, as built):** the screen calls an `AppDataWipe` seam in `feature:settings` (`wipe()` → `Wiped`, `TimerActive` or `Failed`); its real implementation re-checks, at the moment of the wipe, the timer controller's slot states and `active_brew` in every slot (read only, like the import), then calls the system. The ~1 s notice is a dialog without buttons that back does not close; the view model waits 1 s, re-checks timer, export and busy state, and calls the wipe once. `TimerActive` from the seam closes the dialog with the snackbar „Während ein Timer läuft, nicht möglich" (SCR-26's existing text). „Exactly LÖSCHEN" means no trimming and no case folding („löschen" and „LÖSCHEN " leave *Löschen* disabled). „A safety copy exists" is read as *Import rückgängig machen* being shown (the copy's counts, read again when the dialog opens); the sentence is its own paragraph after the body. While an import, its check or its undo runs, the screen's full-screen cover already blocks the row (no new text); while an export runs the row is greyed out with „Während die Sicherung erstellt wird, nicht möglich" (new copy, open for the PO). *Journal als CSV* has no running state on the screen, so the row is not greyed out during it (it takes well under a second). The proof on the JVM is only „empty storage → first start" (`WipedStorageFirstStartTest` in `:app`: onboarding shown, the seed teas and vessels created, the seed photo download not yet attempted); the wipe itself is checked on the Galaxy.
 
 ### D-130 — v0.9.0 specified: recipe file and how it arrives, newer files refused, the shop page only on a tap, the safety copy and its undo, all photos in the backup, the export's size note, the journal CSV, the reminder switch, „Letzte Sicherung", matching a received tea, tiers, #330 (GEN-01, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08, SET-20; SCR-08, SCR-12, SCR-26, SCR-32; 05 §8, §8a; 06 §2.2, §5.4, §5.7; 09 §2, §4 „v0.9.0"; amends D-128 Q9 and D-036's rule 7 wording) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q16 below. The spec #333, its tickets (#334–#344, #330), `docs/plans/v0.9.0.md` and the details marked „Claude" (items 17–27) **approved by the PO as written on 2026-11-18** (build session 1, asked as options); items 17–27 stay Claude's defaults inside the approved spec, not the PO's answers to Q1–Q16
 
@@ -8646,6 +8669,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-19 | D-131 build notes (#346): *Alle Daten löschen* wipes through `ActivityManager.clearApplicationUserData()`; the PO's answers 1–7 (the ~1 s notice, greyed out during export, import and undo, the safety-copy sentence, the failure snackbar, no device-backup hint, TalkBack); Claude's details as built. |
 | 2026-11-18 | D-132: a „What's new" (English, 3–8 bullets, New/Improved/Fixed) for every final and rc release, from `docs/whats-new/vX.Y.Z.md` at the top of the GitHub Release page. |
 | 2026-11-18 | D-131: *Alle Daten löschen* (SET-33) joins v0.9.0 as #346, like a fresh install, greyed out during a timer, a hint to back up first, onboarding again; the device-backup note's wording (build session 2). |
 | 2026-11-18 | D-130: v0.9.0 specified with the PO (Q1–Q16, four rounds). A recipe file (`.umamit-rezept`, readable JSON `umamit-recipe` v1) arrives by „Öffnen mit", by sharing it to UmamiT or by *Rezept importieren* in Meine Tees' ⋮; newer file versions are refused; the shop page of a received tea is fetched only on a tap (amends D-128 Q9, GEN-01 (d), rule 7's wording); a private safety copy for 7 × 24 h with an undo that counts what is lost; all photos in the backup; a size note and a progress bar on export; the journal CSV for German Excel with infusions and taste; the reminder switch on; „Letzte Sicherung" by export only; a received tea matched by catalog key, else name; tiers T4 import, T3 the rest of the backup and recipe code and #330, T2 screen and reminder; #330 without a timer review. Spec #333, tickets #334–#344, `docs/plans/v0.9.0.md`, waiting for the PO. |
