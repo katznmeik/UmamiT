@@ -7,12 +7,15 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.data.SeedPhotoProgress.Failed
 import com.umamit.core.data.SeedPhotoProgress.FailureCause
+import com.umamit.core.database.ImportLock
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeSettingsRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -93,17 +96,44 @@ class SeedPhotoDownloaderTest {
     /** When the client wrote each request onto its socket (System.nanoTime), in order. */
     private val sent = CopyOnWriteArrayList<Long>()
 
-    private fun downloader(settings: FakeSettingsRepository = this.settings) = SeedPhotoDownloader(
-        client = ShopClient.forTesting(baseUrl = server.url("/"), socketFactory = SendTimes(sent)),
-        db = data.db,
-        teas = data.teas,
-        settings = settings,
-        photoFiles = PhotoFiles(photosDir),
-    )
+    private fun downloader(settings: FakeSettingsRepository = this.settings, importLock: ImportLock = ImportLock()) =
+        SeedPhotoDownloader(
+            client = ShopClient.forTesting(baseUrl = server.url("/"), socketFactory = SendTimes(sent)),
+            db = data.db,
+            teas = data.teas,
+            settings = settings,
+            photoFiles = PhotoFiles(photosDir),
+            importLock = importLock,
+        )
 
     private suspend fun cover(teaId: String) = data.teas.observeTea(teaId).first()?.coverPhoto
 
     private fun requestedPaths() = requests.map { it.first.url.encodedPath }
+
+    @Test
+    fun aRunningImportHoldsTheDownloadBackUntilItEnds() = runBlocking {
+        // D-133 Q10: the import and the download share one lock, so no photo lands in a photos/ being swapped.
+        seedTeas()
+        val lock = ImportLock()
+        val held = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val importing = launch(Dispatchers.IO) {
+            lock.withLock {
+                held.complete(Unit)
+                release.await()
+            }
+        }
+        held.await()
+
+        val running = async(Dispatchers.IO) { downloader(importLock = lock).downloadIfNeeded() }
+        delay(WAIT_MS)
+
+        assertThat(requests).isEmpty()
+        assertThat(photosDir.list().orEmpty()).isEmpty()
+        release.complete(Unit)
+        assertThat(running.await()).isEqualTo(SeedPhotoProgress.Done(stored = 2))
+        importing.join()
+    }
 
     @Test
     fun happyPathStoresBothPhotosAsJpegCoversOfTheirTeas() = runTest {
@@ -231,6 +261,7 @@ class SeedPhotoDownloaderTest {
             teas = data.teas,
             settings = settings,
             photoFiles = PhotoFiles(notADirectory),
+            importLock = ImportLock(),
         )
 
         val result = downloader.downloadIfNeeded()
@@ -551,6 +582,7 @@ class SeedPhotoDownloaderTest {
 
     private companion object {
         const val ROBOTS = "/robots.txt"
+        const val WAIT_MS = 300L
 
         /** The limiter's interval less the few ms between its clock read and the socket write. */
         const val MIN_GAP_MS = 480L

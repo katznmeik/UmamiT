@@ -7,29 +7,25 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.umamit.feature.collection.R as CollectionR
 
 /**
  * *Meine Tees*' ⋮ *Rezept importieren* (PRF-08 way (c), D-130 Q14): the system file picker (`ACTION_OPEN_DOCUMENT`,
  * any type; the reader decides), its file copied off the main thread as [ReceiveRecipeActivity.copy] copies it (at
  * most 64 KB + 1 byte, a `content://` URI only) into [files], which shows SCR-32. No permission: the picker grants
- * the one URI. Nothing is written.
+ * the one URI. Nothing is written. The copy runs in [files]' own scope (MainActivity's view model), not the
+ * composition's, so a rotation while it runs does not drop the file (D-133 item 13).
  */
 @Composable
 internal fun rememberRecipeImport(files: ReceivedRecipeFiles): () -> Unit {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             val resolver = context.applicationContext.contentResolver
-            scope.launch { files.receive(withContext(Dispatchers.IO) { ReceiveRecipeActivity.copy(resolver, uri) }) }
+            files.receiveCopy { ReceiveRecipeActivity.copy(resolver, uri) }
         }
     }
     return {

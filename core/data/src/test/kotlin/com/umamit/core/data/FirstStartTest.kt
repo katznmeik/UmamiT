@@ -1,6 +1,7 @@
 package com.umamit.core.data
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.database.ImportLock
 import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.CoroutineScope
@@ -87,6 +88,7 @@ class FirstStartTest {
             teas = data.teas,
             settings = settings,
             photoFiles = PhotoFiles(File(folder.root, "photos")),
+            importLock = ImportLock(),
         )
         return FirstStart(seeder, { photos }, settings, scope)
     }

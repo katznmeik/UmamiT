@@ -224,7 +224,7 @@ class ReadBackupTest {
         damaged("more than 5 000 entries", tooMany)
         val bigPhoto = photos + ("photo-big" to ByteArray(20_000_001))
         damaged("a photo over 20 MB", backupEntries(bigPhoto))
-        val small = ReadBackup(BackupLimits(maxTotalBytes = 50_000, maxJsonBytes = 20_000)) {}
+        val small = ReadBackup(BackupLimits(maxTotalBytes = 50_000, maxDataBytes = 20_000)) {}
         val before = appState()
         val total = runBlocking {
             small.read(ByteArrayInputStream(valid(backupEntries(photos + ("photo-pad" to ByteArray(45_000))))), staging)
@@ -237,6 +237,48 @@ class ReadBackupTest {
             small.read(ByteArrayInputStream(zip(backupEntries(photos, data = padded))), staging)
         }
         assertThat(tooLargeJson).isEqualTo(BackupReadResult.Refused(BackupRefusal.DAMAGED))
+        assertThat(staging.exists()).isFalse()
+        assertThat(appState()).isEqualTo(before)
+    }
+
+    /** A backup whose [entry] (a JSON entry) has [pad] spaces after its JSON, the manifest's checksum to match. */
+    private fun padded(entry: String, pad: Int): ByteArray {
+        val entries = backupEntries(photos).map {
+            if (it.name == entry) TestEntry(it.name, it.bytes + " ".repeat(pad).encodeToByteArray()) else it
+        }
+        val others = entries.filter { it.name != BackupFormat.MANIFEST }
+        val manifest = BackupFormat.json.parseToJsonElement(entries.last().bytes.decodeToString()) as JsonObject
+        val sums = JsonObject(others.associate { it.name to JsonPrimitive(sha256(it.bytes)) })
+        return zip(others + TestEntry(BackupFormat.MANIFEST, manifest.with("checksums", sums).toBytes()))
+    }
+
+    @Test
+    fun `the JSON caps are 64 MB for data json and 1 MB for the manifest and settings json`() {
+        assertThat(BackupLimits().maxDataBytes).isEqualTo(64_000_000L)
+        assertThat(BackupLimits().maxSmallJsonBytes).isEqualTo(1_000_000L)
+        val small = ReadBackup(BackupLimits(maxSmallJsonBytes = 4_000)) {}
+        fun readWith(reader: ReadBackup, bytes: ByteArray) =
+            runBlocking { reader.read(ByteArrayInputStream(bytes), staging) }.also {
+                (it as? BackupReadResult.Valid)?.content?.close()
+            }
+
+        // settings.json over its cap is damaged; the same bytes under the default caps read.
+        val bigSettings = padded(BackupFormat.SETTINGS, 5_000)
+        assertThat(readWith(small, bigSettings)).isEqualTo(BackupReadResult.Refused(BackupRefusal.DAMAGED))
+        assertThat(readWith(reader, bigSettings)).isInstanceOf(BackupReadResult.Valid::class.java)
+        // data.json has its own, larger cap.
+        assertThat(readWith(small, padded(BackupFormat.DATA, 5_000))).isInstanceOf(BackupReadResult.Valid::class.java)
+        assertThat(staging.exists()).isFalse()
+    }
+
+    @Test
+    fun `running out of memory while reading is damage, never a crash`() {
+        val before = appState()
+        val starving = ReadBackup(BackupLimits()) { throw OutOfMemoryError("synthetic") }
+
+        val result = runBlocking { starving.read(ByteArrayInputStream(valid()), staging) }
+
+        assertThat(result).isEqualTo(BackupReadResult.Refused(BackupRefusal.DAMAGED))
         assertThat(staging.exists()).isFalse()
         assertThat(appState()).isEqualTo(before)
     }

@@ -147,6 +147,9 @@ class ReadBackup internal constructor(private val limits: BackupLimits, private 
                 BackupReadResult.Valid(block())
             } catch (refused: BackupRefusedException) {
                 BackupReadResult.Refused(refused.refusal)
+            } catch (_: OutOfMemoryError) {
+                // A file whose JSON tree does not fit the heap, within the caps: damaged, never a crash (D-133).
+                BackupReadResult.Refused(BackupRefusal.DAMAGED)
             }
         } finally {
             if (result !is BackupReadResult.Valid) staging.deleteRecursively()

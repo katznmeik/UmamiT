@@ -218,8 +218,8 @@ class RestoreBackupTest {
         assertThat((result as RestoreResult.Done).finishedAtNextStart).isTrue()
         assertThat(h.paths.marker.exists()).isTrue()
         assertThat(h.world().rows).isEqualTo(h.newWorld().rows)
-        // Until it is finished the copy is not yet this import's: no undo is offered meanwhile.
-        assertThat(runBlocking { h.undo.preview() }).isNull()
+        // The undo is offered at once, counted from the import (D-133 Q3; refused while the step fails).
+        assertThat(runBlocking { h.undo.preview() }?.availableUntil).isEqualTo(h.clock.wall + SAFETY_COPY_VALID_MS)
 
         h.restart()
 

@@ -26,6 +26,7 @@ import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.database.INSTALL_MARKER_FILE
+import com.umamit.core.database.ImportLock
 import com.umamit.core.database.PHOTOS_DIR
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.database.dao.BackupRows
@@ -97,6 +98,8 @@ class ImportHarness(val root: File) {
         private set
     lateinit var settings: SettingsDataSource
         private set
+    lateinit var lock: ImportLock
+        private set
     lateinit var replacer: ImportReplacer
         private set
     lateinit var expiry: SafetyCopyExpiry
@@ -115,8 +118,9 @@ class ImportHarness(val root: File) {
     private fun open() {
         db = umamiDatabaseBuilder(context, dbFile.path, installMarker, photosDir).build()
         settings = SettingsDataSource(settingsDataStore(scope) { settingsFile })
-        replacer = ImportReplacer(db, settings, paths, refresh, clock)
-        expiry = SafetyCopyExpiry(replacer, settings)
+        lock = ImportLock()
+        replacer = ImportReplacer(db, settings, paths, refresh, clock, lock)
+        expiry = SafetyCopyExpiry(lock, paths, settings, clock)
         val create = CreateBackup(db, settings, BackupPhotoDirectory(photosDir), AppVersion("0.9.0", 90_099), clock)
         restore = RestoreBackup(replacer, create, ReadBackup(), expiry)
         undo = UndoImport(replacer, ReadBackup(), expiry, db)

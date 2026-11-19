@@ -6,11 +6,11 @@ import com.umamit.core.backup.archive.BackupContent
 import com.umamit.core.common.WallClock
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
+import com.umamit.core.database.ImportLock
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.datastore.SettingsDataSource
 import com.umamit.core.model.TimerSlot
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.sync.Mutex
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,13 +18,14 @@ import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * The replace that the import and its undo share (05 §8 „Replace" steps 1, 3–5; the D-130 build note of #336), under
- * one [mutex] with the expiry and the start gate.
+ * the one [ImportLock] with the expiry's start-up housekeeping and the seed photo download (D-133 Q10).
  *
  * - [refusal]: step 1 and the PO's catalog refresh rule. `active_brew` is read through its DAO only (all three slots;
  *   the quick timer is its `QUICK` row), plus the in-memory [TimerActivity] (D-054).
  * - [replace]: [ImportEngine.prepare], the one Room transaction (the refusal again, deferred foreign keys, every table
- *   emptied and refilled, the commit token), a WAL checkpoint, then [ImportEngine.rollForward]. A failure before the
- *   commit rolls back and refuses; one after it is retried once and else left to the next start.
+ *   emptied and refilled, the commit token), a WAL checkpoint (once it completed the marker says `durable`), then
+ *   [ImportEngine.rollForward]. A failure before the commit rolls back and refuses; one after it is retried once and
+ *   else left to the next start.
  */
 @Singleton
 class ImportReplacer @Inject constructor(
@@ -33,13 +34,13 @@ class ImportReplacer @Inject constructor(
     internal val paths: ImportPaths,
     private val refresh: CatalogRefreshRunner,
     private val clock: WallClock,
+    internal val lock: ImportLock,
 ) {
-    internal val mutex = Mutex()
-
     /** The tests' failures and simulated crashes; a no-op in the app. */
     internal var checkpoints = ImportCheckpoints {}
 
-    internal val engine = ImportEngine(paths, settings, clock) { checkpoints }
+    internal val engine =
+        ImportEngine(paths, settings, clock, PhotoRows.of { db.openHelper.writableDatabase }) { checkpoints }
 
     internal fun reached(point: ImportPoint) = checkpoints.reached(point)
 
@@ -60,8 +61,8 @@ class ImportReplacer @Inject constructor(
         engine.finishPending(token = { CommitToken.read(db.openHelper.writableDatabase) })
 
     /**
-     * Steps 3–5 (5' for an undo) from [content]: the caller holds [mutex], checked [refusal] and, for an import, wrote
-     * the safety copy. [content] is not closed.
+     * Steps 3–5 (5' for an undo) from [content]: the caller holds the lock, checked [refusal] and, for an import,
+     * wrote the safety copy. [content] is not closed.
      */
     internal suspend fun replace(kind: ImportKind, content: BackupContent, timer: TimerActivity): RestoreResult =
         when (val commit = commitOrRollBack(kind, content, timer)) {
@@ -69,8 +70,8 @@ class ImportReplacer @Inject constructor(
 
             is Commit.Done -> {
                 reached(ImportPoint.COMMITTED)
-                checkpointWal()
-                RestoreResult.Done(content.preview, finishedAtNextStart = !finishAfterCommit(commit.marker))
+                val marker = if (checkpointWal()) MarkerFile.markDurable(paths, commit.marker) else commit.marker
+                RestoreResult.Done(content.preview, finishedAtNextStart = !finishAfterCommit(marker))
             }
         }
 
@@ -134,23 +135,31 @@ class ImportReplacer @Inject constructor(
         }
     }
 
-    /** Makes the commit durable before the first rename, so a power loss cannot leave new photos beside old rows. */
-    private suspend fun checkpointWal() {
-        repeat(CHECKPOINT_TRIES) {
-            val busy = try {
-                db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { cursor ->
-                    cursor.moveToFirst() && cursor.getInt(0) != 0
-                }
-            } catch (
-                @Suppress("TooGenericExceptionCaught") e: Exception, // SQLite: the commit stands, only less durable
-            ) {
-                Log.w(TAG, "WAL checkpoint failed", e)
-                return
+    /**
+     * Makes the commit durable before the first rename, so a power loss cannot leave new photos beside old rows; true
+     * when the checkpoint completed.
+     */
+    private suspend fun checkpointWal(): Boolean {
+        /** True: done; false: busy; null: failed. */
+        fun checkpoint(): Boolean? = try {
+            db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { cursor ->
+                !(cursor.moveToFirst() && cursor.getInt(0) != 0)
             }
-            if (!busy) return
-            delay(CHECKPOINT_RETRY_MS)
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception, // SQLite: the commit stands, only less durable
+        ) {
+            Log.w(TAG, "WAL checkpoint failed", e)
+            null
         }
-        Log.w(TAG, "WAL checkpoint busy; the commit is in the WAL")
+        var done = checkpoint()
+        var tries = 1
+        while (done == false && tries < CHECKPOINT_TRIES) {
+            delay(CHECKPOINT_RETRY_MS)
+            done = checkpoint()
+            tries++
+        }
+        if (done == false) Log.w(TAG, "WAL checkpoint busy; the commit is in the WAL")
+        return done == true
     }
 
     /** True when every step after the commit is done; else retried once, then the marker waits for the next start. */

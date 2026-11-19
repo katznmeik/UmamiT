@@ -12,14 +12,17 @@ import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import com.umamit.app.timer.TimerActiveBrewSource
 import com.umamit.app.timer.TimerScreenRequests
 import com.umamit.app.timer.lockScreenFlags
@@ -101,8 +104,14 @@ class MainActivity : ComponentActivity() {
     /** Links shared to the app (CAT-17); a pending one survives a recreation. */
     private val teaLinkShares = TeaLinkShares()
 
+    /** Recipe files received (PRF-08); kept in a view model, so a copy running during a rotation still arrives. */
+    private val receivedRecipesModel: ReceivedRecipesModel by viewModels()
+
     /** Recipe files received (PRF-08); a pending or shown one survives a recreation. */
-    private val receivedRecipes = ReceivedRecipeFiles()
+    private val receivedRecipes: ReceivedRecipeFiles get() = receivedRecipesModel.files
+
+    /** Where a handed-over recipe file is copied from, off the main thread (D-133 Q4). */
+    private val recipeSource by lazy { RecipeFileSource.of(this) }
 
     /** Taps on the catalog refresh's notifications (SCR-22, D-097); a pending one survives a recreation. */
     private val catalogRefreshRequests = CatalogRefreshRequests()
@@ -224,7 +233,7 @@ class MainActivity : ComponentActivity() {
     private fun takeTaps(intent: Intent?, savedState: Bundle?) {
         if (savedState == null) {
             teaLinkShares.offer(intent)
-            receivedRecipes.offer(intent)
+            receivedRecipes.offer(intent, recipeSource)
             catalogRefreshRequests.offer(intent)
             startRequests.offer(intent)
             backupRequests.offer(intent)
@@ -298,12 +307,24 @@ class MainActivity : ComponentActivity() {
             .putExtra(TeaLinkShares.EXTRA_TEXT, text)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
-        /** Opens the app's own task with a received recipe file's [bytes] (PRF-08), as [openTeaLink] does. */
-        fun openRecipe(context: Context, bytes: ByteArray): Intent = Intent(context, MainActivity::class.java)
+        /**
+         * Opens the app's own task with a received recipe [file] (PRF-08), as [openTeaLink] does: its URI as the
+         * intent's data with the read grant passed on, so MainActivity copies it off the main thread (D-133 Q4).
+         */
+        fun openRecipe(context: Context, file: ReceivedFile): Intent = Intent(context, MainActivity::class.java)
             .setAction(ReceivedRecipeFiles.ACTION_OPEN_RECIPE)
-            .putExtra(ReceivedRecipeFiles.EXTRA_BYTES, bytes)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            .setData(file.uri)
+            .putExtra(ReceivedRecipeFiles.EXTRA_TYPE, file.type)
+            .addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
     }
+}
+
+/** Holds [MainActivity]'s [ReceivedRecipeFiles] over a rotation; their copies run in its scope. */
+class ReceivedRecipesModel : ViewModel() {
+    val files = ReceivedRecipeFiles(scope = viewModelScope)
 }
 
 /**

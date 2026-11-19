@@ -24,7 +24,10 @@ interface BackupReminderState {
     /** Notes a check or the switch's turn-on at [atMs]. */
     suspend fun markReminderLastAt(atMs: Long)
 
-    /** Sessions (`COMPLETED`, `MANUAL`) started after [sinceMs]; all of them for null (never saved). */
+    /**
+     * Sessions (`COMPLETED`, `MANUAL`) saved (`created_at`) after [sinceMs], whatever date they carry (D-133 Q9); all
+     * of them for null (never saved).
+     */
     suspend fun sessionsSince(sinceMs: Long?): Int
 }
 
@@ -39,7 +42,7 @@ class DataStoreBackupReminderState @Inject constructor(
 
     override suspend fun markReminderLastAt(atMs: Long) = source.markBackupReminderLastAt(atMs)
 
-    override suspend fun sessionsSince(sinceMs: Long?): Int = db.restoreDao().sessionsStartedAfter(sinceMs ?: 0L)
+    override suspend fun sessionsSince(sinceMs: Long?): Int = db.restoreDao().sessionsCreatedAfter(sinceMs ?: 0L)
 }
 
 /** Binds [BackupReminderState]. */

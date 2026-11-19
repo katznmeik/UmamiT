@@ -13,6 +13,7 @@ import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.database.entity.SessionStepEntity
 import com.umamit.core.database.entity.TeaEntity
 import com.umamit.core.database.entity.VesselEntity
+import kotlinx.coroutines.flow.Flow
 
 /**
  * The replacing import's writes and the undo's counts (05 §8 „Replace", „Undo"; BAK-02). No schema of its own: it
@@ -50,9 +51,17 @@ abstract class RestoreDao {
         insertCatalogBookmarks(rows.catalogBookmarks)
     }
 
-    /** The undo's „N neue Sessions" (D-130 item 21): completed and manual sessions started after [sinceMs]. */
-    @Query("SELECT COUNT(*) FROM brew_session WHERE status IN ('COMPLETED', 'MANUAL') AND started_at > :sinceMs")
-    abstract suspend fun sessionsStartedAfter(sinceMs: Long): Int
+    /**
+     * „N neue Sessions" of SCR-26, the undo and the backup reminder's ≥ 20 (D-130 item 21, D-133 Q9): completed and
+     * manual sessions saved (`created_at`) after [sinceMs], whatever date they carry, so a backdated manual entry and a
+     * session that was running during the export count too.
+     */
+    @Query(SESSIONS_CREATED_AFTER)
+    abstract suspend fun sessionsCreatedAfter(sinceMs: Long): Int
+
+    /** [sessionsCreatedAfter], again whenever a session is saved or changed (SCR-26 stays current while it is open). */
+    @Query(SESSIONS_CREATED_AFTER)
+    abstract fun observeSessionsCreatedAfter(sinceMs: Long): Flow<Int>
 
     /** The undo's „N geänderte Tees" (D-130 item 21): teas created or changed after [sinceMs]. */
     @Query("SELECT COUNT(*) FROM tea WHERE created_at > :sinceMs OR updated_at > :sinceMs")
@@ -121,3 +130,6 @@ abstract class RestoreDao {
     @Insert
     protected abstract suspend fun insertCatalogBookmarks(rows: List<CatalogBookmarkEntity>)
 }
+
+private const val SESSIONS_CREATED_AFTER =
+    "SELECT COUNT(*) FROM brew_session WHERE status IN ('COMPLETED', 'MANUAL') AND created_at > :sinceMs"
