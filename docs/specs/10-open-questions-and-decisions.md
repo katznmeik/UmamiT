@@ -469,6 +469,31 @@ built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
   PO checks it at font 2.0 with the keyboard on rc.1. „N neue Sessions"
   counts COMPLETED and MANUAL sessions (`RestoreDao.sessionsStartedAfter`).
 
+- **Build note, #339 (backup reminder, build session 2, PO 2026-11-18):** the
+  first start with neither `lastBackupAt` nor `backupReminderLastAt` (an
+  update from v0.8.x) stamps `backupReminderLastAt` = now, so the first check
+  is 30 days after the update (PO). The tap opens Start › Einstellungen ›
+  Daten & Sicherung, back goes to Einstellungen (PO). Channel `reminders`
+  „Erinnerungen", description „Erinnerung an die Sicherung deiner Daten"
+  (PO), notification ID 13. An import that changes SET-20 is followed: off
+  cancels the job, on schedules it from the stored markers (PO).
+- **Build note, #342 (Rezept übernehmen, build session 2, PO 2026-11-18):**
+  `ReceiveRecipeActivity` copies the file on a worker thread that `onCreate`
+  waits for (the URI grant ends with the `NoDisplay` activity), so its main
+  thread can block for a hung provider — **for #343's T4 import-path
+  review**, with the alternative of passing the read grant on to
+  `MainActivity` and reading there. The PO's answers: *Neuen Tee anlegen*
+  „aus dem Katalog" asks for a package first (the usual sheet; closing it
+  returns to SCR-32, nothing written); a tea that already has the file's
+  `catalog_key` gets the recipe and *Neuen Tee anlegen* is then hidden;
+  *Tee über Shop-Link laden* only when no collection tea matched; the copy
+  „Tee wählen", „archiviert", „Tee wird geladen …". Fixed with these: a file
+  over 64 KB shows „Die Rezeptdatei ist beschädigt." (03 §5), and the new
+  tea and its recipe are saved in one transaction. Accepted as built: a key
+  without a match falls back to the name; a collection tea wins over an
+  archived one; „ (2)", „ (3)" … for a taken recipe name; system back keeps
+  the bytes until the next file.
+
 ### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*
 
 **Context.** The PO checked `v0.8.0-rc.1` (PR #328) and named one failure from a screen recording (2026-11-17 21:58). Tapping a tea in *Tee wählen* (SCR-03) removes the sheet within one frame, so Start shows bare for ≈ 150–200 ms while *Neue Session* (SCR-04) fades in over it. A second recording (cold and warm start) felt „a tiny bit jumpy": the system's splash and window zoom are as usual, but the tea photos in Start's „Zuletzt aufgegossen" are missing for the first frames and pop in a moment later. The same recording's longer view of Start (setup → Start → timer) was two taps of the PO's (the setup's back arrow, then a recent row), not a fault.

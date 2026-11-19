@@ -2197,10 +2197,19 @@ Tees' ⋮ *Rezept importieren*.
   (cover, name, „gefunden über den Katalog" or „gleicher Name"); else „Diesen
   Tee hast du noch nicht.". Below: *Anderen Tee wählen …* (the collection
   list as a sheet, archived teas included, a tea with 10 recipes greyed out
-  with „Höchstens 10 Rezepte") and *Neuen Tee anlegen* („aus dem Katalog"
+  with „Höchstens 10 Rezepte"; the sheet's title „Tee wählen", an archived
+  tea marked „archiviert") and *Neuen Tee anlegen* („aus dem Katalog"
   when its `catalog_key` is in the local catalog, else „ohne Katalog").
+  *Neuen Tee anlegen* is hidden when a tea in the collection already has the
+  file's `catalog_key` (that tea is preselected; PO, 2026-11-18). „aus dem
+  Katalog" opens the usual add-from-catalog package sheet (size, price,
+  opened date) first; closing it without saving returns to SCR-32 with
+  nothing written (PO, 2026-11-18). „ohne Katalog" adds the tea without a
+  package.
 - ***Tee über Shop-Link laden*** (text button, D-130 Q4): only when the file
-  has a valid shop link whose tea is not in the local catalog, with „Lädt
+  has a valid shop link whose tea is not in the local catalog and no tea in
+  the collection matched (PO, 2026-11-18); while it loads „Tee wird geladen
+  …"; with „Lädt
   eine Seite von tee-kontor-kiel.de". It runs CAT-17's fetch (its messages,
   §5); on success *Neuen Tee anlegen* reads „aus dem Katalog".
 - ***Rezept übernehmen*** (primary, sticky): enabled once a tea is chosen;
