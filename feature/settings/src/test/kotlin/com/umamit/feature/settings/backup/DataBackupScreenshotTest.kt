@@ -2,6 +2,8 @@ package com.umamit.feature.settings.backup
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
@@ -20,8 +22,8 @@ import org.robolectric.annotation.GraphicsMode
 import java.time.ZoneId
 
 /**
- * *Daten & Sicherung* (SCR-26) in the states of #338's acceptance criteria, in light and dark at font scale 1.0 and
- * 2.0 (03 §6), on synthetic data. Goldens: `src/test/screenshots/`.
+ * *Daten & Sicherung* (SCR-26) in the states of #338's and #346's acceptance criteria, in light and dark at font
+ * scale 1.0 and 2.0 (03 §6), on synthetic data. Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -52,7 +54,7 @@ class DataBackupScreenshotTest(private val dark: Boolean, private val fontScale:
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, state: DataBackupUiState) {
+    private fun capture(name: String, state: DataBackupUiState, scrollTo: String? = null) {
         RuntimeEnvironment.setFontScale(fontScale)
         // A standing clock: the snackbar stays (it would time out under the auto-advancing clock), and the busy spinner
         // never lets the clock settle.
@@ -64,6 +66,14 @@ class DataBackupScreenshotTest(private val dark: Boolean, private val fontScale:
         }
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
+        if (scrollTo != null) {
+            // The scroll is animated: under the standing clock it would never arrive.
+            compose.mainClock.autoAdvance = true
+            compose.onNodeWithTag(scrollTo).performScrollTo()
+            compose.mainClock.autoAdvance = false
+            compose.mainClock.advanceTimeBy(1_000)
+            compose.waitForIdle()
+        }
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/DataBackup_${name}_$variant.png")
     }
 
@@ -152,4 +162,45 @@ class DataBackupScreenshotTest(private val dark: Boolean, private val fontScale:
 
     @Test
     fun refusedReplaceFailed() = refused("replaceFailed", RestoreRefusal.REPLACE_FAILED.messageRes)
+
+    // Alle Daten löschen (SET-33, D-131 and its #346 build notes).
+
+    /** The destructive last row, enabled. */
+    @Test
+    fun wipeRow() = capture("wipeRow", DataBackupUiState(lastBackup = SAVED), scrollTo = DataBackupTags.WIPE_ROW)
+
+    /** Greyed out with „Während ein Timer läuft, nicht möglich" (D-131 Q2). */
+    @Test
+    fun wipeTimerActive() = capture(
+        "wipeTimerActive",
+        DataBackupUiState(lastBackup = SAVED, timerActive = true),
+        scrollTo = DataBackupTags.WIPE_ROW,
+    )
+
+    /** Greyed out while an export runs (#346 answer 3). */
+    @Test
+    fun wipeExportRunning() = capture(
+        "wipeExportRunning",
+        DataBackupUiState(lastBackup = SAVED, export = ExportProgress(12, 61)),
+        scrollTo = DataBackupTags.WIPE_ROW,
+    )
+
+    /** *Löschen* disabled: nothing typed. */
+    @Test
+    fun wipeDialog() = capture("wipeDialog", DataBackupUiState(dialog = BackupDialog.Wipe(safetyCopy = false)))
+
+    /** *Löschen* enabled by exactly „LÖSCHEN", with the safety copy's sentence (#346 answer 4). */
+    @Test
+    fun wipeDialogTyped() = capture(
+        "wipeDialogTyped",
+        DataBackupUiState(
+            undo = UndoPreview(0, 0, UNTIL_MS),
+            dialog = BackupDialog.Wipe(safetyCopy = true),
+            confirmText = "LÖSCHEN",
+        ),
+    )
+
+    /** „Daten werden gelöscht. UmamiT schließt sich, …" (#346 answer 2). */
+    @Test
+    fun wiping() = capture("wiping", DataBackupUiState(dialog = BackupDialog.Wiping))
 }

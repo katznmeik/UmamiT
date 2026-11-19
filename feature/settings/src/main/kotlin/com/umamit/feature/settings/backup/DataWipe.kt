@@ -1,5 +1,6 @@
 package com.umamit.feature.settings.backup
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -13,6 +14,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.DialogProperties
+import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.feature.settings.R
 
 /**
@@ -26,7 +28,7 @@ internal fun WipeRow(state: DataBackupUiState, actions: DataBackupActions) {
         state.export != null -> stringResource(R.string.backup_wipe_export_running)
         else -> null
     }
-    ButtonBlock(detail = detail) {
+    ButtonBlock(detail = detail, modifier = Modifier.testTag(DataBackupTags.WIPE_ROW)) {
         TextButton(
             onClick = actions.askWipe,
             enabled = state.canAskWipe,
@@ -70,8 +72,13 @@ internal fun WipeDialog(dialog: BackupDialog.Wipe, state: DataBackupUiState, act
 internal fun WipingNotice() {
     AlertDialog(
         onDismissRequest = {},
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
-        modifier = Modifier.testTag(DataBackupTags.WIPING),
+        // The same window as the delete dialog it replaces: full width with the dialog's own margins.
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+        ),
+        modifier = Modifier.padding(horizontal = UmamiSpacing.Large).testTag(DataBackupTags.WIPING),
         confirmButton = {},
         text = {
             Text(

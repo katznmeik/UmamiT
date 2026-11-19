@@ -55,6 +55,7 @@ object DataBackupTags {
     const val CONFIRM_FIELD = "BackupConfirmField"
     const val BUSY = "BackupBusy"
     const val WIPE = "BackupWipe"
+    const val WIPE_ROW = "BackupWipeRow"
     const val WIPE_FIELD = "BackupWipeField"
     const val WIPING = "BackupWiping"
 }
@@ -322,9 +323,9 @@ private fun ExportProgressBar(progress: ExportProgress, onCancel: () -> Unit) {
 
 /** A button (or the progress) with an optional line below it. */
 @Composable
-internal fun ButtonBlock(detail: String? = null, content: @Composable () -> Unit) {
+internal fun ButtonBlock(detail: String? = null, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
     ) {
