@@ -2203,7 +2203,7 @@ Tees' ⋮ *Rezept importieren*.
   *Neuen Tee anlegen* is hidden when a tea in the collection already has the
   file's `catalog_key` (that tea is preselected; PO, 2026-11-18). „aus dem
   Katalog" opens the usual add-from-catalog package sheet (size, price,
-  opened date) first; closing it without saving returns to SCR-32 with
+  opened date) when *Rezept übernehmen* is tapped; closing it without saving returns to SCR-32 with
   nothing written (PO, 2026-11-18). „ohne Katalog" adds the tea without a
   package.
 - ***Tee über Shop-Link laden*** (text button, D-130 Q4): only when the file
@@ -2211,7 +2211,9 @@ Tees' ⋮ *Rezept importieren*.
   the collection matched (PO, 2026-11-18); while it loads „Tee wird geladen
   …"; with „Lädt
   eine Seite von tee-kontor-kiel.de". It runs CAT-17's fetch (its messages,
-  §5); on success *Neuen Tee anlegen* reads „aus dem Katalog".
+  §5); on success *Neuen Tee anlegen* reads „aus dem Katalog"; a loaded tea
+  you already own is preselected instead and gets the recipe (PO,
+  2026-11-18).
 - ***Rezept übernehmen*** (primary, sticky): enabled once a tea is chosen;
   adds the recipe and opens the tea detail (SCR-09) with „Rezept „Kyusu"
   übernommen". ✕ discards without asking (nothing was written).

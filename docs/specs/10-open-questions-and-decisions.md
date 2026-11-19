@@ -493,6 +493,12 @@ built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
   without a match falls back to the name; a collection tea wins over an
   archived one; „ (2)", „ (3)" … for a taken recipe name; system back keeps
   the bytes until the next file.
+  PO, 2026-11-18 (second round): the package sheet opens on *Rezept
+  übernehmen*, not on the row tap; a tea loaded by *Tee über Shop-Link
+  laden* that turns out to be owned is preselected and gets the recipe (no
+  sheet, no purchase recorded); a matched tea with 10 recipes keeps *Neuen
+  Tee anlegen* hidden, only *Anderen Tee wählen …* is left. A failed save
+  shows in the sheet (on SCR-32 if an alert removed the sheet; Claude).
 
 ### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*
 
