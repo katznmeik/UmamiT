@@ -20,8 +20,15 @@ import java.io.IOException;
  * the test APK alone.
  *
  * <p>{@link #call} with {@link #METHOD_SEND} stores {@link #EXTRA_BYTES} under the file name {@code arg} and grants
- * the caller read access to that one URI ({@link #EXTRA_URI}), as a sender grants the app it shares with. The
- * provider's read permission is held by no app, so the grant is the only way in. Synthetic recipes only (D-016).
+ * the caller read access to that one URI ({@link #EXTRA_URI}), as a sender grants the app it shares with; the
+ * test's intents carry {@code FLAG_GRANT_READ_URI_PERMISSION} as a real sender's do. Synthetic recipes only (D-016).
+ *
+ * <p>The provider is exported with no read or write permission. The instrumentation code runs in the app's process
+ * and uid, and a provider-level permission is checked when the provider is acquired ({@code getContentProvider}),
+ * before {@code call()} runs and so before any grant exists: with a permission nobody holds, the test's own
+ * {@code call("send")} was refused. Without one, acquiring the provider and reading its URIs needs nothing on any API
+ * level (35 and 36 alike), so the test is certain to run. It therefore no longer proves that the app reads a
+ * sender's file only through the grant; that is checked on the phone (09 §4).
  */
 public final class SenderRecipeProvider extends ContentProvider {
     static final String METHOD_SEND = "send";
