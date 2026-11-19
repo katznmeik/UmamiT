@@ -54,6 +54,9 @@ object DataBackupTags {
     const val CSV = "BackupCsv"
     const val CONFIRM_FIELD = "BackupConfirmField"
     const val BUSY = "BackupBusy"
+    const val WIPE = "BackupWipe"
+    const val WIPE_FIELD = "BackupWipeField"
+    const val WIPING = "BackupWiping"
 }
 
 /** What the controls of SCR-26 do. */
@@ -68,6 +71,8 @@ class DataBackupActions(
     val confirmUndo: () -> Unit = {},
     val exportJournal: () -> Unit = {},
     val setReminder: (Boolean) -> Unit = {},
+    val askWipe: () -> Unit = {},
+    val confirmWipe: () -> Unit = {},
     val dismissDialog: () -> Unit = {},
     val messageShown: () -> Unit = {},
 )
@@ -133,6 +138,8 @@ fun DataBackupRoute(
             confirmUndo = viewModel::confirmUndo,
             exportJournal = viewModel::exportJournal,
             setReminder = viewModel::setReminder,
+            askWipe = viewModel::askWipe,
+            confirmWipe = viewModel::confirmWipe,
             dismissDialog = viewModel::dismissDialog,
             messageShown = viewModel::messageShown,
         ),
@@ -141,7 +148,8 @@ fun DataBackupRoute(
 
 /**
  * SCR-26 without state: SICHERUNG (the last backup, *Sicherung erstellen* or its progress, *Sicherung einspielen*,
- * *Import rückgängig machen*, *An Sicherung erinnern*), EXPORT (*Journal als CSV*) and GERÄTE-BACKUP. [zone] formats
+ * *Import rückgängig machen*, *An Sicherung erinnern*), EXPORT (*Journal als CSV*), GERÄTE-BACKUP and *Alle Daten
+ * löschen*. [zone] formats
  * the device's dates (a backup's own date uses the file's zone).
  */
 @Composable
@@ -194,6 +202,7 @@ fun DataBackupScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            WipeRow(state, actions)
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
@@ -313,7 +322,7 @@ private fun ExportProgressBar(progress: ExportProgress, onCancel: () -> Unit) {
 
 /** A button (or the progress) with an optional line below it. */
 @Composable
-private fun ButtonBlock(detail: String? = null, content: @Composable () -> Unit) {
+internal fun ButtonBlock(detail: String? = null, content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

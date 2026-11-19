@@ -34,6 +34,7 @@ import com.umamit.core.backup.R as BackupR
 class DataBackupViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val backup = FakeDataBackup()
+    private val wipe = FakeAppDataWipe()
 
     /** 18 Nov 2026, 10:00 in Berlin. */
     private val clock = FakeClock(wall = 1_794_992_400_000L)
@@ -61,7 +62,7 @@ class DataBackupViewModelTest {
     private val store = ViewModelStore()
 
     private fun TestScope.viewModel(): DataBackupViewModel {
-        val factory = viewModelFactory { initializer { DataBackupViewModel(backup, clock) } }
+        val factory = viewModelFactory { initializer { DataBackupViewModel(backup, clock, wipe) } }
         return ViewModelProvider.create(store, factory)[DataBackupViewModel::class].also { advanceUntilIdle() }
     }
 

@@ -46,6 +46,8 @@ internal fun BackupDialogs(state: DataBackupUiState, actions: DataBackupActions)
         is BackupDialog.SizeNote -> SizeNoteDialog(dialog.estimate, actions)
         is BackupDialog.Replace -> ReplaceDialog(dialog.preview, state, actions)
         is BackupDialog.Undo -> UndoDialog(dialog.preview, actions)
+        is BackupDialog.Wipe -> WipeDialog(dialog, state, actions)
+        BackupDialog.Wiping -> WipingNotice()
     }
 }
 
@@ -87,23 +89,41 @@ private fun ReplaceDialog(preview: BackupPreview, state: DataBackupUiState, acti
         onConfirm = actions.replace,
         onDismiss = actions.dismissDialog,
     ) {
-        OutlinedTextField(
+        ConfirmWordField(
             value = state.confirmText,
             onValueChange = actions.typeConfirm,
-            label = { Text(stringResource(R.string.backup_confirm_hint)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Characters,
-                autoCorrectEnabled = false,
-                imeAction = ImeAction.Done,
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = UmamiSpacing.Small)
-                .semantics { contentDescription = talkBack }
-                .testTag(DataBackupTags.CONFIRM_FIELD),
+            hint = stringResource(R.string.backup_confirm_hint),
+            talkBack = talkBack,
+            tag = DataBackupTags.CONFIRM_FIELD,
         )
     }
+}
+
+/** The field for a typed confirmation word („ERSETZEN", „LÖSCHEN"): capitals, no autocorrect. */
+@Composable
+internal fun ConfirmWordField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    hint: String,
+    talkBack: String,
+    tag: String,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(hint) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Characters,
+            autoCorrectEnabled = false,
+            imeAction = ImeAction.Done,
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = UmamiSpacing.Small)
+            .semantics { contentDescription = talkBack }
+            .testTag(tag),
+    )
 }
 
 /** „Import rückgängig machen?" with what is lost since the import (BAK-02 AC7, D-130 Q6). */
@@ -129,7 +149,7 @@ internal fun UndoDialog(preview: UndoPreview, actions: DataBackupActions) {
 
 /** A dialog whose text scrolls, so the buttons stay reachable at font scale 2.0 (03 §6). */
 @Composable
-private fun BackupAlert(
+internal fun BackupAlert(
     title: String,
     body: String,
     confirm: String,
