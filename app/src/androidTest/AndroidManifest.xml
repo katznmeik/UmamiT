@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The test APK's own manifest: it never reaches the app's merged manifests (06 §5.7). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Held by no app: the sender's files are read only through the URI grant it gives. -->
+    <permission
+        android:name="${applicationId}.permission.READ_SENT_RECIPES"
+        android:protectionLevel="signature" />
+
+    <application>
+        <!-- Another app sending a recipe file (ReceiveRecipeDeviceTest, PRF-08, D-133 Q4): its own
+             provider, in the test package and its process, read only through the grant it gives. -->
+        <provider
+            android:name="com.umamit.app.SenderRecipeProvider"
+            android:authorities="${applicationId}.sent-recipes"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:readPermission="${applicationId}.permission.READ_SENT_RECIPES"
+            android:writePermission="${applicationId}.permission.READ_SENT_RECIPES" />
+    </application>
+
+</manifest>

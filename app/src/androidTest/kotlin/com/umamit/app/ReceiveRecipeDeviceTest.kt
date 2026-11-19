@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
 import android.os.SystemClock
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -39,9 +40,10 @@ import java.time.OffsetDateTime
 /**
  * Receiving a recipe file on the device (PRF-08 (a) and (b), AC5, 06 §5.7): `VIEW` and `SEND` with each of the two
  * MIME types reach SCR-32 „Rezept übernehmen" through ReceiveRecipeActivity and MainActivity; a 65 KB stream and a
- * `file://` URI are refused with the reader's message; nothing is written before *Rezept übernehmen*. The files go
- * through the app's own FileProvider (`cache/shared/`). Runs only in the CI emulator job (no KVM here). Synthetic
- * recipe (D-016).
+ * `file://` URI and a URI of the app's own FileProvider (D-133 Q4) are refused with the reader's message; nothing is
+ * written before *Rezept übernehmen*. The files come from another app: [SenderRecipeProvider], in the test package's
+ * own process, which grants the app read access to each one as a real sender does. Runs only in the CI emulator job
+ * (no KVM here). Synthetic recipe (D-016).
  */
 @RunWith(AndroidJUnit4::class)
 class ReceiveRecipeDeviceTest {
@@ -70,7 +72,21 @@ class ReceiveRecipeDeviceTest {
         steps = listOf(RecipeStep(StepKind.INFUSION, 120)),
     )
 
-    private fun shared(bytes: ByteArray, name: String = "Erfundener Bancha"): Uri {
+    /** [bytes] as another app sends them: a URI of its own provider, with read access granted to the app. */
+    private fun sent(bytes: ByteArray, name: String = "Erfundener Bancha"): Uri {
+        val sender = "${instrumentation.context.packageName}.sent-recipes"
+        val extras = Bundle().apply { putByteArray(SenderRecipeProvider.EXTRA_BYTES, bytes) }
+        val result = context.contentResolver.call(
+            sender,
+            SenderRecipeProvider.METHOD_SEND,
+            "${name.replace(' ', '-')}.umamit-rezept",
+            extras,
+        )
+        return checkNotNull(result?.getParcelable(SenderRecipeProvider.EXTRA_URI, Uri::class.java))
+    }
+
+    /** [bytes] behind the app's own FileProvider (`cache/shared/`), as *Rezept teilen* shares them. */
+    private fun ownShared(bytes: ByteArray, name: String = "Erfundener Bancha"): Uri {
         val file = SharedRecipeFiles.write(context.cacheDir, name, bytes)
         return FileProvider.getUriForFile(context, "${context.packageName}.files", file)
     }
@@ -152,7 +168,7 @@ class ReceiveRecipeDeviceTest {
             // A tea name of its own per way, so each wait sees its own file on SCR-32.
             val name = "Erfundener Bancha $index"
             val file = recipe.copy(tea = recipe.tea.copy(name = name))
-            receive(way(shared(RecipeFile.write(file, OffsetDateTime.now()), name)))
+            receive(way(sent(RecipeFile.write(file, OffsetDateTime.now()), name)))
             awaitScreen()
             awaitText(name, partial = true)
         }
@@ -162,7 +178,7 @@ class ReceiveRecipeDeviceTest {
     @Test
     fun aStreamOver64KbIsRefused() {
         val bytes = ByteArray(65 * 1024) { ' '.code.toByte() }
-        val uri = shared(bytes, name = "Zu gross")
+        val uri = sent(bytes, name = "Zu gross")
 
         receive(ReceiveRecipeActivity.send(context, uri))
 
@@ -181,6 +197,20 @@ class ReceiveRecipeDeviceTest {
 
         awaitScreen()
         // Handed on empty: whatever the reader says to that.
+        awaitText(refusalOf(ByteArray(0)))
+        assertEquals(before, teaCount())
+    }
+
+    @Test
+    fun aUriOfTheAppsOwnProviderIsRefused() {
+        // MainActivity is exported: another app could point it at the app's own files (D-133 Q4).
+        val uri = ownShared(RecipeFile.write(recipe, OffsetDateTime.now()))
+        val before = teaCount()
+
+        receive(ReceiveRecipeActivity.view(context, uri))
+
+        awaitScreen()
+        // Read as nothing, however readable the file is.
         awaitText(refusalOf(ByteArray(0)))
         assertEquals(before, teaCount())
     }
