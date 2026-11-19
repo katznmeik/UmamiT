@@ -70,6 +70,29 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        <!-- Receiving a recipe file (PRF-08, 06 §5.7, D-130 Q1, item 18): „Öffnen mit" and *Teilen* for
+             the recipe file's own type and application/json only, never application/octet-stream or a
+             path pattern, and no new permission. It shows nothing, copies at most 64 KB + 1 byte of a
+             content:// URI, hands the untrusted bytes to MainActivity in the app's own task and finishes. -->
+        <activity
+            android:name=".ReceiveRecipeActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.umamit.recipe+json" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.umamit.recipe+json" />
+                <data android:mimeType="application/json" />
+            </intent-filter>
+        </activity>
         <!-- The catalog refresh notifications' tap (SCR-22, 06 §5.7, #121): not exported and
              without an intent filter, so only the app's own notification starts it. It shows
              nothing, lets the tap through to MainActivity in this process and finishes, in a

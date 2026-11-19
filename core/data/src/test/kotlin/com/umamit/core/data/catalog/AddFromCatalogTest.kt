@@ -604,6 +604,41 @@ class AddFromCatalogTest {
         assertThat(tea.category).isEqualTo(TeaCategory.BLACK)
     }
 
+    @Test
+    fun `a tea added without a package has its recipes and cover but no stock`() = runTest {
+        catalog(sencha() to packages())
+        catalogPhotos.write(KEY, syntheticWebp(1200, 900), syntheticWebp(341, 256))
+
+        val teaId = (add.addWithoutPackage(KEY) as AddFromCatalogResult.Added).teaId
+
+        val tea = data.teas.getTea(teaId)!!
+        assertThat(tea.name).isEqualTo("Morgennebel Sencha")
+        assertThat(tea.catalogKey).isEqualTo(KEY)
+        assertThat(data.recipes.observeRecipes(teaId).first().map { it.name })
+            .containsExactly("Kyusu", "Kaltaufguss").inOrder()
+        assertThat(data.teas.observeTea(teaId).first()!!.coverPhoto).isNotNull()
+        // No package, so no stock is invented (PRF-08, 05 §8a).
+        assertThat(data.stock.observeEvents(teaId).first()).isEmpty()
+    }
+
+    @Test
+    fun `a package-less add of an owned key writes nothing and names the owner`() = runTest {
+        catalog(sencha() to packages())
+        val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
+
+        val again = add.addWithoutPackage(KEY)
+
+        assertThat(again).isEqualTo(AddFromCatalogResult.Repurchased(teaId))
+        assertThat(data.teas.observeTeas().first().map { it.tea.id }).containsExactly(teaId)
+        assertThat(data.stock.observeEvents(teaId).first()).hasSize(1)
+    }
+
+    @Test
+    fun `a package-less add of a key not in the catalog writes nothing`() = runTest {
+        assertThat(add.addWithoutPackage(KEY)).isEqualTo(AddFromCatalogResult.NotInCatalog)
+        assertThat(data.teas.observeTeas().first()).isEmpty()
+    }
+
     private companion object {
         val BERLIN: ZoneId = ZoneId.of("Europe/Berlin")
         val TODAY: LocalDate = LocalDate.of(2026, 10, 25)

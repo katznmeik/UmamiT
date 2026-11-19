@@ -70,10 +70,13 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.ui.SheetHandOver
 import com.umamit.feature.catalog.TeaLinkShare
+import com.umamit.feature.catalog.messageRes
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
 import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.TeaDetailHost
+import com.umamit.feature.collection.receive.ReceiveRecipeHost
+import com.umamit.feature.collection.receive.TakenOverRecipe
 import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.journal.session.SessionEditorHost
@@ -119,6 +122,9 @@ private const val SLIDE_FRACTION = 12
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
  * @param teaLinkShare a link shared to the app (CAT-17): the shell turns to Sammlung › Katalog (the
  *   list, not a screen left open there), whose catalog loads it and hands its token to [onTakeTeaLinkShare].
+ * @param recipeFiles the recipe files received (PRF-08): a pending one ([ReceivedRecipeFiles.pending]) turns the
+ *   shell to Sammlung with SCR-32 on top of its stack at its root; *Meine Tees*' ⋮ *Rezept importieren* picks one with
+ *   the system file picker into the same holder. Like a shared link it waits while the shell is covered (rule 8).
  * @param opening how this shell opens: the app's shell on Start, or the shell a catalog refresh
  *   notification opens above what was shown ([ShellOpening.CatalogRefresh], D-097).
  * @param startRequest a new non-zero token for each tap on the daily low-stock reminder (INV-11, D-098): the
@@ -159,6 +165,7 @@ internal fun UmamitApp(
     collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
     teaLinkShare: TeaLinkShare? = null,
     onTakeTeaLinkShare: (Long) -> Unit = {},
+    recipeFiles: ReceivedRecipeFiles = ReceivedRecipeFiles(),
     opening: ShellOpening = ShellOpening.Start,
     startRequest: Long = 0L,
     archivedTea: ArchivedTea? = null,
@@ -193,6 +200,15 @@ internal fun UmamitApp(
             select(Tab.Collection)
         }
     }
+    // A received recipe file (PRF-08): SCR-32 on top of the Sammlung stack at its root; the picker's flow ends quietly.
+    val pendingRecipe = pendingRecipeToken(recipeFiles) {
+        brewFlow.quit()
+        controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
+        select(Tab.Collection)
+    }
+    val importRecipe = rememberRecipeImport(recipeFiles)
+    // „Rezept „…" übernommen" over the tea detail SCR-32 opened.
+    var takenOver by rememberSaveable(stateSaver = TakenOverRecipe.Saver) { mutableStateOf<TakenOverRecipe?>(null) }
     // A further tap on a refresh notification while this shell shows: back to the catalog list (D-097).
     OnNewToken(opening.sheetToken) {
         brewFlow.leaveFor(Tab.Collection)
@@ -329,6 +345,10 @@ internal fun UmamitApp(
                                     onArchivedChange = onArchivedTeaChange,
                                     openSetup = startNavigation.openSetupWith,
                                     showInJournal = showInJournal,
+                                    recipeFiles = recipeFiles,
+                                    pendingRecipe = pendingRecipe,
+                                    importRecipe = importRecipe,
+                                    onTakenOver = { takenOver = it },
                                 ),
                                 catalog = { catalogModifier, scrollToTop ->
                                     catalogScreen(
@@ -414,6 +434,11 @@ internal fun UmamitApp(
                     collectionScreens.archivedSnackbar(
                         archivedTea,
                         { onArchivedTeaChange(null) },
+                        Modifier.align(Alignment.BottomCenter),
+                    )
+                    collectionScreens.takenOverSnackbar(
+                        takenOver,
+                        { takenOver = null },
                         Modifier.align(Alignment.BottomCenter),
                     )
                     // „Sicherung eingespielt · …“ · *Rückgängig machen* on Start after an import (BAK-02 AC6).
@@ -721,6 +746,14 @@ private fun TabHost(
         composable<CollectionRoute> {
             // Only from the resumed list: a double tap opens one detail (D-090).
             val openTea = resumedOnly<String> { navController.navigate(CollectionTeaRoute(it)) }
+            // A received recipe file (PRF-08): SCR-32 above the Sammlung root, once this stack has its graph.
+            LaunchedEffect(collection.pendingRecipe) {
+                val token = collection.pendingRecipe
+                if (token != 0L) {
+                    navController.navigate(CollectionReceiveRecipeRoute(token)) { launchSingleTop = true }
+                    collection.recipeFiles.shown(token)
+                }
+            }
             Box(modifier = Modifier.fillMaxSize()) {
                 CollectionScreen(
                     segment = segment,
@@ -736,6 +769,8 @@ private fun TabHost(
                     onAddWithoutCatalog = dropUnlessResumed {
                         navController.navigate(CollectionSorteRoute) { launchSingleTop = true }
                     },
+                    // ⋮ *Rezept importieren* (PRF-08, D-130 Q14): the system file picker, then SCR-32.
+                    onImportRecipe = collection.importRecipe,
                     myTeasContent = { modifier, scrollToTop -> myTeas(modifier, scrollToTop, openTea) },
                     // The ⋮ menu gives way to an alert (rule 8, D-058).
                     alertKey = alertKey,
@@ -786,6 +821,39 @@ private fun TabHost(
                     alertKey = alertKey,
                 ),
             )
+        }
+        // Rezept übernehmen (SCR-32, PRF-08): ✕ discards; *Rezept übernehmen* replaces it with the tea's detail
+        // (SCR-09) and „Rezept „…" übernommen" over it. A file whose bytes are gone (it closed) shows nothing and
+        // closes.
+        composable<CollectionReceiveRecipeRoute> { entry ->
+            val token = entry.toRoute<CollectionReceiveRecipeRoute>().token
+            val bytes = remember(token) { collection.recipeFiles.bytes(token) }
+            val close = {
+                collection.recipeFiles.closed(token)
+                navController.popIfOnTop(entry)
+            }
+            if (bytes == null) {
+                LaunchedEffect(token) { close() }
+            } else {
+                collection.screens.receiveRecipe(
+                    ReceiveRecipeHost(
+                        token = token,
+                        bytes = bytes,
+                        onClose = dropUnlessResumed { close() },
+                        onTakenOver = { teaId, recipeName ->
+                            collection.recipeFiles.closed(token)
+                            if (navController.isOnTop(entry)) {
+                                collection.onTakenOver(TakenOverRecipe(recipeName))
+                                navController.navigate(CollectionTeaRoute(teaId)) {
+                                    popUpTo<CollectionReceiveRecipeRoute> { inclusive = true }
+                                }
+                            }
+                        },
+                        alertKey = alertKey,
+                        linkMessage = { it.messageRes() },
+                    ),
+                )
+            }
         }
         // *Sorte wählen* (SCR-11): a tap replaces it with the editor of a new tea of that Sorte (TEA-01).
         composable<CollectionSorteRoute> {
