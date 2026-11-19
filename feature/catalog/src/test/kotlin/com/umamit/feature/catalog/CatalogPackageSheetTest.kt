@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.catalog.CatalogPurchase
@@ -48,6 +49,7 @@ class CatalogPackageSheetTest {
     private val saved = mutableListOf<CatalogPurchase>()
     private var dismissals = 0
     private var failed by mutableStateOf(false)
+    private var open by mutableStateOf(true)
 
     private fun str(@StringRes id: Int, vararg args: Any): String =
         ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
@@ -57,14 +59,16 @@ class CatalogPackageSheetTest {
             CatalogPackageSheetViewModel(FakeCatalogRepository(details = listOf(SENCHA)), prices, FakeClock())
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
-                CatalogPackageSheet(
-                    catalogKey = SENCHA.key,
-                    saving = false,
-                    failed = failed,
-                    onSave = { saved += it },
-                    onDismiss = { dismissals++ },
-                    viewModel = viewModel,
-                )
+                if (open) {
+                    CatalogPackageSheet(
+                        catalogKey = SENCHA.key,
+                        saving = false,
+                        failed = failed,
+                        onSave = { saved += it },
+                        onDismiss = { dismissals++ },
+                        viewModel = viewModel,
+                    )
+                }
             }
         }
         compose.waitForIdle()
@@ -100,6 +104,23 @@ class CatalogPackageSheetTest {
         failed = true
         compose.waitForIdle()
         compose.onNodeWithText(str(R.string.catalog_add_failed)).assertExists()
+    }
+
+    @Test
+    fun aNewOpeningStartsAfreshWithoutTheEarlierInput() {
+        show()
+        compose.onNodeWithTag(CATALOG_ADD_PRICE_TAG).performTextReplacement("9,99")
+        compose.waitForIdle()
+
+        open = false
+        compose.waitForIdle()
+        open = true
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(CATALOG_ADD_PRICE_TAG).assertTextContains("12,40")
+        compose.onNodeWithTag(CATALOG_ADD_SAVE_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+        assertThat(saved).containsExactly(CatalogPurchase(SENCHA.key, 100.0, 1240, TODAY))
     }
 
     private companion object {

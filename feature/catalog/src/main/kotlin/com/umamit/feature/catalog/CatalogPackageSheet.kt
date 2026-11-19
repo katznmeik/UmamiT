@@ -44,7 +44,8 @@ fun CatalogPackageSheet(
     val opening = rememberSaveable { System.nanoTime() }
     LaunchedEffect(viewModel, catalogKey, opening) { viewModel.open(catalogKey, opening) }
     val sheet by viewModel.sheet.collectAsStateWithLifecycle()
-    val open = sheet?.takeIf { it.catalogKey == catalogKey }?.state ?: return
+    // Only this opening's sheet: a dismissed one's input never shows again.
+    val open = sheet?.takeIf { it.catalogKey == catalogKey && it.opening == opening }?.state ?: return
     CatalogAddSheet(
         state = open.copy(saving = saving, failed = failed && !saving),
         actions = AddSheetActions(

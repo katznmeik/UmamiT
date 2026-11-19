@@ -121,17 +121,22 @@ class ReceiveRecipeDeviceTest {
         return found
     }
 
-    /** Each test starts without a MainActivity, so no screen of an earlier test can answer its waits. */
+    /**
+     * Each test starts without a MainActivity (all of them destroyed), so no screen of an earlier test can answer its
+     * waits: both refusals read the same message.
+     */
     @Before
     @After
     fun finishMainActivities() {
-        instrumentation.runOnMainSync {
-            val monitor = ActivityLifecycleMonitorRegistry.getInstance()
-            Stage.entries.flatMap { monitor.getActivitiesInStage(it) }
-                .filterIsInstance<MainActivity>()
-                .forEach { it.finish() }
+        mainActivities(*Stage.entries.toTypedArray()).forEach { activity ->
+            instrumentation.runOnMainSync { activity.finish() }
         }
-        instrumentation.waitForIdleSync()
+        val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
+        val alive = Stage.entries.filter { it != Stage.DESTROYED }.toTypedArray()
+        while (mainActivities(*alive).isNotEmpty()) {
+            check(SystemClock.uptimeMillis() < deadline) { "an earlier MainActivity did not go" }
+            SystemClock.sleep(POLL_MS)
+        }
     }
 
     @Test
