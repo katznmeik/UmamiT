@@ -85,7 +85,7 @@ class ReceiveRecipeFlowTest {
 
         compose.onNodeWithText(DETAIL).assertExists()
         compose.onNodeWithText(SCR32).assertDoesNotExist()
-        compose.onNodeWithText("Rezept „Kyusu\" übernommen").assertExists()
+        compose.onNodeWithText("Rezept „Kyusu“ übernommen").assertExists()
         assertThat(files.bytes(42L)).isNull()
     }
 

@@ -2231,7 +2231,7 @@ Tees' ⋮ *Rezept importieren*.
   you already own is preselected instead and gets the recipe (PO,
   2026-11-18).
 - ***Rezept übernehmen*** (primary, sticky): enabled once a tea is chosen;
-  adds the recipe and opens the tea detail (SCR-09) with „Rezept „Kyusu"
+  adds the recipe and opens the tea detail (SCR-09) with „Rezept „Kyusu“
   übernommen". ✕ discards without asking (nothing was written).
 - **Refused file:** a centred message (§5) with *Schließen*; nothing else.
 - TalkBack: the summary reads as one block; the tea choice is a radio

@@ -132,12 +132,12 @@ class SetupLinksFlowTest {
                                 TextButton(onClick = host.onDone) { Text(SAVE) }
                             }
                         },
-                        archivedSnackbar = { archived, onDone, modifier ->
+                        archivedSnackbar = { archived, onDone, host ->
                             ArchivedTeaSnackbar(
                                 archived = archived,
                                 onUndo = { runBlocking { archive.restore(it) } },
                                 onDone = onDone,
-                                modifier = modifier,
+                                hostState = host,
                             )
                         },
                     ),

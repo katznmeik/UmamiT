@@ -24,16 +24,25 @@ data class TakenOverRecipe(val recipeName: String, val token: Long = System.nano
     }
 }
 
-/** „Rezept „Kyusu" übernommen" (03 SCR-32) over the tea detail SCR-32 opened; [onDone] clears it once it is gone. */
+/**
+ * „Rezept „Kyusu“ übernommen" (03 SCR-32) over the tea detail SCR-32 opened; [onDone] clears it once it is gone.
+ * [hostState] is the shell's one snackbar queue; without it the snackbar has its own host.
+ */
 @Composable
-fun TakenOverSnackbar(notice: TakenOverRecipe?, onDone: () -> Unit, modifier: Modifier = Modifier) {
-    val hostState = remember { SnackbarHostState() }
+fun TakenOverSnackbar(
+    notice: TakenOverRecipe?,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+    hostState: SnackbarHostState? = null,
+) {
+    val ownHost = remember { SnackbarHostState() }
+    val host = hostState ?: ownHost
     val message = notice?.let { stringResource(R.string.receive_recipe_taken_over, it.recipeName) }
     val currentOnDone by rememberUpdatedState(onDone)
     LaunchedEffect(notice) {
         if (message == null) return@LaunchedEffect
-        hostState.showSnackbar(message)
+        host.showSnackbar(message)
         currentOnDone()
     }
-    SnackbarHost(hostState = hostState, modifier = modifier)
+    if (hostState == null) SnackbarHost(hostState = ownHost, modifier = modifier)
 }

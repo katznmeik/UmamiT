@@ -1,7 +1,7 @@
 package com.umamit.app
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import com.umamit.core.data.SettingsRepository
 import com.umamit.feature.settings.AboutScreen
 import com.umamit.feature.settings.SettingsRoute
@@ -143,9 +143,9 @@ internal class SettingsScreens(
             alertKey = host.alertKey,
         )
     },
-    /** „Sicherung eingespielt · …“ · *Rückgängig machen* over the shell (03 SCR-26). */
-    val importedSnackbar: @Composable (imported: ImportedBackup?, onDone: () -> Unit, modifier: Modifier) -> Unit =
-        { imported, onDone, modifier -> if (imported != null) ImportedBackupSnackbar(imported, onDone, modifier) },
+    /** „Sicherung eingespielt · …“ · *Rückgängig machen* in the shell's snackbar queue (03 SCR-26). */
+    val importedSnackbar: @Composable (imported: ImportedBackup?, onDone: () -> Unit, host: SnackbarHostState) -> Unit =
+        { imported, onDone, host -> if (imported != null) ImportedBackupSnackbar(imported, onDone, hostState = host) },
 ) {
     /** The same screens with the root's [onRerunSetup] and [onBackupImported]. */
     fun withRoot(onRerunSetup: () -> Unit, onBackupImported: (ImportedBackup) -> Unit) = SettingsScreens(
