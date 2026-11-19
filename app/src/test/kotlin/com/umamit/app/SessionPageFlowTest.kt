@@ -179,8 +179,8 @@ class SessionPageFlowTest {
                                 }
                             }
                         },
-                        archivedSnackbar = { archived, onDone, modifier ->
-                            ArchivedTeaSnackbar(archived, onUndo = {}, onDone = onDone, modifier = modifier)
+                        archivedSnackbar = { archived, onDone, host ->
+                            ArchivedTeaSnackbar(archived, onUndo = {}, onDone = onDone, hostState = host)
                         },
                     ),
                     setupScreen = { host -> Setup(host) },

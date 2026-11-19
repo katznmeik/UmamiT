@@ -16,6 +16,8 @@ import com.umamit.feature.settings.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /** The export's progress bar (BAK-01 AC2): [done] of [total] photos, both null while the rows are read. */
@@ -97,6 +100,15 @@ data class DataBackupUiState(
 
         /** How long „Daten werden gelöscht. …" shows before the wipe (#346 answer 2). */
         const val WIPE_NOTICE_MS = 1_000L
+
+        /** A check shorter than this shows no cover (D-133 Q6). */
+        const val CHECK_COVER_DELAY_MS = 250L
+
+        /** Once shown, the check's cover stays at least this long (D-133 Q6). */
+        const val CHECK_COVER_MIN_MS = 400L
+
+        /** The import's cover goes by itself this long after Start took the snackbar, if the screen is still shown. */
+        const val IMPORT_COVER_FALLBACK_MS = 2_000L
     }
 }
 
@@ -117,6 +129,7 @@ class DataBackupViewModel @Inject constructor(
     val state: StateFlow<DataBackupUiState> = mutable.asStateFlow()
 
     private var exportJob: Job? = null
+    private var checkJob: Job? = null
     private var staged: StagedBackup? = null
 
     init {
@@ -140,6 +153,7 @@ class DataBackupViewModel @Inject constructor(
     // --- Sicherung erstellen (BAK-01) ---
 
     fun createBackup() {
+        if (checking) return
         viewModelScope.launch {
             val estimate = backup.estimate()
             mutable.update {
@@ -202,12 +216,23 @@ class DataBackupViewModel @Inject constructor(
         mutable.update { it.copy(pick = BackupPick.OpenBackup) }
     }
 
-    /** The picked file, or null when the picker was left (then nothing is checked). */
+    /**
+     * The picked file, or null when the picker was left (then nothing is checked). „Sicherung wird geprüft …" covers
+     * the screen only once the check has taken [DataBackupUiState.CHECK_COVER_DELAY_MS], then for at least
+     * [DataBackupUiState.CHECK_COVER_MIN_MS], so a quick check never flashes it (D-133 Q6).
+     */
     fun onImportDocument(document: String?) {
-        if (document == null) return
-        mutable.update { it.copy(busy = BackupBusy.CHECKING) }
-        viewModelScope.launch {
-            when (val checked = backup.check(document)) {
+        if (document == null || checkJob?.isActive == true) return
+        checkJob = viewModelScope.launch {
+            val check = async { backup.check(document) }
+            val checked = withTimeoutOrNull(DataBackupUiState.CHECK_COVER_DELAY_MS) { check.await() } ?: run {
+                mutable.update { it.copy(busy = BackupBusy.CHECKING) }
+                coroutineScope {
+                    launch { delay(DataBackupUiState.CHECK_COVER_MIN_MS) }
+                    check.await()
+                }
+            }
+            when (checked) {
                 is BackupCheck.Refused -> mutable.update { it.copy(busy = null, message = checked.messageRes) }
 
                 is BackupCheck.Valid -> {
@@ -220,6 +245,9 @@ class DataBackupViewModel @Inject constructor(
             }
         }
     }
+
+    /** A check runs, its cover not shown yet: nothing else opens over the dialog it brings. */
+    private val checking: Boolean get() = checkJob?.isActive == true
 
     fun typeConfirm(text: String) {
         mutable.update { it.copy(confirmText = text) }
@@ -239,8 +267,9 @@ class DataBackupViewModel @Inject constructor(
                 toRestore.close()
             }
             when (result) {
+                // The cover stays until Start shows: the host leaves this screen under it (D-133 Q6).
                 is RestoreResult.Done -> mutable.update {
-                    it.copy(busy = null, imported = ImportedBackup(result.preview.sessions, result.preview.teas))
+                    it.copy(imported = ImportedBackup(result.preview.sessions, result.preview.teas))
                 }
 
                 is RestoreResult.Refused -> mutable.update { it.copy(busy = null, message = result.refusal.messageRes) }
@@ -251,9 +280,16 @@ class DataBackupViewModel @Inject constructor(
         }
     }
 
-    /** Start has taken the import's snackbar. */
+    /**
+     * Start has taken the import's snackbar; the screen is left under the cover. Should it stay on screen after all,
+     * the cover goes after [DataBackupUiState.IMPORT_COVER_FALLBACK_MS], so it never stays without an end.
+     */
     fun importHandled() {
         mutable.update { it.copy(imported = null) }
+        viewModelScope.launch {
+            delay(DataBackupUiState.IMPORT_COVER_FALLBACK_MS)
+            mutable.update { if (it.busy == BackupBusy.IMPORTING) it.copy(busy = null) else it }
+        }
     }
 
     // --- Import rückgängig machen (BAK-02 AC7) ---
@@ -310,7 +346,7 @@ class DataBackupViewModel @Inject constructor(
 
     /** The dialog, with the safety copy's sentence while *Import rückgängig machen* is offered (#346 answer 4). */
     fun askWipe() {
-        if (!mutable.value.canAskWipe || mutable.value.dialog != null) return
+        if (!mutable.value.canAskWipe || mutable.value.dialog != null || checking) return
         viewModelScope.launch {
             val safetyCopy = readUndo() != null
             mutable.update {

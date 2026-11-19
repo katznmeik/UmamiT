@@ -29,15 +29,19 @@ import javax.inject.Inject
  * The add sheet (SCR-23, CAT-12) for the catalog tea [catalogKey] where another screen writes the purchase, as
  * SCR-32's *Neuen Tee anlegen* „aus dem Katalog" does (PRF-08): the same sizes, price (with its one exact-price
  * fetch per size, GEN-01 (c)) and date, but *Aufnehmen* only hands the [CatalogPurchase] to [onSave]; [saving] and
- * [failed] are the caller's. [onDismiss] closes it without a write (the caller ignores it while [saving]).
+ * [failed] are the caller's. [onDismiss] closes it without a write (the caller ignores it while [saving]). With
+ * [leaving] (the caller's write is done) it slides out like a drag, then [onLeft] removes it (A-13).
  */
 @Composable
+@Suppress("LongParameterList") // the caller's state, its three callbacks and the view model
 fun CatalogPackageSheet(
     catalogKey: String,
     saving: Boolean,
     failed: Boolean,
     onSave: (CatalogPurchase) -> Unit,
     onDismiss: () -> Unit,
+    leaving: Boolean = false,
+    onLeft: () -> Unit = {},
     viewModel: CatalogPackageSheetViewModel = hiltViewModel(),
 ) {
     // One sheet per opening: a configuration change keeps the input, a new opening starts afresh.
@@ -56,6 +60,8 @@ fun CatalogPackageSheet(
             onSave = { viewModel.purchase()?.let(onSave) },
         ),
         onDismissRequest = onDismiss,
+        leaving = leaving,
+        onLeft = onLeft,
     )
 }
 

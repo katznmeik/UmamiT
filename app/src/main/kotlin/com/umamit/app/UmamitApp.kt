@@ -26,6 +26,8 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -208,8 +210,9 @@ internal fun UmamitApp(
         select(Tab.Collection)
     }
     val importRecipe = rememberRecipeImport(recipeFiles)
-    // „Rezept „…" übernommen" over the tea detail SCR-32 opened.
+    // „Rezept „…“ übernommen" over the tea detail SCR-32 opened.
     var takenOver by rememberSaveable(stateSaver = TakenOverRecipe.Saver) { mutableStateOf<TakenOverRecipe?>(null) }
+    val shellSnackbar = remember { SnackbarHostState() }
     // A further tap on a refresh notification while this shell shows: back to the catalog list (D-097).
     OnNewToken(opening.sheetToken) {
         brewFlow.leaveFor(Tab.Collection)
@@ -432,22 +435,12 @@ internal fun UmamitApp(
                     }
                     // „*Tanabata* archiviert" · *Rückgängig* after *Archivieren* on a detail, over the screen below it,
                     // whichever tab or stack that is (D-100, F6).
-                    collectionScreens.archivedSnackbar(
-                        archivedTea,
-                        { onArchivedTeaChange(null) },
-                        Modifier.align(Alignment.BottomCenter),
-                    )
-                    collectionScreens.takenOverSnackbar(
-                        takenOver,
-                        { takenOver = null },
-                        Modifier.align(Alignment.BottomCenter),
-                    )
+                    collectionScreens.archivedSnackbar(archivedTea, { onArchivedTeaChange(null) }, shellSnackbar)
+                    collectionScreens.takenOverSnackbar(takenOver, { takenOver = null }, shellSnackbar)
                     // „Sicherung eingespielt · …“ · *Rückgängig machen* on Start after an import (BAK-02 AC6).
-                    settings.importedSnackbar(
-                        importedBackup,
-                        { onImportedBackupChange(null) },
-                        Modifier.align(Alignment.BottomCenter),
-                    )
+                    settings.importedSnackbar(importedBackup, { onImportedBackupChange(null) }, shellSnackbar)
+                    // The shell's one snackbar queue: one after the other, never two over each other (D-133 item 13).
+                    SnackbarHost(shellSnackbar, Modifier.align(Alignment.BottomCenter))
                     SavedSheetHost(
                         requests = journalSources.savedSheets,
                         sessions = journalSources.sessions,
@@ -861,6 +854,8 @@ private fun TabHost(
                                 failed = request.failed,
                                 onSave = request.onSave,
                                 onDismiss = request.onDismiss,
+                                leaving = request.leaving,
+                                onLeft = request.onLeft,
                             )
                         },
                     ),

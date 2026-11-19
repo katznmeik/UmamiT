@@ -54,20 +54,26 @@ fun ArchivedTeaSnackbar(
     archived: ArchivedTea?,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    hostState: SnackbarHostState? = null,
     viewModel: ArchiveUndoViewModel = hiltViewModel(),
 ) {
-    ArchivedTeaSnackbar(archived, onUndo = viewModel::restore, onDone = onDone, modifier = modifier)
+    ArchivedTeaSnackbar(archived, onUndo = viewModel::restore, onDone = onDone, modifier = modifier, hostState)
 }
 
-/** The stateless snackbar: [onUndo] gets the tea's id. */
+/**
+ * The stateless snackbar: [onUndo] gets the tea's id. [hostState] is the shell's one snackbar queue; without it the
+ * snackbar has its own host.
+ */
 @Composable
 fun ArchivedTeaSnackbar(
     archived: ArchivedTea?,
     onUndo: (teaId: String) -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    hostState: SnackbarHostState? = null,
 ) {
-    val hostState = remember { SnackbarHostState() }
+    val ownHost = remember { SnackbarHostState() }
+    val host = hostState ?: ownHost
     val message = archived?.let { stringResource(R.string.collection_tea_archived, it.teaName) }
     val undo = stringResource(R.string.collection_tea_undo)
     val accessibility = LocalAccessibilityManager.current
@@ -75,9 +81,9 @@ fun ArchivedTeaSnackbar(
     val currentOnDone by rememberUpdatedState(onDone)
     LaunchedEffect(archived) {
         if (archived == null || message == null) return@LaunchedEffect
-        val undone = hostState.showUndo(message, undo, accessibility)
+        val undone = host.showUndo(message, undo, accessibility)
         if (undone) currentOnUndo(archived.teaId)
         currentOnDone()
     }
-    SnackbarHost(hostState = hostState, modifier = modifier)
+    if (hostState == null) SnackbarHost(hostState = ownHost, modifier = modifier)
 }

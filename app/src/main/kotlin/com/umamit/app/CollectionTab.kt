@@ -1,5 +1,6 @@
 package com.umamit.app
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.umamit.feature.collection.detail.ArchivedTea
@@ -57,11 +58,12 @@ internal class CollectionStackScreens(
             )
         },
     val receiveRecipe: @Composable (ReceiveRecipeHost) -> Unit = { ReceiveRecipeRoute(it) },
-    val takenOverSnackbar: @Composable (notice: TakenOverRecipe?, onDone: () -> Unit, modifier: Modifier) -> Unit =
-        { notice, onDone, modifier -> TakenOverSnackbar(notice, onDone, modifier) },
+    // The snackbars show in the shell's one queue ([SnackbarHostState]), so two never overlap.
+    val takenOverSnackbar: @Composable (notice: TakenOverRecipe?, onDone: () -> Unit, host: SnackbarHostState) -> Unit =
+        { notice, onDone, host -> TakenOverSnackbar(notice, onDone, hostState = host) },
     // Only composed with a notice: its view model exists only while there is something to undo.
-    val archivedSnackbar: @Composable (archived: ArchivedTea?, onDone: () -> Unit, modifier: Modifier) -> Unit =
-        { archived, onDone, modifier -> if (archived != null) ArchivedTeaSnackbar(archived, onDone, modifier) },
+    val archivedSnackbar: @Composable (archived: ArchivedTea?, onDone: () -> Unit, host: SnackbarHostState) -> Unit =
+        { archived, onDone, host -> if (archived != null) ArchivedTeaSnackbar(archived, onDone, hostState = host) },
 )
 
 /**

@@ -499,7 +499,7 @@
     <string name="receive_recipe_shop_link_hint">Lädt eine Seite von tee-kontor-kiel.de</string>
     <string name="receive_recipe_shop_link_loading">Tee wird geladen …</string>
     <string name="receive_recipe_take_over">Rezept übernehmen</string>
-    <string name="receive_recipe_taken_over">Rezept „%1$s\" übernommen</string>
+    <string name="receive_recipe_taken_over">Rezept „%1$s“ übernommen</string>
     <string name="receive_recipe_failed">Das Rezept konnte nicht übernommen werden.</string>
     <string name="receive_recipe_sheet_title">Tee wählen</string>
     <string name="receive_recipe_no_picker">Keine App zum Auswählen einer Datei gefunden.</string>

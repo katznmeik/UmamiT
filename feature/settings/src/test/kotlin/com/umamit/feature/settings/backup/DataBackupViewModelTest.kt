@@ -18,10 +18,13 @@ import com.umamit.feature.settings.R
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -201,13 +204,71 @@ class DataBackupViewModelTest {
         assertThat(viewModel.now.pick).isEqualTo(BackupPick.OpenBackup)
         viewModel.pickHandled()
         viewModel.onImportDocument("content://file/a")
-        assertThat(viewModel.now.busy).isEqualTo(BackupBusy.CHECKING)
         advanceUntilIdle()
 
         assertThat(backup.checked).containsExactly("content://file/a")
         assertThat(viewModel.now.busy).isNull()
         assertThat(viewModel.now.dialog).isNull()
         assertThat(viewModel.now.message).isEqualTo(BackupR.string.backup_refused_not_a_backup)
+    }
+
+    @Test
+    fun `a quick check never shows the cover`() = runTest(dispatcher) {
+        backup.checkResult = BackupCheck.Valid(FakeDataBackup.PREVIEW, FakeStagedBackup())
+        backup.checkGate = CompletableDeferred()
+        val viewModel = viewModel()
+        val covers = mutableListOf<BackupBusy?>()
+        backgroundScope.launch { viewModel.state.collect { covers += it.busy } }
+
+        viewModel.onImportDocument("content://file/quick")
+        advanceTimeBy(DataBackupUiState.CHECK_COVER_DELAY_MS - 10)
+        backup.checkGate?.complete(Unit)
+        advanceUntilIdle()
+
+        assertThat(covers).doesNotContain(BackupBusy.CHECKING)
+        assertThat(viewModel.now.dialog).isEqualTo(BackupDialog.Replace(FakeDataBackup.PREVIEW))
+    }
+
+    @Test
+    fun `a slow check shows the cover after a quarter second for at least 0,4 s`() = runTest(dispatcher) {
+        backup.checkResult = BackupCheck.Valid(FakeDataBackup.PREVIEW, FakeStagedBackup())
+        backup.checkGate = CompletableDeferred()
+        val viewModel = viewModel()
+
+        viewModel.onImportDocument("content://file/slow")
+        advanceTimeBy(DataBackupUiState.CHECK_COVER_DELAY_MS - 10)
+        assertThat(viewModel.now.busy).isNull()
+        advanceTimeBy(20)
+        assertThat(viewModel.now.busy).isEqualTo(BackupBusy.CHECKING)
+
+        // Done 50 ms after the cover came: it stays for its 0,4 s.
+        advanceTimeBy(40)
+        backup.checkGate?.complete(Unit)
+        advanceTimeBy(DataBackupUiState.CHECK_COVER_MIN_MS - 100)
+        assertThat(viewModel.now.busy).isEqualTo(BackupBusy.CHECKING)
+        assertThat(viewModel.now.dialog).isNull()
+        advanceUntilIdle()
+
+        assertThat(viewModel.now.busy).isNull()
+        assertThat(viewModel.now.dialog).isEqualTo(BackupDialog.Replace(FakeDataBackup.PREVIEW))
+    }
+
+    @Test
+    fun `while a check runs nothing else opens and a second file is ignored`() = runTest(dispatcher) {
+        backup.checkResult = BackupCheck.Valid(FakeDataBackup.PREVIEW, FakeStagedBackup())
+        backup.checkGate = CompletableDeferred()
+        val viewModel = viewModel()
+
+        viewModel.onImportDocument("content://file/one")
+        runCurrent()
+        viewModel.onImportDocument("content://file/two")
+        viewModel.askWipe()
+        viewModel.createBackup()
+        backup.checkGate?.complete(Unit)
+        advanceUntilIdle()
+
+        assertThat(backup.checked).containsExactly("content://file/one")
+        assertThat(viewModel.now.dialog).isEqualTo(BackupDialog.Replace(FakeDataBackup.PREVIEW))
     }
 
     @Test
@@ -275,11 +336,17 @@ class DataBackupViewModelTest {
 
         assertThat(staged.restores).isEqualTo(1)
         assertThat(staged.closed).isEqualTo(1)
-        assertThat(viewModel.now.busy).isNull()
+        // The cover stays until Start shows (D-133 Q6): the host leaves the screen under it.
+        assertThat(viewModel.now.busy).isEqualTo(BackupBusy.IMPORTING)
         assertThat(viewModel.now.imported).isEqualTo(ImportedBackup(sessions = 142, teas = 23))
         assertThat(viewModel.now.undo).isEqualTo(backup.undoPreview)
         viewModel.importHandled()
         assertThat(viewModel.now.imported).isNull()
+        assertThat(viewModel.now.busy).isEqualTo(BackupBusy.IMPORTING)
+
+        // A screen still shown after all loses the cover.
+        advanceTimeBy(DataBackupUiState.IMPORT_COVER_FALLBACK_MS + 1)
+        assertThat(viewModel.now.busy).isNull()
     }
 
     @Test

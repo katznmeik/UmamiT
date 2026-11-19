@@ -31,6 +31,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -80,7 +81,11 @@ class UseCaseDataBackup @Inject constructor(
     override val timerActive: Flow<Boolean> =
         combine(timer.slotStates.values) { states -> states.any { it !is TimerUiState.Idle } }.distinctUntilChanged()
 
-    /** SET-20 (BAK-06): on counts the 30 days from now and replaces the job; off cancels it. */
+    /**
+     * SET-20 (BAK-06): on counts the 30 days from now and replaces the job; off cancels it. A failing settings write
+     * or WorkManager (its store, an `IllegalStateException`) answers false instead of ending the app.
+     */
+    @Suppress("TooGenericExceptionCaught") // DataStore's IOException and WorkManager's runtime exceptions alike
     override suspend fun setReminderEnabled(on: Boolean): Boolean = try {
         val save: suspend () -> Unit = { settings.update { it.copy(backupReminderEnabled = on) } }
         if (on) {
@@ -90,7 +95,9 @@ class UseCaseDataBackup @Inject constructor(
             reminders.turnOff()
         }
         true
-    } catch (e: IOException) {
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
         Log.w(TAG, "SET-20 not saved", e)
         false
     }

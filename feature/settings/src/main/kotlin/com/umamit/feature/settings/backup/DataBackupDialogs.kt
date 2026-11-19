@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -43,11 +44,15 @@ import kotlin.math.roundToLong
 internal fun BackupDialogs(state: DataBackupUiState, actions: DataBackupActions) {
     when (val dialog = state.dialog) {
         null -> Unit
+
         is BackupDialog.SizeNote -> SizeNoteDialog(dialog.estimate, actions)
+
         is BackupDialog.Replace -> ReplaceDialog(dialog.preview, state, actions)
+
         is BackupDialog.Undo -> UndoDialog(dialog.preview, actions)
-        is BackupDialog.Wipe -> WipeDialog(dialog, state, actions)
-        BackupDialog.Wiping -> WipingNotice()
+
+        // One branch, so the notice takes the delete dialog's window (D-133 Q7).
+        is BackupDialog.Wipe, BackupDialog.Wiping -> WipeDialog(dialog, state, actions)
     }
 }
 
@@ -99,7 +104,10 @@ private fun ReplaceDialog(preview: BackupPreview, state: DataBackupUiState, acti
     }
 }
 
-/** The field for a typed confirmation word („ERSETZEN", „LÖSCHEN"): capitals, no autocorrect. */
+/**
+ * The field for a typed confirmation word („ERSETZEN", „LÖSCHEN"): capitals, no autocorrect. [hint] („Tippe … zur
+ * Bestätigung") is its own small line above a field with no label, at every font scale (D-133 Q1).
+ */
 @Composable
 internal fun ConfirmWordField(
     value: String,
@@ -108,22 +116,30 @@ internal fun ConfirmWordField(
     talkBack: String,
     tag: String,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(hint) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            capitalization = KeyboardCapitalization.Characters,
-            autoCorrectEnabled = false,
-            imeAction = ImeAction.Done,
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = UmamiSpacing.Small)
-            .semantics { contentDescription = talkBack }
-            .testTag(tag),
-    )
+    Column(modifier = Modifier.fillMaxWidth().padding(top = UmamiSpacing.Small)) {
+        Text(
+            text = hint,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // The field's own description says the same to TalkBack.
+            modifier = Modifier.clearAndSetSemantics {},
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Characters,
+                autoCorrectEnabled = false,
+                imeAction = ImeAction.Done,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = UmamiSpacing.XSmall)
+                .semantics { contentDescription = talkBack }
+                .testTag(tag),
+        )
+    }
 }
 
 /** „Import rückgängig machen?" with what is lost since the import (BAK-02 AC7, D-130 Q6). */
