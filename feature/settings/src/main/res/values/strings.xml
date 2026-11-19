@@ -149,7 +149,6 @@
     <string name="backup_checking">Sicherung wird geprüft …</string>
     <string name="backup_preview_title">Sicherung einspielen?</string>
     <string name="backup_preview_body">Sicherung vom %1$s · %2$s. Sie ersetzt alle deine Daten auf diesem Gerät. Vorher wird eine Sicherheitskopie angelegt, die du 7 Tage lang zurückholen kannst.</string>
-    <string name="backup_confirm_word">ERSETZEN</string>
     <string name="backup_confirm_hint">Tippe ERSETZEN zur Bestätigung</string>
     <string name="backup_confirm_talkback">Bestätigungswort, ERSETZEN eintippen</string>
     <string name="backup_replace">Ersetzen</string>

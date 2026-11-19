@@ -4,11 +4,13 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.backup.restore.RestoreRefusal
 import com.umamit.core.backup.restore.RestoreResult
 import com.umamit.feature.settings.R
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -39,6 +41,23 @@ class ImportUndoViewModelTest {
         assertThat(viewModel.result.value).isEqualTo(UndoResult(R.string.backup_undone))
         viewModel.resultShown()
         assertThat(viewModel.result.value).isNull()
+    }
+
+    @Test
+    fun `the undo runs from the tap until its result and a second tap meanwhile is ignored`() = runTest(dispatcher) {
+        backup.undoGate = CompletableDeferred()
+        val viewModel = ImportUndoViewModel(backup)
+
+        viewModel.undo()
+        runCurrent()
+        assertThat(viewModel.running.value).isTrue()
+        viewModel.undo()
+        backup.undoGate?.complete(Unit)
+        advanceUntilIdle()
+
+        assertThat(backup.undoCalls).isEqualTo(1)
+        assertThat(viewModel.running.value).isFalse()
+        assertThat(viewModel.result.value).isEqualTo(UndoResult(R.string.backup_undone))
     }
 
     @Test

@@ -2,9 +2,20 @@ package com.umamit.feature.settings.backup
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,6 +43,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntSize
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,7 +52,9 @@ import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.alertCovers
 import com.umamit.feature.settings.R
 import com.umamit.feature.settings.SwitchRow
 import java.time.ZoneId
@@ -81,7 +95,7 @@ class DataBackupActions(
 /**
  * *Daten & Sicherung* (SCR-26) with its view model and the three system pickers (BAK-01 AC1, BAK-02 AC1, BAK-04).
  * [onImportFinish] gets a finished import: the host opens Start with its snackbar (BAK-02 AC6). [alertKey] is the alert
- * playing now: no dialog is composed over it (rule 8).
+ * playing now: a dialog opened outside it is gone in its first frame and stays closed after it (rule 8, D-133 Q2).
  */
 @Composable
 fun DataBackupRoute(
@@ -117,6 +131,12 @@ fun DataBackupRoute(
             is BackupPick.CreateJournal -> createJournal.launch(pick.fileName)
         }
     }
+    // Like every overlay (03 „Overlays give way"): the dialog remembers the alert it was opened in; another one
+    // closes it for good, staging included (D-133 Q2).
+    val dialogOpen = state.dialog != null
+    val openedIn = remember(dialogOpen) { alertKey }
+    val dialogCovered = dialogOpen && alertCovers(alertKey, openedIn)
+    LaunchedEffect(dialogCovered) { if (dialogCovered) viewModel.dismissDialog() }
     val currentOnImportFinish by rememberUpdatedState(onImportFinish)
     LaunchedEffect(state.imported) {
         val imported = state.imported ?: return@LaunchedEffect
@@ -125,7 +145,7 @@ fun DataBackupRoute(
     }
     DataBackupScreen(
         state = state,
-        alerting = alertKey != null,
+        alerting = dialogCovered,
         onBack = onBack,
         modifier = modifier,
         actions = DataBackupActions(
@@ -148,9 +168,9 @@ fun DataBackupRoute(
 }
 
 /**
- * SCR-26 without state: SICHERUNG (the last backup, *Sicherung erstellen* or its progress, *Sicherung einspielen*,
- * *Import rückgängig machen*, *An Sicherung erinnern*), EXPORT (*Journal als CSV*), GERÄTE-BACKUP and *Alle Daten
- * löschen*. [zone] formats
+ * SCR-26 without state ([alerting]: an alert covers the open dialog, which is not composed): SICHERUNG (the last
+ * backup, *Sicherung erstellen* or its progress, *Sicherung einspielen*, *Import rückgängig machen*, *An Sicherung
+ * erinnern*), EXPORT (*Journal als CSV*), GERÄTE-BACKUP and *Alle Daten löschen*. [zone] formats
  * the device's dates (a backup's own date uses the file's zone).
  */
 @Composable
@@ -207,7 +227,7 @@ fun DataBackupScreen(
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
-    // Rule 8: an alert removes an open dialog in its first frame; the view model keeps it for afterwards.
+    // Rule 8: an alert removes an open dialog in its first frame; the route then closes it for good (D-133 Q2).
     if (!alerting) BackupDialogs(state, actions)
     state.busy?.let { BusyCover(it) }
 }
@@ -224,14 +244,26 @@ private fun BackupSection(state: DataBackupUiState, actions: DataBackupActions, 
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        ButtonBlock {
-            val export = state.export
-            if (export == null) {
-                Button(onClick = actions.createBackup, modifier = Modifier.testTag(DataBackupTags.CREATE)) {
-                    Text(stringResource(R.string.backup_create))
+        ButtonBlock(animateSize = false) {
+            // The button and the progress cross-fade; the height follows on the `sheet` spring, so nothing below
+            // jumps (D-133 Q11, 03 §3.6).
+            val motion = UmamiTheme.motion
+            AnimatedContent(
+                targetState = state.export,
+                contentKey = { it != null },
+                transitionSpec = {
+                    fadeIn(motion.fade()) togetherWith fadeOut(motion.exitFade()) using
+                        SizeTransform(clip = false) { _, _ -> motion.sheet() }
+                },
+                label = "backupExport",
+            ) { export ->
+                if (export == null) {
+                    Button(onClick = actions.createBackup, modifier = Modifier.testTag(DataBackupTags.CREATE)) {
+                        Text(stringResource(R.string.backup_create))
+                    }
+                } else {
+                    ExportProgressBar(export, onCancel = actions.cancelExport)
                 }
-            } else {
-                ExportProgressBar(export, onCancel = actions.cancelExport)
             }
         }
         val timerDetail = stringResource(R.string.backup_timer_active).takeIf { state.timerActive }
@@ -244,7 +276,8 @@ private fun BackupSection(state: DataBackupUiState, actions: DataBackupActions, 
                 Text(stringResource(R.string.backup_import))
             }
         }
-        state.undo?.let { undo ->
+        // The row fades in and out while the height follows (D-133 Q11); it keeps its last date while it leaves.
+        AppearingBlock(state.undo) { undo ->
             val until = stringResource(
                 R.string.backup_undo_until,
                 GermanFormat.day(undo.availableUntil, zone),
@@ -307,7 +340,13 @@ private fun ExportProgressBar(progress: ExportProgress, onCancel: () -> Unit) {
                     ?: ProgressBarRangeInfo.Indeterminate
             }
         if (fraction != null) {
-            LinearProgressIndicator(progress = { fraction }, modifier = barModifier)
+            // A soft 0,3 s ease per photo instead of a jump (D-133 Q11); it retargets from where it is.
+            val shown by animateFloatAsState(
+                targetValue = fraction,
+                animationSpec = UmamiTheme.motion.standard(),
+                label = "backupProgress",
+            )
+            LinearProgressIndicator(progress = { shown }, modifier = barModifier)
         } else {
             LinearProgressIndicator(modifier = barModifier)
         }
@@ -321,12 +360,45 @@ private fun ExportProgressBar(progress: ExportProgress, onCancel: () -> Unit) {
     }
 }
 
-/** A button (or the progress) with an optional line below it. */
+/**
+ * [value]'s block while it is there: it fades in and expands, and fades out and shrinks with its last value
+ * (`fade`/`exitFade`, height on `sheet`; 03 §3.6).
+ */
 @Composable
-internal fun ButtonBlock(modifier: Modifier = Modifier, detail: String? = null, content: @Composable () -> Unit) {
+private fun <T : Any> ColumnScope.AppearingBlock(value: T?, content: @Composable (T) -> Unit) {
+    val motion = UmamiTheme.motion
+    // Not a state: the block recomposes with [value] anyway, and leaving draws what it showed last.
+    val last = remember { LastValue<T>() }
+    if (value != null) last.value = value
+    AnimatedVisibility(
+        visible = value != null,
+        enter = fadeIn(motion.fade()) + expandVertically(motion.sheet()),
+        exit = fadeOut(motion.exitFade()) + shrinkVertically(motion.sheet()),
+    ) {
+        last.value?.let { content(it) }
+    }
+}
+
+private class LastValue<T : Any> {
+    var value: T? = null
+}
+
+/**
+ * A button (or the progress) with an optional line below it. With [animateSize] a line that comes or goes changes the
+ * height on the `sheet` spring instead of in one frame (D-133 Q11); off where the content animates its own size.
+ */
+@Composable
+internal fun ButtonBlock(
+    modifier: Modifier = Modifier,
+    detail: String? = null,
+    animateSize: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val sizeSpec = UmamiTheme.motion.sheet<IntSize>()
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (animateSize) Modifier.animateContentSize(sizeSpec) else Modifier)
             .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
     ) {
         content()

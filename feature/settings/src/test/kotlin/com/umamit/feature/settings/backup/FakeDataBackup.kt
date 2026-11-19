@@ -28,6 +28,9 @@ class FakeDataBackup : DataBackup {
     var checkResult: BackupCheck = BackupCheck.Refused(0)
     val checked = mutableListOf<String>()
 
+    /** While set, a check waits for it: a slow file. */
+    var checkGate: CompletableDeferred<Unit>? = null
+
     var undoPreview: UndoPreview? = null
     var undoResult: RestoreResult = RestoreResult.Done(PREVIEW, finishedAtNextStart = false)
     var undoGate: CompletableDeferred<Unit>? = null
@@ -56,6 +59,7 @@ class FakeDataBackup : DataBackup {
 
     override suspend fun check(document: String): BackupCheck {
         checked += document
+        checkGate?.await()
         return checkResult
     }
 

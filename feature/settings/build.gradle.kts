@@ -13,4 +13,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.androidx.test.core)
+    // SCR-26's adapters against the real reminder schedule (WorkManager's test driver, D-133 item 13).
+    testImplementation(libs.androidx.work.testing)
 }

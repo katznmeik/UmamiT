@@ -17,7 +17,8 @@ data class UndoResult(@param:StringRes val messageRes: Int?)
 
 /**
  * The snackbar's *Rückgängig machen* on Start (BAK-02 AC6, D-130 item 22): the undo of the import just done, refused
- * like the one on SCR-26 while a timer is active. [result] is its text, until [resultShown].
+ * like the one on SCR-26 while a timer is active. [running] while it runs: the shell shows the cover „Import wird
+ * rückgängig gemacht …" until the result's snackbar (D-133 Q5). [result] is its text, until [resultShown].
  */
 @HiltViewModel
 class ImportUndoViewModel @Inject constructor(private val backup: DataBackup) : ViewModel() {
@@ -25,7 +26,14 @@ class ImportUndoViewModel @Inject constructor(private val backup: DataBackup) : 
 
     val result: StateFlow<UndoResult?> = mutable.asStateFlow()
 
+    private val mutableRunning = MutableStateFlow(false)
+
+    /** The undo runs; true from the tap until its [result] is there. */
+    val running: StateFlow<Boolean> = mutableRunning.asStateFlow()
+
     fun undo() {
+        if (mutableRunning.value) return
+        mutableRunning.value = true
         viewModelScope.launch {
             val message = when (val done = backup.undo()) {
                 is RestoreResult.Done -> R.string.backup_undone
@@ -33,6 +41,7 @@ class ImportUndoViewModel @Inject constructor(private val backup: DataBackup) : 
                 RestoreResult.NoSafetyCopy -> null
             }
             mutable.value = UndoResult(message)
+            mutableRunning.value = false
         }
     }
 
