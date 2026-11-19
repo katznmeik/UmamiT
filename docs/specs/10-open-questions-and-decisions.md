@@ -498,7 +498,9 @@ built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
   laden* that turns out to be owned is preselected and gets the recipe (no
   sheet, no purchase recorded); a matched tea with 10 recipes keeps *Neuen
   Tee anlegen* hidden, only *Anderen Tee wählen …* is left. A failed save
-  shows in the sheet (on SCR-32 if an alert removed the sheet; Claude).
+  shows in the sheet (on SCR-32 if an alert removed the sheet; Claude). A
+  tea picked by hand before the shop-link load stays picked (Claude, „a
+  choice made stays").
 
 ### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*
 
