@@ -19,6 +19,14 @@ class RecipeMatchTest {
     }
 
     @Test
+    fun `the key the shop link loaded matches a tea when the file's key does not`() {
+        val teas = listOf(tea("byName", "Gyokuro Asahi"), tea("merged", "Ganz anders", catalogKey = "XY0100"))
+
+        assertThat(RecipeMatch.find(file("Gyokuro Asahi", "XY0170"), teas, loadedKey = "XY0100"))
+            .isEqualTo(TeaMatch("merged", MatchKind.CATALOG))
+    }
+
+    @Test
     fun `the name matches ignoring case`() {
         val teas = listOf(tea("t1", "gyokuro asahi"))
 

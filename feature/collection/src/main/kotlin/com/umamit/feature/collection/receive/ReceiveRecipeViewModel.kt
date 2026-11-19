@@ -87,7 +87,8 @@ sealed interface ReceiveRecipeUiState {
      * @property teas every collection tea, archived ones included, for *Anderen Tee wählen …*.
      * @property catalogKey the local catalog tea *Neuen Tee anlegen* copies („aus dem Katalog"); null: „ohne Katalog".
      * @property offersNewTea *Neuen Tee anlegen* shows: no collection tea (archived included) has the file's
-     *   `catalog_key` (that tea is preselected; PO, 2026-11-18).
+     *   `catalog_key` or the key *Tee über Shop-Link laden* returned (that tea is preselected and gets the recipe, no
+     *   purchase; PO, 2026-11-18).
      * @property offersShopLink *Tee über Shop-Link laden*: the file has a checked shop link whose tea is not in the
      *   local catalog (D-130 Q4) and no collection tea matched (PO, 2026-11-18).
      * @property packageSheet the package sheet of *Neuen Tee anlegen* „aus dem Katalog" while it is open.
@@ -128,7 +129,9 @@ sealed interface ReceiveRecipeEvent {
  * on its tap, *Tee über Shop-Link laden*'s one CAT-17 fetch ([TeaLinkLoader]). Opening a file writes nothing and
  * sends no request; *Rezept übernehmen* ([RecipeTakeOver]) is the only write. For *Neuen Tee anlegen* „aus dem
  * Katalog" it first opens the package sheet ([PackageSheet]); its *Aufnehmen* ([savePackage]) writes the tea, its
- * package and the recipe in one transaction, and closing it ([dismissPackageSheet]) writes nothing.
+ * package and the recipe in one transaction, and closing it ([dismissPackageSheet]) writes nothing. A loaded tea the
+ * collection already has (archived included) is preselected instead and gets the recipe: no sheet, no purchase (PO,
+ * 2026-11-18).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -182,11 +185,17 @@ class ReceiveRecipeViewModel internal constructor(
         key?.let { catalog.observeTea(it).map { detail -> detail?.key } } ?: flowOf(null)
     }
 
-    val state: StateFlow<ReceiveRecipeUiState> = combine(file, options, catalogKey, form) { file, teas, key, form ->
+    val state: StateFlow<ReceiveRecipeUiState> = combine(
+        file,
+        options,
+        catalogKey,
+        loadedKey,
+        form,
+    ) { file, teas, key, loaded, form ->
         when (file) {
             FileState.Unread -> ReceiveRecipeUiState.Loading
             is FileState.Refused -> ReceiveRecipeUiState.Refused(file.refusal)
-            is FileState.Read -> ready(file.recipe, teas, key, form)
+            is FileState.Read -> ready(file.recipe, teas, Keys(catalog = key, loaded = loaded), form)
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ReceiveRecipeUiState.Loading)
 
@@ -298,17 +307,22 @@ class ReceiveRecipeViewModel internal constructor(
         }
     }
 
-    private fun ready(recipe: SharedRecipe, teas: List<TeaOption>, key: String?, form: Form): ReceiveRecipeUiState {
-        val match = RecipeMatch.find(recipe.tea, teas.map { it.asTea() })
+    private fun ready(recipe: SharedRecipe, teas: List<TeaOption>, keys: Keys, form: Form): ReceiveRecipeUiState {
+        val key = keys.catalog
+        val match = RecipeMatch.find(recipe.tea, teas.map { it.asTea() }, loadedKey = keys.loaded)
         val matched = match?.let { m -> teas.firstOrNull { it.id == m.teaId } }
-        // A tea with the file's key gets the recipe: *Neuen Tee anlegen* is moot (PO, 2026-11-18).
-        val offersNewTea = recipe.tea.catalogKey?.let { fileKey -> teas.none { it.catalogKey == fileKey } } ?: true
+        // A tea with the file's key, or the key the shop link loaded, gets the recipe: *Neuen Tee anlegen* is moot
+        // (PO, 2026-11-18).
+        val ownedKeys = listOfNotNull(recipe.tea.catalogKey, keys.loaded)
+        val offersNewTea = teas.none { it.catalogKey != null && it.catalogKey in ownedKeys }
         val picked = form.picked?.let { id -> teas.firstOrNull { it.id == id } }?.takeIf { it.id != matched?.id }
-        // The match is preselected unless it is full; a choice made stays while its tea can take a recipe.
+        // The match is preselected unless it is full; a choice made stays while its tea can take a recipe. *Neuen Tee
+        // anlegen* chosen before the shop link loaded an owned tea gives way to that tea.
+        val preselected = matched?.takeIf { !it.full }?.let { TeaChoice.Existing(it.id) }
         val choice = when (val chosen = form.choice) {
-            null -> matched?.takeIf { !it.full }?.let { TeaChoice.Existing(it.id) }
+            null -> preselected
             is TeaChoice.Existing -> chosen.takeIf { teas.any { it.id == chosen.teaId && !it.full } }
-            TeaChoice.NewTea -> chosen.takeIf { offersNewTea }
+            TeaChoice.NewTea -> if (offersNewTea) chosen else preselected
         }
         return ReceiveRecipeUiState.Ready(
             recipe = recipe,
@@ -350,6 +364,9 @@ class ReceiveRecipeViewModel internal constructor(
         catalogKey = catalogKey,
         isArchived = isArchived,
     )
+
+    /** The local catalog tea's key ([catalog]) and the key *Tee über Shop-Link laden* returned ([loaded]). */
+    private data class Keys(val catalog: String?, val loaded: String?)
 
     private sealed interface FileState {
         data object Unread : FileState

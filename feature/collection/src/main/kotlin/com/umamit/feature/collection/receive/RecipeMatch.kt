@@ -18,13 +18,16 @@ object RecipeMatch {
     const val MAX_RECIPE_NAME = 40
 
     /**
-     * The tea of [file] among [teas] (archived ones included): one that links to its `catalog_key` wins; else one with
-     * its name, ignoring case and accents. Among several, a tea that is not archived first, then the first by name.
-     * Null when none matches. The match is only preselected; the user may pick another tea.
+     * The tea of [file] among [teas] (archived ones included): one that links to its `catalog_key` wins; else one that
+     * links to [loadedKey], the key *Tee über Shop-Link laden* returned (it may be a merged tea's; PO, 2026-11-18);
+     * else one with its name, ignoring case and accents. Among several, a tea that is not archived first, then the
+     * first by name. Null when none matches. The match is only preselected; the user may pick another tea.
      */
-    fun find(file: SharedTea, teas: List<Tea>): TeaMatch? {
+    fun find(file: SharedTea, teas: List<Tea>, loadedKey: String? = null): TeaMatch? {
         val ordered = teas.sortedWith(compareBy<Tea> { it.isArchived }.thenBy { SearchQuery.normalized(it.name) })
-        val byKey = file.catalogKey?.let { key -> ordered.firstOrNull { it.catalogKey == key } }
+        val byKey = listOfNotNull(file.catalogKey, loadedKey).firstNotNullOfOrNull { key ->
+            ordered.firstOrNull { it.catalogKey == key }
+        }
         if (byKey != null) return TeaMatch(byKey.id, MatchKind.CATALOG)
         val name = comparable(file.name)
         return ordered.firstOrNull { comparable(it.name) == name }?.let { TeaMatch(it.id, MatchKind.NAME) }
