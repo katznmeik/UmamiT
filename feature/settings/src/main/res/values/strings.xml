@@ -188,7 +188,7 @@
     <string name="backup_wipe_confirm">Löschen</string>
     <string name="backup_wipe_notice">Daten werden gelöscht. UmamiT schließt sich, öffne die App danach neu.</string>
     <string name="backup_wipe_failed">Löschen nicht möglich. Es wurde nichts gelöscht.</string>
-    <!-- Claude's wording (#346), open for the PO: SCR-26 names no text for a running export. -->
+    <!-- Claude's wording (#346), accepted by the PO on 2026-11-19 (D-131 build notes). -->
     <string name="backup_wipe_export_running">Während die Sicherung erstellt wird, nicht möglich</string>
 
     <!-- Über (SCR-27). -->
