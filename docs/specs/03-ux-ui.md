@@ -1410,7 +1410,7 @@ v0.4.0 (D-100):
     (PO, 2026-11-18). The text, for example:
 
     ```
-    Gyokuro Asahi (Uji) – Rezept „Kyusu"
+    Gyokuro Asahi (Uji) – Rezept „Kyusu“
     Kyusu · 4,0 g auf 120 ml · 60 °C · Gefäß: Kyusu
     1. Spülen · 60 °C · 0:10
     2. Aufguss · 60 °C · 1:30

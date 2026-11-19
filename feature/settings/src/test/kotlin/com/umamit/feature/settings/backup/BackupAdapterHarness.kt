@@ -26,6 +26,7 @@ import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.data.reminder.BackupReminderScheduler
 import com.umamit.core.data.reminder.BackupReminderState
+import com.umamit.core.database.ImportLock
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.datastore.SettingsDataSource
 import com.umamit.core.datastore.settingsDataStore
@@ -79,8 +80,9 @@ class BackupAdapterHarness(val root: File) {
         )
         val photos = File(root, "files/photos").apply { mkdirs() }
         create = CreateBackup(db, stored, BackupPhotoDirectory(photos), AppVersion("0.9.0", 90_099), clock)
-        val replacer = ImportReplacer(db, stored, paths, IdleRefresh(), clock)
-        val expiry = SafetyCopyExpiry(replacer, stored)
+        val lock = ImportLock()
+        val replacer = ImportReplacer(db, stored, paths, IdleRefresh(), clock, lock)
+        val expiry = SafetyCopyExpiry(lock, paths, stored, clock)
         restore = RestoreBackup(replacer, create, ReadBackup(), expiry)
         undo = UndoImport(replacer, ReadBackup(), expiry, db)
         val timerSettings = com.umamit.core.testing.FakeSettingsRepository()

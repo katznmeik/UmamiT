@@ -25,7 +25,7 @@ class RecipeShareTextTest {
     @Test
     fun `a Kyusu recipe of four steps with a rinse reads as the golden`() {
         val golden = listOf(
-            "Nebelhang Sencha (Testtal) – Rezept „Kyusu\"",
+            "Nebelhang Sencha (Testtal) – Rezept „Kyusu“",
             "Kyusu · 4,0${nbsp}g auf 120${nbsp}ml · 60$nbsp°C · Gefäß: Kyusu",
             "1. Spülen · 60$nbsp°C · 0:10",
             "2. Aufguss · 60$nbsp°C · 1:30",
@@ -42,7 +42,7 @@ class RecipeShareTextTest {
         val text = RecipeShareText.build(plain.copy(leafGrams = 12.5), labels)
         assertThat(text).isEqualTo(
             listOf(
-                "Eigener Bancha – Rezept „Becher\"",
+                "Eigener Bancha – Rezept „Becher“",
                 "Westlich · 12,5${nbsp}g auf 250${nbsp}ml · 80$nbsp°C",
                 "1. Aufguss · 80$nbsp°C · 2:00",
                 "Geteilt aus UmamiT – öffne die angehängte Datei in UmamiT, um das Rezept zu übernehmen.",

@@ -55,7 +55,7 @@ class RecipeShareDeviceTest {
         assertTrue(send.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
 
         val expected = listOf(
-            "Morgennebel (Probe) – Rezept „Kyusu\"",
+            "Morgennebel (Probe) – Rezept „Kyusu“",
             "Kyusu · 4,0${NBSP}g auf 120${NBSP}ml · 60$NBSP°C · Gefäß: Kyusu",
             "1. Spülen · 60$NBSP°C · 0:10",
             "2. Aufguss · 60$NBSP°C · 1:30",

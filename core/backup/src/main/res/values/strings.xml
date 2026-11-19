@@ -6,9 +6,9 @@
     <string name="recipe_file_refused_damaged">Die Rezeptdatei ist beschädigt.</string>
 
     <!-- The share text (PRF-08 AC1, the example in 03 SCR-12). %1$s the tea, %2$s the recipe's name. -->
-    <string name="recipe_file_share_title">%1$s – Rezept „%2$s\"</string>
+    <string name="recipe_file_share_title">%1$s – Rezept „%2$s“</string>
     <!-- %1$s the tea, %2$s its secondary name, %3$s the recipe's name. -->
-    <string name="recipe_file_share_title_secondary">%1$s (%2$s) – Rezept „%3$s\"</string>
+    <string name="recipe_file_share_title_secondary">%1$s (%2$s) – Rezept „%3$s“</string>
     <string name="recipe_file_share_separator">" · "</string>
     <!-- %1$s the leaf („4,0 g"), %2$s the water („120 ml"). -->
     <string name="recipe_file_share_amounts">%1$s auf %2$s</string>

@@ -21,10 +21,10 @@ interface RecipeShareLabels {
 
 /** The templates of [RecipeShareLabels.template]. */
 enum class RecipeSharePart {
-    /** „%1$s – Rezept „%2$s"": tea, recipe. */
+    /** „%1$s – Rezept „%2$s“": tea, recipe. */
     TITLE,
 
-    /** „%1$s (%2$s) – Rezept „%3$s"": tea, secondary name, recipe. */
+    /** „%1$s (%2$s) – Rezept „%3$s“": tea, secondary name, recipe. */
     TITLE_WITH_SECONDARY,
 
     /** „ · " between a line's parts. */
