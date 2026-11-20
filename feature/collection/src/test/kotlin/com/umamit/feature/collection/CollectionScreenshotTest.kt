@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -73,6 +74,13 @@ class CollectionScreenshotTest(private val dark: Boolean, private val fontScale:
     @Test
     fun sortMenu() = capture("sortMenu", MyTeasStates.list.copy(sort = CollectionSort.RATING)) {
         compose.onNodeWithTag(MY_TEAS_SORT_TAG).performClick()
+        compose.waitForIdle()
+    }
+
+    /** Sammlung's ⋮ on *Meine Tees* with *Rezept importieren* (PRF-08, D-130 Q14). */
+    @Test
+    fun myTeasMenu() = capture("myTeasMenu", MyTeasStates.list) {
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
         compose.waitForIdle()
     }
 

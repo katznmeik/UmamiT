@@ -70,6 +70,9 @@ object SettingsTags {
 
     /** The *Teegeschirr* row (SET-30, D-100). */
     const val TEAWARE = "SettingsTeaware"
+
+    /** The *Daten & Sicherung* row (SET-30, SCR-26). */
+    const val DATA_BACKUP = "SettingsDataBackup"
     const val LOW_STOCK = "SettingsLowStock"
 
     /** SET-29 *Uhrzeit* of the daily low-stock reminder. */
@@ -139,6 +142,8 @@ class SettingsActions(
     val openAbout: () -> Unit = {},
     /** *Teegeschirr* (SET-30): the teaware list (SCR-13). */
     val openTeaware: () -> Unit = {},
+    /** *Daten & Sicherung* (SET-30): SCR-26. */
+    val openDataBackup: () -> Unit = {},
     /** *Jetzt aktualisieren* (SET-23). */
     val refreshCatalog: () -> Unit = {},
 )
@@ -155,6 +160,7 @@ fun SettingsRoute(
     alertKey: String?,
     modifier: Modifier = Modifier,
     onOpenTeaware: () -> Unit = {},
+    onOpenDataBackup: () -> Unit = {},
     scrollToTopRequest: Int = 0,
     viewModel: SettingsViewModel = hiltViewModel(),
     catalogViewModel: CatalogSettingsViewModel = hiltViewModel(),
@@ -218,6 +224,7 @@ fun SettingsRoute(
             stopTest = viewModel::stopTest,
             openAbout = onOpenAbout,
             openTeaware = onOpenTeaware,
+            openDataBackup = onOpenDataBackup,
             refreshCatalog = catalogViewModel::refreshNow,
         ),
         modifier = modifier,
@@ -228,7 +235,7 @@ fun SettingsRoute(
 
 /**
  * SCR-25 without state: the reliability card first, then *Darstellung* (D-114), *Timer & Alarm*,
- * *Aufguss & Vorrat*, *Katalog*, *Teegeschirr* and *Über* (SET-30).
+ * *Aufguss & Vorrat*, *Katalog*, *Teegeschirr*, *Daten* (SCR-26) and *Über* (SET-30).
  */
 @Composable
 fun SettingsScreen(
@@ -311,6 +318,13 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_teaware),
             onClick = actions.openTeaware,
             modifier = Modifier.testTag(SettingsTags.TEAWARE),
+            chevron = true,
+        )
+        SectionHeader(title = stringResource(R.string.settings_section_data), modifier = Modifier.fillMaxWidth())
+        SettingsRow(
+            title = stringResource(R.string.settings_data_backup),
+            onClick = actions.openDataBackup,
+            modifier = Modifier.testTag(SettingsTags.DATA_BACKUP),
             chevron = true,
         )
         SectionHeader(title = stringResource(R.string.settings_section_about), modifier = Modifier.fillMaxWidth())

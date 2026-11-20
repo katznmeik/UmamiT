@@ -18,8 +18,8 @@ import kotlinx.coroutines.flow.map
 /**
  * [AddFromCatalog] on a [FakeCollection]: the owner is the collection tea with the catalog key that is
  * not archived; an add creates a tea named after the key with an INITIAL event, a repurchase (an
- * archived tea's brings it back) adds a PURCHASE event. Records every [purchases]; [failNext] makes
- * the next add fail.
+ * archived tea's brings it back) adds a PURCHASE event, then runs the block in the same „transaction" (a
+ * throw undoes the add and answers Failed). Records every [purchases]; [failNext] makes the next add fail.
  */
 class FakeAddFromCatalog(private val collection: FakeCollection) : AddFromCatalog {
     val purchases = mutableListOf<CatalogPurchase>()
@@ -33,12 +33,30 @@ class FakeAddFromCatalog(private val collection: FakeCollection) : AddFromCatalo
         .map { teas -> teas.firstOrNull { it.tea.catalogKey == catalogKey && !it.tea.isArchived }?.tea?.id }
         .distinctUntilChanged()
 
-    override suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult {
+    override suspend fun add(
+        purchase: CatalogPurchase,
+        inTransaction: suspend (teaId: String) -> Unit,
+    ): AddFromCatalogResult {
         gate?.await()
         if (failNext) {
             failNext = false
             return AddFromCatalogResult.Failed
         }
+        val recorded = purchases.size
+        return try {
+            collection.rollingBack {
+                write(purchase).also { inTransaction(it.teaId()) }
+            }
+        } catch (
+            // As on Room: any failure of the block undoes the add and answers Failed (D-090).
+            @Suppress("TooGenericExceptionCaught", "SwallowedException") e: RuntimeException,
+        ) {
+            while (purchases.size > recorded) purchases.removeAt(purchases.lastIndex)
+            AddFromCatalogResult.Failed
+        }
+    }
+
+    private suspend fun write(purchase: CatalogPurchase): AddFromCatalogResult {
         purchases += purchase
         val linked = collection.teaRows.value.values.firstOrNull { it.catalogKey == purchase.catalogKey }
         // As on Room: a removed (archived) tea comes back (TEA-04, D-085).
@@ -67,6 +85,12 @@ class FakeAddFromCatalog(private val collection: FakeCollection) : AddFromCatalo
             ),
         )
         return if (owner == null) AddFromCatalogResult.Added(teaId) else AddFromCatalogResult.Repurchased(teaId)
+    }
+
+    private fun AddFromCatalogResult.teaId(): String = when (this) {
+        is AddFromCatalogResult.Added -> teaId
+        is AddFromCatalogResult.Repurchased -> teaId
+        AddFromCatalogResult.NotInCatalog, AddFromCatalogResult.Failed -> error("no tea")
     }
 }
 

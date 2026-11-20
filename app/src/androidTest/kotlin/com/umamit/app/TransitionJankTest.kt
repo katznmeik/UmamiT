@@ -106,6 +106,7 @@ class TransitionJankTest {
         }
         runBlocking { seedData() }
         endTimer()
+        dismissForeignAnr()
     }
 
     @After
@@ -131,6 +132,7 @@ class TransitionJankTest {
             scenario?.close()
             scenario = null
             Thread.sleep(PAUSE_MS)
+            dismissForeignAnr()
             record("cold start → Start", COLD_SETTLE_MS) {
                 scenario = ActivityScenario.launch(MainActivity::class.java)
             }
@@ -406,11 +408,21 @@ class TransitionJankTest {
 
     /** The activity on Start; launched only when no activity is open (the reference may have launched it). */
     private fun launchOnStart() {
-        if (scenario == null) scenario = ActivityScenario.launch(MainActivity::class.java)
+        if (scenario == null) {
+            dismissForeignAnr()
+            scenario = ActivityScenario.launch(MainActivity::class.java)
+        }
         awaitStart()
         readBudget()
         Thread.sleep(SETTLE_MS)
     }
+
+    /**
+     * Another app's „isn't responding" dialog answered with „Wait" before a launch, so it does not cover the app's
+     * screen ([ForeignAnrDialog]); an ANR of UmamiT fails the test.
+     */
+    private fun dismissForeignAnr() =
+        ForeignAnrDialog.dismiss(device, ::shell, setOf(context.packageName, instrumentation.context.packageName))
 
     private fun awaitStart() {
         await(text(context.getString(HomeR.string.home_quick_timer)), "Start")
@@ -435,7 +447,14 @@ class TransitionJankTest {
         By.text(Pattern.compile(".*${Pattern.quote(value)}.*", Pattern.DOTALL))
 
     private fun await(selector: BySelector, what: String): UiObject2 =
-        device.wait(Until.findObject(selector), UI_TIMEOUT_MS) ?: throw AssertionError("$what is not shown")
+        device.wait(Until.findObject(selector), UI_TIMEOUT_MS)
+            ?: throw AssertionError("$what is not shown\n${screenState()}")
+
+    /** What the screen shows instead, for a failed wait: the resumed activities, the focused window, the keyguard. */
+    private fun screenState(): String = listOf(
+        Dumpsys.matchingLines(shell("dumpsys activity activities"), listOf("ResumedActivity", "mFocusedApp")),
+        Dumpsys.matchingLines(shell("dumpsys window"), listOf("mCurrentFocus", "mKeyguardShowing", "mDreaming")),
+    ).filter { it.isNotBlank() }.joinToString("\n")
 
     private fun awaitGone(selector: BySelector, what: String) {
         if (device.wait(Until.gone(selector), UI_TIMEOUT_MS) != true) throw AssertionError("$what is still shown")

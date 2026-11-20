@@ -24,8 +24,6 @@
     <string name="onboarding_restart_title">Automatischer Neustart</string>
     <string name="onboarding_restart_body">Samsung startet das Handy nachts manchmal neu. Danach klingelt ein laufender Timer erst, wenn du das Handy entsperrt hast. Schalte unter Akku und Gerätewartung › Automatische Optimierung „Automatisch neu starten“ aus.</string>
     <string name="onboarding_restart_link">Gerätewartung öffnen</string>
-    <string name="onboarding_photos_loading">Teefotos werden geladen …</string>
-    <string name="onboarding_photos_skip">Überspringen</string>
     <string name="onboarding_next">Weiter</string>
     <string name="onboarding_save_failed">Konnte nicht gespeichert werden. Tippe noch einmal; ist der Speicher voll?</string>
 

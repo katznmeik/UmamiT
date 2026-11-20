@@ -1,5 +1,6 @@
 package com.umamit.app
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.umamit.feature.collection.detail.ArchivedTea
@@ -8,6 +9,10 @@ import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.collection.detail.TeaDetailRoute
 import com.umamit.feature.collection.editor.SortePickerScreen
 import com.umamit.feature.collection.editor.TeaEditorRoute
+import com.umamit.feature.collection.receive.ReceiveRecipeHost
+import com.umamit.feature.collection.receive.ReceiveRecipeRoute
+import com.umamit.feature.collection.receive.TakenOverRecipe
+import com.umamit.feature.collection.receive.TakenOverSnackbar
 import com.umamit.feature.collection.recipe.RecipeEditorRoute
 
 /**
@@ -31,8 +36,9 @@ internal class MyTeasTab(
 /**
  * The collection screens of the Sammlung stack: the *Meine Tees* list ([myTeas]; the app passes [MyTeasTabContent],
  * the default is „Noch keine Tees" without data), a tea's detail (SCR-09), *Sorte wählen* (SCR-11), the tea editor
- * (SCR-10), the recipe editor (SCR-12) and the snackbar „*Tanabata* archiviert" · *Rückgängig* that the shell shows
- * over the screen below the closed detail, wherever that is (D-100). The app uses the real routes; tests replace them.
+ * (SCR-10), the recipe editor (SCR-12), *Rezept übernehmen* (SCR-32, PRF-08) with its „Rezept „…" übernommen" over
+ * the detail it opens, and the snackbar „*Tanabata* archiviert" · *Rückgängig* that the shell shows over the screen
+ * below the closed detail, wherever that is (D-100). The app uses the real routes; tests replace them.
  */
 internal class CollectionStackScreens(
     val myTeas: @Composable (MyTeasTab) -> Unit = { PlaceholderMyTeas(it) },
@@ -51,9 +57,13 @@ internal class CollectionStackScreens(
                 alertKey = it.alertKey,
             )
         },
+    val receiveRecipe: @Composable (ReceiveRecipeHost) -> Unit = { ReceiveRecipeRoute(it) },
+    // The snackbars show in the shell's one queue ([SnackbarHostState]), so two never overlap.
+    val takenOverSnackbar: @Composable (notice: TakenOverRecipe?, onDone: () -> Unit, host: SnackbarHostState) -> Unit =
+        { notice, onDone, host -> TakenOverSnackbar(notice, onDone, hostState = host) },
     // Only composed with a notice: its view model exists only while there is something to undo.
-    val archivedSnackbar: @Composable (archived: ArchivedTea?, onDone: () -> Unit, modifier: Modifier) -> Unit =
-        { archived, onDone, modifier -> if (archived != null) ArchivedTeaSnackbar(archived, onDone, modifier) },
+    val archivedSnackbar: @Composable (archived: ArchivedTea?, onDone: () -> Unit, host: SnackbarHostState) -> Unit =
+        { archived, onDone, host -> if (archived != null) ArchivedTeaSnackbar(archived, onDone, hostState = host) },
 )
 
 /**
@@ -78,11 +88,17 @@ internal class RecipeEditorHost(val onClose: () -> Unit, val onDone: () -> Unit,
  * What the Sammlung tab's collection screens get from the shell: the [screens], [onArchivedChange] for the tea
  * archived on its detail (the shell shows its snackbar), and [openSetup], the setup of a tea
  * with a recipe (null: its default) above the shell, and [showInJournal], the tea detail's *Alle anzeigen* (TEA-13):
- * the Journal tab at its root, filtered to the tea.
+ * the Journal tab at its root, filtered to the tea. SCR-32 reads its file from [recipeFiles] and opens for
+ * [pendingRecipe] (a token, 0 for none); [importRecipe] is
+ * *Meine Tees*' ⋮ *Rezept importieren* (the system file picker); [onTakenOver] gets the recipe SCR-32 added.
  */
 internal class CollectionWiring(
     val screens: CollectionStackScreens,
     val onArchivedChange: (ArchivedTea?) -> Unit,
     val openSetup: (teaId: String, recipeId: String?) -> Unit,
     val showInJournal: (teaId: String) -> Unit = {},
+    val recipeFiles: ReceivedRecipeFiles = ReceivedRecipeFiles(),
+    val pendingRecipe: Long = 0L,
+    val importRecipe: () -> Unit = {},
+    val onTakenOver: (TakenOverRecipe) -> Unit = {},
 )

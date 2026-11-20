@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-11-17 (v0.8.0-rc.2, D-129: the picker's hand-over to the setup on SCR-03; v0.8.0, D-128: the wording list in §3.7 and all German copy, the timer in the light theme in §3.1, SCR-05 and SCR-07, `TasteInfo` and the taste sets in §3.8, SCR-05, SCR-09, SCR-10 and SCR-16, the setup's titles on SCR-04, the anchored ⋮ in §2.2, refresh progress on SCR-25, SCR-26 planned for v0.9.0; 2026-11-14: v0.7.1, D-117: two ratings on SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18 and §3.8, transitions without stale frames in §3.6; v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SESSIONS, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal aufgießen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-11-20 (D-134/D-135: SCR-12 file name, onboarding seed photo line, SCR-26 fresh start; 2026-11-19: v0.9.0, D-131 build notes: SCR-26 *Alle Daten löschen* as built; 2026-11-18: v0.9.0, D-130: SCR-26 *Daten & Sicherung* in full, SCR-08 ⋮ *Rezept importieren*, SCR-12 ⋮ *Rezept teilen*, the new SCR-32 *Rezept übernehmen*, their messages in §5; 2026-11-17: v0.8.0-rc.2, D-129: the picker's hand-over to the setup on SCR-03; v0.8.0, D-128: the wording list in §3.7 and all German copy, the timer in the light theme in §3.1, SCR-05 and SCR-07, `TasteInfo` and the taste sets in §3.8, SCR-05, SCR-09, SCR-10 and SCR-16, the setup's titles on SCR-04, the anchored ⋮ in §2.2, refresh progress on SCR-25, SCR-26 planned for v0.9.0; 2026-11-14: v0.7.1, D-117: two ratings on SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18 and §3.8, transitions without stale frames in §3.6; v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SESSIONS, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal aufgießen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -92,7 +92,8 @@ App
 ├── Sammlung (Collection) — segmented: [ Meine Tees | Katalog ]
 │   ├── Meine Tees (SCR-08)
 │   │   ├── Tee (SCR-09) → Neue Session (SCR-04), Bearbeiten (SCR-10), Rezept (SCR-12); Vorrat (SCR-29), Fotos (SCR-28) — v0.4.1
-│   │   └── ⋮ Tee aus dem Katalog hinzufügen (SCR-19) | Tee ohne Katalog hinzufügen → Sorte wählen (SCR-11) → SCR-10
+│   │   ├── ⋮ Tee aus dem Katalog hinzufügen (SCR-19) | Tee ohne Katalog hinzufügen → Sorte wählen (SCR-11) → SCR-10
+│   │   └── ⋮ Rezept importieren (v0.9.0) → Rezept übernehmen (SCR-32); also from a recipe file opened or shared to UmamiT
 │   └── Katalog (SCR-19)
 │       ├── Katalog-Tee (SCR-21) → In Sammlung aufnehmen (SCR-23)
 │       ├── Ratgeber (Tee-Info guides) → Artikel (SCR-20)
@@ -148,7 +149,7 @@ unsaved changes trigger GEN-08 (the Schritte-Sheet too, SCR-31, D-055).
 | Timer notification / Live Update / alert | SCR-05; from v0.3.0 (D-098) the screen of the notification's timer: SCR-05 for the brew, SCR-07 for the quick timer |
 | „Session gespeichert" notification | SCR-16 |
 | Catalog refresh progress and result notifications | Sammlung › Katalog with SCR-22 open: the progress while the refresh runs, its summary after it (v0.2.2, D-097; until v0.2.1 the app where it was, D-079). Before the setup is finished: the app where it was |
-| Reminder notification | SCR-08 (filtered) or SCR-26 |
+| Reminder notification | SCR-08 (filtered) or SCR-26; the backup reminder (BAK-06, v0.9.0, D-130 Q11) opens SCR-26 in Start's stack, below it *Einstellungen*; already open, it stays as it is; during an alert it waits, before the setup is finished it is discarded |
 | Daily low-stock reminder (v0.3.0, INV-11, D-098) | Start (SCR-02) at its root; during an alert the tap waits until it ends (as the catalog tap, D-097); before the setup is finished it is discarded |
 | Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`; from v0.3.0 alarm volume `ACTION_SOUND_SETTINGS`, D-098) |
 
@@ -553,9 +554,10 @@ brühig", and „brühige Fülle" / „Brühe" in the Umami slider's info (08 §
    available. Below: hint on Samsung's automatic restart
    (*Automatische Optimierung › Automatisch neu starten*) with a link to the
    setting.
-   Meanwhile the two seed photos download once in the background with a
+   ~~Meanwhile the two seed photos download once in the background with a
    small progress line „Teefotos werden geladen …" and *Überspringen*
-   (ONB-06), below *Weiter*.
+   (ONB-06), below *Weiter*.~~ Removed from v0.9.0-rc.2: nothing is
+   downloaded at first start ([D-135](10-open-questions-and-decisions.md#d-135)).
    The setup is the start destination until completed; details:
    [D-066](10-open-questions-and-decisions.md#d-066).
 3. *Katalog laden* — „Alle Tees von Tee-Kontor Kiel offline verfügbar machen,
@@ -564,10 +566,11 @@ brühig", and „brühige Fülle" / „Brühe" in the Umami slider's info (08 §
    NFR-PERF-11's ≈ 25–30 min; until then „Grün- und Kräutertees … etwa eine
    Viertelstunde") · *Katalog jetzt laden* (progress inline) / *Später*. After
    *Katalog jetzt laden*, *Weiter* finishes the setup while the load goes on
-   in its service with its notification (ONB-03, D-079). *Katalog jetzt
+   in its service with its notification (ONB-03, D-079). ~~*Katalog jetzt
    laden* ends a seed photo download still running first, so two jobs never
    run against the shop at once; the refresh gives the seed teas their
-   photos instead (CAT-15, D-090).
+   photos instead (CAT-15, D-090).~~ (Until v0.9.0-rc.1; from rc.2 there is
+   no seed photo download, D-135.)
 
 ### SCR-02 Start (Home)
 
@@ -1131,6 +1134,9 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   *Katalog* segment (SCR-19), where a tea is added as before (SCR-23); *Tee
   ohne Katalog hinzufügen* opens SCR-11. Both show only while *Meine Tees*
   is the segment; nothing floats over the rows.
+- **⋮ *Rezept importieren* (v0.9.0, PRF-08, [D-130](10-open-questions-and-decisions.md#d-130) Q14):** third entry, also only on
+  *Meine Tees*; opens the system file picker (any type; the reader
+  decides) and then SCR-32.
 - **Empty states:** no teas → asset A7, „Noch keine Tees · Im Katalog
   stöbern"; a search or filter without results → asset A10, „Kein Tee passt
   zu deiner Suche.".
@@ -1397,6 +1403,26 @@ v0.4.0 (D-100):
     a note (≤ 120 characters). The only step that brews can't become
     *Spülen* and can't be deleted. *Aufguss hinzufügen* appends the timer's
     *Weiterer Aufguss* (TMR-10), up to 30 steps.
+  - ⋮ *Rezept teilen* (v0.9.0, PRF-08, D-130) above *Rezept löschen*: the
+    Android share sheet with the text and the file `Gyokuro Asahi.umamit-rezept.json` (D-134; until
+    v0.9.0-rc.1 `Gyokuro Asahi.umamit-rezept`).
+    Greyed out with „Erst speichern" while the editor has unsaved changes;
+    a new recipe has no ⋮ at all, so it can be shared once saved (PO,
+    2026-11-18, D-130 build note). If the file can't be written or no app
+    takes the share: the snackbar „Das Rezept konnte nicht geteilt werden."
+    (PO, 2026-11-18). The text, for example:
+
+    ```
+    Gyokuro Asahi (Uji) – Rezept „Kyusu“
+    Kyusu · 4,0 g auf 120 ml · 60 °C · Gefäß: Kyusu
+    1. Spülen · 60 °C · 0:10
+    2. Aufguss · 60 °C · 1:30
+    3. Aufguss · 65 °C · 0:20
+    4. Aufguss · 70 °C · 0:45
+    https://www.tee-kontor-kiel.de/…
+    Geteilt aus UmamiT – öffne die angehängte Datei in UmamiT, um das Rezept zu übernehmen.
+    ```
+    (the link line only for a catalog tea; „Gefäß" only with a vessel type).
   - ⋮ *Rezept löschen* asks „Rezept löschen?"; for the tea's last recipe it
     is greyed out with „Ein Tee braucht mindestens ein Rezept.", for the
     recipe of the active brew session with „Erst die Session beenden" (E15,
@@ -2106,16 +2132,114 @@ tokens (§3.6); reduce motion: they appear at once.
 
 ### SCR-26 Daten & Sicherung
 
-Device-backup explanation and *Alle Daten löschen* (as built). Until
-D-128 the plan was *Sicherung erstellen* (BAK-01) and a possible CSV export
-with M5, and no in-app restore in 1.x (D-036).
+Planned before v0.9.0 as the device-backup explanation and *Alle Daten löschen*, neither built until v0.9.0 ([D-131](10-open-questions-and-decisions.md#d-131)). From
+v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q8, [D-130](10-open-questions-and-decisions.md#d-130)), top to bottom:
 
-**Planned for v0.9.0 ([D-128](10-open-questions-and-decisions.md#d-128); amends D-036):** *Sicherung erstellen* and
-*Sicherung einspielen* (a replacing import with preview, the typed word
-„ERSETZEN", a full check of the file first, „Import rückgängig machen",
-refused while a timer is active), the line „Letzte Sicherung: … · N neue
-Sessions", *Journal als CSV*. The screen is specified in v0.9.0's specify
-session.
+- **SICHERUNG** (overline)
+  - Line „Letzte Sicherung: 3. Nov. 2026 · 12 neue Sessions" or „Noch keine
+    Sicherung" (only an export sets it).
+  - ***Sicherung erstellen*** (primary): a dialog „Sicherung erstellen" ·
+    „Etwa 18 MB · 142 Sessions, 23 Tees, 61 Fotos. Du wählst gleich, wo die
+    Datei gespeichert wird." · *Abbrechen* / *Weiter* → the system picker
+    (`UmamiT-Sicherung-2026-11-18.umamit`, typed `application/octet-stream`
+    so the name keeps its ending) → in place of the button a
+    progress bar with „Sicherung wird erstellt … Fotos 12 von 61" and
+    *Abbrechen* → „Sicherung gespeichert" (snackbar) and the line updated.
+    Cancelled: „Sicherung abgebrochen"; failed: „Die Sicherung konnte nicht
+    gespeichert werden." Works while a timer runs.
+  - ***Sicherung einspielen*** (outlined): the system picker → „Sicherung
+    wird geprüft …" → a refusal (§5) or the dialog „Sicherung einspielen?" ·
+    „Sicherung vom 3. Nov. 2026 · 142 Sessions, 23 Tees, 61 Fotos. Sie
+    ersetzt alle deine Daten auf diesem Gerät. Vorher wird eine
+    Sicherheitskopie angelegt, die du 7 Tage lang zurückholen kannst." · a
+    hint line „Tippe ERSETZEN zur Bestätigung" above a field without a
+    label (D-133 Q1) · *Abbrechen* / *Ersetzen*
+    (enabled only by exactly „ERSETZEN", like SET-33's „LÖSCHEN"). Then a
+    full-screen „Sicherung wird eingespielt …" (no back), then Start with
+    the snackbar „Sicherung eingespielt · 142 Sessions, 23 Tees" ·
+    *Rückgängig machen*. While a timer is active the button is greyed out
+    with „Während ein Timer läuft, nicht möglich". These dialogs give way to
+    an alert and stay closed after it (D-133 Q2). The checking cover shows
+    only after 0,25 s, then for at least 0,4 s; after a successful import
+    the cover stays until Start shows; the Start snackbar's *Rückgängig
+    machen* shows SCR-26's cover „Import wird rückgängig gemacht …" (D-133 Q5, Q6).
+  - ***Import rückgängig machen*** (text button, only while the safety copy
+    is valid), with „Möglich bis 25. Nov. 2026, 08:30": the dialog „Import
+    rückgängig machen?" · „Deine Daten von vor dem Import kommen zurück. Seit
+    dem Import: 3 neue Sessions, 1 geänderter Tee und alle anderen
+    Änderungen – sie gehen verloren." (a zero count is left out: „Seit dem
+    Import: 3 neue Sessions und alle anderen Änderungen – sie gehen
+    verloren."; with neither: „Seit dem Import gibt
+    es keine neuen Sessions und keine geänderten Tees.") · *Abbrechen* /
+    *Rückgängig machen*. Greyed
+    out during a timer like the import. Done: „Import rückgängig gemacht".
+  - Switch ***An Sicherung erinnern*** (SET-20, on) with „Einmal im Monat,
+    wenn seit der letzten Sicherung 20 Sessions dazugekommen sind".
+- **EXPORT** (overline): ***Journal als CSV*** (outlined) with „Alle
+  Sessions als Tabelle, z. B. für Excel. Kann nicht eingespielt werden." →
+  the picker (`UmamiT-Journal-2026-11-18.csv`) → „Journal gespeichert".
+- **GERÄTE-BACKUP** (overline): „Dein Handy sichert Tees, Journal und
+  Einstellungen automatisch mit dem Geräte-Backup. Fotos sind nur in der
+  Sicherung enthalten." (D-131 Q6).
+- ***Alle Daten löschen*** (SET-33, destructive text button; D-131, #346):
+  the dialog „Alle Daten löschen?" · „Alle Tees, Sessions, Rezepte, Gefäße,
+  Fotos und Einstellungen werden von diesem Gerät gelöscht. Das kann nicht
+  rückgängig gemacht werden. Erstelle vorher eine Sicherung." · a hint line
+  „Tippe LÖSCHEN zur Bestätigung" above a field without a label (D-133 Q1) · *Abbrechen* / *Löschen* (enabled only by
+  exactly „LÖSCHEN"; no trimming, no case folding). While a safety copy
+  exists (*Import rückgängig machen* is shown) the dialog adds the paragraph
+  „Auch die Rücksicherung des letzten Imports wird gelöscht.". After
+  *Löschen* the dialog shows „Daten werden gelöscht. UmamiT schließt sich,
+  öffne die App danach neu." for about 1 s (no buttons, back does nothing),
+  then the system wipe ends the app; opened again, it starts as after
+  installing it (onboarding, empty collection; seed teas until
+  v0.9.0-rc.1, D-135). A failed wipe closes the dialog
+  with the snackbar „Löschen nicht möglich. Es wurde nichts gelöscht.".
+  Greyed out during a timer like the import („Während ein Timer läuft,
+  nicht möglich"); while an export runs, greyed out with „Während die
+  Sicherung erstellt wird, nicht möglich"; while an import, its check or
+  its undo runs, their full-screen cover blocks it (D-131 build notes).
+- TalkBack: the progress bar reads „Sicherung wird erstellt, 12 von 61
+  Fotos"; the typed field „Bestätigungswort, ERSETZEN eintippen", and in
+  the delete dialog „LÖSCHEN eintippen".
+
+### SCR-32 Rezept übernehmen (v0.9.0)
+
+PRF-08, [D-128](10-open-questions-and-decisions.md#d-128) Q11, [D-130](10-open-questions-and-decisions.md#d-130). A full-screen dialog like SCR-12 (✕ · „Rezept
+übernehmen"), in the Sammlung stack, reached from a recipe file opened or
+shared to UmamiT (any tab; the app switches to Sammlung) or from Meine
+Tees' ⋮ *Rezept importieren*.
+
+- **Summary card:** the recipe's name and method, „4,0 g auf 120 ml · 60
+  °C", the steps as in the share text, the vessel type, and „für *Gyokuro
+  Asahi* (Grün · Gyokuro)".
+- ***Für welchen Tee?*** (section): the matched tea preselected as a row
+  (cover, name, „gefunden über den Katalog" or „gleicher Name"); else „Diesen
+  Tee hast du noch nicht.". Below: *Anderen Tee wählen …* (the collection
+  list as a sheet, archived teas included, a tea with 10 recipes greyed out
+  with „Höchstens 10 Rezepte"; the sheet's title „Tee wählen", an archived
+  tea marked „archiviert") and *Neuen Tee anlegen* („aus dem Katalog"
+  when its `catalog_key` is in the local catalog, else „ohne Katalog").
+  *Neuen Tee anlegen* is hidden when a tea in the collection already has the
+  file's `catalog_key` (that tea is preselected; PO, 2026-11-18). „aus dem
+  Katalog" opens the usual add-from-catalog package sheet (size, price,
+  opened date) when *Rezept übernehmen* is tapped; closing it without saving returns to SCR-32 with
+  nothing written (PO, 2026-11-18). „ohne Katalog" adds the tea without a
+  package.
+- ***Tee über Shop-Link laden*** (text button, D-130 Q4): only when the file
+  has a valid shop link whose tea is not in the local catalog and no tea in
+  the collection matched (PO, 2026-11-18); while it loads „Tee wird geladen
+  …"; with „Lädt
+  eine Seite von tee-kontor-kiel.de". It runs CAT-17's fetch (its messages,
+  §5); on success *Neuen Tee anlegen* reads „aus dem Katalog"; a loaded tea
+  you already own is preselected instead and gets the recipe (PO,
+  2026-11-18).
+- ***Rezept übernehmen*** (primary, sticky): enabled once a tea is chosen;
+  adds the recipe and opens the tea detail (SCR-09) with „Rezept „Kyusu“
+  übernommen". ✕ discards without asking (nothing was written).
+- **Refused file:** a centred message (§5) with *Schließen*; nothing else.
+- TalkBack: the summary reads as one block; the tea choice is a radio
+  group.
 
 ### SCR-27 Über
 
@@ -2314,6 +2438,16 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Tee per Link: no tea at the link (404/410, a redirect, another 4xx, no or another product; CAT-17, #98) | „Unter diesem Link gibt es im Shop keinen Tee." |
 | Tee per Link: the page can't be read (robots.txt, over the body limit, no breadcrumb; CAT-17, #98) | „Diese Shop-Seite kann die App nicht lesen." |
 | Tee per Link: offline / blocked / shop down / storage full (CAT-17) | The first line of the matching catalog refresh row above (nothing is stored) |
+| Backup: not a backup (BAK-02, v0.9.0) | „Das ist keine UmamiT-Sicherung." |
+| Backup or recipe file from a newer version (BAK-02, PRF-08, D-130 Q3) | „Diese Datei stammt aus einer neueren UmamiT-Version. Aktualisiere die App und versuch es noch mal." |
+| Backup broken (BAK-02) | „Die Sicherung ist beschädigt und wurde nicht eingespielt." |
+| Backup import or undo while a timer is active (BAK-02) | „Während ein Timer läuft, kann nichts eingespielt werden." |
+| Safety copy could not be written (BAK-02) | „Die Sicherheitskopie konnte nicht angelegt werden – ist der Speicher voll? Es wurde nichts geändert." |
+| Backup import or undo while the catalog refreshes (BAK-02, D-130 build note, PO 2026-11-18) | „Während der Katalog aktualisiert wird, kann nichts eingespielt werden." |
+| Backup replace failed before its commit (BAK-02; Claude's wording, D-130 build note) | „Das Einspielen hat nicht geklappt. Deine Daten sind unverändert." |
+| Import failed during the replace (BAK-02) | „Das Einspielen hat nicht geklappt. Deine Daten sind unverändert." |
+| Recipe file: not one (PRF-08) | „Das ist keine UmamiT-Rezeptdatei." |
+| Recipe file broken or too large (PRF-08) | „Die Rezeptdatei ist beschädigt." |
 
 ## 6. Accessibility
 

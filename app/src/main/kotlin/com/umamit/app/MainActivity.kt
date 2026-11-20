@@ -12,14 +12,17 @@ import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import com.umamit.app.timer.TimerActiveBrewSource
 import com.umamit.app.timer.TimerScreenRequests
 import com.umamit.app.timer.lockScreenFlags
@@ -59,6 +62,10 @@ import javax.inject.Inject
  * shell shows Sammlung › Katalog, which loads it. The timer is never covered for it: while the
  * timer or another screen above the tabs is shown, the share waits until the tabs are back (rule 8).
  *
+ * A recipe file opened or shared to the app reaches it from [ReceiveRecipeActivity] ([openRecipe], PRF-08), and one
+ * picked with *Rezept importieren* from the shell ([ReceivedRecipeFiles.receive]): the shell shows SCR-32 in Sammlung.
+ * Like a shared link it waits while the timer or another screen above the tabs is shown (rule 8, PRF-08 AC9).
+ *
  * The catalog refresh's notifications open it with [CatalogRefreshRequests] (SCR-22, D-097): the
  * root shows Sammlung › Katalog with the refresh sheet above what was shown, never over an alert.
  *
@@ -97,11 +104,23 @@ class MainActivity : ComponentActivity() {
     /** Links shared to the app (CAT-17); a pending one survives a recreation. */
     private val teaLinkShares = TeaLinkShares()
 
+    /** Recipe files received (PRF-08); kept in a view model, so a copy running during a rotation still arrives. */
+    private val receivedRecipesModel: ReceivedRecipesModel by viewModels()
+
+    /** Recipe files received (PRF-08); a pending or shown one survives a recreation. */
+    private val receivedRecipes: ReceivedRecipeFiles get() = receivedRecipesModel.files
+
+    /** Where a handed-over recipe file is copied from, off the main thread (D-133 Q4). */
+    private val recipeSource by lazy { RecipeFileSource.of(this) }
+
     /** Taps on the catalog refresh's notifications (SCR-22, D-097); a pending one survives a recreation. */
     private val catalogRefreshRequests = CatalogRefreshRequests()
 
     /** Taps on the daily low-stock reminder (INV-11, D-098); a pending one survives a recreation. */
     private val startRequests = StartRequests()
+
+    /** Taps on the backup reminder (BAK-06, D-130 Q11); a pending one survives a recreation. */
+    private val backupRequests = BackupRequests()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -109,15 +128,10 @@ class MainActivity : ComponentActivity() {
         // A recreated activity has seen its intent already, but keeps a request not handled yet (S1, #47).
         if (savedInstanceState == null) {
             openTimerIfAsked(intent)
-            teaLinkShares.offer(intent)
-            catalogRefreshRequests.offer(intent)
-            startRequests.offer(intent)
-        } else {
-            if (timerRequests.restore(savedInstanceState, intent)) showTimerOverLockScreen()
-            teaLinkShares.restore(savedInstanceState)
-            catalogRefreshRequests.restore(savedInstanceState)
-            startRequests.restore(savedInstanceState)
+        } else if (timerRequests.restore(savedInstanceState, intent)) {
+            showTimerOverLockScreen()
         }
+        takeTaps(intent, savedInstanceState)
         // Exported: `ACTION_USER_PRESENT` is a protected broadcast that only the system (SystemUI) can send, so no app
         // can spoof it; a not-exported receiver is not guaranteed to get a broadcast sent from another process.
         registerReceiver(userPresent, IntentFilter(Intent.ACTION_USER_PRESENT), RECEIVER_EXPORTED)
@@ -154,10 +168,13 @@ class MainActivity : ComponentActivity() {
                     keyguard = keyguard,
                     teaLinkShare = teaLinkShares.share,
                     onTakeTeaLinkShare = teaLinkShares::taken,
+                    receivedRecipes = receivedRecipes,
                     catalogRefreshRequest = catalogRefreshRequests.token,
                     onConsumeCatalogRefreshRequest = catalogRefreshRequests::handled,
                     startRequest = startRequests.token,
                     onConsumeStartRequest = startRequests::handled,
+                    backupRequest = backupRequests.token,
+                    onConsumeBackupRequest = backupRequests::handled,
                     startScreen = { StartTabContent(it) },
                     statsScreen = { StatsTabContent(it) },
                     catalogScreen = { CatalogTabContent(it) },
@@ -205,17 +222,38 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         openTimerIfAsked(intent)
-        teaLinkShares.offer(intent)
-        catalogRefreshRequests.offer(intent)
-        startRequests.offer(intent)
+        takeTaps(intent, null)
+    }
+
+    /**
+     * The taps other than the timer's (a shared link, a recipe file, the catalog refresh, Start, the backup
+     * reminder): the intent's when there is no saved state, else the ones still pending when the activity was
+     * recreated.
+     */
+    private fun takeTaps(intent: Intent?, savedState: Bundle?) {
+        if (savedState == null) {
+            teaLinkShares.offer(intent)
+            receivedRecipes.offer(intent, recipeSource)
+            catalogRefreshRequests.offer(intent)
+            startRequests.offer(intent)
+            backupRequests.offer(intent)
+        } else {
+            teaLinkShares.restore(savedState)
+            receivedRecipes.restore(savedState)
+            catalogRefreshRequests.restore(savedState)
+            startRequests.restore(savedState)
+            backupRequests.restore(savedState)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         timerRequests.save(outState)
         teaLinkShares.save(outState)
+        receivedRecipes.save(outState)
         catalogRefreshRequests.save(outState)
         startRequests.save(outState)
+        backupRequests.save(outState)
     }
 
     private fun openTimerIfAsked(intent: Intent?) {
@@ -268,7 +306,25 @@ class MainActivity : ComponentActivity() {
             .setAction(TeaLinkShares.ACTION_OPEN_TEA_LINK)
             .putExtra(TeaLinkShares.EXTRA_TEXT, text)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+
+        /**
+         * Opens the app's own task with a received recipe [file] (PRF-08), as [openTeaLink] does: its URI as the
+         * intent's data with the read grant passed on, so MainActivity copies it off the main thread (D-133 Q4).
+         */
+        fun openRecipe(context: Context, file: ReceivedFile): Intent = Intent(context, MainActivity::class.java)
+            .setAction(ReceivedRecipeFiles.ACTION_OPEN_RECIPE)
+            .setData(file.uri)
+            .putExtra(ReceivedRecipeFiles.EXTRA_TYPE, file.type)
+            .addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
     }
+}
+
+/** Holds [MainActivity]'s [ReceivedRecipeFiles] over a rotation; their copies run in its scope. */
+class ReceivedRecipesModel : ViewModel() {
+    val files = ReceivedRecipeFiles(scope = viewModelScope)
 }
 
 /**

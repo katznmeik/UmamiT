@@ -4,8 +4,6 @@ import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.umamit.core.data.FirstStartRunner
-import com.umamit.core.data.SeedPhotoProgress
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
@@ -19,38 +17,27 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
 import javax.inject.Inject
 
 /**
- * The first-start setup (SCR-01): starts the first start in the background (seed data, then the
- * seed photos; ONB-06), reads the reliability checks (ONB-02), loads the catalog on *Katalog jetzt
- * laden* (ONB-03) and sets `onboardingCompleted` at the end (ONB-04).
+ * The first-start setup (SCR-01): reads the reliability checks (ONB-02), loads the catalog on *Katalog
+ * jetzt laden* (ONB-03) and sets `onboardingCompleted` at the end (ONB-04). It creates no data and
+ * sends nothing on its own (ONB-06, D-135).
  */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     reliability: TimerReliability,
-    private val firstStart: FirstStartRunner,
     private val settings: SettingsRepository,
     private val catalog: CatalogRefreshRunner,
 ) : ViewModel() {
-
-    init {
-        firstStart.start()
-    }
 
     private val checks = ReliabilityChecks(reliability)
 
     /** The checks as last read; [refresh] reads them again on every resume. */
     val status: StateFlow<ReliabilityStatus> = checks.status
-
-    /** The seed photos are loading: the line „Teefotos werden geladen …" with *Überspringen*. */
-    val photosLoading: StateFlow<Boolean> = firstStart.photoProgress
-        .map { it is SeedPhotoProgress.Running }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, firstStart.photoProgress.value is SeedPhotoProgress.Running)
 
     private var finishing = false
 
@@ -58,8 +45,6 @@ class OnboardingViewModel @Inject constructor(
 
     /** A row's action: the check's system pages, for the screen to start. */
     fun open(check: ReliabilityCheck): List<Intent> = checks.open(check)
-
-    fun skipPhotos() = firstStart.skipPhotos()
 
     private val catalogStarted = MutableStateFlow(false)
 
@@ -70,12 +55,9 @@ class OnboardingViewModel @Inject constructor(
 
     /**
      * *Katalog jetzt laden*: the refresh starts in its own service and goes on after the setup
-     * (CAT-07 AC1); only this tap starts it (AC7). The seed photo download ends first, so two jobs
-     * against the shop never run at once and a stop of one never leaves the other sending (rule 7,
-     * D-090); the refresh gives the seed teas their covers instead (CAT-15).
+     * (CAT-07 AC1); only this tap starts it (AC7).
      */
     fun loadCatalog() {
-        firstStart.skipPhotos()
         catalogStarted.value = true
         catalog.start()
     }

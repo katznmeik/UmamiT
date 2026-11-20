@@ -11,5 +11,8 @@ dependencies {
     // Rezept bearbeiten (SCR-12): each step's Vorwarnung shows the lead the timer will give it (TMR-23), and
     // *Aufguss hinzufügen* appends the timer's *Weiterer Aufguss* (TMR-10), as the Schritte-Sheet does.
     implementation(project(":core:timer-engine"))
+    // *Rezept teilen* (SCR-12, PRF-08): the recipe file, its share text, and the app's FileProvider URI.
+    implementation(project(":core:backup"))
+    implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
 }

@@ -438,6 +438,52 @@ class RecipeEditorViewModelTest {
         assertThat(noTea.state.value).isEqualTo(RecipeEditorUiState.NotFound)
     }
 
+    @Test
+    fun `Rezept teilen shares the stored recipe with its vessel type and no notes (PRF-08)`() = runTest {
+        collection.recipes.saveRecipe(kyusu.copy(notes = "Nur fuer mich"))
+        val vm = viewModel("kyusu")
+        assertThat(vm.ready.canShare).isTrue()
+
+        vm.share()
+
+        val shared = (vm.events.first() as RecipeEditorEvent.Share).recipe
+        assertThat(shared.tea.name).isEqualTo("Morgennebel")
+        assertThat(shared.name).isEqualTo("Kyusu")
+        assertThat(shared.vesselType).isEqualTo(VesselType.KYUSU)
+        assertThat(shared.steps.map { it.durationSeconds }).containsExactly(10, 60, 30).inOrder()
+        assertThat(shared.toString()).doesNotContain("Nur fuer mich")
+    }
+
+    @Test
+    fun `an archived vessel still gives its type and an archived tea can share (PRF-08 AC4)`() = runTest {
+        collection.teas.saveTea(tea.copy(isArchived = true))
+        collection.recipes.saveRecipe(cold.copy(vesselId = "alt"))
+        val vm = viewModel("kalt")
+        assertThat(vm.ready.canShare).isTrue()
+
+        vm.share()
+
+        val shared = (vm.events.first() as RecipeEditorEvent.Share).recipe
+        assertThat(shared.vesselType).isEqualTo(VesselType.WESTERN_TEAPOT)
+    }
+
+    @Test
+    fun `a failed share shows its message once (PRF-08)`() = runTest {
+        val vm = viewModel("kyusu")
+        vm.shareFailed()
+        assertThat(vm.ready.message).isEqualTo(RecipeEditorMessage.ShareFailed)
+        vm.messageShown()
+        assertThat(vm.ready.message).isNull()
+    }
+
+    @Test
+    fun `Rezept teilen waits for Speichern - Erst speichern`() = runTest {
+        val vm = viewModel("kyusu")
+        vm.update { it.copy(name = "Kyusu, neu") }
+        assertThat(vm.ready.canShare).isFalse()
+        assertThat(viewModel().ready.canShare).isFalse()
+    }
+
     private companion object {
         const val TEA = "morgennebel"
     }

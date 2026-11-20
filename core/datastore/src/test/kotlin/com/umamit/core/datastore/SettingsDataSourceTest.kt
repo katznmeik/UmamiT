@@ -435,4 +435,76 @@ class SettingsDataSourceTest {
         assertThat(dataSource(file).settings.first().lowStockReminderInterval)
             .isEqualTo(LowStockReminderInterval.DAILY)
     }
+
+    @Test
+    fun backupReminderIsOnByDefaultIsStoredAndAnOlderFileWithoutTheKeyReadsOn() = runTest {
+        // SET-20 (05 §6, D-130 Q11): *An Sicherung erinnern*, on by default; a file of v0.8.x has no key, no migration.
+        val source = dataSource()
+        assertThat(source.settings.first().backupReminderEnabled).isTrue()
+
+        source.update { it.copy(backupReminderEnabled = false) }
+
+        assertThat(source.settings.first().backupReminderEnabled).isFalse()
+        assertThat(source.stored().backupReminderEnabled).isFalse()
+        val file = File(folder.root, "v080.json")
+        file.writeText("""{"schemaVersion":3,"vibration":false}""")
+        val older = dataSource(file).settings.first()
+        assertThat(older.backupReminderEnabled).isTrue()
+        assertThat(older.schemaVersion).isEqualTo(3)
+    }
+
+    @Test
+    fun lastBackupAtIsNullUntilAnExportAndSurvivesASettingsUpdate() = runTest {
+        // BAK-01 (05 §6): set by a finished export only; an update of the user's settings keeps it.
+        val source = dataSource()
+        assertThat(source.lastBackupAt.first()).isNull()
+
+        source.markLastBackupAt(1_234L)
+        source.update { it.copy(vibration = false) }
+
+        assertThat(source.lastBackupAt.first()).isEqualTo(1_234L)
+        assertThat(source.stored().lastBackupAt).isEqualTo(1_234L)
+        assertThat(source.stored().vibration).isFalse()
+    }
+
+    @Test
+    fun backupReminderLastAtIsNullUntilSetAndSurvivesASettingsUpdate() = runTest {
+        // BAK-06 (05 §6): only the reminder writes it; an update of the user's settings keeps it.
+        val source = dataSource()
+        assertThat(source.backupReminderLastAt.first()).isNull()
+
+        source.markBackupReminderLastAt(4_321L)
+        source.update { it.copy(vibration = false) }
+
+        assertThat(source.backupReminderLastAt.first()).isEqualTo(4_321L)
+        assertThat(source.stored().backupReminderLastAt).isEqualTo(4_321L)
+    }
+
+    @Test
+    fun safetyCopyAtIsSetAndClearedAndSurvivesASettingsUpdate() = runTest {
+        // BAK-02 (05 §6): only the import writes it; an update of the user's settings keeps it.
+        val source = dataSource()
+        assertThat(source.safetyCopyAt.first()).isNull()
+
+        source.setSafetyCopyAt(5_678L)
+        source.update { it.copy(vibration = false) }
+        assertThat(source.safetyCopyAt.first()).isEqualTo(5_678L)
+
+        source.setSafetyCopyAt(null)
+        assertThat(source.stored().safetyCopyAt).isNull()
+    }
+
+    @Test
+    fun updateStoredWritesTheStoredKeysInOneWrite() = runTest {
+        // 05 §8 „Replace" step 4: the import lays a backup's keys over the stored ones; the rest stays.
+        val source = dataSource()
+        source.markLastBackupAt(9L)
+
+        source.updateStored { it.copy(theme = "DARK", lowStockGrams = 30.0) }
+
+        val stored = source.stored()
+        assertThat(stored.theme).isEqualTo("DARK")
+        assertThat(stored.lowStockGrams).isEqualTo(30.0)
+        assertThat(stored.lastBackupAt).isEqualTo(9L)
+    }
 }

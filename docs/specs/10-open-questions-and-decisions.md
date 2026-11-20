@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-17 (D-129 the rc.1 check: the picker's hand-over to the setup, the launch kept, the design review approved; D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
+> Status: **Living document** · Last updated: 2026-11-20 (D-134 build notes: ways (a) and (b) worked on rc.2; 2026-11-19: D-131 build notes for #346: the wipe's mechanism, the PO's answers 1–7, as built; 2026-11-18: D-130 v0.9.0 specified, Q1–Q16; 2026-11-17: D-129 the rc.1 check: the picker's hand-over to the setup, the launch kept, the design review approved; D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -323,7 +323,303 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-135"></a>
+### D-135 — v0.9.0 rc.2: no seed teas and no seed vessels; a fresh install and *Alle Daten löschen* start empty (GEN-01, ONB-06, CAT-15, WARE-06, SET-33; 03 SCR-01; 05 §6; 08 §2.5a; 09 §4 „v0.9.0"; CLAUDE.md rule 7; amends D-036's four network uses, D-050, D-093's fresh-install seed, D-131's „onboarding and the seed teas") · *Accepted (PO, 2026-11-20)*: the PO's answers Q1–Q6 below (final session #344, asked as options)
+
+**What the PO reported:** after *Alle Daten löschen* on rc.1, Meine Tees showed Bio Sencha Hisui and Bio Sencha Tanabata. As specified (D-131: like a fresh install, which seeds them), but the PO does not want them.
+
+1. **Q1, the seed teas: none at all**, neither on a fresh install nor after *Alle Daten löschen* (not taken: keep them as on a fresh install; empty only after a wipe).
+2. **Q2, when: in v0.9.0 rc.2**, together with D-134 (not taken: a later release).
+3. **Q3, the seed vessels: dropped too.** A fresh install starts with no teas, no recipes, no stock and no vessels.
+4. **Q4, the empty screens: the existing empty states as they are** — Start „Deine Sammlung ist leer · Hol dir Tees aus dem Katalog – oder starte einfach den Schnelltimer · *Katalog öffnen*", Meine Tees „Noch keine Tees … *Im Katalog stöbern*", Teegeschirr „Noch kein Teegeschirr"; no new texts or screens; the onboarding's optional *Katalog jetzt laden* stays as it is (not taken: a more prominent catalog step).
+5. **Q5, teas and vessels already on a phone stay** as ordinary data on the update; nothing is deleted or migrated (umamit.db stays v9). The PO removes them or wipes again.
+6. **Q6, the consequences, as told to the PO and accepted:** the first brew without a vessel uses *Kein Gefäß* with the recipe's leaf and water; the onboarding loses „Teefotos werden geladen …" (ONB-06), since nothing is downloaded at first start; the app uses the network for **three** things, not four (the one-time seed photo download goes).
+
+#### Claude (not put to the PO; in the spec for the PO to change)
+
+7. **What stops:** the first start no longer creates teas, recipes, stock or vessels, and never sends the seed photo download; the app start's seed retry (D-075) and the v0.2.1 vessel top-up (`seedVesselsV2Added`, D-093) add nothing on any install. The settings keys `seedDataCreated`, `seedVesselsV2Added` and `seedPhotosAttempted` stay in 05 §6 and the backup's key list (as built, #352: no longer written or read by the app), so the `SettingsRepository` interface, the backup's key list (05 §8) and the timer modules' fakes stay unchanged.
+8. **What stays:** `SeedData` (`core/data`) stays as a test fixture for the existing tests (`feature/brew`, `core/timer` and the emulator tests use it), so `git diff aed2b877 -- feature/brew core/timer core/timer-engine` stays empty. CAT-15's one-time linking stays for seed teas that already exist on a phone (Q5). An older backup that holds seed teas imports them like any tea.
+9. **The import's wait on the seed photo download** (D-133 Q10, `core/backup/restore`) is left as built; with no download started it never waits. No change in `core/backup` (T4 code) for D-135.
+10. **Network:** GEN-01, D-036, NFR-PRIV-02, 06 §2.2/§5.7, 01, README and CLAUDE.md rule 7 list three uses; the `INTERNET` permission stays, `checkManifestPermissions` unchanged.
+11. **Ticket #352** (T3: first start and onboarding; no timer code, no `core/backup` change). Changed goldens are re-recorded (as built: only the onboarding's reliability page; `docs/design/review/v0.9.0/` has no onboarding or empty-state render, so none was redone).
+12. **As built (#352, Claude's):** `FirstStart`, `SeedPhotoDownloader` and `SeedPhotoProgress` are removed; `SeedDataSeeder` stays without `@Inject` as a test fixture (core/backup and CAT-15 tests build it); `UmamitApplication` no longer runs the seed retry; the onboarding's photo line and *Überspringen* and their two strings are gone. Only the onboarding's reliability goldens at font 1.0 changed; the empty-state screens were already covered by unchanged goldens.
+
+<a id="d-134"></a>
+### D-134 — v0.9.0 rc.2: the recipe file ends in `.json` so „Öffnen mit" and *Teilen* offer UmamiT (PRF-08; 05 §8a; 06 §5.7; 03 SCR-12; 09 §4 „v0.9.0"; amends D-130 Q2's file name and item 18's share type) · *Accepted (PO, 2026-11-20)*: the PO's answers Q1–Q4 below (final session #344, asked as options after the PO's check of `v0.9.0-rc.1`)
+
+**What the PO saw on rc.1 (Galaxy, One UI 9):** tapping a received `<Tee>.umamit-rezept` in My Files offered other apps but not UmamiT (way (a)); sharing it, from My Files and from a messenger or mail app, did not offer UmamiT in the share sheet (way (b)); *Rezept importieren* (way (c)) worked. Everything else on 09 §4 „v0.9.0" and the design review: approved. The likely cause (Claude, not provable from the container): Android does not know the `.umamit-rezept` ending, so the file manager and the messengers type the saved file generically (e.g. `application/octet-stream`), which D-130 item 18's filters do not match.
+
+1. **Q1, what to do: fix it now in an rc.2** (not taken: accept (a) and (b) as the known limit of D-130 Q1 and ship; ship now and fix later).
+2. **Q2, the fix: the recipe file ends in `.json`.** *Rezept teilen* writes `<Tee>.umamit-rezept.json` and shares it as `application/json`, a type Android, My Files and the messengers know and that UmamiT already accepts (D-130 item 18). The PO was told that text and JSON viewers will be offered too, and that only rc.2 on the phone shows whether it works. Not taken: also accepting unknown files (`application/octet-stream`; UmamiT would be offered for every unknown file, reversing item 18), or both.
+3. **Q3, where the PO tried (a) and (b):** (a) My Files (other apps offered, not UmamiT); (b) both My Files and a messenger/mail app (UmamiT not in the share sheet).
+4. **Q4, the grants after *Alle Daten löschen* on One UI 9** (D-131 build notes): the PO reported as still on afterwards the full-screen alarm („Vollbild-Benachrichtigungen") and the Live notifications (promoted Live Update); exact alarms („Wecker und Erinnerungen") and the battery exemption were checked and were **off** (follow-up answer, 2026-11-20); the channels' settings were not reported.
+
+#### Claude (not put to the PO; in the spec for the PO to change)
+
+5. **Only the name and the share type change.** The content stays format `umamit-recipe`, `formatVersion` 1 (05 §8a); the name keeps D-130 item 17's rules (`/\:*?"<>|` removed, the tea's name at most 60 characters) with `.umamit-rezept.json` after it. `RecipeFileProvider` reports `application/json` for the recipe files (a `.umamit-rezept.json` name; the stock provider would say the same through the system's MIME map, the subclass keeps it independent of the device's map); the share intent's type is `application/json`.
+6. **Receiving is unchanged:** `ReceiveRecipeActivity` keeps both filters for `application/vnd.umamit.recipe+json` and `application/json` (an rc.1 file typed with the own type by its sender still arrives), so the merged manifest and `checkManifestPermissions` stay unchanged. Every file still goes through the one reader (05 §8a), which decides by content, not by name. An rc.1 `.umamit-rezept` file still imports through *Rezept importieren* (any type).
+7. **`RecipeFile.MIME_TYPE`** stays the accepted own type for receiving; the sent type is `application/json`. Ticket #351 (T3: recipe sending, no timer code).
+
+**Build notes (rc.2 on the Galaxy, One UI 9; the PO, 2026-11-20, final session #344).** Both ways worked for a `<Tee>.umamit-rezept.json` shared from rc.2: (a) tapping the saved file in My Files offered UmamiT and opened „Rezept übernehmen"; (b) sharing it from My Files and from a messenger offered UmamiT in the share sheet and opened „Rezept übernehmen". (c) *Rezept importieren* works as on rc.1. Q2's fix holds; nothing else changes. The PO approved everything else on rc.2 too (D-135's empty first start, and a catalog tea brewing with *Kein Gefäß*).
+
+<a id="d-133"></a>
+### D-133 — v0.9.0 rc fix round: the typed-word field, overlays after an alert, the late-failure undo, how a recipe file reaches the app, the busy cover, the session count, the seed photos during an import, motion on SCR-26 and SCR-32 (BAK-01, BAK-02, PRF-08, SET-20, SET-33; SCR-26, SCR-32; 03 §3.6; 05 §6, §8) · *Accepted (PO, 2026-11-19)*: the PO's answers Q1–Q12 below (rc session #343, asked as options after the T3/T4 milestone review and `/review-animations`)
+
+1. **Q1, the typed-word field (ERSETZEN, LÖSCHEN): the hint above the field.**
+   „Tippe … zur Bestätigung" is its own small text line above a field with no
+   label, at every font scale (it crowded the body at font 2.0).
+2. **Q2, an SCR-26 dialog during an alert: it stays closed.** The ERSETZEN,
+   LÖSCHEN and import-preview dialogs give way to an alert like every other
+   overlay (03 „Overlays give way") and do not come back after it.
+3. **Q3, the undo after a late failure:** the 7 × 24 h and the „N neue
+   Sessions" count start at the import (as answered 2026-11-18). If the
+   leftover step still cannot finish, *Rückgängig machen* is **offered and
+   refused** with the existing replace-failed text.
+4. **Q4, a recipe file from *Öffnen mit* / *Teilen*: handed to the main app.**
+   The receiving step passes its read grant on to the app, which copies the
+   file off the main thread. No freeze, no false „beschädigt" for a slow
+   source; one more 09 §4 „v0.9.0" item on the phone.
+5. **Q5, the Start snackbar's *Rückgängig*: the busy cover** („Import wird rückgängig
+   gemacht …", as on SCR-26) until the result snackbar.
+6. **Q6, the busy cover: a delay and a minimum for the check.** Checking a file
+   shows the cover only after 0,25 s, then for at least 0,4 s; import and
+   undo show it at once. After a successful import the cover stays until
+   Start shows, so SCR-26 no longer flashes.
+7. **Q7, the *Alle Daten löschen* notice: about 1 s, as decided in D-131**,
+   now in the same window as the delete dialog (no scrim blink).
+8. **Q8, rows that appear on SCR-32: fade in and expand** (`fade` /
+   `exitFade`, height on the `sheet` spring, 03 §3.6), and the screen fades in
+   on arrival (A-12).
+9. **Q9, „N neue Sessions", the undo's count and the reminder's ≥ 20: by when
+   the session was saved** (`brew_session.created_at`), whatever date it
+   carries, so every session missing from the backup is counted (amends 05 §6
+   `lastBackupAt` and D-130 item 21).
+10. **Q10, a seed-photo download while an import runs: the import waits** for
+    the running download (no new text).
+11. **Q11, the export's progress bar: a soft ease of 0,3 s** per step
+    (`CalmEaseOut`).
+12. **Q12, the busy cover under „Animationen entfernen": the text is enough.**
+13. **Claude (plain fixes from the reviews, no design change):** both
+    SCR-32 sheets slide out on their own close (A-13); the export button ↔
+    progress and the undo row change without a layout jump; a failing
+    `lastBackupAt` write no longer crashes the app or deletes a finished
+    backup; a pending import marker no longer wipes a staged import;
+    `photos.old/` is freed once the commit is durable; photo files of rows
+    in the new database are kept by the swap; the reader's JSON caps are
+    1 MB (manifest, settings) and 64 MB (`data.json`), and an
+    `OutOfMemoryError` reads as damaged; the start gate and the non-timer
+    start-up launches are guarded (the timer's own recovery launch is
+    unchanged); the safety-copy expiry no longer builds the network graph;
+    the picker's recipe copy survives a rotation; one shell snackbar queue;
+    tests for SCR-26's adapter, the wipe adapter, the gate in `onCreate`, a
+    second import over a pending marker and the late-failure undo; #334's
+    fixture checked against the raw JSON with differing rows.
+
+<a id="d-130"></a>
+### D-132 — A „What's new" for every release, on its GitHub Release page (09 §2; CLAUDE.md rule 6; `release.yml`) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q4 below (build session 2 of v0.9.0, asked as options)
+
+1. **Q1, language: English.**
+2. **Q2, where: a file per release and the release page.** `docs/whats-new/vX.Y.Z.md`
+   is written with the milestone; `release.yml` puts its text at the top of
+   the GitHub Release body, above the version and checksum table. The
+   workflow change reaches `main` through its own housekeeping PR (D-039).
+3. **Q3, which releases: final and release candidates.** An rc shows the
+   release's whole what's new plus a short „Since rc.N" part for what
+   changed since the previous rc; the final drops that part.
+4. **Q4, length: 3–8 bullets**, grouped as *New*, *Improved*, *Fixed*, one
+   line each, user-visible changes only, no ticket numbers.
+5. **Claude (defaults):** the file is named after the version without its
+   `-rc.N` suffix; a final release without its file fails before the tag is
+   made, an rc or probe without one publishes the table alone. Probes get
+   none. Starts with v0.9.0.
+
+### D-131 — v0.9.0: *Alle Daten löschen* (SET-33) built in this release, like a fresh install; the device-backup note's wording (SET-33, BAK-05; SCR-26) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q6 below (build session 2, asked as options); ticket #346 and the dialog's copy (Claude's proposal) **approved by the PO as written on 2026-11-18**; it is built in build session 3
+
+Context: build session 2 found that SCR-26's „as before" parts were never
+built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
+
+1. **Q1, what is deleted: like a fresh install.** The database, own
+   photos, the catalog cache and its photos, all settings (device-bound keys
+   included), the import's safety copy and the shared-recipe cache; the app
+   is as after installing it.
+2. **Q2, a timer: greyed out, like the import.** While a timer is active the
+   row is disabled with „Während ein Timer läuft, nicht möglich" (SCR-26's
+   `TimerActivity`); no timer code (D-130 Q16 stays).
+3. **Q3, the safety net: a hint to back up first.** The dialog says it
+   cannot be undone and suggests a backup; typing „LÖSCHEN" confirms. No
+   safety copy, no undo.
+4. **Q4, afterwards: onboarding again.** The next start is a first start
+   (onboarding, seed teas and their photo download, seed teaware).
+5. **Q5, the release: a new ticket in v0.9.0** (#346, T3, after step 5 of
+   the plan), not part of #338.
+6. **Q6, the GERÄTE-BACKUP note** (SCR-26, BAK-05): „Dein Handy sichert
+   Tees, Journal und Einstellungen automatisch mit dem Geräte-Backup. Fotos
+   sind nur in der Sicherung enthalten."
+7. **Claude (approved by the PO, 2026-11-18):** the dialog's copy in 03
+   SCR-26; the wipe's mechanism is proposed by #346's implementer as a build
+   note before the code.
+
+**Build notes.**
+
+- **#346, the wipe's mechanism (build session 3; proposed before the code)** · *Accepted (PO, 2026-11-19)* as #346 answer 1 below: `ActivityManager.clearApplicationUserData()` on the own package, no permission and no manifest change. It wipes credential- and device-encrypted and external app storage: `umamit.db` and `catalog.db` (with WAL), `files/photos/`, the catalog and guide photos, `datastore/settings.json` (device-bound keys included), `noBackupFilesDir` (`import/`, the safety copy, the install marker), the diagnostics log, `cache/shared/`, Coil's caches and WorkManager's database. The system then cancels the app's jobs (WorkManager), alarms, posted notifications, URI grants and recents, and kills the process. `true` means only „requested"; `false` or a `SecurityException` is a failure. Sources (AOSP aosp-mirror `main`, ≈ Android 15): `ActivityManagerService.clearApplicationUserData`, `PackageManagerService.clearApplicationUserDataLIF`, `PermissionManagerServiceImpl.resetRuntimePermissionsInternal`, `NotificationManagerService.clearData` (`fromApp = true` skips `PreferencesHelper.clearData`). Effects:
+
+  | Grant or state | After the wipe |
+  |---|---|
+  | `POST_NOTIFICATIONS` | revoked, user flags cleared (documented): ONB-02 item 1 asks again |
+  | Notification channels | keep their settings on a self-clear (AOSP) |
+  | `USE_EXACT_ALARM` | stays (install-time) |
+  | `USE_FULL_SCREEN_INTENT` app-op, promoted notifications, battery exemption | not reset per AOSP; One UI 9 only checkable on the Galaxy (09 §4 „v0.9.0") |
+  | Device backup | no auto-restore until a reinstall; the next nightly backup replaces it |
+
+  Rejected: an in-app wipe and restart (it misses stores added later, and would have to close Room and DataStore under the timer singleton, which is timer code).
+- **#346, the PO's answers (build session 3, asked as options)** · *Accepted (PO, 2026-11-19)*:
+  1. **Mechanism:** the system call above; the grants and channels that survive it are accepted, with no hint to the system settings.
+  2. **After *Löschen*:** the dialog shows „Daten werden gelöscht. UmamiT schließt sich, öffne die App danach neu." for about 1 s, then the wipe.
+  3. **Greyed out also while an export, an import or its undo runs** (besides a timer); a running catalog refresh is simply ended by the wipe.
+  4. **The dialog adds „Auch die Rücksicherung des letzten Imports wird gelöscht."** only while a safety copy exists.
+  5. **A failed wipe:** the dialog closes and the snackbar „Löschen nicht möglich. Es wurde nichts gelöscht." shows.
+  6. **No device-backup hint** in the dialog.
+  7. **TalkBack for the field:** „LÖSCHEN eintippen".
+- **#346, as built (Claude's, as built):** the screen calls an `AppDataWipe` seam in `feature:settings` (`wipe()` → `Wiped`, `TimerActive` or `Failed`); its real implementation re-checks, at the moment of the wipe, the timer controller's slot states and `active_brew` in every slot (read only, like the import), then calls the system. The ~1 s notice is a dialog without buttons that back does not close; the view model waits 1 s, re-checks timer, export and busy state, and calls the wipe once. `TimerActive` from the seam closes the dialog with the snackbar „Während ein Timer läuft, nicht möglich" (SCR-26's existing text). „Exactly LÖSCHEN" means no trimming and no case folding („löschen" and „LÖSCHEN " leave *Löschen* disabled). „A safety copy exists" is read as *Import rückgängig machen* being shown (the copy's counts, read again when the dialog opens); the sentence is its own paragraph after the body. While an import, its check or its undo runs, the screen's full-screen cover already blocks the row (no new text); while an export runs the row is greyed out with „Während die Sicherung erstellt wird, nicht möglich" (Claude's wording, *Accepted (PO, 2026-11-19)* as proposed). *Journal als CSV* has no running state on the screen, so the row is not greyed out during it (it takes well under a second). The proof on the JVM is only „empty storage → first start" (`EmptyStorageFirstStartTest` in `:app`: onboarding shown, the seed teas and vessels created, the seed photo download not yet attempted); the wipe itself is checked on the Galaxy.
+- **#346 on the Galaxy (rc.1, One UI 9; the PO, 2026-11-20, D-134 Q4):** after *Alle Daten löschen* the full-screen alarm („Vollbild-Benachrichtigungen") and the Live notifications (promoted Live Update) were still on; exact alarms („Wecker und Erinnerungen") and the battery exemption were checked and were **off** (follow-up answer, 2026-11-20); the channels' settings were not reported. Accepted as answer 1 above says (no hint to the system settings). The rest of the fresh-install item passed.
+
+### D-130 — v0.9.0 specified: recipe file and how it arrives, newer files refused, the shop page only on a tap, the safety copy and its undo, all photos in the backup, the export's size note, the journal CSV, the reminder switch, „Letzte Sicherung", matching a received tea, tiers, #330 (GEN-01, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08, SET-20; SCR-08, SCR-12, SCR-26, SCR-32; 05 §8, §8a; 06 §2.2, §5.4, §5.7; 09 §2, §4 „v0.9.0"; amends D-128 Q9 and D-036's rule 7 wording) · *Accepted (PO, 2026-11-18)*: the PO's answers Q1–Q16 below. The spec #333, its tickets (#334–#344, #330), `docs/plans/v0.9.0.md` and the details marked „Claude" (items 17–27) **approved by the PO as written on 2026-11-18** (build session 1, asked as options); items 17–27 stay Claude's defaults inside the approved spec, not the PO's answers to Q1–Q16
+
+**Context.** D-128 Q4–Q11 planned v0.9.0 (export and a replacing import, the backup reminder, „Letzte Sicherung", the journal CSV, shared recipes) and left a list „Open for the v0.9.0 specify session". #330 (the tabs' ⋮ menu does not give way to an alert) was put into v0.9.0 by D-128 item 41.
+
+**How it was decided.** The v0.9.0 specify session (2026-11-18), four rounds of selectable options (Q1–Q16). Every answer below is the PO's; in each question the recommended option was marked, and the PO took it in all but Q4. D-128 Q4–Q11 were not asked again.
+
+#### Shared recipes (Q1–Q4)
+
+1. **Q1, how a received recipe file reaches the app: all three ways.** (a) Opening the file („Öffnen mit") where the sending app allows it; (b) sharing the file to UmamiT from the messenger or mail app; (c) an in-app *Rezept importieren* that opens the system file picker. The PO was told that „open with" for a custom file type is unreliable on Android (apps often relabel attachments), so (c) is the way that always works, and that only the PO's phone shows which of (a) and (b) work. No new permission.
+2. **Q2, the recipe file: readable JSON.** One small file `<Tee>.umamit-rezept`, format id `umamit-recipe`, `formatVersion` 1, readable in a text editor; not a ZIP, no photos.
+3. **Q3, a file from a newer app version is refused**, for recipe files and backups alike: „Diese Datei stammt aus einer neueren UmamiT-Version. Aktualisiere die App und versuch es noch mal." Nothing changes. Older versions are read and converted.
+4. **Q4, the shop page: only on a tap** (not the recommended „never"). When a received recipe names a catalog tea that the local catalog does not have, the screen offers *Tee über Shop-Link laden*; only the user's tap fetches that one product page, through the CAT-17 path (its link check of CAT-17 AC2, the polite shop session, its stops). Opening the file never fetches anything. This **amends D-128 Q9** („no network use by the app") for that tap only, and the wording of network use (d) in GEN-01 and CLAUDE.md rule 7 (a link the user shares, pastes **or taps in a received recipe**); still one page, still only to `www.tee-kontor-kiel.de`.
+
+#### Backup and import (Q5–Q8)
+
+5. **Q5, the safety copy: private, 7 × 24 h.** One copy in the app's private no-backup storage (never in a device backup, not visible to other apps). *Import rückgängig machen* shows until 7 × 24 hours after the import; after that, or at the next import, the copy is deleted (at the next app start or the next import).
+6. **Q6, undo warns with counts.** *Import rückgängig machen* is itself a replace; a dialog says what is lost, as the PO saw it: „Deine Daten von vor dem Import kommen zurück. Seit dem Import: 3 neue Sessions, 1 geänderter Tee – sie gehen verloren.", with *Rückgängig machen*. No typed word. Refused while a timer is active, like the import.
+7. **Q7, the backup carries all photos**, the shop photo copies (`CATALOG_COPY`) included, so every tea comes back with its cover. It is the user's private file, never the repository (rule 3).
+8. **Q8, the export shows its size first and a progress bar.** Before the file picker: „Etwa 18 MB · 142 Sessions, 23 Tees, 61 Fotos"; while writing a bar with „Fotos 12 von 61"; then „Sicherung gespeichert". Allowed while a timer is active (it only reads).
+
+#### Journal CSV, reminder, „Letzte Sicherung" (Q9–Q12)
+
+9. **Q9, the CSV for German Excel:** semicolon separator, decimal comma („4,0"), dates „21.10.2026" and times „07:45", UTF-8 with a BOM.
+10. **Q10, the columns: base + infusions + taste,** one row per session. Base: Datum, Uhrzeit, Tee, Kategorie, Rezept, Gefäß, Blatt (g), Wasser (ml), Aufgüsse („3 von 4"), Dauer, Bewertung Tee, Bewertung Zubereitung, Kosten (€), Beschreibungen, Notizen; plus „Aufgüsse im Detail" („80 °C 1:00 | 85 °C 0:30 | …") and the ten taste axes, each averaged over the session's infusions and **empty where the tea's set has no such slider** (so values D-128 Q16 hides are not exported either).
+11. **Q11, the reminder has a switch, on by default:** *An Sicherung erinnern* (SET-20, until now „Aus / Monatlich") in *Daten & Sicherung*; a tap on the reminder opens *Daten & Sicherung*; the existing channel „Erinnerungen".
+12. **Q12, „Letzte Sicherung" counts a finished export only:** *Sicherung erstellen* sets it; the CSV and an import do not; before the first „Noch keine Sicherung".
+
+#### Matching, entry, tiers, #330 (Q13–Q16)
+
+13. **Q13, the same tea:** a catalog tea matches by its `catalog_key`; a tea without catalog by its name, ignoring case and accents. The match is only preselected; the user can pick another tea or create one before *Rezept übernehmen*.
+14. **Q14, *Rezept importieren* sits in the ⋮ of Sammlung › Meine Tees**, beside the two *Tee … hinzufügen* entries; it leads to the same screen as (a) and (b).
+15. **Q15, tiers:** **T4** for the import (validation, safety copy, atomic replace, undo); **T3** for the export writer, the CSV, the recipe file's writing, reading and receiving (untrusted input) and #330; **T2** for the *Daten & Sicherung* screen and the reminder. The milestone review reads the import path at T4.
+16. **Q16, #330: T3, no timer review.** A T3 ticket with a test that the menu closes in the alert's first frame; the T3 milestone review covers it. No T4 timer review and no accuracy runs for v0.9.0, as long as `feature/brew`, `core/timer` and `core/timer-engine` stay unchanged (checked by diff; if a ticket must touch them, stop and ask the PO).
+
+#### Claude (not put to the PO; in the spec for the PO to change)
+
+17. **Recipe file content:** recipe name, method, leaf, water, base temperature, the recipe's *Vorwarnung*, the vessel **type** (not the vessel), each step's kind, duration, temperature, *Vorwarnung* and note; the tea's name, secondary name, Kategorie and Sorte, and for a catalog tea its `catalog_key` and shop link. **Not** the recipe's notes (D-128 Q10 did not name them) nor anything personal beyond the recipe. Size limit 64 KB; a step list per PRF-04 (1–30 steps, at least one that is not *Spülen*).
+18. **Intent filters:** `ACTION_VIEW` and `ACTION_SEND` for the MIME types `application/vnd.umamit.recipe+json` and `application/json`, on one new non-displaying activity like `ShareTeaLinkActivity`; nothing for `application/octet-stream` (UmamiT would offer itself for every file). The sent file goes out through a `FileProvider` (a new non-exported manifest component, no permission) with the own MIME type. Every file, whichever way it came, goes through one reader with the checks of 05 §8a. **Risk:** a messenger that re-types the attachment as `application/octet-stream` makes ways (a) and (b) silent for it; then only (c) works there. Not verifiable without the PO's phone: the checklist records it, and widening the filters would be a new question to the PO.
+19. **The receiving screen is SCR-32 „Rezept übernehmen"**: the recipe's summary, *Für welchen Tee?* (the match preselected, else *Tee wählen …* or *Neuen Tee anlegen*: from the local catalog when its `catalog_key` is there, else without catalog with the file's name and Sorte), then *Rezept übernehmen*. A tea that already has 10 recipes is not offered („Höchstens 10 Rezepte"). The new recipe is never the default. The vessel type becomes *Kein Gefäß* with leaf and water as given; the user picks a vessel later.
+20. **The share text** (D-128 Q9) is built from 08's number and date rules; an archived tea's recipe can be shared too.
+21. **Safety copy and undo:** the copy is a `.umamit` file written by the same writer (photos included), first under a temporary name and checked like an import; it replaces the previous copy only after the import has fully succeeded, so a failed import keeps the old copy and its date. If it cannot be written (no space), the import is refused and nothing changes. The undo's counts (Q6) are completed sessions started after the import and teas created or changed after it (`tea.updated_at`); other changes (vessels, stock, notes) are not counted, and the dialog says so with „… und alle anderen Änderungen seit dem Import". With neither: „Seit dem Import gibt es keine neuen Sessions und keine geänderten Tees.".
+22. **Import scope and settings:** the import replaces `umamit.db`'s personal tables, the own and shop-copy photos and the settings in `settings.json` except the device-bound ones (onboarding, the seed keys, dismissed hints, the reminders' last dates, `lastBackupAt`, `safetyCopyAt`; list in 05 §8), which stay. `active_brew` is empty after it (no timer can run). The catalog stays; teas keep their `catalog_key`. After the replace the app opens Start with „Sicherung eingespielt · 142 Sessions, 23 Tees" and *Rückgängig machen* as a snackbar too.
+23. **Older backup files:** `formatVersion` 1 is the only one; a file whose database schema version is older than the app's is converted by the same rules as 05 §9's migrations (columns a newer schema added stay empty).
+24. **The reminder's schedule:** a unique one-time WorkManager job, due 30 days after the latest of the last export, the switch's last turn-on and the last **check** (a run that posted or not); it posts only with ≥ 20 sessions since the last export; no constraints; cancelled when the switch is off.
+25. **Testing on one phone:** a recipe is shared to oneself (e.g. a note, mail or a messenger chat to oneself) and opened from there; the checklist (09 §4 „v0.9.0") tries all three ways and records which of (a) and (b) the Galaxy offers.
+26. **Atomic replace (for #336's T4 design):** the replace spans Room, `photos/` and DataStore. The spec states the invariant: after a crash at any point, the next start finds either the complete old data or the complete imported data, never a mix; a phase marker in `noBackupFilesDir` records the step, and recovery rolls the import **forward** once the Room transaction has committed and **back** before. How a commit is recognised after a crash is #336's design, recorded as a D-130 build note and read in the T4 review.
+27. **Export scope:** sessions with status `COMPLETED` and `MANUAL` (everything but `IN_PROGRESS`). The file the picker creates is typed `application/octet-stream` so the provider keeps the `.umamit` name (not `.umamit.zip`); the checklist checks the name.
+
+**Consequences.**
+
+- Specs changed in this session: 02 (GEN-01 (d), PRF-08, BAK-01, BAK-02, BAK-04, BAK-06, SET-20 as a switch), 03 (SCR-08 ⋮, SCR-12 ⋮ *Rezept teilen*, SCR-26 in full, the new SCR-32), 05 (§8, the new §8a), 06 (§2.2, §3 `core:backup`, §5.4, §5.7), 09 (§2 row, §4 „v0.9.0"), 11, CLAUDE.md rule 7's wording.
+- **No timer code** in v0.9.0: no T4 timer review, no accuracy runs (Q16). **No migration**: umamit.db stays v9 (the export carries schema 9); the settings get `backupReminderEnabled`, `backupReminderLastAt`, `lastBackupAt` and `safetyCopyAt` (05 §6; the planned, never built `backupReminder` and `lastManualBackupAt` are replaced). „N neue Sessions" is counted from `lastBackupAt`, not stored.
+- The spec issue #333 and its tickets carry `needs-triage` until the PO approves them; then `ready-for-agent`.
+
+**Build notes.**
+
+- **Approval (2026-11-18, build session 1):** the PO approved spec #333, tickets #334–#344 and #330, the plan and items 17–27 as written; the tickets were relabelled `ready-for-agent`.
+- **#334, the backup writer (Claude's, as built):** `lastBackupAt` is the snapshot's time (`manifest.createdAt`), so a session started during the write still counts as new. `manifest.json` is written last (it holds the other entries' SHA-256) and the entry order is not significant. A photo row whose file is gone is left out and a `coverPhotoId` pointing at it is written as null, so the reader's reference check accepts the app's own file. Stock events and photos of an `IN_PROGRESS` session are left out with it. The size note counts the JSON uncompressed (it errs high). `CreateBackup.writeTo` writes the same file without touching any setting (the safety copy, #336).
+- **#340, the recipe file (Claude's, as built):** `core:backup` also depends on `core:catalog-parser` (pure) for CAT-17 AC2's link check, beside the plan's list; no module rule changed. Numbers are checked against 05 §3's ranges (temperatures and *Vorwarnung* in 5-steps), not the editor's increments, so any stored recipe reads back. A link that fails the check is dropped together with the `catalogKey` on reading; the writer keeps the sender's key when only the tea's stored link fails. A file over 64 KB read as „Das ist keine UmamiT-Rezeptdatei." (since #342: „Die Rezeptdatei ist beschädigt.", 03 §5). Stricter than 05 §8a: unknown fields, nesting deeper than 16, control characters in names and a missing `createdAt` are „beschädigt"; a leading BOM is accepted; texts are trimmed, then refused if too long, never cut.
+- **#337, a CSV cell that Excel would read as a formula** · *Accepted (PO, 2026-11-18, build session 1, as options)*: a text cell starting with `=`, `+`, `-` or `@` gets a leading apostrophe; number cells never (BAK-04). Not taken: the bytes unchanged.
+- **#337, the journal CSV (Claude's, as built):** Kategorie uses BAK-04's short names („Grün", „Weiß", „Kräuter", „Sonstige"); „Aufgüsse im Detail" lists the steps that ran (rinses included, skipped ones not) in order with their actual time and the step's own temperature, else the recipe's base; „Aufgüsse" is always „x von y"; whole stars print without „,0"; a header row, CRLF after every row.
+- **#335, the backup reader (Claude's, as built):** the order of 05 §8 „Validation" as written there now: paths, duplicates, entry count and declared sizes from the central directory first, then the manifest (not a backup / newer), then unknown entries, checksums and content („beschädigt"); an unreadable manifest reads as „keine UmamiT-Sicherung". A newer `settingsSchemaVersion` is refused as newer. Strict: an unknown key in any JSON entry (settings included), a device-bound key in `settings.json`, quoted numbers, NaN, a non-empty `customDescriptors` and a photo id outside `[A-Za-z0-9_-]{1,64}` are „beschädigt"; settings are checked against the ranges the app's own write path keeps. Constraints are checked only where the app's writes guarantee them (one default recipe per tea, session step positions 0…n−1, a cover among the owner's photos), never e.g. `originCountry` as ISO or `endedAt ≥ startedAt`, so the app's own file and the safety copy are never refused. Sizes in decimal units; the ratio uses the central directory's compressed size, and the compressed sizes together must fit in the file. Older settings are converted with copies of the DataStore's v2/v3 steps.
+- **#336, crash safety of the replace (design note, Claude's; read by the orchestrator before the code, for the T4 review):** the phase marker `noBackupFilesDir/import/marker.json` (`{v, kind: IMPORT|UNDO, token, phase}`, written atomically: tmp, fsync, rename, fsync of the folder) beside `import/settings.json` and the staging. **A commit is recognised by `PRAGMA application_id`:** the one Room transaction (re-check `active_brew`, `defer_foreign_keys`, empty and refill every §3 table) also sets the header field to the marker's token (the previous value + 1, never 0); Room does not use it, so umamit.db stays v9 with its frozen schema and identity hash. After the commit `wal_checkpoint(FULL)` runs before any rename. Phases: none (safety copy `.new` written and checked) → a crash deletes the leftovers; `PREPARED` (`photos.new/` and `import/settings.json` fsynced) → token ≠ database: **back** (delete `photos.new/`, `import/*`, `.new`), token = database: **forward**: the folder swap as its state shows (`photos/` → `photos.old/`, `photos.new/` → `photos/`), then one DataStore write laying the file's keys over the stored ones (device-bound kept); `SETTINGS_WRITTEN` → step 5 (`.new` over `.umamit` and `safetyCopyAt`; for an undo the copy deleted and `safetyCopyAt` cleared), then the marker deleted. Recovery is a synchronous gate in `UmamitApplication.onCreate` right after `super.onCreate()`, before the timer, seed and reminder launches (one `exists()` on the fast path); with a marker it reads the token through a plain framework `SQLiteDatabase` before Room opens, so the restore detection never sweeps imported photo rows; it never writes a row. The live import and undo run the same idempotent routines under one mutex. The timer refusal reads `active_brew` (`BREW`, `BREW_2`, `QUICK`) through its DAO before the safety copy and inside the transaction, and SCR-26's ViewModel also reads the timer controller's slot states (a timer without a row, D-054); no timer code changes. New: a `RestoreDao` in `core:database` (no entity change), `safetyCopyAt` and a raw settings overlay in `core:datastore`; the M5 orphan sweeper must skip `photos.new/`, `photos.old/` and not run while a marker exists. Disk peak about 3 × the photos; „no space" is step 2's refusal.
+- **#336, the import while the catalog refreshes** · *Accepted (PO, 2026-11-18, build session 1, as options)*: *Sicherung einspielen* and *Import rückgängig machen* are refused while a catalog refresh runs: „Während der Katalog aktualisiert wird, kann nichts eingespielt werden." Nothing changes. Not taken: cancelling the refresh and importing.
+- **#336, a step that fails after the commit** · *Accepted (PO, 2026-11-18, build session 1, as options)*: the screen says „Sicherung eingespielt" as usual; the remaining step is finished at the next start; undo stays. Not taken: a note to restart.
+- **#336, as built beyond the design note (Claude's):** `PRAGMA foreign_key_check` runs inside the transaction before the commit (a COMMIT failing on a deferred key left SQLite's transaction open); a roll-back also reverses a started folder swap (a commit a power loss undid; settings already written then stay); the start gate only finishes or undoes the import and leaves the cleanup of `photos.old/` and the stagings to `SafetyCopyExpiry.atAppStart` in the background; the gate builds no Room and no catalog graph. New module edges: `core:backup` → `core:data` (the catalog refresh's state only) and `app` → `core:backup`. On the path where a step finishes at the next start, `safetyCopyAt` is that start's time, so the undo is offered from then. SQLite behaviour (`application_id`, the checkpoint) and the renames are tested under Robolectric only; the on-device check is the 09 §4 „v0.9.0" checklist. API for #338: `RestoreBackup.restore(content, timer)`, `UndoImport.preview()` / `undo(timer)`, `RestoreResult` (`Done(preview, finishedAtNextStart)`, `Refused(TIMER_ACTIVE | CATALOG_REFRESH | SAFETY_COPY_FAILED | REPLACE_FAILED)`, `NoSafetyCopy`), `TimerActivity` supplied by the screen from the timer controller.
+- **#336, undo after a step finished at the next start** · *Accepted (PO, 2026-11-18, build session 1, as options)*: undo is offered right after the import and counts from the import's time, as Q6 and the late-failure answer say; the as-built case (hidden until the next start, `safetyCopyAt` = that start) is **fixed in the rc round (#343)**. Not taken: keeping it as built.
+- **Ways (a) and (b) on the Galaxy (rc.1, One UI 9; the PO, 2026-11-20):** neither offered UmamiT for a `.umamit-rezept` file: (a) tapping it in My Files offered other apps only; (b) sharing it from My Files and from a messenger or mail app left UmamiT out of the share sheet. (c) *Rezept importieren* worked. This is item 18's risk; [D-134](#d-134) renames the file to `.umamit-rezept.json`, shared as `application/json`, for rc.2.
+- **Ways (a) and (b) on rc.2 (the PO, 2026-11-20):** both offered UmamiT for `<Tee>.umamit-rezept.json` and opened „Rezept übernehmen" ([D-134](#d-134) build notes); (c) works.
+
 <a id="d-129"></a>
+- **Build note, #341 (Rezept teilen, build session 2, PO 2026-11-18):** a new
+  recipe has no ⋮ (as before), so *Rezept teilen* is not offered until it is
+  saved, rather than greyed out (PO: keep it). A file that can't be written
+  or a phone without a share target shows the snackbar „Das Rezept konnte
+  nicht geteilt werden." (PO). The provider is `RecipeFileProvider`, a
+  `FileProvider` subclass that names the recipe MIME type (D-130 item 18's
+  octet-stream risk); authority `${applicationId}.files`. The day-old
+  cleanup of `cache/shared/` is the last start-up launch, on IO, after timer
+  recovery. Seen once in `:app:testDebugUnitTest`: `RemoveTeaFlowTest` failed
+  with `UncaughtExceptionsBeforeTest` from #336's `safetyCopyExpiry` start-up
+  launch (`NameNotFoundException` in `NetworkModule`); passed on rerun — for
+  #343's review of the start gate.
+
+- **Build note, #338 (SCR-26, build session 2, PO 2026-11-18):** built at T3
+  (it adds `backupReminderEnabled`, a normal backed-up key; the reader needed
+  no main-code change). The screen talks to a `DataBackup` interface in
+  `feature:settings` (`UseCaseDataBackup` adapts the use cases and reads
+  `BrewSessionController.slotStates` only). The PO's answers: the snackbar's
+  *Rückgängig machen* on Start undoes directly (nothing can be lost yet); the
+  undo dialog drops a zero count („Seit dem Import: 3 neue Sessions und alle
+  anderen Änderungen – sie gehen verloren.", the same for teas; fixed with
+  #339); „Das Journal konnte nicht gespeichert werden." (CSV failed) and
+  „Import wird rückgängig gemacht …" (the undo's cover). Accepted defaults:
+  refusals and „gespeichert/abgebrochen" are snackbars; „Sicherung wird
+  geprüft …" is a blocking cover like the import; an unreadable file shows
+  „Das Einspielen hat nicht geklappt. Deine Daten sind unverändert."; the
+  open picker shows `*/*`; leaving SCR-26 cancels a running export and
+  deletes the partial file; the size note rounds to whole MB, at least
+  „Etwa 1 MB"; the ERSETZEN dialog is full width with 24 dp margins (a
+  normal-width dialog with a text field never settled in Robolectric) — the
+  PO checks it at font 2.0 with the keyboard on rc.1. „N neue Sessions"
+  counts COMPLETED and MANUAL sessions (`RestoreDao.sessionsStartedAfter`).
+
+- **Build note, #339 (backup reminder, build session 2, PO 2026-11-18):** the
+  first start with neither `lastBackupAt` nor `backupReminderLastAt` (an
+  update from v0.8.x) stamps `backupReminderLastAt` = now, so the first check
+  is 30 days after the update (PO). The tap opens Start › Einstellungen ›
+  Daten & Sicherung, back goes to Einstellungen (PO). Channel `reminders`
+  „Erinnerungen", description „Erinnerung an die Sicherung deiner Daten"
+  (PO), notification ID 13. An import that changes SET-20 is followed: off
+  cancels the job, on schedules it from the stored markers (PO).
+- **Build note, #342 (Rezept übernehmen, build session 2, PO 2026-11-18):**
+  `ReceiveRecipeActivity` copies the file on a worker thread that `onCreate`
+  waits for (the URI grant ends with the `NoDisplay` activity), so its main
+  thread can block for a hung provider — **for #343's T4 import-path
+  review**, with the alternative of passing the read grant on to
+  `MainActivity` and reading there. The PO's answers: *Neuen Tee anlegen*
+  „aus dem Katalog" asks for a package first (the usual sheet; closing it
+  returns to SCR-32, nothing written); a tea that already has the file's
+  `catalog_key` gets the recipe and *Neuen Tee anlegen* is then hidden;
+  *Tee über Shop-Link laden* only when no collection tea matched; the copy
+  „Tee wählen", „archiviert", „Tee wird geladen …". Fixed with these: a file
+  over 64 KB shows „Die Rezeptdatei ist beschädigt." (03 §5), and the new
+  tea and its recipe are saved in one transaction. Claude's defaults as built (not asked): a key
+  without a match falls back to the name; a collection tea wins over an
+  archived one; „ (2)", „ (3)" … for a taken recipe name; system back keeps
+  the bytes until the next file.
+  PO, 2026-11-18 (second round): the package sheet opens on *Rezept
+  übernehmen*, not on the row tap; a tea loaded by *Tee über Shop-Link
+  laden* that turns out to be owned is preselected and gets the recipe (no
+  sheet, no purchase recorded); a matched tea with 10 recipes keeps *Neuen
+  Tee anlegen* hidden, only *Anderen Tee wählen …* is left. A failed save
+  shows in the sheet (on SCR-32 if an alert removed the sheet; Claude). A
+  tea picked by hand before the shop-link load stays picked (Claude, „a
+  choice made stays").
+
 ### D-129 — v0.8.0-rc.1 check: the picker hands over to the setup without showing Start; the launch kept; the design review approved (SCR-03, 03 §3.6, NFR-PERF-12) · *Accepted (PO, 2026-11-17)*
 
 **Context.** The PO checked `v0.8.0-rc.1` (PR #328) and named one failure from a screen recording (2026-11-17 21:58). Tapping a tea in *Tee wählen* (SCR-03) removes the sheet within one frame, so Start shows bare for ≈ 150–200 ms while *Neue Session* (SCR-04) fades in over it. A second recording (cold and warm start) felt „a tiny bit jumpy": the system's splash and window zoom are as usual, but the tea photos in Start's „Zuletzt aufgegossen" are missing for the first frames and pop in a moment later. The same recording's longer view of Start (setup → Start → timer) was two taps of the PO's (the setup's back arrow, then a recent row), not a fault.
@@ -350,7 +646,7 @@ personal data or shop content).
 - `v0.8.0-rc.2` (80002) needs the timer tests, CI green and all three accuracy variants on its commit (09 §4a), then the PO checks the new line. The merge and the final follow as #327.
 
 <a id="d-128"></a>
-### D-128 — v0.8.0 and v0.9.0 (planned): „Session" wording, taste sliders per kind of tea with an info section, the light timer, refresh progress in the settings, the Statistik ⋮ menu, #313; then export/import and shared recipes; 1.0 postponed (GEN-04, BRW-06, JRN-03, TEA-02, SET-05, SET-23, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; SCR-04, SCR-05, SCR-07, SCR-09, SCR-10, SCR-16, SCR-18, SCR-25, SCR-26; 03 §2.2, §3.1, §3.7, §3.8; 05 §3.1, §3.7, §5, §8, §9 v9; 08 §4a; supersedes D-012, amends D-036's „no in-app restore" and BAK-02/BAK-03/BAK-07) · *Accepted (PO, 2026-11-17)*: the PO's answers Q1–Q31 below; the spec #315, its tickets (#316–#327, #313) and `docs/plans/v0.8.0.md` approved by the PO on 2026-11-17 (build session 1). The details marked „Claude" stand as Claude's defaults inside the approved spec; the light timer's colours, band and fill are still the PO's to check in #324
+### D-128 — v0.8.0 and v0.9.0 (planned): „Session" wording, taste sliders per kind of tea with an info section, the light timer, refresh progress in the settings, the Statistik ⋮ menu, #313; then export/import and shared recipes; 1.0 postponed (GEN-04, BRW-06, JRN-03, TEA-02, SET-05, SET-23, BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; SCR-04, SCR-05, SCR-07, SCR-09, SCR-10, SCR-16, SCR-18, SCR-25, SCR-26; 03 §2.2, §3.1, §3.7, §3.8; 05 §3.1, §3.7, §5, §8, §9 v9; 08 §4a; supersedes D-012, amends D-036's „no in-app restore" and BAK-02/BAK-03/BAK-07) · *Accepted (PO, 2026-11-17)*: the PO's answers Q1–Q31 below; the spec #315, its tickets (#316–#327, #313) and `docs/plans/v0.8.0.md` approved by the PO on 2026-11-17 (build session 1). The details marked „Claude" stand as Claude's defaults inside the approved spec; the light timer's colours, band and fill are still the PO's to check in #324 · Q9's „no network use" amended by [D-130](#d-130) Q4 (the shop page on a tap)
 
 **Context.** After `v0.7.2` the PO asked for nine things (session of 2026-11-17): (1) „Brühen starten" becomes „Session starten"; (2) „Sitzung" becomes „Session" everywhere; (3) a small foldable info section on the taste sliders; (4) other sliders for teas that are not green tea, above all herbal tea; (5) recipes can be shared; (6) a display bug: on Statistik the ⋮ menu opens at the left, not below the three dots; (7) *Jetzt aktualisieren* in the settings shows its progress there; (8) a light version of the timer; (9) data export and import. Issue #313 (found in v0.7.2) was to be triaged with the next release.
 
@@ -442,7 +738,7 @@ The PO checked the renders of #323 (comment on #324) and answered in build sessi
 40. **The overtime dot gets an ink outline on the light timer** (the PO, 2026-11-17, build session 3, as options, on the T4 review's nit): the warm-accent dot beside the prominent overtime (from 15 s, SCR-05 ALERTING) is about 1.1:1 on sage, so on the **light timer only** it gets a **1 dp ring in full ink `#1F271B`** around the unchanged warm dot (D-055: still no warm-accent text). The dark timer's dot stays as in v0.7.2 (SET-05 AC2). Built in #329 (T3, timer screen).
 41. **Review notes for later** (the PO, 2026-11-17, as options): the ⋮ menu of Journal, Sammlung and Statistik has had no alert gate since v0.6.1, so an alert may show it above the timer during the route fade (D-058 „Overlays give way"): **a ticket for v0.9.0** (#330). Claude's notes, kept: under reduce motion the system-bar icons flip 50 ms after the instant route change; an undecodable `tea.taste_set` (possible only with v0.9.0's import) falls back to the session's category set (#326 fix round).
 
-**Open for the v0.9.0 specify session (not asked yet):** how a received recipe file reaches the app (open-with for the recipe file type only, or an import entry in the app), the recipe file's format and version, the CSV's columns, where the safety copy lives and how its 7 days are counted, the export's progress and size note, whether shop photos copied to a tea are in the file, and the tiers (backup and import code is T3 or higher). A received file is **untrusted input**: its shop link is used only if its host is on the allow-list, and whether opening it may run rule 7's product-page fetch is asked then.
+**Open for the v0.9.0 specify session (answered in [D-130](#d-130), 2026-11-18):** how a received recipe file reaches the app (open-with for the recipe file type only, or an import entry in the app), the recipe file's format and version, the CSV's columns, where the safety copy lives and how its 7 days are counted, the export's progress and size note, whether shop photos copied to a tea are in the file, and the tiers (backup and import code is T3 or higher). A received file is **untrusted input**: its shop link is used only if its host is on the allow-list, and whether opening it may run rule 7's product-page fetch is asked then.
 
 **Consequences.**
 
@@ -5051,7 +5347,7 @@ pasted-in rectangle (PO feedback, 2026-10-28).
   source stays in `docs/design/assets/source/`.
 
 <a id="d-094"></a>
-### D-094 — Sold-out teas and adding a tea from a shop link (#97, #98; CAT-07, CAT-16, CAT-17, GEN-01, SCR-19, SCR-21, NFR-PRIV-02; amends D-036) · *Accepted* (PO, 2026-10-28; details marked „Claude" are Claude's)
+### D-094 — Sold-out teas and adding a tea from a shop link (#97, #98; CAT-07, CAT-16, CAT-17, GEN-01, SCR-19, SCR-21, NFR-PRIV-02; amends D-036) · *Accepted* (PO, 2026-10-28; details marked „Claude" are Claude's) · network use (d) widened by [D-130](#d-130) Q4: also a received recipe's link, on a tap
 
 **Context.** Checked live on 2026-10-28: the shop (Shopware) leaves sold-out
 products out of its sitemap. „Bio Sencha Kirishima Yabukita" (TG0170) and
@@ -8468,6 +8764,14 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-20 | D-134 build notes: on `v0.9.0-rc.2` ways (a) and (b) both offered UmamiT and opened „Rezept übernehmen"; the PO approved rc.2 (final session #344). |
+| 2026-11-20 | D-135: no seed teas and no seed vessels from v0.9.0-rc.2 on; a fresh install and *Alle Daten löschen* start empty with the existing empty states; existing data stays; the seed photo download goes, three network uses (Q1–Q6). |
+| 2026-11-20 | D-134: the PO's check of `v0.9.0-rc.1` — ways (a) and (b) of receiving a recipe file did not offer UmamiT on One UI 9, (c) worked, everything else approved; rc.2 renames the file to `<Tee>.umamit-rezept.json`, shared as `application/json` (Q1–Q4). D-130 and D-131 build notes: (a)/(b) on the Galaxy, the grants kept after *Alle Daten löschen*. |
+| 2026-11-19 | D-133: the rc fix round of v0.9.0 — the PO's answers Q1–Q12 after the milestone review and `/review-animations` (typed-word hint above the field, SCR-26 dialogs stay closed after an alert, late-failure undo offered and refused, recipe file handed to the main app, busy cover timing, the session count by `created_at`, the import waits for the seed photos, motion on SCR-26/SCR-32). |
+| 2026-11-19 | D-131 build notes (#346): *Alle Daten löschen* wipes through `ActivityManager.clearApplicationUserData()`; the PO's answers 1–7 (the ~1 s notice, greyed out during export, import and undo, the safety-copy sentence, the failure snackbar, no device-backup hint, TalkBack); Claude's details as built. |
+| 2026-11-18 | D-132: a „What's new" (English, 3–8 bullets, New/Improved/Fixed) for every final and rc release, from `docs/whats-new/vX.Y.Z.md` at the top of the GitHub Release page. |
+| 2026-11-18 | D-131: *Alle Daten löschen* (SET-33) joins v0.9.0 as #346, like a fresh install, greyed out during a timer, a hint to back up first, onboarding again; the device-backup note's wording (build session 2). |
+| 2026-11-18 | D-130: v0.9.0 specified with the PO (Q1–Q16, four rounds). A recipe file (`.umamit-rezept`, readable JSON `umamit-recipe` v1) arrives by „Öffnen mit", by sharing it to UmamiT or by *Rezept importieren* in Meine Tees' ⋮; newer file versions are refused; the shop page of a received tea is fetched only on a tap (amends D-128 Q9, GEN-01 (d), rule 7's wording); a private safety copy for 7 × 24 h with an undo that counts what is lost; all photos in the backup; a size note and a progress bar on export; the journal CSV for German Excel with infusions and taste; the reminder switch on; „Letzte Sicherung" by export only; a received tea matched by catalog key, else name; tiers T4 import, T3 the rest of the backup and recipe code and #330, T2 screen and reminder; #330 without a timer review. Spec #333, tickets #334–#344, `docs/plans/v0.9.0.md`, waiting for the PO. |
 | 2026-11-17 | D-128: the PO's nine points after v0.7.2, grilled Q1–Q31. **v0.8.0:** „Session" for „Sitzung", „Session starten", „aufgießen"/„Aufguss" for „brühen", the setup titled „Neue Session" / „Session anpassen"; three taste sets of six sliders by kind of tea with a per-tea „Geschmacksprofil" (umamit.db v9), a foldable „Was bedeuten die Regler?"; the timer follows *Design* (supersedes D-012) with an early design check; refresh progress in the settings; the ⋮ menu anchored on every tab; #313 guarded. **v0.9.0 (planned):** export and a replacing import with four safeguards, backup reminder, „Letzte Sicherung", journal CSV; recipes shared as text plus a file (amends D-036). 1.0 starts only on the PO's go. |
 | 2026-11-16 | D-121–D-127: the v0.7.2 triage (#303). The PO picked all 60 audit findings (overlaps as one choice each); the seven restructurings get one decision each (CAT-A-05 `CatalogRefresher` split, CAT-A-07 shared fake shop, CAT-A-08 + UI-A-04 helpers and date picker in `core:ui`, CAT-A-14 link-sheet holder, UI-A-01 + UI-A-10 settings routes, DAT-A-14 + TMR-A-06 the session repositories and the timer's store, TMR-A-09 accuracy tooling); their designs wait for #304. |
 | 2026-11-15 | D-119: the v0.7.2 cleanup review (four steps, own release, Fable 5.2 for the timer and data audits and the restructuring design, catalog first). D-120: its plan details: Fable 5.2 at `medium`, findings files per group, the Dependency Analysis plugin from a local init script, the tier label „T4-F". |

@@ -8,7 +8,11 @@ dependencies {
     // *Alarm testen* (SET-31, AlertTester), the tone names (AlertSound) and the reliability
     // checks of the *Timer-Zuverlässigkeit* card (SET-24).
     implementation(project(":core:timer"))
+    // *Daten & Sicherung* (SCR-26): the backup, import, undo and journal CSV use cases (BAK-01, BAK-02, BAK-04).
+    implementation(project(":core:backup"))
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.androidx.test.core)
+    // SCR-26's adapters against the real reminder schedule (WorkManager's test driver, D-133 item 13).
+    testImplementation(libs.androidx.work.testing)
 }

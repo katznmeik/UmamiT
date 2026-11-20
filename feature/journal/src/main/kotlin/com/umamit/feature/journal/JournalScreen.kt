@@ -60,6 +60,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.SessionRatings
+import com.umamit.core.ui.rememberAlertGate
 import java.io.File
 
 private const val TITLE_MAX_LINES = 2
@@ -79,6 +80,7 @@ const val JOURNAL_LIST_TAG = "journal_list"
  * @param list the journal, unfiltered; null while the first read is running (nothing is shown, not the empty state).
  * @param filter the search and filters; [onFilterChange] reports a change (the host keeps it, JRN-09).
  * @param alerting an alert plays: the filter sheet gives way (rule 8).
+ * @param alertKey the alert playing now, or null: the ⋮ menu gives way to another (rule 8, D-058).
  * @param teaNameFallback the name of the filtered tea when it has no finished session (so it is no sheet option).
  * @param thumbnail loads a tea's cover photo; tests pass a placeholder.
  * @param onOpenSession a past entry's tap: its session page (SCR-16) by the session's id.
@@ -97,11 +99,15 @@ fun JournalScreen(
     alerting: Boolean = false,
     teaNameFallback: String? = null,
     listChange: Int = 0,
+    alertKey: String? = null,
 ) {
+    val menu = rememberAlertGate(alertKey)
     ScreenScaffold(
         title = stringResource(R.string.journal_title),
         modifier = modifier,
-        actions = { OverflowSettingsAction(onOpenSettings) },
+        actions = {
+            OverflowSettingsAction(onOpenSettings, menu.shown, menu.keepsPopup, menu::open, menu::close)
+        },
         scrollable = false,
         verticalArrangement = Arrangement.Top,
     ) {

@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -103,36 +102,51 @@ fun SettingsGearAction(onOpenSettings: () -> Unit, modifier: Modifier = Modifier
 /** An entry of a screen's own in the ⋮ menu, above *Einstellungen* (e.g. *Katalog aktualisieren*). */
 class OverflowItem(val label: String, val onClick: () -> Unit)
 
-/** The ⋮ menu of the other tabs: the screen's own [items], then the settings (03 §2.2). */
+/**
+ * The ⋮ menu of the other tabs: the screen's own [items], then the settings (03 §2.2). It gives way to an alert
+ * (03 „Overlays give way", D-058): the host keeps its open state in an alert gate (`rememberAlertGate` in `core:ui`,
+ * which this module cannot depend on, 06 §3) and passes it in.
+ *
+ * @param shown whether the menu is open now (the gate's `shown`).
+ * @param keepsPopup whether the menu's popup may stay composed (the gate's `keepsPopup`): false while an alert plays
+ *   that the menu was not opened in, so it leaves in that frame without Material's exit animation.
+ * @param onOpen the ⋮ tap (the gate's `open`, which remembers the alert playing now).
+ * @param onClose a tap outside or on an entry (the gate's `close`).
+ */
 @Composable
 fun OverflowSettingsAction(
     onOpenSettings: () -> Unit,
+    shown: Boolean,
+    keepsPopup: Boolean,
+    onOpen: () -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier,
     items: List<OverflowItem> = emptyList(),
 ) {
-    var expanded by remember { mutableStateOf(false) }
     // Own anchor: the menu opens below the dots with its end edge on the button's, whatever layout the caller uses.
     Box(modifier = modifier) {
-        IconButton(onClick = { expanded = true }) {
+        IconButton(onClick = onOpen) {
             Icon(painterResource(UmamiIcons.MoreVert), contentDescription = stringResource(R.string.ds_more_options))
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            items.forEach { item ->
+        if (keepsPopup) {
+            DropdownMenu(expanded = shown, onDismissRequest = onClose) {
+                items.forEach { item ->
+                    DropdownMenuItem(
+                        text = { Text(item.label) },
+                        onClick = {
+                            onClose()
+                            item.onClick()
+                        },
+                    )
+                }
                 DropdownMenuItem(
-                    text = { Text(item.label) },
+                    text = { Text(stringResource(R.string.ds_settings)) },
                     onClick = {
-                        expanded = false
-                        item.onClick()
+                        onClose()
+                        onOpenSettings()
                     },
                 )
             }
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.ds_settings)) },
-                onClick = {
-                    expanded = false
-                    onOpenSettings()
-                },
-            )
         }
     }
 }

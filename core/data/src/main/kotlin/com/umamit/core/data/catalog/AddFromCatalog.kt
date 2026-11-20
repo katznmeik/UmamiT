@@ -78,7 +78,14 @@ interface AddFromCatalog {
     fun observeOwner(catalogKey: String): Flow<String?>
 
     /** Adds the tea of [purchase], or records the repurchase when it is owned; one transaction. */
-    suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult
+    suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult = add(purchase) {}
+
+    /**
+     * [add], with [inTransaction] run on the added (or repurchased) tea's id in the same transaction, e.g. a
+     * received recipe (PRF-08, SCR-32's *Neuen Tee anlegen* „aus dem Katalog"). If it throws, nothing is written
+     * (no tea, package, cover or recipe; the Merkliste mark stays) and the add answers [AddFromCatalogResult.Failed].
+     */
+    suspend fun add(purchase: CatalogPurchase, inTransaction: suspend (teaId: String) -> Unit): AddFromCatalogResult
 }
 
 /** [AddFromCatalog] from `catalog.db` and its photos into `umamit.db` and `filesDir/photos/`. */
@@ -96,7 +103,10 @@ class RoomAddFromCatalog @Inject constructor(
     override fun observeOwner(catalogKey: String): Flow<String?> =
         db.teaDao().observeIdByCatalogKey(catalogKey).distinctUntilChanged()
 
-    override suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult = try {
+    override suspend fun add(
+        purchase: CatalogPurchase,
+        inTransaction: suspend (teaId: String) -> Unit,
+    ): AddFromCatalogResult = try {
         val entry = catalog.tea(purchase.catalogKey)
         if (entry == null) {
             AddFromCatalogResult.NotInCatalog
@@ -104,7 +114,7 @@ class RoomAddFromCatalog @Inject constructor(
             // The photo is prepared outside the transaction; a repurchase never needs it.
             val owner = db.teaDao().idByCatalogKey(entry.key)
             val cover = if (owner == null) cover(entry) else null
-            withContext(NonCancellable + Dispatchers.IO) { write(entry, purchase, cover) }
+            withContext(NonCancellable + Dispatchers.IO) { write(entry, purchase, cover, inTransaction) }
         }
     } catch (_: SQLException) {
         AddFromCatalogResult.Failed
@@ -126,25 +136,24 @@ class RoomAddFromCatalog @Inject constructor(
         entry: CatalogTeaEntity,
         purchase: CatalogPurchase,
         cover: CoverFile?,
+        inTransaction: suspend (teaId: String) -> Unit,
     ): AddFromCatalogResult = photoFiles.withCoverFile(cover, kept = { it is AddFromCatalogResult.Added }) {
         db.withTransaction {
-            // The tea leaves the Merkliste with the add, in its transaction: a failed add keeps the mark (CAT-18).
-            db.catalogBookmarkDao().delete(entry.key)
             // Read again inside the transaction: a tea added meanwhile turns this into a repurchase.
             val owner = db.teaDao().idByCatalogKey(entry.key)
-            if (owner != null) {
-                repurchase(owner, purchase)
-            } else {
-                AddFromCatalogResult.Added(copy(entry, purchase, cover))
-            }
+            // The tea leaves the Merkliste with the add, in its transaction: a failed add keeps the mark (CAT-18).
+            db.catalogBookmarkDao().delete(entry.key)
+            val teaId = owner?.also { repurchase(it, purchase) } ?: copy(entry, purchase, cover)
+            // A throw here rolls the whole add back (PRF-08).
+            inTransaction(teaId)
+            if (owner == null) AddFromCatalogResult.Added(teaId) else AddFromCatalogResult.Repurchased(teaId)
         }
     }
 
-    private suspend fun repurchase(teaId: String, purchase: CatalogPurchase): AddFromCatalogResult {
+    private suspend fun repurchase(teaId: String, purchase: CatalogPurchase) {
         // A tea archived when it was used up, or removed from the collection, comes back (TEA-04, D-093 Q6).
         teas.getTea(teaId)?.takeIf { it.isArchived }?.let { teas.saveTea(it.copy(isArchived = false)) }
         stock.addEvent(event(teaId, InventoryEventType.PURCHASE, purchase))
-        return AddFromCatalogResult.Repurchased(teaId)
     }
 
     /** Writes the collection copy of [entry] and returns its id. */

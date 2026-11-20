@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The test APK's own manifest: it never reaches the app's merged manifests (06 §5.7). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Another app sending a recipe file (ReceiveRecipeDeviceTest, PRF-08, D-133 Q4): its own
+             provider, in the test package (its uid) and in a process of its own (":sender"), never
+             in the test package's main process: that one hosts androidx.test's EmptyActivity and
+             BootstrapActivity, which every ActivityScenario launch, stop and close of the later tests
+             relies on (TransitionJankTest, NFR-PERF-12). No read or write permission: the test
+             code runs in the app's uid and must reach call() itself (see SenderRecipeProvider). -->
+        <provider
+            android:name="com.umamit.app.SenderRecipeProvider"
+            android:authorities="${applicationId}.sent-recipes"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:process=":sender" />
+    </application>
+
+</manifest>

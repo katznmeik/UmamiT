@@ -424,6 +424,10 @@
     <string name="recipe_editor_default_detail">Neue Sessions und die Teeauswahl nehmen dieses Rezept.</string>
     <string name="recipe_editor_default_locked">Das ist das Standardrezept dieses Tees.</string>
     <string name="recipe_editor_notes">Notizen</string>
+    <!-- PRF-08, SCR-12 (D-130): the ⋮ item and the share sheet's title; greyed out while the editor has changes. -->
+    <string name="recipe_editor_share">Rezept teilen</string>
+    <string name="recipe_editor_share_unsaved">Erst speichern</string>
+    <string name="recipe_editor_share_failed">Das Rezept konnte nicht geteilt werden.</string>
     <string name="recipe_editor_delete">Rezept löschen</string>
     <string name="recipe_editor_delete_last">Ein Tee braucht mindestens ein Rezept.</string>
     <!-- E15 (D-101 F12): the recipe of the running brew stays until the session ends. -->
@@ -476,4 +480,27 @@
     <string name="recipe_step_pre_alert_too_short">%1$s · zu kurz</string>
     <string name="recipe_step_pre_alert_long_step">%1$s · keine</string>
     <string name="recipe_step_pre_alert_description">Vorwarnung, Schritt %1$d: %2$s. Ändern</string>
+    <!-- Rezept übernehmen (SCR-32, PRF-08, D-130). -->
+    <string name="my_teas_import_recipe">Rezept importieren</string>
+    <string name="receive_recipe_title">Rezept übernehmen</string>
+    <string name="receive_recipe_close">Schließen</string>
+    <string name="receive_recipe_for_tea">für %1$s (%2$s)</string>
+    <string name="receive_recipe_which_tea">Für welchen Tee?</string>
+    <string name="receive_recipe_match_catalog">gefunden über den Katalog</string>
+    <string name="receive_recipe_match_name">gleicher Name</string>
+    <string name="receive_recipe_no_match">Diesen Tee hast du noch nicht.</string>
+    <string name="receive_recipe_other_tea">Anderen Tee wählen …</string>
+    <string name="receive_recipe_new_tea">Neuen Tee anlegen</string>
+    <string name="receive_recipe_new_from_catalog">aus dem Katalog</string>
+    <string name="receive_recipe_new_without_catalog">ohne Katalog</string>
+    <string name="receive_recipe_full">Höchstens 10 Rezepte</string>
+    <string name="receive_recipe_archived">archiviert</string>
+    <string name="receive_recipe_shop_link">Tee über Shop-Link laden</string>
+    <string name="receive_recipe_shop_link_hint">Lädt eine Seite von tee-kontor-kiel.de</string>
+    <string name="receive_recipe_shop_link_loading">Tee wird geladen …</string>
+    <string name="receive_recipe_take_over">Rezept übernehmen</string>
+    <string name="receive_recipe_taken_over">Rezept „%1$s“ übernommen</string>
+    <string name="receive_recipe_failed">Das Rezept konnte nicht übernommen werden.</string>
+    <string name="receive_recipe_sheet_title">Tee wählen</string>
+    <string name="receive_recipe_no_picker">Keine App zum Auswählen einer Datei gefunden.</string>
 </resources>

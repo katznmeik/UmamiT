@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -46,6 +47,7 @@ import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
+import com.umamit.feature.settings.backup.ImportedBackup
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.umamit.feature.brew.quick.QuickTimerRoute as QuickTimerScreenRoute
@@ -109,6 +111,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param teaLinkShare a link shared to the app and not taken yet (CAT-17); the shell takes it to
  *   Sammlung › Katalog, which loads it and hands its token to [onTakeTeaLinkShare]. Nothing above
  *   the tabs is closed for it: while the timer or another full-screen route is shown, it waits (rule 8).
+ * @param receivedRecipes the recipe files received (PRF-08); the shell shows a pending one on SCR-32 in Sammlung.
+ *   Like a shared link it waits while the timer or another full-screen route is shown (rule 8, PRF-08 AC9).
  * @param catalogRefreshRequest a new non-zero token for each tap on a catalog refresh notification
  *   (SCR-22, D-097); 0 for none. The root opens Sammlung › Katalog with the refresh sheet above what
  *   is shown ([CatalogRefreshRoute], at most one, replacing an older one), so back returns there;
@@ -119,6 +123,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   none. The root closes everything above the shell (the timer keeps running) and shows Start at its root;
  *   during an alert it waits until the alert has ended (rule 8). Before the first-start setup is done, or while
  *   a setup is shown, the tap is let go (ONB-03). Either way [onConsumeStartRequest] gets the token.
+ * @param backupRequest the same for each tap on the backup reminder (BAK-06, D-130 Q11): everything above the shell
+ *   closes and the shell shows *Daten & Sicherung* (SCR-26) in Start's stack. [onConsumeBackupRequest] gets the token.
  */
 @Composable
 internal fun UmamitRoot(
@@ -173,10 +179,13 @@ internal fun UmamitRoot(
     },
     teaLinkShare: StateFlow<TeaLinkShare?> = NO_TEA_LINK_SHARE,
     onTakeTeaLinkShare: (Long) -> Unit = {},
+    receivedRecipes: ReceivedRecipeFiles = remember { ReceivedRecipeFiles() },
     catalogRefreshRequest: StateFlow<Long> = NO_CATALOG_REFRESH_REQUEST,
     onConsumeCatalogRefreshRequest: (Long) -> Unit = {},
     startRequest: StateFlow<Long> = NO_START_REQUEST,
     onConsumeStartRequest: (Long) -> Unit = {},
+    backupRequest: StateFlow<Long> = NO_START_REQUEST,
+    onConsumeBackupRequest: (Long) -> Unit = {},
 ) {
     val navController = rememberNavController()
     // The tea archived on a detail, for the snackbar with *Rückgängig* on the screen below it, wherever that is: a
@@ -217,6 +226,17 @@ internal fun UmamitRoot(
         request = startRequest,
         onConsume = onConsumeStartRequest,
     )
+    // The backup reminder's tap (BAK-06): the same gates; the shell then opens SCR-26.
+    val showBackup = startTaps(
+        navController = navController,
+        alert = alert,
+        setupDone = completed == true,
+        request = backupRequest,
+        onConsume = onConsumeBackupRequest,
+    )
+    // A finished backup import (BAK-02 AC6): Start at its root with „Sicherung eingespielt · …“ over it.
+    val backupImport = rememberBackupImportStart()
+    val onBackupImported: (ImportedBackup) -> Unit = { backupImport.finish(navController, it) }
 
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
@@ -296,31 +316,38 @@ internal fun UmamitRoot(
     }
 
     // The shell and the shell of a catalog refresh differ only in how they open and which start tap they show.
-    val shell: @Composable (opening: ShellOpening, startRequest: Long) -> Unit = { opening, startRequest ->
-        UmamitApp(
-            activeBrewSource = activeBrewSource,
-            journalSources = journalSources,
-            alerting = alert != null,
-            onOpenTimer = openTimer,
-            onOpenTimerOf = openTimerOf,
-            startNavigation = startNavigation,
-            alertKey = alert,
-            startScreen = startScreen,
-            statsScreen = statsScreen,
-            catalogScreen = catalogScreen,
-            catalogScreens = catalogScreens,
-            collectionSegments = collectionSegments,
-            collectionScreens = collectionScreens,
-            journalScreens = journalScreens,
-            settings = settings.withRerunSetup(rerunSetup),
-            teaLinkShare = share,
-            onTakeTeaLinkShare = onTakeTeaLinkShare,
-            opening = opening,
-            startRequest = startRequest,
-            archivedTea = archivedTea,
-            onArchivedTeaChange = { archivedTea = it },
-        )
-    }
+    val shell: @Composable (opening: ShellOpening, startRequest: Long, backupRequest: Long) -> Unit =
+        { opening, startRequest, backupRequest ->
+            UmamitApp(
+                activeBrewSource = activeBrewSource,
+                journalSources = journalSources,
+                alerting = alert != null,
+                onOpenTimer = openTimer,
+                onOpenTimerOf = openTimerOf,
+                startNavigation = startNavigation,
+                alertKey = alert,
+                startScreen = startScreen,
+                statsScreen = statsScreen,
+                catalogScreen = catalogScreen,
+                catalogScreens = catalogScreens,
+                collectionSegments = collectionSegments,
+                collectionScreens = collectionScreens,
+                journalScreens = journalScreens,
+                settings = settings.withRoot(rerunSetup, onBackupImported),
+                teaLinkShare = share,
+                onTakeTeaLinkShare = onTakeTeaLinkShare,
+                recipeFiles = receivedRecipes,
+                opening = opening,
+                startRequest = startRequest,
+                backupRequest = backupRequest,
+                archivedTea = archivedTea,
+                onArchivedTeaChange = { archivedTea = it },
+                // Only the app's shell: the import pops the refresh shell above it.
+                importStartRequest = backupImport.requestFor(opening),
+                importedBackup = backupImport.importedFor(opening),
+                onImportedBackupChange = { backupImport.imported = it },
+            )
+        }
     CompositionLocalProvider(LocalPhotoViewer provides photoViewer) {
         Box(modifier) {
             NavHost(
@@ -359,13 +386,13 @@ internal fun UmamitRoot(
                 },
             ) {
                 composable<ShellRoute> {
-                    shell(ShellOpening.Start, showStart)
+                    shell(ShellOpening.Start, showStart, showBackup)
                 }
                 // A shell of its own above what was shown (D-097): back leaves it, its tabs work as the shell's.
                 composable<CatalogRefreshRoute> { entry ->
                     // The token this entry shows, never a later tap's (#121).
                     val sheetToken = entry.toRoute<CatalogRefreshRoute>().sheetToken
-                    shell(ShellOpening.CatalogRefresh(sheetToken), 0L)
+                    shell(ShellOpening.CatalogRefresh(sheetToken), 0L, 0L)
                 }
                 composable<OnboardingRoute> { onboardingScreen(finishSetup) }
                 composable<TimerRoute> { timerEntry ->
@@ -502,6 +529,7 @@ internal fun UmamitRoot(
                         },
                         alertKey = { alert },
                         rerunSetup = rerunSetup,
+                        backupImported = onBackupImported,
                     ),
                 )
                 // The photo viewer (SCR-28): fades in and out with the root's transitions; back closes it on the photo

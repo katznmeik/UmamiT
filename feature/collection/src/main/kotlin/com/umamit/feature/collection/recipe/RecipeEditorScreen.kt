@@ -1,6 +1,7 @@
 package com.umamit.feature.collection.recipe
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -34,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -64,6 +66,8 @@ object RecipeEditorTags {
     const val NOTES = "RecipeEditorNotes"
     const val SAVE = "RecipeEditorSave"
     const val MORE = "RecipeEditorMore"
+    const val SHARE = "RecipeEditorShare"
+    const val DELETE = "RecipeEditorDelete"
 }
 
 /** Test tags of SCR-12's steps; each with the step's number (1-based). */
@@ -93,15 +97,18 @@ fun RecipeEditorRoute(
     modifier: Modifier = Modifier,
     alertKey: String? = null,
     viewModel: RecipeEditorViewModel = hiltViewModel(),
+    sharer: RecipeSharer = rememberRecipeSharer(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentOnSave by rememberUpdatedState(onSave)
     val currentOnDelete by rememberUpdatedState(onDelete)
+    val context = LocalContext.current
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
                 is RecipeEditorEvent.Saved -> currentOnSave(event.recipeId)
                 RecipeEditorEvent.Deleted -> currentOnDelete()
+                is RecipeEditorEvent.Share -> if (!context.share(sharer, event)) viewModel.shareFailed()
             }
         }
     }
@@ -112,6 +119,7 @@ fun RecipeEditorRoute(
             selectVessel = viewModel::selectVessel,
             save = viewModel::save,
             delete = viewModel::delete,
+            share = viewModel::share,
             messageShown = viewModel::messageShown,
             close = onClose,
         ),
@@ -126,6 +134,8 @@ class RecipeEditorActions(
     val selectVessel: (vesselId: String?) -> Unit = {},
     val save: () -> Unit = {},
     val delete: () -> Unit = {},
+    /** ⋮ *Rezept teilen* (PRF-08). */
+    val share: () -> Unit = {},
     val messageShown: () -> Unit = {},
     /** Leaves the editor without saving. */
     val close: () -> Unit = {},
@@ -150,11 +160,13 @@ fun RecipeEditorScreen(
     val limit = stringResource(R.string.recipe_editor_limit_reached)
     val last = stringResource(R.string.recipe_editor_delete_last)
     val brewing = stringResource(R.string.recipe_editor_delete_brewing)
+    val shareFailed = stringResource(R.string.recipe_editor_share_failed)
     LaunchedEffect(ready?.message) {
         val text = when (ready?.message) {
             RecipeEditorMessage.LimitReached -> limit
             RecipeEditorMessage.LastRecipe -> last
             RecipeEditorMessage.InActiveSession -> brewing
+            RecipeEditorMessage.ShareFailed -> shareFailed
             null -> return@LaunchedEffect
         }
         actions.messageShown()
@@ -177,7 +189,7 @@ fun RecipeEditorScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         menu = {
             if (ready != null && !ready.isNew) {
-                EditorMenu(ready.canDelete, ready.isBrewing, alertKey, onDelete = askDelete::open)
+                EditorMenu(ready, alertKey, onShare = actions.share, onDelete = askDelete::open)
             }
         },
     ) { padding ->
@@ -232,40 +244,62 @@ fun RecipeEditorScreen(
     }
 }
 
-/** ⋮: *Rezept löschen*, greyed out for the tea's last recipe (PRF-01) and the running brew's (E15, D-101 F12). */
+/**
+ * ⋮: *Rezept teilen* (PRF-08), greyed out with „Erst speichern" while the editor has changes; *Rezept löschen*,
+ * greyed out for the tea's last recipe (PRF-01) and the running brew's (E15, D-101 F12).
+ */
 @Composable
-private fun EditorMenu(canDelete: Boolean, isBrewing: Boolean, alertKey: String?, onDelete: () -> Unit) {
+private fun EditorMenu(state: RecipeEditorUiState.Ready, alertKey: String?, onShare: () -> Unit, onDelete: () -> Unit) {
     val menu = rememberAlertGate(alertKey)
     Box {
         IconButton(onClick = menu::open, modifier = Modifier.testTag(RecipeEditorTags.MORE)) {
             Icon(painterResource(UmamiIcons.MoreVert), stringResource(R.string.recipe_editor_more))
         }
         AlertGatedDropdownMenu(menu) {
-            DropdownMenuItem(
-                text = {
-                    Column {
-                        Text(stringResource(R.string.recipe_editor_delete))
-                        if (!canDelete) {
-                            Text(
-                                text = stringResource(
-                                    if (isBrewing) {
-                                        R.string.recipe_editor_delete_brewing
-                                    } else {
-                                        R.string.recipe_editor_delete_last
-                                    },
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+            MenuEntry(
+                label = R.string.recipe_editor_share,
+                reason = R.string.recipe_editor_share_unsaved.takeUnless { state.canShare },
+                tag = RecipeEditorTags.SHARE,
+                onClick = {
+                    menu.close()
+                    onShare()
                 },
+            )
+            MenuEntry(
+                label = R.string.recipe_editor_delete,
+                reason = when {
+                    state.canDelete -> null
+                    state.isBrewing -> R.string.recipe_editor_delete_brewing
+                    else -> R.string.recipe_editor_delete_last
+                },
+                tag = RecipeEditorTags.DELETE,
                 onClick = {
                     menu.close()
                     onDelete()
                 },
-                enabled = canDelete,
             )
         }
     }
+}
+
+/** One ⋮ item; with a [reason] it is greyed out and says why below its [label]. */
+@Composable
+private fun MenuEntry(@StringRes label: Int, @StringRes reason: Int?, tag: String, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = {
+            Column {
+                Text(stringResource(label))
+                if (reason != null) {
+                    Text(
+                        text = stringResource(reason),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        onClick = onClick,
+        enabled = reason == null,
+        modifier = Modifier.testTag(tag),
+    )
 }

@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -85,6 +86,8 @@ data class StoredSettings(
     val statsFolded: Set<String> = emptySet(),
     /** The Tee-Rangliste's switch (INS-02, D-117); a file of v0.7.0 has no key and reads TEA, no migration. */
     val statsRankingBy: String = StatsRankingBy.TEA.name,
+    /** SET-20 *An Sicherung erinnern* (v0.9.0, D-130 Q11); a file of v0.8.x has no key and reads on, no migration. */
+    val backupReminderEnabled: Boolean = true,
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
@@ -96,6 +99,22 @@ data class StoredSettings(
     val seedTeaLinksDone: Set<String> = emptySet(),
     /** Set once the seven seed vessels of v0.2.1 exist (WARE-06, D-093); never reset. */
     val seedVesselsV2Added: Boolean = false,
+    /**
+     * When the last export finished (BAK-01, v0.9.0, D-130 Q12), epoch ms; null = never. Set by a finished export
+     * only, device-bound (not in a backup's `settings.json`, 05 §8); a file of v0.8.x has no key, no migration.
+     */
+    val lastBackupAt: Long? = null,
+    /**
+     * The backup reminder's last check or turn-on of SET-20 (BAK-06, v0.9.0, D-130 Q11), epoch ms; null = none yet.
+     * Its 30 days count from the later of this and [lastBackupAt]. Written by the reminder only; device-bound (05 §8);
+     * a file of v0.8.x has no key, no migration.
+     */
+    val backupReminderLastAt: Long? = null,
+    /**
+     * When the safety copy of the last import was made (BAK-02, v0.9.0, D-130 Q5), epoch ms; null = no copy. Set and
+     * cleared by the import, its undo and the copy's expiry only; device-bound (05 §8); no migration.
+     */
+    val safetyCopyAt: Long? = null,
 )
 
 /** JSON serializer for [StoredSettings]; an unreadable file reads as the defaults. */
@@ -207,6 +226,41 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
         dataStore.updateData { it.copy(seedVesselsV2Added = true) }
     }
 
+    /** The stored settings now, every key of 05 §6 (the backup's `settings.json` is written from it, 05 §8). */
+    suspend fun stored(): StoredSettings = dataStore.data.first()
+
+    /** When the last export finished (BAK-01, 05 §6), epoch ms; null = never. */
+    val lastBackupAt: Flow<Long?> = dataStore.data.map { it.lastBackupAt }
+
+    /** Records a finished export at [atMs] (BAK-01); only the export writer calls it, never the safety copy. */
+    suspend fun markLastBackupAt(atMs: Long) {
+        dataStore.updateData { it.copy(lastBackupAt = atMs) }
+    }
+
+    /** The backup reminder's last check or turn-on (BAK-06, 05 §6), epoch ms; null = none yet. */
+    val backupReminderLastAt: Flow<Long?> = dataStore.data.map { it.backupReminderLastAt }
+
+    /** Records the reminder's check or turn-on at [atMs] (BAK-06); only the backup reminder calls it. */
+    suspend fun markBackupReminderLastAt(atMs: Long) {
+        dataStore.updateData { it.copy(backupReminderLastAt = atMs) }
+    }
+
+    /** When the safety copy was made (BAK-02, 05 §6), epoch ms; null = none. */
+    val safetyCopyAt: Flow<Long?> = dataStore.data.map { it.safetyCopyAt }
+
+    /** Records the safety copy's time [atMs], or clears it with null (BAK-02); only `core:backup`'s import calls it. */
+    suspend fun setSafetyCopyAt(atMs: Long?) {
+        dataStore.updateData { it.copy(safetyCopyAt = atMs) }
+    }
+
+    /**
+     * Applies [transform] atomically to the stored settings, every key of 05 §6: the import lays a backup's keys over
+     * them in one write (05 §8 „Replace" step 4).
+     */
+    suspend fun updateStored(transform: (StoredSettings) -> StoredSettings) {
+        dataStore.updateData(transform)
+    }
+
     /** Adds [parts] to [seedTeaLinksDone] (CAT-15, D-090). */
     suspend fun markSeedTeaLinksDone(parts: Set<String>) {
         dataStore.updateData { it.copy(seedTeaLinksDone = it.seedTeaLinksDone + parts) }
@@ -248,6 +302,7 @@ private fun StoredSettings.toModel() = UserSettings(
     statsTab = enumOrDefault(statsTab, StatsTab.OVERVIEW),
     statsFolded = statsFolded,
     statsRankingBy = enumOrDefault(statsRankingBy, StatsRankingBy.TEA),
+    backupReminderEnabled = backupReminderEnabled,
 )
 
 private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
@@ -283,8 +338,12 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     statsTab = statsTab.name,
     statsFolded = statsFolded,
     statsRankingBy = statsRankingBy.name,
+    backupReminderEnabled = backupReminderEnabled,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
     seedTeaLinksDone = markersOf.seedTeaLinksDone,
     seedVesselsV2Added = markersOf.seedVesselsV2Added,
+    lastBackupAt = markersOf.lastBackupAt,
+    backupReminderLastAt = markersOf.backupReminderLastAt,
+    safetyCopyAt = markersOf.safetyCopyAt,
 )

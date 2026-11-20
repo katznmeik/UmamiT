@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -88,7 +87,6 @@ class OnboardingActions(
     val start: () -> Unit = {},
     val openCheck: (ReliabilityCheck) -> Unit = {},
     val openAutoRestart: () -> Unit = {},
-    val skipPhotos: () -> Unit = {},
     /** *Weiter* on the reliability page: to the catalog page. */
     val next: () -> Unit = {},
     /** *Katalog jetzt laden* (ONB-03). */
@@ -111,7 +109,6 @@ fun OnboardingRoute(
     val context = LocalContext.current
     var page by rememberSaveable { mutableStateOf(OnboardingPage.Welcome) }
     val status by viewModel.status.collectAsStateWithLifecycle()
-    val photosLoading by viewModel.photosLoading.collectAsStateWithLifecycle()
     val saveFailed by viewModel.saveFailed.collectAsStateWithLifecycle()
     val catalogLoad by viewModel.catalogLoad.collectAsStateWithLifecycle()
     LifecycleResumeEffect(viewModel) {
@@ -129,14 +126,12 @@ fun OnboardingRoute(
     OnboardingScreen(
         page = page,
         status = status,
-        photosLoading = photosLoading,
         saveFailed = saveFailed,
         catalogLoad = catalogLoad,
         actions = OnboardingActions(
             start = { page = OnboardingPage.Reliability },
             openCheck = openCheck,
             openAutoRestart = { context.startFirstIntent(samsungAutoRestartIntents()) },
-            skipPhotos = viewModel::skipPhotos,
             next = { page = OnboardingPage.Catalog },
             loadCatalog = viewModel::loadCatalog,
             finish = { viewModel.finish(onFinish) },
@@ -153,7 +148,6 @@ fun OnboardingRoute(
 fun OnboardingScreen(
     page: OnboardingPage,
     status: ReliabilityStatus,
-    photosLoading: Boolean,
     actions: OnboardingActions,
     modifier: Modifier = Modifier,
     saveFailed: Boolean = false,
@@ -168,7 +162,7 @@ fun OnboardingScreen(
         ) { shown ->
             when (shown) {
                 OnboardingPage.Welcome -> WelcomePage(onStart = actions.start)
-                OnboardingPage.Reliability -> ReliabilityPage(status, photosLoading, actions)
+                OnboardingPage.Reliability -> ReliabilityPage(status, actions)
                 OnboardingPage.Catalog -> CatalogPage(catalogLoad, saveFailed, actions)
             }
         }
@@ -244,7 +238,7 @@ private const val WELCOME_TOP_DP = 96
 private const val RELIABILITY_ART_WIDTH = 0.7f
 
 @Composable
-private fun ReliabilityPage(status: ReliabilityStatus, photosLoading: Boolean, actions: OnboardingActions) {
+private fun ReliabilityPage(status: ReliabilityStatus, actions: OnboardingActions) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -296,11 +290,6 @@ private fun ReliabilityPage(status: ReliabilityStatus, photosLoading: Boolean, a
             onClick = actions.next,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
-        // Below *Weiter*, so *Weiter* never moves under a finger when the download ends.
-        if (photosLoading) {
-            Spacer(Modifier.height(UmamiSpacing.Small))
-            PhotosLine(onSkip = actions.skipPhotos)
-        }
     }
 }
 
@@ -462,24 +451,6 @@ private fun AutoRestartHint(onOpen: () -> Unit) {
             TextButton(onClick = onOpen, modifier = Modifier.align(Alignment.End)) {
                 Text(stringResource(R.string.onboarding_restart_link), style = MaterialTheme.typography.labelLarge)
             }
-        }
-    }
-}
-
-/** The quiet progress line of the seed photos (ONB-06); never an error. */
-@Composable
-private fun PhotosLine(onSkip: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = stringResource(R.string.onboarding_photos_loading),
-            modifier = Modifier
-                .weight(1f)
-                .semantics { liveRegion = LiveRegionMode.Polite },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        TextButton(onClick = onSkip) {
-            Text(stringResource(R.string.onboarding_photos_skip), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

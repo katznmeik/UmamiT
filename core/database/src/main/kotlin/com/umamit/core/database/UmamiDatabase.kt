@@ -5,10 +5,12 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.umamit.core.database.dao.ActiveBrewDao
+import com.umamit.core.database.dao.BackupDao
 import com.umamit.core.database.dao.CatalogBookmarkDao
 import com.umamit.core.database.dao.InventoryDao
 import com.umamit.core.database.dao.JournalDao
 import com.umamit.core.database.dao.RecipeDao
+import com.umamit.core.database.dao.RestoreDao
 import com.umamit.core.database.dao.SessionDao
 import com.umamit.core.database.dao.SessionPhotoDao
 import com.umamit.core.database.dao.StatsDao
@@ -55,6 +57,7 @@ import java.time.LocalDate
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class)
+@Suppress("TooManyFunctions") // one accessor per DAO
 abstract class UmamiDatabase : RoomDatabase() {
     abstract fun teaDao(): TeaDao
 
@@ -77,6 +80,12 @@ abstract class UmamiDatabase : RoomDatabase() {
     abstract fun statsDao(): StatsDao
 
     abstract fun sessionPhotoDao(): SessionPhotoDao
+
+    /** The backup's snapshot reads (05 §8, BAK-01). */
+    abstract fun backupDao(): BackupDao
+
+    /** The replacing import's writes and the undo's counts (05 §8, BAK-02). */
+    abstract fun restoreDao(): RestoreDao
 
     companion object {
         const val NAME = "umamit.db"

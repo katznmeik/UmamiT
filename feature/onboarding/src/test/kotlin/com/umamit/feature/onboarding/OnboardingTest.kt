@@ -9,14 +9,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.data.SeedPhotoProgress
 import com.umamit.core.data.catalog.CatalogRefreshOutcome
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeCatalogRefreshRunner
-import com.umamit.core.testing.FakeFirstStartRunner
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.reliability.CheckState
@@ -31,8 +29,8 @@ import org.robolectric.annotation.Config
 
 /**
  * The first-start setup (SCR-01; ONB-01…04, ONB-06): welcome → reliability → catalog → done, the
- * ✓/! rows following the checks, the photo line with *Überspringen*, *Katalog jetzt laden* with
- * its progress inline or *Später* (ONB-03), and the run-once marker.
+ * ✓/! rows following the checks, no photo line and no shop request of its own (ONB-06, D-135),
+ * *Katalog jetzt laden* with its progress inline or *Später* (ONB-03), and the run-once marker.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -41,13 +39,12 @@ class OnboardingTest {
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     private val reliability = FakeTimerReliability(ReliabilityCheck.Battery)
-    private val firstStart = FakeFirstStartRunner()
     private val settings = FakeSettingsRepository()
     private val catalog = FakeCatalogRefreshRunner()
     private var finished = 0
 
     private fun show(): OnboardingViewModel {
-        val viewModel = OnboardingViewModel(reliability, firstStart, settings, catalog)
+        val viewModel = OnboardingViewModel(reliability, settings, catalog)
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
                 OnboardingRoute(onFinish = { finished++ }, viewModel = viewModel)
@@ -156,10 +153,18 @@ class OnboardingTest {
     }
 
     @Test
-    fun `the first start runs in the background as soon as the setup opens`() {
+    fun `the setup sends nothing on its own and shows no photo line, up to the catalog page`() {
         show()
+        compose.onNodeWithText("Los geht's").performClick()
 
-        assertThat(firstStart.starts).isEqualTo(1)
+        compose.onNodeWithText("Teefotos werden geladen …").assertDoesNotExist()
+        compose.onNodeWithText("Überspringen").assertDoesNotExist()
+        compose.onNodeWithText("Weiter").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Katalog jetzt laden").assertExists()
+        // The only shop job of the setup is the one *Katalog jetzt laden* starts (ONB-03, D-135).
+        assertThat(catalog.starts).isEqualTo(0)
     }
 
     @Test
@@ -188,34 +193,6 @@ class OnboardingTest {
         compose.onNodeWithText("Los geht's").performClick()
 
         compose.onNodeWithText("Gerätewartung öffnen").performScrollTo().assertIsDisplayed()
-    }
-
-    @Test
-    fun `Katalog jetzt laden ends the seed photo download first, so two shop jobs never overlap`() {
-        // Rule 7 (D-090): a stop of one job must not leave the other sending; CAT-15 gives the covers.
-        firstStart.photoProgress.value = SeedPhotoProgress.Running(current = 1, total = 2)
-        show()
-        toCatalogPage()
-
-        compose.onNodeWithText("Katalog jetzt laden").performScrollTo().performClick()
-        compose.waitForIdle()
-
-        assertThat(firstStart.skips).isEqualTo(1)
-        assertThat(catalog.starts).isEqualTo(1)
-    }
-
-    @Test
-    fun `while the photos load, the line shows, and Ueberspringen stops them`() {
-        firstStart.photoProgress.value = SeedPhotoProgress.Running(current = 1, total = 2)
-        show()
-        compose.onNodeWithText("Los geht's").performClick()
-
-        compose.onNodeWithText("Teefotos werden geladen …").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Überspringen").performClick()
-        compose.waitForIdle()
-
-        assertThat(firstStart.skips).isEqualTo(1)
-        compose.onNodeWithText("Teefotos werden geladen …").assertDoesNotExist()
     }
 
     @Test
