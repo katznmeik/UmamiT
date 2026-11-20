@@ -11,6 +11,20 @@
 
 ## Releases and plans
 
+### v0.9.0: released (2026-11-20)
+
+- **PO approval (2026-11-20, in session):** „All approved" for the rc.2 items on PR #345 (comments 7036535012 and 7036569672). Both ways of receiving a recipe file worked on rc.2: (a) tapping `<Tee>.umamit-rezept.json` in My Files and (b) sharing it from My Files or a messenger (asked as options). This is recorded in D-134's and D-130's build notes. Everything else on 09 §4 „v0.9.0" and the design review had been approved on rc.1.
+- **Version:** 09 §4 ticked, What's new folded into the main bullets (New, Changed, Fixed), `umamit.version=0.9.0` (90099) in `c7750b45`. CI run 44729897307 green on all five jobs on the first attempt.
+- **Merge:** PR #345 merged into `main` with a merge commit (`f663318b`). CI run 44733973161 went green on attempt 2: the first „Checks" failed at configuration when Maven Central did not serve `kotlin-stdlib:2.4.10`, a transient resolution failure (the other jobs resolved it).
+- **No accuracy runs and no T4 timer review:** the timer diff against `aed2b877` stayed empty (D-130 Q16).
+- **Release:** run 44742421717 with `RELEASE_TOKEN` (D-118) passed on the first attempt.
+  - [`v0.9.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.9.0) is built from `main` `f663318b`, not a pre-release, with the tag on the merge commit and the What's new on the page (D-132).
+  - versionCode 90099, APK SHA-256 `6dd9f74f…4f4b`, the release digest of the downloaded APK.
+  - `scripts/verify-release-apk.sh` on that APK: the signature is valid, the certificate `a500e2c6…2f67` matches `signing/release-cert-sha256.txt`, `com.umamit.app` 0.9.0 / 90099, not debuggable. The APK came through the REST assets API, because `gh release download` uses GraphQL, which is blocked here.
+- **Issues:** the merge closed #333's tickets (#330, #334–#343, #346, #349, #350) and #351, #352; #344 was closed by hand.
+- **Branch:** `claude/inspiring-ritchie-8hfw00` was restarted from `main` (fast-forward). The session was assigned `claude/exciting-franklin-5bibtm` and did not use it.
+- **Final session (Opus `medium` orchestrator, no subagents):** mostly waiting on CI and the release run.
+
 ### v0.9.0: rc.2 round after the PO's check of rc.1 (2026-11-20)
 
 - **The PO's check of `v0.9.0-rc.1`:** everything approved except receiving a recipe file: on One UI 9, neither (a) tapping a `.umamit-rezept` in My Files nor (b) sharing it from My Files or a messenger offered UmamiT; (c) *Rezept importieren* worked. After *Alle Daten löschen* the full-screen alarm and Live notifications stayed allowed, while exact alarms and the battery exemption were off. The PO also did not want the two seed teas that came back after the wipe.
