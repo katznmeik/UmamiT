@@ -8,9 +8,9 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 
 /**
- * One polite job against the shop (CLAUDE.md rule 7, 08 §2.8, D-050, D-074): the seed photo
- * download (ONB-06), one catalog refresh (CAT-07), one exact price fetch (CAT-12) or one tea
- * from a shared or pasted shop link (CAT-17, D-094). Every
+ * One polite job against the shop (CLAUDE.md rule 7, 08 §2.8, D-050, D-074): one catalog
+ * refresh (CAT-07), one exact price fetch (CAT-12) or one tea from a shared or pasted shop link
+ * (CAT-17, D-094). Every
  * request goes through the allow-listed [ShopClient] (one connection, ≤ 2 requests/s, honest
  * User-Agent); the session adds what a whole job must honour:
  *
@@ -27,8 +27,8 @@ import okhttp3.HttpUrl
  *   `refusalStops`, D-096); every other stop stays a stop.
  * - **Retries** ([NetworkRetry], D-076): only a catalog refresh retries a timeout or a
  *   connection error, after 2, 4 and 8 s, each retry a new call through the client (rate
- *   limited, allow-listed). Stop signals and HTTP errors are never retried; the seed photos and
- *   the exact price fetch never retry.
+ *   limited, allow-listed). Stop signals and HTTP errors are never retried; the exact price
+ *   fetch never retries.
  * - **One fetch at a time:** fetches of one session are serialised, so a fetch queued behind
  *   the one that stops is never sent.
  *
@@ -154,7 +154,7 @@ class ShopSession private constructor(
  */
 class NetworkRetry private constructor(val pausesMillis: List<Long>) {
     companion object {
-        /** No retry: the seed photo download (runs once) and the exact price fetch (falls back to the estimate). */
+        /** No retry: the exact price fetch (falls back to the estimate). */
         val NONE = NetworkRetry(emptyList())
 
         /** The catalog refresh (CAT-07 AC2): ≤ 3 retries after 2, 4 and 8 s. */

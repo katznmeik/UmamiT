@@ -25,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.math.roundToLong
 
-/** The first-start seed data (M1-07, WARE-06) checked against the table in 08 §2.5a. */
+/** The seed data test fixture (M1-07, WARE-06) checked against the table in 08 §2.5a; the app seeds nothing (D-135). */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class SeedDataSeederTest {
@@ -293,7 +293,6 @@ class SeedDataSeederTest {
 
     @Test
     fun anEmptyDatabaseIsNotSeededOnceTheMarkersAreSet() = runTest {
-        // Only the v0.2.1 vessels are added to an install seeded before (SeedVesselsTest).
         settings = FakeSettingsRepository(seeded = true, seedVesselsV2Added = true)
 
         assertThat(seeder.seedIfNeeded()).isFalse()

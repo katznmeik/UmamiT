@@ -15,7 +15,6 @@ import com.umamit.core.data.RoomStockRepository
 import com.umamit.core.data.RoomTeaRepository
 import com.umamit.core.data.RoomVesselRepository
 import com.umamit.core.data.SeedData
-import com.umamit.core.data.SeedDataSeeder
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.database.umamiDatabaseBuilder
 import com.umamit.core.datastore.SettingsDataSource
@@ -41,11 +40,12 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * Empty storage is a first start (SET-33, D-131 Q4, #346): after an install's data — settings with the setup done,
- * a seeded database — is gone, as `clearApplicationUserData()` leaves it, the real settings file and database open
- * as on a fresh install: the setup shows (SCR-01), the seed teas and vessels are created again and the seed photo
- * download is still to come (ONB-06). It proves only „empty storage → first start"; the wipe itself is checked on the
- * phone (09 §4 „v0.9.0").
+ * Empty storage is a first start (SET-33, D-131 Q4, #346) that creates nothing (D-135, #352): after an install's
+ * data — settings with the setup done, a database with the old seed teas and vessels — is gone, as
+ * `clearApplicationUserData()` leaves it, the real settings file and database open as on a fresh install: the setup
+ * shows (SCR-01), and no tea, recipe, stock event, vessel or photo is created (ONB-06, WARE-06). Nothing in the first
+ * start sends to the shop any more; the setup's own shop job, *Katalog jetzt laden*, is `OnboardingTest`'s. It proves
+ * only „empty storage → an empty first start"; the wipe itself is checked on the phone (09 §4 „v0.9.0").
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -59,7 +59,7 @@ class EmptyStorageFirstStartTest {
     /** One install's storage under [dir]: the settings file and `umamit.db`, as the app opens them. */
     private class Install(dir: File) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        private val time = FakeClock(wall = 1_794_992_400_000L)
+        val time = FakeClock(wall = 1_794_992_400_000L)
         val settings = DataStoreSettingsRepository(
             SettingsDataSource(
                 DataStoreFactory.create(SettingsSerializer, scope = scope) {
@@ -74,16 +74,9 @@ class EmptyStorageFirstStartTest {
             photosDir = File(dir, "files/photos"),
         ).build()
         val teas = RoomTeaRepository(db.teaDao(), time)
+        val recipes = RoomRecipeRepository(db.recipeDao(), time)
         val vessels = RoomVesselRepository(db.vesselDao(), time)
-        val seeder = SeedDataSeeder(
-            db,
-            teas,
-            RoomRecipeRepository(db.recipeDao(), time),
-            vessels,
-            RoomStockRepository(db.inventoryDao(), time),
-            settings,
-            time,
-        )
+        val stock = RoomStockRepository(db.inventoryDao(), time)
         val onboardingCompleted = settings.onboardingCompleted().stateIn(scope, SharingStarted.Eagerly, null)
 
         /** Closes the database and the DataStore, so the same files can be opened again in this process. */
@@ -111,10 +104,14 @@ class EmptyStorageFirstStartTest {
     @Test
     fun emptyStorageStartsAsAFirstStart() {
         val storage = folder.newFolder("data")
-        // The install before: set up, seeded, its seed photos tried.
+        // The install before: set up, with the seed teas and vessels of an older version, its seed photos tried.
         Install(storage).run {
             runBlocking {
-                assertThat(seeder.seedIfNeeded()).isTrue()
+                SeedData.vessels.forEach { vessels.saveVessel(it) }
+                SeedData.teas.forEach { teas.saveTea(it) }
+                SeedData.recipes.forEach { recipes.saveRecipe(it) }
+                SeedData.initialStock(time.nowMs()).forEach { stock.addEvent(it) }
+                settings.markSeedDataCreated()
                 settings.update { it.copy(onboardingCompleted = true) }
                 settings.markSeedPhotosAttempted()
                 assertThat(settings.settings.first().onboardingCompleted).isTrue()
@@ -135,13 +132,15 @@ class EmptyStorageFirstStartTest {
             compose.onNodeWithText("START").assertDoesNotExist()
 
             runBlocking {
-                assertThat(fresh.settings.seedDataCreated.first()).isFalse()
-                assertThat(fresh.settings.seedPhotosAttempted.first()).isFalse()
-                assertThat(fresh.seeder.seedIfNeeded()).isTrue()
-                val teaIds = fresh.teas.observeTeas().first().map { it.tea.id }
-                assertThat(teaIds).containsAtLeast(SeedData.TANABATA_TEA_ID, SeedData.HISUI_TEA_ID)
-                assertThat(fresh.vessels.observeVessels().first().map { it.id }).contains(SeedData.KYUSU_VESSEL_ID)
-                assertThat(fresh.settings.seedDataCreated.first()).isTrue()
+                assertThat(fresh.settings.settings.first().onboardingCompleted).isFalse()
+                assertThat(fresh.teas.observeTeas().first()).isEmpty()
+                assertThat(fresh.vessels.observeVessels().first()).isEmpty()
+                val rows = fresh.db.backupDao().snapshot()
+                assertThat(rows.teas).isEmpty()
+                assertThat(rows.brewProfiles).isEmpty()
+                assertThat(rows.vessels).isEmpty()
+                assertThat(rows.inventoryEvents).isEmpty()
+                assertThat(rows.photos).isEmpty()
             }
         } finally {
             fresh.close()

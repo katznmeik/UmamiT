@@ -8,7 +8,6 @@ import androidx.work.Configuration
 import com.umamit.app.AppStart.launchGuarded
 import com.umamit.core.backup.restore.ImportRecovery
 import com.umamit.core.backup.restore.SafetyCopyExpiry
-import com.umamit.core.data.FirstStart
 import com.umamit.core.data.catalog.CatalogRefreshHost
 import com.umamit.core.data.catalog.CatalogRefreshServicePort
 import com.umamit.core.data.reminder.BackupReminderScheduler
@@ -34,7 +33,7 @@ import kotlin.concurrent.thread
  * the [BrewSessionController] through it ([TimerHost], D-057), since the system
  * creates them. The catalog refresh's service reaches the refresh the same way, and
  * separately ([CatalogRefreshHost], #65). The process start recovers the persisted
- * timer (04 §7.2, D-063) and retries a failed seed (D-075).
+ * timer (04 §7.2, D-063); it creates no data (D-135).
  *
  * WorkManager starts on demand with Hilt's worker factory ([Configuration.Provider]; its default
  * initializer is removed in the manifest). The process start follows the daily low-stock reminder's
@@ -51,9 +50,6 @@ class UmamitApplication :
 
     @Inject
     lateinit var controller: Lazy<BrewSessionController>
-
-    @Inject
-    lateinit var firstStart: Lazy<FirstStart>
 
     @Inject
     lateinit var catalogRefreshPort: Lazy<CatalogRefreshServicePort>
@@ -101,10 +97,7 @@ class UmamitApplication :
         // screens show a step that ran before a kill or a force stop at once. A process an
         // alarm started may recover in that alarm's turn instead; recovery runs once either way.
         recoveryScope.launch { controller.get().recover(RecoveryTrigger.APP_START) }
-        // A first start whose seed failed gets the seed teas now (D-075), off the main thread
-        // (the graph is built there too); the seed photo download is never sent from here.
         // The start-up work below is guarded: a failure (the graph's `get()` included) is logged, never a crash.
-        recoveryScope.launchGuarded("seed retry") { firstStart.get().retrySeedAtAppStart() }
         // The daily low-stock reminder (INV-11): keeps a waiting job, follows SET-28 and SET-29 from now on.
         recoveryScope.launchGuarded("low-stock reminder") { lowStockReminders.get().follow() }
         // The backup reminder (BAK-06): keeps a waiting job, follows SET-20 from now on.

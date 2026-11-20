@@ -20,7 +20,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Einrichtung (SCR-01) in light and dark at font scale 1.0 and 2.0 (03 §6): the welcome, the
- * reliability page with two missing checks while the seed photos load, and the catalog page
+ * reliability page with two missing checks, and the catalog page
  * (ONB-03) before and during the load. Placeholder art only.
  * Goldens: `src/test/screenshots/`.
  */
@@ -58,7 +58,6 @@ class OnboardingScreenshotTest(private val dark: Boolean, private val fontScale:
                 OnboardingScreen(
                     page = page,
                     status = TWO_MISSING,
-                    photosLoading = true,
                     actions = OnboardingActions(),
                     catalogLoad = catalogLoad,
                 )

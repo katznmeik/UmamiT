@@ -8,17 +8,14 @@ import org.junit.rules.ExternalResource
 
 /**
  * Marks the first-start setup done (ONB-04) before the activity starts, through the app's own
- * settings store, so a test opens on Start and the first start (seed data, the seed photo
- * download to the shop) never runs in the emulator, nor the app start's seed retry. Use it as the outer rule around the
- * activity's rule.
+ * settings store, so a test opens on Start. The first start creates nothing and sends nothing (D-135); the seed marker
+ * is still written, as the older versions' rule did. Use it as the outer rule around the activity's rule.
  */
 class SetupDoneRule : ExternalResource() {
     override fun before() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application
         val settings = EntryPointAccessors.fromApplication(app, SettingsEntryPoint::class.java).settings()
         runBlocking {
-            // The seed marker first: the app start's seed retry (D-075) runs once the setup is
-            // done, so it must already find the seed marked and do nothing.
             settings.markSeedDataCreated()
             settings.update { it.copy(onboardingCompleted = true) }
         }

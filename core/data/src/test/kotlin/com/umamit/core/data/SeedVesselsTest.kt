@@ -13,15 +13,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The seed vessels of v0.2.1 (WARE-06, D-093 point 5 and Q18): a fresh install gets all nine;
- * an existing install gets the seven new ones once, by their fixed IDs, and the two M1 vessels
- * get their new names only while they still carry the M1 seed names. On in-memory Room.
+ * The nine seed vessels of the [SeedDataSeeder] test fixture (WARE-06): all nine with their fixed IDs on an empty
+ * database, none on one that holds data. The app seeds nothing since D-135. On in-memory Room.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class SeedVesselsTest {
     private val data = TestDatabase()
-    private var settings = FakeSettingsRepository()
+    private val settings = FakeSettingsRepository()
     private val seeder get() = SeedDataSeeder(
         data.db,
         data.teas,
@@ -65,105 +64,6 @@ class SeedVesselsTest {
     }
 
     @Test
-    fun anExistingInstallGetsTheSevenNewVesselsAndTheM1VesselsTheirNewNames() = runTest {
-        existingM1Install()
-
-        seeder.seedIfNeeded()
-
-        assertThat(vessels().map { it.name }).containsExactly(
-            "Becher 250 ml",
-            "Becher 300 ml",
-            "Becher 350 ml",
-            "Becher mit Sieb 400 ml",
-            "Kyusu 120 ml",
-            "Kyusu 180 ml",
-            "Kyusu 250 ml",
-            "Kyusu 300 ml",
-            "Kyusu 360 ml",
-        ).inOrder()
-        assertThat(vessels()).containsExactlyElementsIn(SeedData.vessels)
-        assertThat(settings.seedVesselsV2Added.first()).isTrue()
-        // The tea of the existing install is untouched: no second base seed.
-        assertThat(data.teas.observeTeas().first().map { it.tea.id }).containsExactly("own")
-    }
-
-    @Test
-    fun theNewVesselsAreInsertedOnceAndNeverTwice() = runTest {
-        existingM1Install()
-        seeder.seedIfNeeded()
-        val afterFirst = vessels()
-
-        seeder.seedIfNeeded()
-        // Even with the marker lost (a crash before it was written), the IDs keep them single.
-        settings = FakeSettingsRepository(seeded = true)
-        seeder.seedIfNeeded()
-
-        assertThat(vessels()).isEqualTo(afterFirst)
-        assertThat(vessels()).hasSize(9)
-    }
-
-    @Test
-    fun aNewVesselThatAlreadyExistsIsNotOverwritten() = runTest {
-        existingM1Install()
-        val mine = Vessel(SeedData.KYUSU_120_VESSEL_ID, "Mein Shiboridashi", VesselType.SHIBORIDASHI, capacityMl = 140)
-        data.vessels.saveVessel(mine)
-
-        seeder.seedIfNeeded()
-
-        assertThat(data.vessels.getVessel(mine.id)).isEqualTo(mine)
-        assertThat(vessels()).hasSize(9)
-    }
-
-    @Test
-    fun aVesselThePoRenamedIsNotTouched() = runTest {
-        existingM1Install(kyusuName = "Banko-Kyusu")
-
-        seeder.seedIfNeeded()
-
-        assertThat(data.vessels.getVessel(SeedData.KYUSU_VESSEL_ID)!!.name).isEqualTo("Banko-Kyusu")
-        // The other M1 vessel still had its seed name, so it gets the new one.
-        assertThat(data.vessels.getVessel(SeedData.MUG_VESSEL_ID)!!.name).isEqualTo("Becher mit Sieb 400 ml")
-    }
-
-    @Test
-    fun theRenameChangesOnlyTheName() = runTest {
-        existingM1Install()
-        val kyusu = data.vessels.getVessel(SeedData.KYUSU_VESSEL_ID)!!.copy(isFavorite = true, notes = "Tokoname")
-        data.vessels.saveVessel(kyusu)
-
-        seeder.seedIfNeeded()
-
-        assertThat(data.vessels.getVessel(SeedData.KYUSU_VESSEL_ID)).isEqualTo(kyusu.copy(name = "Kyusu 250 ml"))
-    }
-
-    @Test
-    fun anExistingInstallWithoutTheM1VesselsGetsOnlyTheSeven() = runTest {
-        settings = FakeSettingsRepository(seeded = true)
-
-        seeder.seedIfNeeded()
-
-        assertThat(vessels().map { it.name }).containsExactly(
-            "Becher 250 ml",
-            "Becher 300 ml",
-            "Becher 350 ml",
-            "Kyusu 120 ml",
-            "Kyusu 180 ml",
-            "Kyusu 300 ml",
-            "Kyusu 360 ml",
-        ).inOrder()
-    }
-
-    @Test
-    fun nothingIsAddedOrRenamedOnceTheMarkerIsSet() = runTest {
-        existingM1Install()
-        settings = FakeSettingsRepository(seeded = true, seedVesselsV2Added = true)
-
-        seeder.seedIfNeeded()
-
-        assertThat(vessels().map { it.name }).containsExactly("Becher mit Sieb", "Kyusu").inOrder()
-    }
-
-    @Test
     fun aRestoredDatabaseWithoutTheMarkersGetsNoVessels() = runTest {
         // A device restore brings the database back (D-075): its data is left as it is.
         data.teas.saveTea(tea("own", name = "Gyokuro Asahi"))
@@ -173,18 +73,6 @@ class SeedVesselsTest {
 
         assertThat(vessels()).isEmpty()
         assertThat(settings.seedVesselsV2Added.first()).isTrue()
-    }
-
-    /** A v0.2.0 install: seeded, its M1 vessels under their M1 names, and a tea of its own. */
-    private suspend fun existingM1Install(kyusuName: String = "Kyusu") {
-        settings = FakeSettingsRepository(seeded = true)
-        data.vessels.saveVessel(
-            Vessel(SeedData.KYUSU_VESSEL_ID, kyusuName, VesselType.KYUSU, capacityMl = 300, usableMl = 250),
-        )
-        data.vessels.saveVessel(
-            Vessel(SeedData.MUG_VESSEL_ID, "Becher mit Sieb", VesselType.MUG_INFUSER, capacityMl = 400, usableMl = 400),
-        )
-        data.teas.saveTea(tea("own", name = "Gyokuro Asahi"))
     }
 
     private suspend fun vessels(): List<Vessel> = data.vessels.observeVessels().first()
