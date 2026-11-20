@@ -69,7 +69,7 @@ class ReceiveRecipeTargetTest {
 
     @Test
     fun theManifestOffersViewAndSendForBothTypesOnly() {
-        val uri = Uri.parse("content://$AUTHORITY/Tee.umamit-rezept")
+        val uri = Uri.parse("content://$AUTHORITY/Tee.umamit-rezept.json")
         listOf(RecipeFile.MIME_TYPE, "application/json").forEach { type ->
             assertThat(targetsOf(Intent(Intent.ACTION_VIEW).setDataAndType(uri, type))).containsExactly(target)
             assertThat(targetsOf(Intent(Intent.ACTION_SEND).setType(type))).containsExactly(target)
@@ -102,7 +102,7 @@ class ReceiveRecipeTargetTest {
     fun aViewedOrSentFileGoesToTheAppsOwnTaskWithItsUriAndGrant() {
         val bytes = """{"format":"umamit-recipe"}""".toByteArray()
         serve(bytes)
-        val uri = Uri.parse("content://$AUTHORITY/Tee.umamit-rezept")
+        val uri = Uri.parse("content://$AUTHORITY/Tee.umamit-rezept.json")
 
         listOf(
             ReceiveRecipeActivity.view(context, uri),
@@ -154,7 +154,9 @@ class ReceiveRecipeTargetTest {
 
     @Test
     fun aFileUriIsHandedOnEmptySoTheReaderRefusesIt() {
-        val file = File(context.filesDir, "secret.umamit-rezept").apply { writeText("""{"format":"umamit-recipe"}""") }
+        val file = File(context.filesDir, "secret.umamit-rezept.json").apply {
+            writeText("""{"format":"umamit-recipe"}""")
+        }
 
         val started = handedOver(ReceiveRecipeActivity.view(context, Uri.fromFile(file)))
 
@@ -164,7 +166,7 @@ class ReceiveRecipeTargetTest {
     @Test
     fun aUriOfTheAppsOwnProviderReadsAsNothing() {
         // MainActivity is exported: another app could point it at the app's own files.
-        val own = Uri.parse("content://${context.packageName}.files/recipes/Tee.umamit-rezept")
+        val own = Uri.parse("content://${context.packageName}.files/recipes/Tee.umamit-rezept.json")
         val forged = MainActivity.openRecipe(context, ReceivedFile(own, RecipeFile.MIME_TYPE))
 
         assertThat(copied(forged)).isEmpty()

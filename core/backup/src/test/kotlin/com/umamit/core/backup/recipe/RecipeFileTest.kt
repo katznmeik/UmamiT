@@ -179,9 +179,9 @@ class RecipeFileTest {
 
     @Test
     fun `the file name drops the forbidden characters and keeps 60 characters`() {
-        assertThat(RecipeFile.fileName("Gyokuro Asahi")).isEqualTo("Gyokuro Asahi.umamit-rezept")
-        assertThat(RecipeFile.fileName("A/B\\C:D*E?F\"G<H>I|J")).isEqualTo("ABCDEFGHIJ.umamit-rezept")
-        assertThat(RecipeFile.fileName("x".repeat(80))).isEqualTo("x".repeat(60) + ".umamit-rezept")
-        assertThat(RecipeFile.fileName("/?*")).isEqualTo("Rezept.umamit-rezept")
+        assertThat(RecipeFile.fileName("Gyokuro Asahi")).isEqualTo("Gyokuro Asahi.umamit-rezept.json")
+        assertThat(RecipeFile.fileName("A/B\\C:D*E?F\"G<H>I|J")).isEqualTo("ABCDEFGHIJ.umamit-rezept.json")
+        assertThat(RecipeFile.fileName("x".repeat(80))).isEqualTo("x".repeat(60) + ".umamit-rezept.json")
+        assertThat(RecipeFile.fileName("/?*")).isEqualTo("Rezept.umamit-rezept.json")
     }
 }

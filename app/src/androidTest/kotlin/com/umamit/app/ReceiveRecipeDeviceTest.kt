@@ -84,7 +84,7 @@ class ReceiveRecipeDeviceTest {
         val result = context.contentResolver.call(
             sender,
             SenderRecipeProvider.METHOD_SEND,
-            "${name.replace(' ', '-')}.umamit-rezept",
+            "${name.replace(' ', '-')}.umamit-rezept.json",
             extras,
         )
         return checkNotNull(result?.getParcelable(SenderRecipeProvider.EXTRA_URI, Uri::class.java))
@@ -212,7 +212,7 @@ class ReceiveRecipeDeviceTest {
 
     @Test
     fun aFileUriIsRefused() {
-        val file = File(context.cacheDir, "direkt.umamit-rezept").apply {
+        val file = File(context.cacheDir, "direkt.umamit-rezept.json").apply {
             writeBytes(RecipeFile.write(recipe, OffsetDateTime.now()))
         }.also(ownFiles::add)
         val before = teaCount()

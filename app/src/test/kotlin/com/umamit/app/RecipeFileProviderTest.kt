@@ -17,7 +17,8 @@ import java.io.File
 
 /**
  * The recipe file's `FileProvider` in the merged manifest (PRF-08 AC3, 06 §5.7): not exported, no permission,
- * `grantUriPermissions`, and it serves `cache/shared/` only, with the recipe file's own type.
+ * `grantUriPermissions`, and it serves `cache/shared/` only, with the recipe file's share type `application/json`
+ * (D-134 item 5).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -56,7 +57,7 @@ class RecipeFileProviderTest {
 
         assertThat(uri.scheme).isEqualTo("content")
         assertThat(uri.authority).isEqualTo(authority)
-        assertThat(context.contentResolver.getType(uri)).isEqualTo("application/vnd.umamit.recipe+json")
+        assertThat(context.contentResolver.getType(uri)).isEqualTo("application/json")
 
         val elsewhere = listOf(
             File(context.cacheDir, "andere.txt"),

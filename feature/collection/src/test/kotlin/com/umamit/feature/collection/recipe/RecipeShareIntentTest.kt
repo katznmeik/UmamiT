@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class RecipeShareIntentTest {
-    private val uri = Uri.parse("content://com.umamit.app.files/shared/Morgennebel.umamit-rezept")
+    private val uri = Uri.parse("content://com.umamit.app.files/shared/Morgennebel.umamit-rezept.json")
 
     private fun inner(chooser: Intent): Intent =
         requireNotNull(chooser.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java))
@@ -25,7 +25,7 @@ class RecipeShareIntentTest {
         assertThat(chooser.getCharSequenceExtra(Intent.EXTRA_TITLE)).isEqualTo("Rezept teilen")
         val send = inner(chooser)
         assertThat(send.action).isEqualTo(Intent.ACTION_SEND)
-        assertThat(send.type).isEqualTo("application/vnd.umamit.recipe+json")
+        assertThat(send.type).isEqualTo("application/json")
         assertThat(send.getStringExtra(Intent.EXTRA_TEXT)).isEqualTo("Morgennebel - Rezept")
         assertThat(send.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)).isEqualTo(uri)
     }

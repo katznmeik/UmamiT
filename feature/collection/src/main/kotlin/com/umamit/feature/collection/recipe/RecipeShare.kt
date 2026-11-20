@@ -24,8 +24,8 @@ import java.nio.file.StandardCopyOption
 import java.time.OffsetDateTime
 
 /**
- * The recipe files *Rezept teilen* writes (PRF-08, 06 §5.7): `cacheDir/shared/<Tee>.umamit-rezept`, the only folder
- * the app's `FileProvider` serves, and its cleanup at app start.
+ * The recipe files *Rezept teilen* writes (PRF-08, 06 §5.7): `cacheDir/shared/<Tee>.umamit-rezept.json`, the only
+ * folder the app's `FileProvider` serves, and its cleanup at app start.
  */
 object SharedRecipeFiles {
     /** The folder under the cache dir, the `FileProvider`'s only path (`res/xml` of `app`). */
@@ -62,12 +62,12 @@ object SharedRecipeFiles {
 /** The share sheet's intent of *Rezept teilen* (PRF-08 AC3, SCR-12). */
 object RecipeShareIntent {
     /**
-     * `ACTION_SEND` with [text] and the recipe file at [uri] (type [RecipeFile.MIME_TYPE]), granting read access to
-     * that one URI, through `Intent.createChooser` with [title].
+     * `ACTION_SEND` with [text] and the recipe file at [uri] (type [RecipeFile.SHARE_MIME_TYPE], D-134), granting read
+     * access to that one URI, through `Intent.createChooser` with [title].
      */
     fun chooser(uri: Uri, text: String, title: String): Intent {
         val send = Intent(Intent.ACTION_SEND)
-            .setType(RecipeFile.MIME_TYPE)
+            .setType(RecipeFile.SHARE_MIME_TYPE)
             .putExtra(Intent.EXTRA_TEXT, text)
             .putExtra(Intent.EXTRA_STREAM, uri)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

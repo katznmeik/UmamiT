@@ -16,11 +16,20 @@ object RecipeFile {
     /** The newest `formatVersion` this app reads and the one it writes. */
     const val FORMAT_VERSION = 1
 
-    /** The file's MIME type, also its `FileProvider` share type (PRF-08 AC3). */
+    /**
+     * The recipe file's own MIME type, accepted when a file is received (D-130 item 18): an rc.1 file typed with it by
+     * its sender still arrives. *Rezept teilen* sends [SHARE_MIME_TYPE] instead (D-134 items 5–7).
+     */
     const val MIME_TYPE = "application/vnd.umamit.recipe+json"
 
-    /** The file name's extension, without the dot. */
-    const val EXTENSION = "umamit-rezept"
+    /**
+     * The type *Rezept teilen* sends and the app's `FileProvider` reports for a recipe file (PRF-08 AC3, D-134 Q2):
+     * `application/json`, which Android, the file manager and the messengers know.
+     */
+    const val SHARE_MIME_TYPE = "application/json"
+
+    /** The file name's extension, without the leading dot (D-134 Q2). */
+    const val EXTENSION = "umamit-rezept.json"
 
     /** The largest file read (64 KB); a larger one is refused before it is parsed. */
     const val MAX_BYTES = 64 * 1024
@@ -31,7 +40,7 @@ object RecipeFile {
     private const val FALLBACK_FILE_NAME = "Rezept"
     private val FILE_NAME_FORBIDDEN = Regex("""[/\\:*?"<>|\p{Cntrl}]""")
 
-    /** `<Tee>.umamit-rezept` (05 §8a): [teaName] without `/\:*?"<>|`, at most 60 characters. */
+    /** `<Tee>.umamit-rezept.json` (05 §8a, D-134 item 5): [teaName] without `/\:*?"<>|`, at most 60 characters. */
     fun fileName(teaName: String): String {
         val cleaned = teaName.replace(FILE_NAME_FORBIDDEN, "").trim()
         val cut = if (cleaned.length > MAX_FILE_NAME_LENGTH) {

@@ -51,7 +51,7 @@ class RecipeShareDeviceTest {
         assertEquals(Intent.ACTION_CHOOSER, chooser.action)
         val send = requireNotNull(chooser.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java))
         assertEquals(Intent.ACTION_SEND, send.action)
-        assertEquals(RecipeFile.MIME_TYPE, send.type)
+        assertEquals("application/json", send.type)
         assertTrue(send.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
 
         val expected = listOf(
@@ -66,8 +66,8 @@ class RecipeShareDeviceTest {
         val stream = send.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)!!
         assertEquals("content", stream.scheme)
         assertEquals(AndroidRecipeSharer.authority(context), stream.authority)
-        assertEquals("Morgennebel.umamit-rezept", stream.lastPathSegment)
-        assertEquals(RecipeFile.MIME_TYPE, context.contentResolver.getType(stream))
+        assertEquals("Morgennebel.umamit-rezept.json", stream.lastPathSegment)
+        assertEquals("application/json", context.contentResolver.getType(stream))
         val bytes = context.contentResolver.openInputStream(stream)!!.use { it.readBytes() }
         assertArrayEquals(RecipeFile.write(recipe, createdAt), bytes)
     }
