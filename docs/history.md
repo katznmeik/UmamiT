@@ -11,6 +11,13 @@
 
 ## Releases and plans
 
+### v0.9.0: rc.2 round after the PO's check of rc.1 (2026-11-20)
+
+- **The PO's check of `v0.9.0-rc.1`:** everything approved except receiving a recipe file: on One UI 9, neither (a) tapping a `.umamit-rezept` in My Files nor (b) sharing it from My Files or a messenger offered UmamiT; (c) *Rezept importieren* worked. After *Alle Daten löschen* the full-screen alarm and Live notifications stayed allowed, while exact alarms and the battery exemption were off. The PO also did not want the two seed teas that came back after the wipe.
+- **Decisions:** D-134: the recipe file becomes `<Tee>.umamit-rezept.json`, shared as `application/json`. D-135: no seed teas or vessels and no seed photo download, so a fresh install and the wipe start empty, existing data stays, and there are three network uses (CLAUDE.md rule 7). Both are in the specs, with D-130 and D-131 build notes and 09 §4 items for rc.2.
+- **Tickets:** #351 (T3, `.json` ending) and #352 (T3, no seed data: `FirstStart`, `SeedPhotoDownloader` and `SeedPhotoProgress` removed; `SeedDataSeeder` kept as a test fixture; onboarding photo line gone; only the onboarding reliability goldens at font 1.0 changed). The timer diff against `aed2b877` is empty.
+- **Gate:** the full local gate passed and CI was green on `f243d7fd`; `v0.9.0-rc.2` (90002) was dispatched from `main`'s `release.yml`, and the What's new has a „Since rc.1" part.
+
 ### v0.9.0: rc session #343, rc.1 published (2026-11-19/20)
 
 - **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `ccr-9405e06c-35haf0`, not used). PR #345 stays draft.
