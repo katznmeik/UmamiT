@@ -341,7 +341,7 @@ personal data or shop content).
 8. **What stays:** `SeedData` (`core/data`) stays as a test fixture for the existing tests (`feature/brew`, `core/timer` and the emulator tests use it), so `git diff aed2b877 -- feature/brew core/timer core/timer-engine` stays empty. CAT-15's one-time linking stays for seed teas that already exist on a phone (Q5). An older backup that holds seed teas imports them like any tea.
 9. **The import's wait on the seed photo download** (D-133 Q10, `core/backup/restore`) is left as built; with no download started it never waits. No change in `core/backup` (T4 code) for D-135.
 10. **Network:** GEN-01, D-036, NFR-PRIV-02, 06 §2.2/§5.7, 01, README and CLAUDE.md rule 7 list three uses; the `INTERNET` permission stays, `checkManifestPermissions` unchanged.
-11. **Ticket #352** (T3: first start and onboarding; no timer code, no `core/backup` change). Goldens and the design-review renders of the onboarding and the empty Start, Meine Tees and Teegeschirr are re-recorded.
+11. **Ticket #352** (T3: first start and onboarding; no timer code, no `core/backup` change). Changed goldens are re-recorded (as built: only the onboarding's reliability page; `docs/design/review/v0.9.0/` has no onboarding or empty-state render, so none was redone).
 12. **As built (#352, Claude's):** `FirstStart`, `SeedPhotoDownloader` and `SeedPhotoProgress` are removed; `SeedDataSeeder` stays without `@Inject` as a test fixture (core/backup and CAT-15 tests build it); `UmamitApplication` no longer runs the seed retry; the onboarding's photo line and *Überspringen* and their two strings are gone. Only the onboarding's reliability goldens at font 1.0 changed; the empty-state screens were already covered by unchanged goldens.
 
 <a id="d-134"></a>
