@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-19 (D-131 build notes for #346: the wipe's mechanism, the PO's answers 1–7, as built; 2026-11-18: D-130 v0.9.0 specified, Q1–Q16; 2026-11-17: D-129 the rc.1 check: the picker's hand-over to the setup, the launch kept, the design review approved; D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
+> Status: **Living document** · Last updated: 2026-11-20 (D-134 build notes: ways (a) and (b) worked on rc.2; 2026-11-19: D-131 build notes for #346: the wipe's mechanism, the PO's answers 1–7, as built; 2026-11-18: D-130 v0.9.0 specified, Q1–Q16; 2026-11-17: D-129 the rc.1 check: the picker's hand-over to the setup, the launch kept, the design review approved; D-128 v0.8.0 and v0.9.0 grilled, Q1–Q31; 2026-11-16: D-121–D-127 v0.7.2 restructurings picked in the triage; 2026-11-15: D-120 v0.7.2 plan details; D-118 release token; D-117 build notes „Arrival fade", „Lock screen")
 
 ## Open questions
 
@@ -360,6 +360,8 @@ personal data or shop content).
 6. **Receiving is unchanged:** `ReceiveRecipeActivity` keeps both filters for `application/vnd.umamit.recipe+json` and `application/json` (an rc.1 file typed with the own type by its sender still arrives), so the merged manifest and `checkManifestPermissions` stay unchanged. Every file still goes through the one reader (05 §8a), which decides by content, not by name. An rc.1 `.umamit-rezept` file still imports through *Rezept importieren* (any type).
 7. **`RecipeFile.MIME_TYPE`** stays the accepted own type for receiving; the sent type is `application/json`. Ticket #351 (T3: recipe sending, no timer code).
 
+**Build notes (rc.2 on the Galaxy, One UI 9; the PO, 2026-11-20, final session #344).** Both ways worked for a `<Tee>.umamit-rezept.json` shared from rc.2: (a) tapping the saved file in My Files offered UmamiT and opened „Rezept übernehmen"; (b) sharing it from My Files and from a messenger offered UmamiT in the share sheet and opened „Rezept übernehmen". (c) *Rezept importieren* works as on rc.1. Q2's fix holds; nothing else changes. The PO approved everything else on rc.2 too (D-135's empty first start, and a catalog tea brewing with *Kein Gefäß*).
+
 <a id="d-133"></a>
 ### D-133 — v0.9.0 rc fix round: the typed-word field, overlays after an alert, the late-failure undo, how a recipe file reaches the app, the busy cover, the session count, the seed photos during an import, motion on SCR-26 and SCR-32 (BAK-01, BAK-02, PRF-08, SET-20, SET-33; SCR-26, SCR-32; 03 §3.6; 05 §6, §8) · *Accepted (PO, 2026-11-19)*: the PO's answers Q1–Q12 below (rc session #343, asked as options after the T3/T4 milestone review and `/review-animations`)
 
@@ -549,6 +551,7 @@ built: no *Alle Daten löschen* (SET-33) and no device-backup explanation.
 - **#336, as built beyond the design note (Claude's):** `PRAGMA foreign_key_check` runs inside the transaction before the commit (a COMMIT failing on a deferred key left SQLite's transaction open); a roll-back also reverses a started folder swap (a commit a power loss undid; settings already written then stay); the start gate only finishes or undoes the import and leaves the cleanup of `photos.old/` and the stagings to `SafetyCopyExpiry.atAppStart` in the background; the gate builds no Room and no catalog graph. New module edges: `core:backup` → `core:data` (the catalog refresh's state only) and `app` → `core:backup`. On the path where a step finishes at the next start, `safetyCopyAt` is that start's time, so the undo is offered from then. SQLite behaviour (`application_id`, the checkpoint) and the renames are tested under Robolectric only; the on-device check is the 09 §4 „v0.9.0" checklist. API for #338: `RestoreBackup.restore(content, timer)`, `UndoImport.preview()` / `undo(timer)`, `RestoreResult` (`Done(preview, finishedAtNextStart)`, `Refused(TIMER_ACTIVE | CATALOG_REFRESH | SAFETY_COPY_FAILED | REPLACE_FAILED)`, `NoSafetyCopy`), `TimerActivity` supplied by the screen from the timer controller.
 - **#336, undo after a step finished at the next start** · *Accepted (PO, 2026-11-18, build session 1, as options)*: undo is offered right after the import and counts from the import's time, as Q6 and the late-failure answer say; the as-built case (hidden until the next start, `safetyCopyAt` = that start) is **fixed in the rc round (#343)**. Not taken: keeping it as built.
 - **Ways (a) and (b) on the Galaxy (rc.1, One UI 9; the PO, 2026-11-20):** neither offered UmamiT for a `.umamit-rezept` file: (a) tapping it in My Files offered other apps only; (b) sharing it from My Files and from a messenger or mail app left UmamiT out of the share sheet. (c) *Rezept importieren* worked. This is item 18's risk; [D-134](#d-134) renames the file to `.umamit-rezept.json`, shared as `application/json`, for rc.2.
+- **Ways (a) and (b) on rc.2 (the PO, 2026-11-20):** both offered UmamiT for `<Tee>.umamit-rezept.json` and opened „Rezept übernehmen" ([D-134](#d-134) build notes); (c) works.
 
 <a id="d-129"></a>
 - **Build note, #341 (Rezept teilen, build session 2, PO 2026-11-18):** a new
@@ -8761,6 +8764,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-20 | D-134 build notes: on `v0.9.0-rc.2` ways (a) and (b) both offered UmamiT and opened „Rezept übernehmen"; the PO approved rc.2 (final session #344). |
 | 2026-11-20 | D-135: no seed teas and no seed vessels from v0.9.0-rc.2 on; a fresh install and *Alle Daten löschen* start empty with the existing empty states; existing data stays; the seed photo download goes, three network uses (Q1–Q6). |
 | 2026-11-20 | D-134: the PO's check of `v0.9.0-rc.1` — ways (a) and (b) of receiving a recipe file did not offer UmamiT on One UI 9, (c) worked, everything else approved; rc.2 renames the file to `<Tee>.umamit-rezept.json`, shared as `application/json` (Q1–Q4). D-130 and D-131 build notes: (a)/(b) on the Galaxy, the grants kept after *Alle Daten löschen*. |
 | 2026-11-19 | D-133: the rc fix round of v0.9.0 — the PO's answers Q1–Q12 after the milestone review and `/review-animations` (typed-word hint above the field, SCR-26 dialogs stay closed after an alert, late-failure undo offered and refused, recipe file handed to the main app, busy cover timing, the session count by `created_at`, the import waits for the seed photos, motion on SCR-26/SCR-32). |
