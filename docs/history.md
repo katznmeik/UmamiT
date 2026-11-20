@@ -11,6 +11,16 @@
 
 ## Releases and plans
 
+### v0.9.0: rc session #343, rc.1 published (2026-11-19/20)
+
+- **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `ccr-9405e06c-35haf0`, not used). PR #345 stays draft.
+- **Reviews:** the T3 milestone review (standards + spec; no blockers, 5 should-fix, 6 nits), the T4 review of the import path (#335, #336, #342's `ReceiveRecipeActivity`, the start gate; no blockers, 5 should-fix incl. a pending marker wiping a staged import, a stuck late failure, photo files lost to the swap, no start-up guard, a hostile JSON's memory), and `/review-animations` (run from its file at T2: the slash command does not load in cloud sessions; the PO started it). Motion blocked on A-13 (SCR-32's two sheets vanished).
+- **PO answers (3 rounds, options) → D-133 Q1–Q12:** the typed-word hint above the field; SCR-26 dialogs stay closed after an alert; the late-failure undo offered and refused; the recipe file handed to the main app (no 2 s main-thread wait); the busy cover for the snackbar's undo; the check cover after 0,25 s for at least 0,4 s; the wipe notice stays ~1 s in one window; SCR-32 rows fade and expand; the counts by `created_at`; the import waits for the seed photos; the progress eases 0,3 s; the text is enough under reduce motion. Specs 03 SCR-26/SCR-12, 05 §6/§8, 09 §4 amended.
+- **Built (tickets #349 T4, #350 T3) and follow-ups:** the import path fixes, `ImportLock` (core:database) shared by import, undo, start gate, expiry and seed download, `AppStart` guards (the timer's recovery launch unchanged), the grant hand-over to `MainActivity`, reader caps, the fixture checked against raw JSON; SCR-26/SCR-32/snackbar UI and motion, tests for `UseCaseDataBackup` and `SystemAppDataWipe`, the package sheet golden. Then: the settings harness after the merge, typographic quotes in the share title, a race in `ImportGateTest` (the gate now holds the lock; `deleteTree` tolerates vanishing files), and three androidTest rounds for `ReceiveRecipeDeviceTest` (a test-APK sender provider in its own process) and `TransitionJankTest` (a system UI ANR dialog on the API 36 emulator covered Start; foreign ANR dialogs are now answered „Wait" and logged, an UmamiT ANR still fails; its cause was not found, the full logcat artifact is not reachable from the container).
+- **What's new:** `docs/whats-new/v0.9.0.md` finished (6 New, 1 Fixed). **Renders:** `docs/design/review/v0.9.0/` (78, light and dark; README).
+- **Verified:** the timer diff against `aed2b877` empty throughout; the full local gate (`gate.sh`) passed on `8cfa6a91`; CI run 44635481612 green on all five jobs.
+- **Release:** [`v0.9.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.9.0-rc.1) (pre-release, versionCode 90001, from `8cfa6a91`, APK SHA-256 `dd961af8…e852`, certificate verified by the workflow), run 44640618013, first attempt.
+
 ### v0.9.0: build session 3, #346 Alle Daten löschen (2026-11-19)
 
 - **Branch:** worked on `claude/inspiring-ritchie-8hfw00` (assigned: `claude/youthful-bardeen-0yai1v`, not used). PR #345 stays draft.

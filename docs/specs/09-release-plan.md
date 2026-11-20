@@ -468,9 +468,10 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 - [ ] **Rezept übernehmen, three ways:** (a) tapping the received file, (b) sharing it to UmamiT, (c) Meine Tees ⋮ *Rezept importieren*. Record which of (a) and (b) your apps offer; (c) works. Each opens „Rezept übernehmen" with the tea preselected; *Rezept übernehmen* adds a new recipe (not the default), and the tea detail shows „Rezept „…" übernommen".
 - [ ] **A recipe file from a slow source (D-133 Q4):** opened or shared from a cloud drive (or another app that loads the file first), the app does not freeze and „Rezept übernehmen" opens with the recipe (not „beschädigt").
 - [ ] **Unknown tea:** for a file whose tea is not in the collection, *Neuen Tee anlegen* creates it from the catalog; for a catalog tea missing from the local catalog, *Tee über Shop-Link laden* fetches it only when tapped (in airplane mode it says so and nothing else happens).
+- [ ] **The rc fix round (D-133):** at font 2.0 the ERSETZEN and LÖSCHEN dialogs show the hint as a line above the field, with nothing crowded; a dialog of Daten & Sicherung that is open when an alarm rings is gone and stays closed afterwards; *Rückgängig machen* in Start's snackbar shows „Import wird rückgängig gemacht …" until the result; after *Einspielen* the cover leads straight to Start (no flash of Daten & Sicherung); on „Rezept übernehmen" the package sheet and *Anderen Tee wählen* slide out.
 - [ ] **⋮ and the alarm (#330):** with the ⋮ menu of Journal, Sammlung or Statistik open, the alarm takes the screen at once and the menu is gone.
 - [ ] Font 2.0 and TalkBack spot checks of Daten & Sicherung, the import dialogs and „Rezept übernehmen", light and dark.
-- [ ] The rc's PR shows CI green, and `git diff main -- feature/brew core/timer core/timer-engine` is empty (so no accuracy runs, D-130 Q16) (Claude).
+- [x] The rc's PR shows CI green, and `git diff main -- feature/brew core/timer core/timer-engine` is empty (so no accuracy runs, D-130 Q16) (Claude).
 
 ### M5 — 1.0 (postponed: starts only on the PO's go, D-128)
 
