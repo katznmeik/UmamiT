@@ -13,7 +13,7 @@
 
 ### v0.9.0: released (2026-11-20)
 
-- **PO approval (2026-11-20, in session):** „All approved" for the rc.2 items on PR #345 (comments 7036535012 and 7036569672). Both ways of receiving a recipe file worked on rc.2: (a) tapping `<Tee>.umamit-rezept.json` in My Files and (b) sharing it from My Files or a messenger (asked as options). This is recorded in D-134's and D-130's build notes. Everything else on 09 §4 „v0.9.0" and the design review had been approved on rc.1.
+- **PO approval (2026-11-20, in session):** „All approved" for the rc.2 items that Claude had posted on PR #345 (comments 7036535012 and 7036569672). Both ways of receiving a recipe file worked on rc.2: (a) tapping `<Tee>.umamit-rezept.json` in My Files and (b) sharing it from My Files or a messenger (asked as options). This is recorded in D-134's and D-130's build notes. Everything else on 09 §4 „v0.9.0" and the design review had been approved on rc.1.
 - **Version:** 09 §4 ticked, What's new folded into the main bullets (New, Changed, Fixed), `umamit.version=0.9.0` (90099) in `c7750b45`. CI run 44729897307 green on all five jobs on the first attempt.
 - **Merge:** PR #345 merged into `main` with a merge commit (`f663318b`). CI run 44733973161 went green on attempt 2: the first „Checks" failed at configuration when Maven Central did not serve `kotlin-stdlib:2.4.10`, a transient resolution failure (the other jobs resolved it).
 - **No accuracy runs and no T4 timer review:** the timer diff against `aed2b877` stayed empty (D-130 Q16).

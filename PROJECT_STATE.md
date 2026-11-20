@@ -14,11 +14,13 @@
 - **Open (not blocking):**
   - The system UI ANR on the API 36 emulator (it covered Start in `TransitionJankTest` after `ReceiveRecipeDeviceTest` began using a test-APK provider). Foreign ANR dialogs are now answered „Wait" and logged (`ForeignAnrDialog`); the cause is unknown because the full logcat artifact cannot be downloaded from a container (blob host blocked). If it returns, read the `ForeignAnrDialog` lines in the job log.
   - `ReceiveRecipeDeviceTest` no longer proves grant enforcement (the test provider is exported without a permission); the phone check covered it on rc.2.
-- **Still true:** the timer is unchanged since `aed2b877` (v0.8.0); umamit.db v9; the network has three uses (D-135); `checkManifestPermissions` unchanged.
+- **Still true:** the timer code is unchanged since `aed2b877` (the v0.9.0 approval commit), so v0.9.0 had no accuracy runs; umamit.db v9; the network has three uses (D-135); `checkManifestPermissions` unchanged.
 - **Branch:** `claude/inspiring-ritchie-8hfw00`, restarted from `main` `f663318b` after the merge. The final session was assigned `claude/exciting-franklin-5bibtm` and did not use it. A new session with another assigned branch works here directly.
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
   - **Worktrees:** never remove an agent worktree while a Gradle build runs: `spotlessCheck` scans `.claude/worktrees/` and fails on a vanished path (2026-11-17). Brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
+  - **Release APK download:** `gh release download` fails here (it uses GraphQL, which is blocked); `gh api -H "Accept: application/octet-stream" repos/katznmeik/UmamiT/releases/assets/<id>` works (2026-11-20).
+  - **Maven resolution hiccup:** a „Checks" job can fail at configuration with „Could not find org.jetbrains.kotlin:…" for an artifact that exists (Maven Central, 2026-11-20, on `main`); rerun the failed job once.
   - **Artifacts:** CI artifacts (full logcat) cannot be downloaded here (the blob host is blocked by the proxy); job logs work with `gh api …/actions/jobs/<id>/logs`.
   - **Environment:** the mirror init script lives in the session scratchpad and `gw.sh` passes it with `--init-script`. It has to be written again in a new container: a `maven { name = 'gcsMirror' }` made first (`remove` + `addFirst`) in `pluginManagement`, `dependencyResolutionManagement` and every `buildscript` (`beforeSettings` and `settingsEvaluated`), URL rewrites only on project repositories. Written so on 2026-11-16 (sessions 9 and 10), it worked first time; in `beforeSettings` reach the settings' buildscript as `mirrorFirst(s.buildscript.repositories)` (a `s.buildscript { … }` closure fails, 2026-11-17). The three timer test tasks take ≈ 8½ min cold.
 
@@ -46,7 +48,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | none open: **v0.9.0** released 2026-11-20 (90099, from `main` `f663318b`); next release to be chosen by the PO; M5 / 1.0 postponed. Before: **v0.9.0** (export/import, CSV, reminder, shared recipes, *Alle Daten löschen*; D-128, D-130, D-131) specified 2026-11-18, spec #333, tickets and plan **approved by the PO 2026-11-18**; build sessions 1–3 and the rc session done; `v0.9.0-rc.1` published 2026-11-20, the PO approved it except receiving a recipe file; **`v0.9.0-rc.2` published 2026-11-20** (D-134, D-135), the PO's check next; **v0.8.0** released 2026-11-18; M5 / 1.0 postponed until the PO's go |
+| Current milestone | none open: **v0.9.0** (export/import, CSV, reminder, shared recipes, *Alle Daten löschen*, empty first start; D-128, D-130, D-131, D-133–D-135) released 2026-11-20 (90099, from `main` `f663318b`); the next release is the PO's choice; M5 / 1.0 postponed until the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00`, restarted from `main` `f663318b` after the v0.9.0 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
