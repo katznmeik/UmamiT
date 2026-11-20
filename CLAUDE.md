@@ -87,10 +87,9 @@ and effort to pick, the branch and PR, the phase and its steps by pointer
    - the on-device checklist passes (`docs/specs/09-release-plan.md` §4);
    - the design review passes. Rendered screenshots (light and dark) go in
      `docs/design/review/<milestone>/`, using placeholder images only.
-7. **The app uses the network for exactly four things**, all only to
-   `www.tee-kontor-kiel.de` (D-036, D-094):
+7. **The app uses the network for exactly three things**, all only to
+   `www.tee-kontor-kiel.de` (D-036, D-094, D-135):
    - the user-triggered catalog refresh;
-   - a one-time download of the two seed teas' photos at first start;
    - the exact price fetch when the user adds a package;
    - the fetch of one product page from a shop link the user shares or
      pastes, or taps in a received recipe file (*Tee über Shop-Link laden*,

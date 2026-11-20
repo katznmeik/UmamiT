@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-11-18 (v0.9.0, D-130: `core:backup` use cases, `BackupReminderWorker`, the recipe file's `FileProvider` and `ReceiveRecipeActivity`, no new permission; 2026-10-31: v0.3.0: a cue's log line names the DND policy and SET-32, D-099; 2026-10-30: v0.3.0: the daily low-stock reminder job and its channel „Vorrat", WorkManager's manifest entries, the timer's second channel, D-098; 2026-10-29: the share target and the catalog jobs taking turns as built, #98; 2026-10-28: four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
+> Status: **Draft v0.2** · Last updated: 2026-11-20 (D-134/D-135 (v0.9.0-rc.2): §5.7 recipe file type, network uses; 2026-11-18: v0.9.0, D-130: `core:backup` use cases, `BackupReminderWorker`, the recipe file's `FileProvider` and `ReceiveRecipeActivity`, no new permission; 2026-10-31: v0.3.0: a cue's log line names the DND policy and SET-32, D-099; 2026-10-30: v0.3.0: the daily low-stock reminder job and its channel „Vorrat", WorkManager's manifest entries, the timer's second channel, D-098; 2026-10-29: the share target and the catalog jobs taking turns as built, #98; 2026-10-28: four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -93,7 +93,7 @@ UmamiT/
 │   ├── timer-engine/          BrewTimerEngine (pure)
 │   ├── timer/                 Controller, service, AlertPlayer, alarms, receivers, Live Update
 │   ├── catalog-parser/        TeeKontorParser, CatalogEntries, StyleMapper, RecipeDeriver (pure JVM)
-│   ├── network/               OkHttp client with host allow-list (M1: seed photos), rate limiter, robots.txt (M1, D-050); the only HTTP client (D-054)
+│   ├── network/               OkHttp client with host allow-list (M1: seed photos, none from rc.2, D-135), rate limiter, robots.txt (M1, D-050); the only HTTP client (D-054)
 │   ├── database/              Room, DAOs, migrations, schemas/
 │   ├── datastore/             Settings
 │   ├── content/               Bundled styles, descriptors, sounds, illustrations
@@ -142,22 +142,22 @@ concurrently.
 | Debug | LeakCanary, StrictMode |
 
 No analytics, ads or crash-reporting SDKs. The network is used for exactly
-four things (GEN-01, D-036, D-094): the catalog refresh (incl. the once-per-
+three things (GEN-01, D-036, D-094, D-135): the catalog refresh (incl. the once-per-
 refresh re-check of known teas missing from the sitemap, CAT-16), the
-one-time seed photo download at first start, the on-demand exact price fetch
+on-demand exact price fetch
 when adding a package, and the fetch of one product page from a shop link
 the user shares or pastes (CAT-17), or taps in a received recipe (v0.9.0, D-130). An OkHttp interceptor rejects any host other than
 `www.tee-kontor-kiel.de` (images are served from the same host, 08 §2.2).
 The client uses a **single connection** (`maxRequestsPerHost = 1`, one
-dispatcher thread for the shop). Each job (the seed photos, one refresh, one
+dispatcher thread for the shop). Each job (one refresh, one
 exact price fetch, one shared or pasted link) runs as one **shop session** (`ShopSession`, D-074): it
 reads robots.txt once with RFC 9309's status rules, never fetches a
 disallowed URL, retries connection errors only for the refresh (D-076), and
 after the first stop signal sends nothing more. An answer over its body
 limit (5 MB for pages, 16 MB for images, D-091) leaves only its URL out
 (D-090). An idle connection is kept for 30 s only, since
-connection retries are off (D-090). The seed photo download ends before a
-refresh started from the setup (D-090); a new refresh starts only once a
+connection retries are off (D-090). (Until v0.9.0-rc.1 the seed photo download ended before a
+refresh started from the setup, D-090; from rc.2 none exists, D-135.) A new refresh starts only once a
 cancelled one has cleaned up. A refresh and a shared or pasted link both
 write `catalog.db`, so they take turns (`CatalogJobs`, #98): a refresh waits
 for a link in progress (seconds at most) and holds its turn to the end of its
@@ -238,7 +238,7 @@ same (`catalog_image_failure`, D-091).
    counts (CAT-07 AC3), keeping unread known teas and owned discontinued ones
    (CAT-07 AC4), and the images that failed for good it met (D-091); delete
    the photos of teas and the images of guides no longer in the catalog (also
-   after a failed run); log; link the seed teas once (CAT-15, D-086).
+   after a failed run); log; link the seed teas that exist once (CAT-15, D-086; none created from rc.2, D-135).
 
 Steps 3, 5 and 6 fetch one URL after the other while the previous answer is
 parsed, re-encoded or stored (`fetchOverlapped`, D-091): a rendezvous hands
@@ -296,7 +296,7 @@ Timer", LOW, silent) carries the active timer that is not the Live Update
 
 | Permission | Purpose |
 |---|---|
-| `INTERNET` | The four uses of GEN-01: catalog refresh, one-time seed photo download, exact price fetch, one product page from a shared or pasted shop link, or from a received recipe's link on a tap (v0.9.0, D-130) (all to `www.tee-kontor-kiel.de`) |
+| `INTERNET` | The three uses of GEN-01 (D-135): catalog refresh, exact price fetch, one product page from a shared or pasted shop link, or from a received recipe's link on a tap (v0.9.0, D-130) (all to `www.tee-kontor-kiel.de`) |
 | `POST_NOTIFICATIONS`, `POST_PROMOTED_NOTIFICATIONS` | Timer, Live Update, catalog progress (`POST_PROMOTED_NOTIFICATIONS` is not in the SDK 36 stubs but from Android 16 QPR1 a normal|appop permission that promotion requires; must stay declared; the user controls it, checked via `canPostPromotedNotifications()`, D-043/D-044) |
 | `USE_FULL_SCREEN_INTENT` | Full-screen step alert over the lock screen (TMR-06) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Timer service |
@@ -329,8 +329,10 @@ recorded here first.
 `checkManifestPermissions` stays unchanged.
 - **Sending:** an `androidx.core.content.FileProvider` in `app` (as built,
   #341: the subclass `RecipeFileProvider`, which reports
-  `application/vnd.umamit.recipe+json` for `.umamit-rezept` instead of
-  `application/octet-stream`)
+  `application/json` for `.umamit-rezept.json` instead of
+  `application/octet-stream`; D-134, until v0.9.0-rc.1 it reported
+  `application/vnd.umamit.recipe+json` for `.umamit-rezept`; the share
+  intent's type is `application/json`)
   (authority `com.umamit.app.files`, **not exported**,
   `grantUriPermissions`), its paths only `cache/shared/`. The share intent
   grants read access to that one URI. Files there older than a day are

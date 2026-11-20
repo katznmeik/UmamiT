@@ -1,6 +1,6 @@
 # 01 · Product Vision & Scope
 
-> Status: **Draft v0.2** · Last updated: 2026-11-09 (NG6, NG7 retired, D-108)
+> Status: **Draft v0.2** · Last updated: 2026-11-20 (D-135: three network uses; 2026-11-09: NG6, NG7 retired, D-108)
 > v0.2 reflects the product-owner interview of 2026-10-21 (personal use, German,
 > Tee-Kontor catalog, timer details). See [10 · Decisions](10-open-questions-and-decisions.md).
 
@@ -56,8 +56,9 @@ Japanese tagline: **「お茶で、いい時間を。」**
 3. **Zero-effort logging.** Sessions log themselves; notes are optional.
 4. **Brew first.** From launch to a running timer in ≤ 3 taps for a known tea.
 5. **Local-first.** All personal data stays on the phone. Network access goes
-   only to tee-kontor-kiel.de: the user-triggered catalog refresh, a one-time
-   seed photo download and exact prices when adding a package (D-036).
+   only to tee-kontor-kiel.de: the user-triggered catalog refresh and exact
+   prices when adding a package (D-036; the one-time seed photo download went
+   with the seed teas, D-135).
 6. **Starting points, not rules.** Imported recipes are defaults; every value
    can be changed, and the app offers to save adjusted times.
 

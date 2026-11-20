@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-19 (v0.9.0, D-131 build notes: SET-33 as built; 2026-11-18: v0.9.0, D-130: GEN-01 (d) a received recipe's shop link on a tap, PRF-08, BAK-01, BAK-02, BAK-04, BAK-06 in full, SET-20 a switch; 2026-11-17: v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-20 (D-134/D-135 (v0.9.0-rc.2): PRF-08 file name and type, GEN-01 three uses, ONB-06 removed, CAT-15, WARE-06, SET-33; 2026-11-19: v0.9.0, D-131 build notes: SET-33 as built; 2026-11-18: v0.9.0, D-130: GEN-01 (d) a received recipe's shop link on a tap, PRF-08, BAK-01, BAK-02, BAK-04, BAK-06 in full, SET-20 a switch; 2026-11-17: v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -59,21 +59,22 @@ German with an English gloss where helpful.
 
 ## 1. General (GEN)
 
-**GEN-01 — Local-first, four network uses** `Must`
+**GEN-01 — Local-first, three network uses** `Must`
 All personal data is stored only on the device. The app declares
-`INTERNET` for exactly four uses (D-036, D-094), all to the shop host:
+`INTERNET` for exactly three uses (D-036, D-094, [D-135](10-open-questions-and-decisions.md#d-135)), all to the shop host:
 (a) the user-triggered catalog refresh (CAT-07, incl. the re-check of CAT-16);
-(b) the one-time download of the two seed teas' photos at first start
-(ONB-06); (c) the on-demand exact price fetch when the user adds a package
-(CAT-12); (d) the user-triggered fetch of one product page the user shares
+(b) the on-demand exact price fetch when the user adds a package
+(CAT-12); (c) the user-triggered fetch of one product page the user shares
 or pastes (CAT-17, v0.2.1), or, from v0.9.0, taps as *Tee über Shop-Link
 laden* in a received recipe (PRF-08, [D-130](10-open-questions-and-decisions.md#d-130) Q4; never on opening the
-file).
+file). Until v0.9.0-rc.1 there was a fourth use, the one-time download of
+the two seed teas' photos at first start (ONB-06); D-135 removed it with the
+seed teas.
 - AC1: Network requests are made only to `www.tee-kontor-kiel.de` (the shop
   serves its images from the same host), enforced by a host allow-list in
   the HTTP client.
-- AC2: Every feature except these four works in airplane mode (the seed
-  teas then use the placeholder image; prices stay estimates).
+- AC2: Every feature except these three works in airplane mode (prices stay
+  estimates).
 - AC3: No analytics, ads, crash-reporting or other third-party network SDKs.
 
 **GEN-02 — No accounts** `Must`
@@ -168,11 +169,13 @@ are then shown as a banner on Home and the timer (TMR-31).
 Final page offers *Katalog jetzt laden* (runs CAT-07 with progress) or
 *Später*.
 
-**ONB-06 — Seed photos** `Must`
-During the first-start setup the app downloads the product photos of the two
-seed teas once (08 §2.5a; network use (b) of GEN-01) with visible progress.
-The step can be skipped and fails silently offline; the placeholder image is
-used until the first catalog refresh (CAT-15).
+**ONB-06 — ~~Seed photos~~** `Must` — **removed from v0.9.0-rc.2** ([D-135](10-open-questions-and-decisions.md#d-135))
+~~During the first-start setup the app downloads the product photos of the
+two seed teas once (08 §2.5a; network use (b) of GEN-01) with visible
+progress. The step can be skipped and fails silently offline; the
+placeholder image is used until the first catalog refresh (CAT-15).~~
+No seed teas exist any more, so nothing is downloaded at first start and the
+onboarding shows no „Teefotos werden geladen …" line.
 
 **ONB-04 — Run once** `Must`
 Shown until completed; reachable again via Einstellungen › Über ›
@@ -467,6 +470,8 @@ Katalog* (SCR-03), adding returns to the brew setup (SCR-04) with that tea
 selected; a catalog tea is never brewed without adding it.
 
 **CAT-15 — Link seed teas on first refresh** `Must`
+From v0.9.0-rc.2 ([D-135](10-open-questions-and-decisions.md#d-135)) no seed teas are created, so this applies only to seed
+teas that already exist on a phone (they stay as ordinary data).
 After a successful catalog refresh, the M1 seed teas Tanabata and Hisui,
 whose `catalog_key` matches a catalog entry, are linked and receive the
 catalog description and photo automatically. Recipes, stock, journal entries
@@ -873,7 +878,8 @@ First duration + increment × count, optional +5 °C per step.
 **PRF-08 — Share a recipe** `Should` (v0.9.0, [D-128](10-open-questions-and-decisions.md#d-128) Q9–Q11, [D-130](10-open-questions-and-decisions.md#d-130))
 **Sending.** The recipe editor's ⋮ (SCR-12) has *Rezept teilen*: it shares
 **one recipe** through the Android share sheet, as a readable German text
-with a small recipe file attached (`<Tee>.umamit-rezept`, 05 §8a).
+with a small recipe file attached (`<Tee>.umamit-rezept.json`, 05 §8a; until v0.9.0-rc.1
+`<Tee>.umamit-rezept`, [D-134](10-open-questions-and-decisions.md#d-134)).
 - AC1: The text (08's number and date rules): the tea's name (and secondary
   name), the recipe's name and method, leaf, water, base temperature, vessel
   type, then one line per step („1. Aufguss · 80 °C · 1:00"), and „Geteilt
@@ -883,8 +889,10 @@ with a small recipe file attached (`<Tee>.umamit-rezept`, 05 §8a).
   the vessel **type** (never the vessel), the tea's name, Kategorie and
   Sorte, and for a catalog tea its `catalog_key` and shop link (the link
   only; never shop text or photos, rule 3).
-- AC3: Shared through a `FileProvider` with type
-  `application/vnd.umamit.recipe+json`; no network, no new permission.
+- AC3: Shared through a `FileProvider` with type `application/json`
+  (until v0.9.0-rc.1 `application/vnd.umamit.recipe+json`, which My Files
+  and the messengers did not match for the saved file; D-134); no network,
+  no new permission. Receiving keeps both filters (06 §5.7).
 - AC4: Not offered for a new or unsaved recipe („Erst speichern"); offered
   for an archived tea's recipe.
 
@@ -998,7 +1006,7 @@ does the same (PRF-03).
 Optional usable brewing volume (e.g. 180 ml kyusu brews 150 ml), used for
 scaling if set.
 
-**WARE-06 — Seed teaware** `Must`
+**WARE-06 — Seed teaware** `Must` — **dropped from v0.9.0-rc.2** ([D-135](10-open-questions-and-decisions.md#d-135)): a fresh install and *Alle Daten löschen* start with no vessels (Teegeschirr: „Noch kein Teegeschirr"); vessels already on a phone stay. History until v0.9.0-rc.1:
 M1 ships the PO's vessels: „Kyusu" (KYUSU, 300 ml, usable 250 ml, at home)
 and „Becher mit Sieb" (MUG_INFUSER, 400 ml, usable 400 ml, at work).
 - **v0.2.1 (D-093):** seven more seed vessels with typical sizes, named by
@@ -2050,7 +2058,7 @@ v0.9.0 ([D-131](10-open-questions-and-decisions.md#d-131), #346): on SCR-26,
 like a fresh install (database, own and catalog photos, catalog cache, all
 settings, the safety copy); greyed out while a timer is active; no undo, the
 dialog suggests a backup first; the next start is a first start
-(onboarding, seed data). Done by `ActivityManager.clearApplicationUserData()`,
+(onboarding, an empty collection, no seed data; D-135). Done by `ActivityManager.clearApplicationUserData()`,
 which also ends the app; also greyed out while an export, an import or its
 undo runs; a failed wipe deletes nothing and says so (D-131 build notes,
 #346).

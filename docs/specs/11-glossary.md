@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.2** · Last updated: 2026-11-18 (Sicherung, Sicherheitskopie, Rezeptdatei, D-130; 2026-11-17: Session, Aufguss, aufgießen, taste set, D-128; 2026-11-14: Tee / Zubereitung ratings, D-117; 2026-11-13: Serie, Zeitraum, Tageszeit, D-115; 2026-11-12: catalog kind default, infusion taste, D-114; 2026-11-09: active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
+> Status: **Draft v0.2** · Last updated: 2026-11-20 (Rezeptdatei name, D-134; 2026-11-18: Sicherung, Sicherheitskopie, Rezeptdatei, D-130; 2026-11-17: Session, Aufguss, aufgießen, taste set, D-128; 2026-11-14: Tee / Zubereitung ratings, D-117; 2026-11-13: Serie, Zeitraum, Tageszeit, D-115; 2026-11-12: catalog kind default, infusion taste, D-114; 2026-11-09: active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
 
 ## Tea terms
 
@@ -79,7 +79,7 @@
 | **Taste set (Geschmacksprofil)** | From v0.8.0 (D-128): the six taste sliders a tea has. Three sets: Grüntee; Schwarz · Oolong · Pu-Erh; Kräuter · Rotbusch · Früchte (08 §4a). From the tea's Kategorie unless its *Geschmacksprofil* names another (TEA-02). |
 | **Sicherung (backup file)** | From v0.9.0 (D-128, D-130): the `.umamit` ZIP that *Sicherung erstellen* writes and *Sicherung einspielen* reads back, replacing all personal data (05 §8). Not the Android device backup (BAK-05), which has no photos. |
 | **Sicherheitskopie (safety copy)** | From v0.9.0 (D-130): the private copy of the data made just before an import replaces it; *Import rückgängig machen* brings it back for 7 × 24 h or until the next import. |
-| **Rezeptdatei (recipe file)** | From v0.9.0 (D-130): the small JSON file `<Tee>.umamit-rezept` attached to a shared recipe (05 §8a); another UmamiT takes it over on SCR-32 as a new recipe. |
+| **Rezeptdatei (recipe file)** | From v0.9.0 (D-130): the small JSON file `<Tee>.umamit-rezept.json` (until v0.9.0-rc.1 `<Tee>.umamit-rezept`, D-134) attached to a shared recipe (05 §8a); another UmamiT takes it over on SCR-32 as a new recipe. |
 | **Nochmal aufgießen / So nochmal aufgießen** | *Nochmal aufgießen* (Start, BRW-11) is the tap on one of the six teas under *Zuletzt aufgegossen* (v0.5.1, D-110; until v0.5.0 a section of three tiles): it starts the tea at once in READY with its last session's values. *So nochmal aufgießen* (on a session's detail page, from v0.4.0) opens the brew setup with that session's values as brewed, to check before *Start*. |
 | **Quick timer (Schnelltimer)** | A countdown without a tea; nothing is recorded (TMR-22). Not a session. |
 | **Active timer** | A brew session or a quick timer that is running, paused, waiting or alerting. At most **two** at the same time from v0.5.0: two brew sessions, or one brew session and one quick timer; a tea has at most one active session (D-108). v0.3.0–v0.4.1: one brew session and one quick timer; until then one active timer in total. |
