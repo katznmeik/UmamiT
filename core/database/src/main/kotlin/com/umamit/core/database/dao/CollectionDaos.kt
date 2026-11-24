@@ -367,6 +367,7 @@ fun interface SessionCost {
 }
 
 @Dao
+@Suppress("TooManyFunctions") // one query per stock write of INV-01–INV-03 and the cost recompute of INV-08
 abstract class InventoryDao {
     /**
      * Every non-archived tea that has stock events, with its remaining stock and the id of its latest INITIAL
@@ -470,10 +471,12 @@ abstract class InventoryDao {
         edit: (InventoryEventEntity) -> InventoryEventEntity?,
     ): Boolean {
         val stored = get(id) ?: return false
-        val edited = edit(stored)?.takeIf { it.id == stored.id && it.teaId == stored.teaId } ?: return false
-        upsert(edited)
-        if (recost != null) recostSessions(stored.teaId, now, recost)
-        return true
+        val edited = edit(stored)?.takeIf { it.id == stored.id && it.teaId == stored.teaId }
+        if (edited != null) {
+            upsert(edited)
+            if (recost != null) recostSessions(stored.teaId, now, recost)
+        }
+        return edited != null
     }
 
     /**
@@ -483,8 +486,8 @@ abstract class InventoryDao {
      */
     @Transaction
     open suspend fun deleteAndRecost(id: String, now: Long, recost: SessionCost): Boolean {
-        val stored = get(id) ?: return false
-        if (deleteUnlessBrew(id) == 0) return false
+        val stored = get(id)
+        if (stored == null || deleteUnlessBrew(id) == 0) return false
         if (stored.type.isPackage) recostSessions(stored.teaId, now, recost)
         return true
     }

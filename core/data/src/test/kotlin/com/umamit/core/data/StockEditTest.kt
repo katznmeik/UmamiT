@@ -294,28 +294,27 @@ class StockEditTest {
                 updatedAt = 1L,
             ),
         )
-        data.db.sessionDao().insertSteps(
-            listOf(
-                SessionStepEntity(
-                    id = "$id-step",
-                    sessionId = id,
-                    position = 0,
-                    kind = StepKind.INFUSION,
-                    plannedSeconds = 60,
-                    actualSeconds = 60,
-                    pausedSeconds = null,
-                    overtimeSeconds = null,
-                    tempC = 70,
-                    startedAt = null,
-                    endedAt = null,
-                    skipped = false,
-                    overtimeAutoAck = false,
-                    note = null,
-                    createdAt = 1L,
-                    updatedAt = 1L,
-                    preAlertSeconds = null,
-                ),
-            ),
-        )
+        data.db.sessionDao().insertSteps(listOf(pouredStep(id)))
     }
+
+    /** One ended infusion: the session pours its 100 ml once. */
+    private fun pouredStep(sessionId: String) = SessionStepEntity(
+        id = "$sessionId-step",
+        sessionId = sessionId,
+        position = 0,
+        kind = StepKind.INFUSION,
+        plannedSeconds = 60,
+        actualSeconds = 60,
+        pausedSeconds = null,
+        overtimeSeconds = null,
+        tempC = 70,
+        startedAt = null,
+        endedAt = null,
+        skipped = false,
+        overtimeAutoAck = false,
+        note = null,
+        createdAt = 1L,
+        updatedAt = 1L,
+        preAlertSeconds = null,
+    )
 }
