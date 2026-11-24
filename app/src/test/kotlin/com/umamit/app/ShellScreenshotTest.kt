@@ -84,7 +84,9 @@ class ShellScreenshotTest(private val dark: Boolean, private val wide: Boolean) 
         name: String,
         brew: ActiveBrew = ActiveBrew("Gyokuro", "Aufguss 2/3", 45, Color(0xFF8DA36B)),
     ) {
-        RuntimeEnvironment.setQualifiers(if (wide) "w900dp-h500dp-xhdpi" else "w411dp-h891dp-xhdpi")
+        // German again: setQualifiers replaces the pinned locale, and the app has values-en now (GEN-10).
+        val size = if (wide) "w900dp-h500dp-xhdpi" else "w411dp-h891dp-xhdpi"
+        RuntimeEnvironment.setQualifiers("$size +de-rDE")
         val source = MutableStateFlow<ActiveBrew?>(brew)
         val layout = if (wide) NavigationSuiteType.NavigationRail else NavigationSuiteType.NavigationBar
         compose.setContent {
@@ -108,7 +110,7 @@ class ShellScreenshotTest(private val dark: Boolean, private val wide: Boolean) 
     @Test
     fun icons() {
         org.junit.Assume.assumeFalse("one icon sheet per colour scheme", wide)
-        RuntimeEnvironment.setQualifiers("w411dp-h891dp-xhdpi")
+        RuntimeEnvironment.setQualifiers("w411dp-h891dp-xhdpi +de-rDE")
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
                 Row(

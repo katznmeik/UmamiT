@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_title">UmamiT</string>
+    <string name="home_reliability">The timer may be unreliable</string>
+    <string name="home_reliability_alarm_volume">Alarm volume is off</string>
+    <string name="home_start_brew">Start brewing</string>
+    <string name="home_start_brew_subtitle">Pick a tea and go</string>
+    <string name="home_continue_brew">Continue brewing</string>
+    <string name="home_quick_timer">Quick timer</string>
+    <string name="home_recent">Recently brewed</string>
+    <string name="home_brew_again">Brew again</string>
+    <string name="home_favorites">Favorites</string>
+    <string name="home_recent_meta">%1$s · %2$s · %3$d\u00A0°C</string>
+    <string name="home_recent_meta_no_temperature">%1$s · %2$s</string>
+    <string name="home_minutes_short">%1$d min</string>
+    <string name="home_hours_short">%1$d h</string>
+    <string name="home_active_ready">%1$s · ready for infusion %2$d</string>
+    <string name="home_active_running">%1$s · %2$s left</string>
+    <string name="home_active_paused">%1$s · paused, %2$s left</string>
+    <string name="home_active_alerting">%1$s · Pour now!</string>
+    <string name="home_active_finished">%1$s · all infusions done</string>
+    <string name="home_active_quick">Quick timer</string>
+    <string name="home_low_stock_low">%1$s is running low · %2$s g left</string>
+    <string name="home_low_stock_empty">%1$s is empty</string>
+    <string name="home_low_stock_reorder">Reorder</string>
+    <string name="home_low_stock_hide">Hide</string>
+    <string name="home_low_stock_no_browser">No browser found that can open the shop page.</string>
+    <string name="home_empty_title">Your collection is empty</string>
+    <string name="home_empty_body">Get teas from the catalog – or just start the quick timer.</string>
+    <string name="home_empty_action">Open catalog</string>
+</resources>

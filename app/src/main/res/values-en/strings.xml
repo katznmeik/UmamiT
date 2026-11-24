@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">UmamiT</string>
+    <string name="tab_start">Start</string>
+    <string name="tab_journal">Journal</string>
+    <string name="tab_collection">Collection</string>
+    <string name="tab_stats">Stats</string>
+    <string name="fsi_sheet_title">Allow the full-screen alarm again</string>
+    <string name="fsi_sheet_text">Android turned the full-screen alarm off with the update. Without it, the alarm only shows as a notification when the screen is locked.</string>
+    <string name="fsi_sheet_allow">Allow</string>
+    <string name="fsi_sheet_later">Later</string>
+</resources>
