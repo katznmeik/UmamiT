@@ -14,7 +14,7 @@
   - build session 2: #358 app language and locale-aware formatting, #360 the CSV in the app language, #359 English strings (run 1 non-timer modules, run 2 `feature:brew`, `core:timer`, `core:backup`), #361 the tour, plus a test-only emulator fix for #358 (`ComposeAnimationScale`).
 
   All on PR [#364](https://github.com/katznmeik/UmamiT/pull/364) (draft). The tickets stay open until the merge.
-- **CI:** green on all five jobs on `b40aef15` (steps 3–4) and @@CI5@@.
+- **CI:** green on all five jobs on `b40aef15` (steps 3–4) and on `16a7eab7` (#359 run 2) Checks and Build green, but both emulator jobs red: German device-test assertions met English texts (`RecipeShareDeviceTest`, `ProcessDeathTest`, `TimerNotificationsDeviceTest`), so the German pin of `GermanLocaleRunner` was not in effect once `core:timer` and `core:backup` had `values-en`. A T4 fix (escalated from #358's T3) is in progress; see „Resume“ below.
 - **Resume (build session 2 not finished):** the emulator jobs must be green on the step 5 head (#359 run 2 + #361) before the rc session starts. The fix for the device tests' German pin (T4) was in progress at the time of writing; this file is updated when it lands.
 - **The rc session (#362)** (Opus `medium` orchestrator; T3/T4 reviewers per the plan):
   - **Calibrate and gate the jank lines.** The eight jank lines of #357 are in `JankGate.REPORT_ONLY`; calibrate them on three CI runs (D-117) and gate them. Since `ComposeAnimationScale` (build session 2), `TransitionJankTest` measures at Compose scale 1 for certain; use only runs from `b40aef15` on.
