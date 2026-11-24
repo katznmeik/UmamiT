@@ -73,8 +73,9 @@ class LanguageSwitchDeviceTest {
     @After
     fun tearDown() {
         creations.stop()
-        GermanLocaleRunner.pinGerman(context)
+        // The brew ends first, so a German that never takes leaves no running step to alert later (rule 8).
         endTimer()
+        GermanLocaleRunner.pinGerman(context)
     }
 
     @Test

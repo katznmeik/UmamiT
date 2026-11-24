@@ -9,6 +9,7 @@ import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.notification.AppLanguageContext
 import com.umamit.core.timer.notification.LiveUpdateProgress
 import com.umamit.core.timer.notification.TimerActionReceiver
 import com.umamit.core.timer.notification.TimerNotificationActions
@@ -35,8 +36,11 @@ import javax.inject.Inject
  *
  * Every one opens its own timer's screen (SCR-05, SCR-07) when tapped, whichever role it has (04 §8.2,
  * D-098); a Live Update the user dismisses reports it through its delete intent (04 §8.3).
+ *
+ * Texts and actions are in the app's language also when the process has no activity ([AppLanguageContext], GEN-10).
  */
-class TimerStateNotifications @Inject constructor(@ApplicationContext private val context: Context) {
+class TimerStateNotifications @Inject constructor(@ApplicationContext appContext: Context) {
+    private val context: Context = AppLanguageContext(appContext)
     private val texts = TimerNotificationTexts(context)
     private val actions = TimerNotificationActions(context)
 
