@@ -11,6 +11,7 @@ import androidx.annotation.StringRes
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.umamit.core.timer.notification.AppLanguageContext
 import com.umamit.core.timer.service.BrewTimerService
 import com.umamit.core.timer.service.ForegroundServiceState
 
@@ -74,34 +75,38 @@ object TimerNotifications {
     /** The pending re-post per ID; one that is no longer here does nothing when it comes due. */
     private val pendingReposts = mutableMapOf<Int, Runnable>()
 
-    /** Creates (or updates the names of) the timer channels; idempotent. */
+    /**
+     * Creates (or updates the names of) the timer channels; idempotent. Names and descriptions are in the app's
+     * language also when the process has no activity ([AppLanguageContext], GEN-10).
+     */
     fun ensureChannels(context: Context) {
         val manager = NotificationManagerCompat.from(context)
+        val texts = AppLanguageContext(context)
         manager.createNotificationChannelsCompat(
             listOf(
                 channel(
-                    context,
+                    texts,
                     CHANNEL_BREW_TIMER,
                     NotificationManagerCompat.IMPORTANCE_DEFAULT,
                     R.string.timer_channel_brew_timer_name,
                     R.string.timer_channel_brew_timer_description,
                 ),
                 channel(
-                    context,
+                    texts,
                     CHANNEL_STEEP_FINISHED,
                     NotificationManagerCompat.IMPORTANCE_HIGH,
                     R.string.timer_channel_steep_finished_name,
                     R.string.timer_channel_steep_finished_description,
                 ),
                 channel(
-                    context,
+                    texts,
                     CHANNEL_SESSIONS,
                     NotificationManagerCompat.IMPORTANCE_LOW,
                     R.string.timer_channel_sessions_name,
                     R.string.timer_channel_sessions_description,
                 ),
                 channel(
-                    context,
+                    texts,
                     CHANNEL_TIMER_OTHER,
                     NotificationManagerCompat.IMPORTANCE_LOW,
                     R.string.timer_channel_other_name,
