@@ -22,17 +22,10 @@
   - step 5: #359 run 2 (`feature:brew`, `core:timer`, T3) beside #361 (T2).
   
   Stop after step 5. The rc session (#362) follows.
-- **First thing in build session 2: CI on `f238a673`** (or the head after it). Step 2 is not verified until both emulator jobs are green.
-  - On `97ad2b9b`, #357's four new emulator cases failed on API 35 and 36; every older test passed. `f238a673` fixes three of them as test bugs (see `docs/history.md`).
-  - **Open: `TransitionJankTest.timerFromLandscapeJournal` on API 35.** Journal stayed upright after back from the timer. If it fails again, read the diagnostics in the job log (`gh api repos/katznmeik/UmamiT/actions/jobs/<id>/logs`):
-    - the requested orientation still portrait: an app bug, the release not reaching WindowManager. Fix it at T4, against the build note;
-    - unspecified, with `user_rotation=1` and the display at 0: the platform or the test's rotation stand-in;
-    - `user_rotation` no longer 1: the test mechanism.
-  - Never weaken a build-note assertion. If one cannot hold, ask the PO.
-  - The #357 implementer's worktree is kept for this; `xhigh` needs the PO's OK.
+- **CI:** green on all five jobs on `4379b120`, the step 2 head, including #357's new emulator cases on API 35 and 36. On `97ad2b9b` those cases had failed; all the causes were in the tests (see `docs/history.md`). The app's portrait release was confirmed on the device: after the timer the requested orientation is `UNSPECIFIED`.
 - **To do before rc.1 (#362):**
   - **Calibrate and gate the jank lines.** The eight new jank lines of #357 are in `JankGate.REPORT_ONLY`; calibrate them on three CI runs (D-117) and gate them, because the ticket asks for the jank budget.
-  - **Watch the new emulator cases.** They ran in CI for the first time on `97ad2b9b`. If they flake, tune their waits through the #357 approach: rotation via `user_rotation` and the creation counter (`DisplayRotation.kt`).
+  - **Watch the new emulator cases.** They have been green once, on `4379b120`. If they flake, tune their waits, and keep the rotation via `user_rotation` and the creation counter (`DisplayRotation.kt`). With rotation locked, WindowManager writes a forced portrait back into `user_rotation`, so a test re-applies „held sideways" after leaving the timer.
 - **For the PO (asked in the session's last message, not decided):**
   - **#355's options A–D.** A is the SCR-34 sheet only, as decided. B, C and D would be D-136 amendments.
   - **#357: rotation in place app-wide.** Every non-timer screen now rotates without re-creation, so it keeps scroll position and open sheets. One 09 §4 check was added for it.
@@ -46,7 +39,6 @@
   - `ReceiveRecipeDeviceTest` no longer proves grant enforcement (the test provider is exported without a permission); the phone check covered it on rc.2.
 - **Still true:** umamit.db v9 (no migration in v0.10.0); the network has three uses (D-135); `checkManifestPermissions` passes unchanged.
 - **Branch:** `claude/inspiring-ritchie-8hfw00`, restarted from `main` `f663318b` after the merge, with the v0.10.0 spec and build commits on top (PR #364). The specify session and build session 1 were assigned `claude/elegant-galileo-46r9pb` and `claude/kind-brown-eyjcmo` and did not use them. A new session with another assigned branch works here directly.
-- **Worktree left:** `.claude/worktrees/agent-a0daef70e213a78b0`, from the #357 implementer. Remove it at the start of build session 2, when no Gradle build is running.
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
   - **Worktrees:** never remove an agent worktree while a Gradle build runs: `spotlessCheck` scans `.claude/worktrees/` and fails on a vanished path (2026-11-17). Brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
