@@ -185,8 +185,10 @@ class TimerAlertOverLockScreenTest {
      */
     @Test
     fun theAlertBringsTheTimerUpUprightInTheApp() {
-        // Not closed: after an alert the scenario's close waits on a stop and destroy it does not get here; tearDown
-        // finishes the activity, as for the alert above.
+        // Not closed: the alert's intent reaches the activity in onNewIntent, which keeps it as the activity's intent
+        // (setIntent, ACTION_OPEN_TIMER). ActivityScenario follows only an activity whose intent matches its launch
+        // intent (androidx.test:core 1.7.0 logs „… ignored because the intent does not match"), so its close would
+        // wait on a stop and destroy it never sees. tearDown finishes the activity, as for the alert above.
         ActivityScenario.launch(MainActivity::class.java)
         val session = startOnLandscapeJournal()
         val created = creations.count
@@ -213,8 +215,10 @@ class TimerAlertOverLockScreenTest {
     fun theAlertOverTheLockScreenComesUpUprightWithTheAppClosed() = overLockScreenFromLandscape(appClosed = true)
 
     private fun overLockScreenFromLandscape(appClosed: Boolean) {
-        // Closed before the alert when [appClosed]; otherwise left open: after the alert, still behind the keyguard,
-        // the scenario's close would wait on a destroy it does not get; tearDown finishes the activity.
+        // Closed before the alert when [appClosed]; otherwise left open: the full-screen intent reaches the activity in
+        // onNewIntent, which keeps it as the activity's intent (setIntent), and ActivityScenario then stops following
+        // the activity, whose intent no longer matches its launch intent; its close would wait on a destroy it never
+        // sees. tearDown finishes the activity.
         val scenario = ActivityScenario.launch(MainActivity::class.java)
         val session = startOnLandscapeJournal()
         if (appClosed) scenario.close()

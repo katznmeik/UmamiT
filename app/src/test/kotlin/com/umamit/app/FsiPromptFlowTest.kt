@@ -47,8 +47,12 @@ class FsiPromptFlowTest {
         var allowed = false
         var marks = 0
         var opened = 0
+        var reads = 0
 
-        override fun fullScreenAllowed() = allowed
+        override fun fullScreenAllowed(): Boolean {
+            reads++
+            return allowed
+        }
 
         override fun markPrompted() {
             marks++
@@ -191,6 +195,58 @@ class FsiPromptFlowTest {
         alertKey.value = null
         brew.value = running
         compose.waitForIdle()
+        compose.onNodeWithTag(FSI_SHEET_TAG).assertExists()
+    }
+
+    @Test
+    fun `a normal open reads the permission once`() {
+        show()
+
+        assertSheetShown()
+        assertThat(prompt.reads).isEqualTo(1)
+        resumeAgain()
+        assertThat(prompt.reads).isEqualTo(2)
+    }
+
+    @Test
+    fun `the permission is not read over a timer screen and is read once it is left`() {
+        show()
+        compose.onNodeWithText("Hisui", useUnmergedTree = true).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+        val before = prompt.reads
+
+        resumeAgain()
+        resumeAgain()
+        assertThat(prompt.reads).isEqualTo(before)
+
+        compose.onNodeWithText("Session beenden").performClick()
+        compose.waitForIdle()
+
+        assertThat(prompt.reads).isEqualTo(before + 1)
+        assertSheetShown()
+    }
+
+    @Test
+    fun `an alert that starts while the app is stopped is not read on its resume`() {
+        show()
+        val before = prompt.reads
+        compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+
+        // The full-screen intent's resume (rule 8): the alert came while the app was stopped.
+        alertKey.value = "a1"
+        brew.value = running.copy(alerting = true)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        compose.waitForIdle()
+
+        assertThat(prompt.reads).isEqualTo(before)
+        assertNoSheet()
+
+        alertKey.value = null
+        brew.value = running
+        compose.waitForIdle()
+
+        assertThat(prompt.reads).isEqualTo(before + 1)
         compose.onNodeWithTag(FSI_SHEET_TAG).assertExists()
     }
 }

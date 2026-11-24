@@ -14,7 +14,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -77,7 +79,10 @@ internal interface FsiPrompt {
     /** The app's versionCode now. */
     val currentVersionCode: Int
 
-    /** Whether full-screen alerts are allowed now (the reliability status, read again on every resume). */
+    /**
+     * Whether full-screen alerts are allowed now: the reliability status, a few system calls on the calling thread,
+     * read again on every resume while the sheet could show ([FsiPromptHost]).
+     */
     fun fullScreenAllowed(): Boolean
 
     /** Stores [currentVersionCode]: the sheet is answered for this version. */
@@ -130,8 +135,8 @@ internal class AndroidFsiPrompt(
             reliability = reliability,
             repository = repository,
             scope = scope,
-            currentVersionCode = activity.packageManager.getPackageInfo(activity.packageName, 0)
-                .longVersionCode.toInt(),
+            // The build's own versionCode, the installed one: no package manager call on the main thread.
+            currentVersionCode = BuildConfig.VERSION_CODE,
         )
     }
 }
@@ -139,7 +144,10 @@ internal class AndroidFsiPrompt(
 /**
  * Shows the sheet while [shouldShowFsiSheet] says so. *Erlauben* stores the versionCode and opens the system page,
  * *Später* and a dismissal store it, so the sheet shows at most once per versionCode. The permission is read again on
- * every resume, since the user comes back from the system page.
+ * every resume, since the user comes back from the system page, but only while the sheet could show: over a timer
+ * screen or an alert it is not read (a resume by the alert's full-screen intent, a cold start into the alert: about
+ * eight system calls on the main thread, rule 8), and it is read once that is left. The read follows the composition
+ * that saw the resume, so it sees the alert and the timer screen of that resume, not those before the stop.
  */
 @Composable
 internal fun FsiPromptHost(
@@ -148,15 +156,24 @@ internal fun FsiPromptHost(
     timerScreenOnTop: Boolean,
     alerting: Boolean,
 ) {
-    var allowed by remember { mutableStateOf(true) }
+    // null: not read (before the first resume, over a timer screen or an alert); the sheet shows only for a read that
+    // found the permission missing.
+    var allowed by remember { mutableStateOf<Boolean?>(null) }
+    var resumes by remember { mutableIntStateOf(0) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumes++ }
+    val gateOpen = !timerScreenOnTop && !alerting
     val currentPrompt by rememberUpdatedState(prompt)
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { allowed = currentPrompt.fullScreenAllowed() }
+    // This composition's count, not the live one: the effect of a composition before the first resume never reads.
+    val resumed = resumes
+    LaunchedEffect(resumed, gateOpen) {
+        allowed = if (gateOpen && resumed > 0) currentPrompt.fullScreenAllowed() else null
+    }
     val prompted by prompt.promptedVersionCode.collectAsStateWithLifecycle()
     val show = shouldShowFsiSheet(
         promptedVersionCode = prompted,
         currentVersionCode = prompt.currentVersionCode,
         onboardingCompleted = onboardingCompleted,
-        fullScreenAllowed = allowed,
+        fullScreenAllowed = allowed != false,
         timerScreenOnTop = timerScreenOnTop,
         alerting = alerting,
     )

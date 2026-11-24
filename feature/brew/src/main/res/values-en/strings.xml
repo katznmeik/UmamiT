@@ -8,11 +8,11 @@
     <string name="brew_steps_status_done">done</string>
     <string name="brew_steps_status_running">running</string>
     <string name="brew_steps_status_skipped">skipped</string>
-    <string name="brew_steps_temperature">%1$d °C</string>
+    <string name="brew_steps_temperature">%1$d °C</string>
     <string name="brew_steps_add">Add infusion</string>
     <string name="brew_steps_pre_alert">Pre-alert</string>
     <string name="brew_steps_pre_alert_off">Off</string>
-    <string name="brew_steps_pre_alert_seconds">%1$d s</string>
+    <string name="brew_steps_pre_alert_seconds">%1$d s</string>
     <!-- Per step (TMR-23, D-093 Q17): Automatic with the lead it will use, „Auto · 5 s" or „Auto · none". -->
     <string name="brew_steps_pre_alert_auto">Auto · %1$s</string>
     <string name="brew_steps_pre_alert_auto_option">Automatic · %1$s</string>
