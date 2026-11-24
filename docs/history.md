@@ -11,6 +11,19 @@
 
 ## Releases and plans
 
+### v0.10.0: build session 1 (2026-11-24)
+
+- Orchestrator on Opus `medium`; the session was assigned `claude/kind-brown-eyjcmo` and worked on `claude/inspiring-ritchie-8hfw00` as asked. Draft milestone PR [#364](https://github.com/katznmeik/UmamiT/pull/364) opened (closes #353–#363).
+- **Step 1:**
+  - **#354** (T3, Opus `medium`): `StockRepository.updatePurchase` / `updateCorrection`; edit or delete of a purchase and the session cost recompute in one Room transaction (`InventoryDao.editEvent`, `deleteAndRecost`); SCR-29 rows open „Kauf bearbeiten" / „Korrektur bearbeiten". `StockEditTest` (15 cases). New goldens only. No migration.
+  - **#355** (T3, Opus `medium`, no app code): `docs/plans/v0.10.0-fsi-research.md`. The system package installer sets `USE_FULL_SCREEN_INTENT` to DENIED on every sideloaded install, updates included; from Android 15 that DENIED overrides the user's choice. Claude checked the installer lines on AOSP `main` and `android15-release`. Android 17 / One UI 9 is unverified. Probe steps use the rcs; options A–D go to the PO.
+  - CI on `2d3d9f76`: green on all five jobs.
+- **Step 2:**
+  - **#357** (T4, Opus `high`): design note first, recorded as the D-136 build note „Portrait timer" (`59aecb41`). The first draft left four once-per-path re-creations, so Claude sent it back. The chosen variant lets `MainActivity` handle `orientation|screenLayout|screenSize|smallestScreenSize` itself and asks for portrait while a timer screen is on top, so no path re-creates. Tests: `TimerScreenOnTopTest` (JVM); rotate cases in `TransitionJankTest` and `TimerAlertOverLockScreenTest` (CI only); the new jank lines are report-only.
+  - **#356** (T2, Sonnet `medium`): the SCR-34 sheet (`FsiPrompt.kt`), `fsiPromptedVersionCode` in `core:datastore`, one device-bound backup key, `FsiPromptRepository`.
+  - Merge fix: one `isTimerScreen()`. The combination broke detekt `LongMethod` in `MainActivity.onCreate`; the T4 implementer extracted `followLockScreenFlags` without changing behaviour.
+  - `feature/brew`, `core/timer`, `core/timer-engine` and the schemas are unchanged since `f663318b`.
+
 ### v0.10.0: specify session (2026-11-24)
 
 - The PO chose a **feedback round** on v0.9.0 (not the D-112 ideas, quick access or M5) and gave five points: edit everything on the tea detail (purchases), the Vollbild-Benachrichtigung reset by every update, a glitchy timer when turning the locked phone, English, a tutorial. Another feedback round follows.
@@ -835,6 +848,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-24 | **v0.10.0 build session 1:** draft PR #364; steps 1–2 of the plan: #354 (stock edits, cost recompute), #355 (Vollbild research), #357 (portrait timer, rotation in place; D-136 build note), #356 (Vollbild sheet SCR-34). Verified locally; CI green on each pushed head. |
 | 2026-11-24 | **v0.10.0 specify session:** the PO chose a feedback round (five points); grilled Q1–Q9 (D-136); specs 02, 03, 05, 07, 09, 10, 11 and CLAUDE.md rule 4 updated; spec #353, tickets #354–#363, plan `docs/plans/v0.10.0.md`; approved by the PO the same day. |
 | 2026-11-18 | **v0.9.0 specify session:** grilled Q1–Q16 (D-130); specs 02, 03, 05, 06, 09, 11 and CLAUDE.md rule 7 updated; spec #333, tickets #334–#344 and #330, `docs/plans/v0.9.0.md`; waiting for the PO's approval. |
 | 2026-11-18 | **v0.8.0 session 6:** the PO approved the whole checklist on rc.2; `umamit.version=0.8.0` (80099); PR #328 merged (`60e07bbe`), CI and all three accuracy variants green on it; [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) released and verified. Next: the v0.9.0 specify session. |
