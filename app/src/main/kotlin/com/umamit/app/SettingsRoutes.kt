@@ -18,6 +18,7 @@ internal inline fun <reified S : Any> NavGraphBuilder.settingsRoutes(settings: S
                 scrollToTopRequest = nav.scrollToTopRequest,
                 onOpenTeaware = dropUnlessResumed { nav.open(TeawareRoute) },
                 onOpenDataBackup = dropUnlessResumed { nav.open(DataBackupRoute) },
+                onOpenTour = dropUnlessResumed(block = nav.openTour),
             ),
         )
     }

@@ -939,6 +939,7 @@ private fun TabHost(
                 alertKey = { alertKey },
                 scrollToTopRequest = scrollToTopRequest,
                 rerunSetup = settings.onRerunSetup,
+                openTour = settings.onOpenTour,
                 backupImported = settings.onBackupImported,
             ),
         )

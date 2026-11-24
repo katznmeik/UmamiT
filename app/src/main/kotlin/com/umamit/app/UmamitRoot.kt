@@ -262,6 +262,8 @@ internal fun UmamitRoot(
     val navigateAbove = timerFirst.navigateAbove
     // *Einrichtung erneut zeigen* (ONB-04): above the shell or the timer, so it gives way to an alert too.
     val rerunSetup: () -> Unit = { navigateAbove(OnboardingRoute) { launchSingleTop = true } }
+    // *Einführung* (SET-36): the tour above the shell or the timer; it returns to the settings.
+    val openTour: () -> Unit = { navigateAbove(TourRoute) { launchSingleTop = true } }
     val finishSetup: () -> Unit = {
         if (navController.previousBackStackEntry != null) {
             navController.popBackStack()
@@ -344,7 +346,7 @@ internal fun UmamitRoot(
                 collectionSegments = collectionSegments,
                 collectionScreens = collectionScreens,
                 journalScreens = journalScreens,
-                settings = settings.withRoot(rerunSetup, onBackupImported),
+                settings = settings.withRoot(rerunSetup, onBackupImported, openTour),
                 teaLinkShare = share,
                 onTakeTeaLinkShare = onTakeTeaLinkShare,
                 recipeFiles = receivedRecipes,
@@ -406,6 +408,7 @@ internal fun UmamitRoot(
                     shell(ShellOpening.CatalogRefresh(sheetToken), 0L, 0L)
                 }
                 composable<OnboardingRoute> { onboardingScreen(finishSetup) }
+                composable<TourRoute> { settings.tour(dropUnlessResumed { navController.popBackStack() }) }
                 composable<TimerRoute> { timerEntry ->
                     val route = timerEntry.toRoute<TimerRoute>()
                     LeavingTimerGuard(leaving, closeTimer) {
@@ -540,6 +543,7 @@ internal fun UmamitRoot(
                         },
                         alertKey = { alert },
                         rerunSetup = rerunSetup,
+                        openTour = openTour,
                         backupImported = onBackupImported,
                     ),
                 )

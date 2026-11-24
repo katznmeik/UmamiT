@@ -63,6 +63,7 @@ import kotlin.math.roundToInt
 /** Test tags of SCR-25. */
 object SettingsTags {
     const val ABOUT = "SettingsAbout"
+    const val TOUR = "SettingsTour"
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
     const val CATALOG_REFRESH = "SettingsCatalogRefresh"
@@ -150,6 +151,8 @@ class SettingsActions(
     val openTeaware: () -> Unit = {},
     /** *Daten & Sicherung* (SET-30): SCR-26. */
     val openDataBackup: () -> Unit = {},
+    /** *Einführung* (SET-36): the tour, SCR-33. */
+    val openTour: () -> Unit = {},
     /** *Jetzt aktualisieren* (SET-23). */
     val refreshCatalog: () -> Unit = {},
 )
@@ -167,6 +170,7 @@ fun SettingsRoute(
     modifier: Modifier = Modifier,
     onOpenTeaware: () -> Unit = {},
     onOpenDataBackup: () -> Unit = {},
+    onOpenTour: () -> Unit = {},
     scrollToTopRequest: Int = 0,
     viewModel: SettingsViewModel = hiltViewModel(),
     catalogViewModel: CatalogSettingsViewModel = hiltViewModel(),
@@ -233,6 +237,7 @@ fun SettingsRoute(
             openAbout = onOpenAbout,
             openTeaware = onOpenTeaware,
             openDataBackup = onOpenDataBackup,
+            openTour = onOpenTour,
             refreshCatalog = catalogViewModel::refreshNow,
         ),
         modifier = modifier,
@@ -244,7 +249,7 @@ fun SettingsRoute(
 
 /**
  * SCR-25 without state: the reliability card first, then *Darstellung* (D-114; *Sprache*, SET-35), *Timer & Alarm*,
- * *Aufguss & Vorrat*, *Katalog*, *Teegeschirr*, *Daten* (SCR-26) and *Über* (SET-30).
+ * *Aufguss & Vorrat*, *Katalog*, *Teegeschirr*, *Daten* (SCR-26), *Hilfe* (SET-36) and *Über* (SET-30).
  */
 @Composable
 fun SettingsScreen(
@@ -341,6 +346,14 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_data_backup),
             onClick = actions.openDataBackup,
             modifier = Modifier.testTag(SettingsTags.DATA_BACKUP),
+            chevron = true,
+        )
+        SectionHeader(title = stringResource(R.string.settings_section_help), modifier = Modifier.fillMaxWidth())
+        SettingsRow(
+            title = stringResource(R.string.settings_tour),
+            onClick = actions.openTour,
+            modifier = Modifier.testTag(SettingsTags.TOUR),
+            value = stringResource(R.string.settings_tour_detail),
             chevron = true,
         )
         SectionHeader(title = stringResource(R.string.settings_section_about), modifier = Modifier.fillMaxWidth())

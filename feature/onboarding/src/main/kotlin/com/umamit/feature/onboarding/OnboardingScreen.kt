@@ -66,12 +66,22 @@ import com.umamit.core.timer.reliability.samsungAutoRestartIntents
 import com.umamit.core.timer.reliability.startFirstIntent
 import com.umamit.core.ui.rememberReliabilityFixAction
 
-/** The pages of SCR-01: welcome (ONB-01), reliability (ONB-02), catalog (ONB-03). */
-enum class OnboardingPage { Welcome, Reliability, Catalog }
+/** The pages of SCR-01: welcome (ONB-01), the tour (ONB-07, SCR-33), reliability (ONB-02), catalog (ONB-03). */
+enum class OnboardingPage { Welcome, Tour, Reliability, Catalog }
 
 /** Test tags of SCR-01. */
 object OnboardingTags {
     fun row(check: ReliabilityCheck) = "OnboardingRow_${check.name}"
+}
+
+/** Test tags of the tour (SCR-33). */
+object TourTags {
+    const val PAGER = "TourPager"
+    const val SKIP = "TourSkip"
+    const val NEXT = "TourNext"
+    const val DOTS = "TourDots"
+
+    fun page(index: Int) = "TourPage_$index"
 }
 
 /** The setup page's rows (ONB-02), in its order; exact alarms are always granted and not shown here. */
@@ -84,7 +94,10 @@ private val SETUP_CHECKS = listOf(
 
 /** What the setup's buttons do. */
 class OnboardingActions(
+    /** *Los geht's* on the welcome: to the tour (ONB-07). */
     val start: () -> Unit = {},
+    /** *Fertig* or *Überspringen* on the tour: to the reliability page. */
+    val endTour: () -> Unit = {},
     val openCheck: (ReliabilityCheck) -> Unit = {},
     val openAutoRestart: () -> Unit = {},
     /** *Weiter* on the reliability page: to the catalog page. */
@@ -115,7 +128,8 @@ fun OnboardingRoute(
         viewModel.refresh()
         onPauseOrDispose {}
     }
-    BackHandler(enabled = page != OnboardingPage.Welcome) {
+    // The tour handles its own back (page by page; on the first page like *Überspringen*).
+    BackHandler(enabled = page != OnboardingPage.Welcome && page != OnboardingPage.Tour) {
         page = if (page == OnboardingPage.Catalog) OnboardingPage.Reliability else OnboardingPage.Welcome
     }
     val openCheck = rememberReliabilityFixAction(
@@ -129,7 +143,8 @@ fun OnboardingRoute(
         saveFailed = saveFailed,
         catalogLoad = catalogLoad,
         actions = OnboardingActions(
-            start = { page = OnboardingPage.Reliability },
+            start = { page = OnboardingPage.Tour },
+            endTour = { page = OnboardingPage.Reliability },
             openCheck = openCheck,
             openAutoRestart = { context.startFirstIntent(samsungAutoRestartIntents()) },
             next = { page = OnboardingPage.Catalog },
@@ -162,6 +177,7 @@ fun OnboardingScreen(
         ) { shown ->
             when (shown) {
                 OnboardingPage.Welcome -> WelcomePage(onStart = actions.start)
+                OnboardingPage.Tour -> TourScreen(onFinish = actions.endTour, onSkip = actions.endTour)
                 OnboardingPage.Reliability -> ReliabilityPage(status, actions)
                 OnboardingPage.Catalog -> CatalogPage(catalogLoad, saveFailed, actions)
             }

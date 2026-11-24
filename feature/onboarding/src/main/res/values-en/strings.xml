@@ -37,4 +37,21 @@
     <string name="onboarding_catalog_done">Catalog loaded: %1$s</string>
     <string name="onboarding_catalog_cancelled">Loading cancelled. You can load the catalog later under Collection › Catalog.</string>
     <string name="onboarding_catalog_failed">The catalog couldn\'t be loaded just now. You can try again later under Collection › Catalog.</string>
+
+    <!-- Einführung (SCR-33, ONB-07, D-136): the tour. -->
+    <string name="tour_page1_title">Start and timer</string>
+    <string name="tour_page1_text">Tap a tea under Recently brewed or start a New session. The timer guides you through every infusion, with a pre-alert and an alarm.</string>
+    <string name="tour_page2_title">Two timers and quick timer</string>
+    <string name="tour_page2_text">Two timers can run at once: two sessions, or a session and the quick timer. The row at the top switches to the other timer.</string>
+    <string name="tour_page3_title">Collection and catalog</string>
+    <string name="tour_page3_text">Load the Tee-Kontor Kiel catalog and add teas to My teas, or share a shop link with UmamiT. Recipes, stock and costs live on the tea.</string>
+    <string name="tour_page4_title">Journal and taste</string>
+    <string name="tour_page4_text">Every session lands in the journal. Rate the tea and the brewing, note the taste of each infusion and keep good times in the recipe.</string>
+    <string name="tour_page5_title">Statistics</string>
+    <string name="tour_page5_text">See what you drink: sessions, kinds, favourite teas, habits, use and cost per litre.</string>
+    <string name="tour_page6_title">Backup and sharing recipes</string>
+    <string name="tour_page6_text">In Settings › Data &amp; backup you save all your data to one file. Share a recipe from ⋮ in the recipe.</string>
+    <string name="tour_skip">Skip</string>
+    <string name="tour_done">Done</string>
+    <string name="tour_page_of" tools:ignore="PluralsCandidate">Page %1$d of %2$d</string>
 </resources>
