@@ -25,7 +25,6 @@ set -uo pipefail
 
 readonly APK="core/timer/build/outputs/apk/androidTest/debug/timer-debug-androidTest.apk"
 readonly PACKAGE="com.umamit.core.timer.test"
-readonly RUNNER="androidx.test.runner.AndroidJUnitRunner"
 readonly DEFAULT_TEST="com.umamit.core.timer.ProcessDeathTest#aStepWhoseProcessIsKilledStillAlertsFullScreenAtItsDeadline"
 
 test="${STRESS_TEST:-$DEFAULT_TEST}"
@@ -65,6 +64,16 @@ if ! adb install -r -t -g "$APK"; then
   exit 1
 fi
 
+# The runner the installed test APK declares (core/timer/build.gradle.kts `testInstrumentationRunner`, now
+# GermanLocaleRunner, GEN-13), read from the device so the script follows the build file (#362).
+runner="$(adb shell pm list instrumentation | tr -d '\r' |
+  sed -n "s|^instrumentation:$PACKAGE/\([^ ]*\) .*|\1|p" | head -n 1)"
+if [[ -z "$runner" ]]; then
+  echo "::error::No instrumentation of $PACKAGE on the device after the install (adb shell pm list instrumentation)."
+  exit 1
+fi
+echo "Instrumentation runner: $PACKAGE/$runner"
+
 passed=0
 failed=0
 {
@@ -82,7 +91,7 @@ for ((run = 1; run <= runs; run++)); do
     args+=(-e umamitKillAfterStartMs "$kill_at")
   fi
   adb logcat -c || true
-  adb shell am instrument -w "${args[@]}" "$PACKAGE/$RUNNER" | tr -d '\r' > "$out/current.txt"
+  adb shell am instrument -w "${args[@]}" "$PACKAGE/$runner" | tr -d '\r' > "$out/current.txt"
   logged="$(adb logcat -d -s ProcessDeathTest:I | grep -o 'killed pid.*' | tail -n 1 | tr '|' '/')"
   if grep -q '^OK (1 test)' "$out/current.txt"; then
     passed=$((passed + 1))
