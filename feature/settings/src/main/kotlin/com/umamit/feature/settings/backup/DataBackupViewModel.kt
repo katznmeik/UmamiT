@@ -10,6 +10,7 @@ import com.umamit.core.backup.archive.BackupPreview
 import com.umamit.core.backup.archive.BackupProgress
 import com.umamit.core.backup.restore.RestoreResult
 import com.umamit.core.backup.restore.UndoPreview
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.common.WallClock
 import com.umamit.core.common.today
 import com.umamit.feature.settings.R
@@ -82,8 +83,8 @@ data class DataBackupUiState(
     val saveFailed: Boolean = false,
     val imported: ImportedBackup? = null,
 ) {
-    /** *Ersetzen* is enabled only by exactly „ERSETZEN" (BAK-02 AC3, like SET-33's „LÖSCHEN"). */
-    val canReplace: Boolean get() = confirmText == CONFIRM_WORD
+    /** *Ersetzen* is enabled only by exactly „ERSETZEN" / „REPLACE" (BAK-02 AC3, like SET-33's word). */
+    val canReplace: Boolean get() = confirmText == confirmWord()
 
     /**
      * *Alle Daten löschen* is offered: no timer (D-131 Q2), no export, no import, check or undo (#346 answer 3). Its
@@ -92,11 +93,21 @@ data class DataBackupUiState(
     val canAskWipe: Boolean get() = !timerActive && export == null && busy == null
 
     /** *Löschen* is enabled only by exactly „LÖSCHEN": no trimming, no case folding (SET-33). */
-    val canWipe: Boolean get() = dialog is BackupDialog.Wipe && confirmText == WIPE_WORD && canAskWipe
+    val canWipe: Boolean get() = dialog is BackupDialog.Wipe && confirmText == wipeWord() && canAskWipe
 
     companion object {
         const val CONFIRM_WORD = "ERSETZEN"
         const val WIPE_WORD = "LÖSCHEN"
+        const val CONFIRM_WORD_ENGLISH = "REPLACE"
+        const val WIPE_WORD_ENGLISH = "DELETE"
+
+        /** The word to type before *Ersetzen* in the app's language: the one `backup_confirm_hint` names (GEN-10). */
+        fun confirmWord(language: AppLanguage = AppLanguage.current()): String =
+            if (language == AppLanguage.ENGLISH) CONFIRM_WORD_ENGLISH else CONFIRM_WORD
+
+        /** The word to type before *Löschen* in the app's language (hint: `backup_wipe_confirm_hint`, GEN-10). */
+        fun wipeWord(language: AppLanguage = AppLanguage.current()): String =
+            if (language == AppLanguage.ENGLISH) WIPE_WORD_ENGLISH else WIPE_WORD
 
         /** How long „Daten werden gelöscht. …" shows before the wipe (#346 answer 2). */
         const val WIPE_NOTICE_MS = 1_000L
