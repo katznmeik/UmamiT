@@ -5,45 +5,41 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-24 (v0.10.0 build session 1: draft PR #364, steps 1–2 of the plan done: #354, #355, #357, #356). **Next:** build session 2 (steps 3–5: #358, #359 in two runs, #360, #361).
+**Last updated:** 2026-11-24 (v0.10.0 build session 2: steps 3–5 of the plan done on PR #364: #358, #360, #359 in two runs, #361). **Next:** the rc session (#362).
 
-## Next: build session 2 of v0.10.0
+## Next: the rc session of v0.10.0 (#362)
 
-- **Done in build session 1** (details in `docs/history.md`):
-  - #354 stock edits and the cost recompute;
-  - #355 the Vollbild research (`docs/plans/v0.10.0-fsi-research.md`);
-  - #357 portrait timer with rotation in place (D-136 build note „Portrait timer", T4);
-  - #356 the SCR-34 sheet.
-  
-  The four are on PR [#364](https://github.com/katznmeik/UmamiT/pull/364) (draft). The tickets stay open until the merge.
-- **Build session 2** (Opus `medium` orchestrator) works plan steps 3–5:
-  - step 3: #358 (T3) alone;
-  - step 4: #359 run 1 (non-timer modules, T2) beside #360 (T3);
-  - step 5: #359 run 2 (`feature:brew`, `core:timer`, T3) beside #361 (T2).
-  
-  Stop after step 5. The rc session (#362) follows.
-- **CI:** green on all five jobs on `4379b120`, the step 2 head, including #357's new emulator cases on API 35 and 36. On `97ad2b9b` those cases had failed; all the causes were in the tests (see `docs/history.md`). The app's portrait release was confirmed on the device: after the timer the requested orientation is `UNSPECIFIED`.
-- **To do before rc.1 (#362):**
-  - **Calibrate and gate the jank lines.** The eight new jank lines of #357 are in `JankGate.REPORT_ONLY`; calibrate them on three CI runs (D-117) and gate them, because the ticket asks for the jank budget.
-  - **T4 timer review (#362):** cover #357's `app` changes and the open `close()` question in the D-136 build notes.
-  - **Watch the new emulator cases.** They have been green once, on `4379b120`. If they flake, tune their waits, and keep the rotation via `user_rotation` and the creation counter (`DisplayRotation.kt`). With rotation locked, WindowManager writes a forced portrait back into `user_rotation`, so a test re-applies „held sideways" after leaving the timer.
+- **Done** (details in `docs/history.md`; build notes in D-136):
+  - build session 1: #354 stock edits and recompute, #355 Vollbild research, #357 portrait timer, #356 SCR-34 sheet;
+  - build session 2: #358 app language and locale-aware formatting, #360 the CSV in the app language, #359 English strings (run 1 non-timer modules, run 2 `feature:brew`, `core:timer`, `core:backup`), #361 the tour, plus a test-only emulator fix for #358 (`ComposeAnimationScale`).
+
+  All on PR [#364](https://github.com/katznmeik/UmamiT/pull/364) (draft). The tickets stay open until the merge.
+- **CI:** green on all five jobs on `b40aef15` (steps 3–4) and @@CI5@@.
+- **The rc session (#362)** (Opus `medium` orchestrator; T3/T4 reviewers per the plan):
+  - **Calibrate and gate the jank lines.** The eight jank lines of #357 are in `JankGate.REPORT_ONLY`; calibrate them on three CI runs (D-117) and gate them. Since `ComposeAnimationScale` (build session 2), `TransitionJankTest` measures at Compose scale 1 for certain; use only runs from `b40aef15` on.
+  - **T3 milestone review** of the whole PR; **T4 timer review**: #357's `app` changes and its `close()` question (D-136 build notes), #358's `TimerNotificationTexts` (`Locale.ROOT`), the `GermanLocaleRunner` of `:core:timer`'s device tests, `StepsSheetHostTest`/`TeaPickerScreenshotTest` test changes, and #359 run 2's resources in `feature:brew` and `core:timer`.
+  - `/review-animations` (T2) on the new and changed screens: SCR-29 sheets, SCR-34, SCR-33 tour, the *Sprache* dialog, rotation in place.
+  - **All three accuracy variants** (timer-code release, 09 §4a), the full local gate on the rc commit, renders (light and dark, de, and en for the new English screens) in `docs/design/review/v0.10.0/`, What's new `docs/whats-new/v0.10.0.md`, then `v0.10.0-rc.1` (versionCode 100001).
+  - **Watch the #357 emulator cases.** Green on `4379b120` and `b40aef15`. If they flake, tune their waits and keep the rotation via `user_rotation` and the creation counter (`DisplayRotation.kt`). With rotation locked, WindowManager writes a forced portrait back into `user_rotation`, so a test re-applies „held sideways" after leaving the timer.
 - **For the PO (asked in the session's last message, not decided):**
-  - **#355's options A–D.** A is the SCR-34 sheet only, as decided. B, C and D would be D-136 amendments.
-  - **#357: rotation in place app-wide.** Every non-timer screen now rotates without re-creation, so it keeps scroll position and open sheets. One 09 §4 check was added for it.
-  - **Choices the implementers made where the spec was silent** (D-136 build notes of build session 1; the PO may change them):
-    - #354: no *Abbrechen* in the edit sheets; a correction is typed with a sign; an edited day gets now (today) or noon; the row trash icon stays; correction edits do not recompute.
-    - #356: no sheet right after the first-start setup; the sheet hides during an alert or timer screen and comes back; *Später* and a dismissal both store the versionCode.
-  - **Is the PO's Galaxy a foldable?** Android ignores the portrait request at sw ≥ 600 dp.
-- **Timer code:** #357 changed only `app`: `MainActivity`, `UmamitRoot`, `TimerRoutes`, the new `TimerOrientation.kt` and the manifest's `configChanges`. `feature/brew`, `core/timer` and `core/timer-engine` are still unchanged since `f663318b`; #358 and #359 run 2 will change them. v0.10.0 is a timer-code release: the T4 timer review covers the #357 `app` changes too, and all three accuracy variants run before every rc.
+  - **From build session 1:** #355's options A–D; the app-wide rotation in place (#357); the implementers' choices for #354 and #356; whether the Galaxy is a foldable (Android ignores the portrait request at sw ≥ 600 dp).
+  - **From build session 2** (D-136 build notes):
+    - *Überspringen* on the tour's last page: SCR-33 hides it, ONB-07 AC1 and D-136 item 16 say every page; as built it shows on all six.
+    - The English wording: the CSV headers and the ISO date, the tea categories translated (Sorte names, descriptors and slider names stay German), „Sorte" = „Variety", the run 2 terms („Poured off", „Steeping …", „Leaf"), the typed words REPLACE / DELETE.
+    - *Sprache*: a pick applies at once and closes the dialog.
+    - The edge with a phone list like [Français, English] under *System* (English words, German numbers).
+- **Timer code:** v0.10.0 changes the timer path in `app` (#357), `core:timer` (`TimerNotificationTexts`: `Locale.ROOT` for digit-only formats, same output; English `values-en`; the device-test runner) and `feature:brew` (English `values-en`; two test files pinned to German). No timer logic changed in build session 2; the 04 §12 tests passed after #358 and after #359 run 2. The T4 timer review and all three accuracy variants run before every rc.
 - **Open (not blocking):**
   - The system UI ANR on the API 36 emulator (it covered Start in `TransitionJankTest` after `ReceiveRecipeDeviceTest` began using a test-APK provider). Foreign ANR dialogs are now answered „Wait" and logged (`ForeignAnrDialog`); the cause is unknown because the full logcat artifact cannot be downloaded from a container (blob host blocked). If it returns, read the `ForeignAnrDialog` lines in the job log.
   - `ReceiveRecipeDeviceTest` no longer proves grant enforcement (the test provider is exported without a permission); the phone check covered it on rc.2.
 - **Still true:** umamit.db v9 (no migration in v0.10.0); the network has three uses (D-135); `checkManifestPermissions` passes unchanged.
-- **Branch:** `claude/inspiring-ritchie-8hfw00`, restarted from `main` `f663318b` after the merge, with the v0.10.0 spec and build commits on top (PR #364). The specify session and build session 1 were assigned `claude/elegant-galileo-46r9pb` and `claude/kind-brown-eyjcmo` and did not use them. A new session with another assigned branch works here directly.
+- **Branch:** `claude/inspiring-ritchie-8hfw00`, restarted from `main` `f663318b` after the merge, with the v0.10.0 spec and build commits on top (PR #364). The specify session and build sessions 1 and 2 were assigned `claude/elegant-galileo-46r9pb`, `claude/kind-brown-eyjcmo` and `claude/focused-cannon-n1p2q6` and did not use them. A new session with another assigned branch works here directly.
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
   - **Worktrees:** never remove an agent worktree while a Gradle build runs: `spotlessCheck` scans `.claude/worktrees/` and fails on a vanished path (2026-11-17). Brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
   - **Combined check:** two tickets that each pass alone can fail together. Detekt limits sit at `MainActivity` (`TooManyFunctions` 11, `onCreate` `LongMethod` 60) and `UmamitRoot` (complexity). Always run the check on the merged head before pushing (2026-11-24).
+  - **Animation scale in device tests:** Compose keeps one animation scale per process and hears `animator_duration_scale` only while a window listens; a test that sets the scale with no activity open must make Compose follow (`ComposeAnimationScale`, 2026-11-24).
+  - **Test locale:** JVM and Roborazzi tests run in German (`config/test-locale`); `RuntimeEnvironment.setQualifiers` bypasses the pin and must append `+de-rDE`; device tests use `GermanLocaleRunner` (2026-11-24).
   - **Docs push on a red head:** a docs-only push skips the build and emulator jobs and counts as a successful run, hiding a red code head. Push docs with the fix, or after a green run (2026-11-24).
   - **Release APK download:** `gh release download` fails here (it uses GraphQL, which is blocked); `gh api -H "Accept: application/octet-stream" repos/katznmeik/UmamiT/releases/assets/<id>` works (2026-11-20).
   - **Maven resolution hiccup:** a „Checks" job can fail at configuration with „Could not find org.jetbrains.kotlin:…" for an artifact that exists (Maven Central, 2026-11-20, on `main`); rerun the failed job once.
@@ -74,7 +70,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.10.0** specified (D-136, spec #353, tickets #354–#363), approved by the PO 2026-11-24; build session 1 done (#354–#357), build session 2 next; before it **v0.9.0** (export/import, CSV, reminder, shared recipes, *Alle Daten löschen*, empty first start; D-128, D-130, D-131, D-133–D-135) released 2026-11-20 (90099, from `main` `f663318b`); the next release is the PO's choice; M5 / 1.0 postponed until the PO's go |
+| Current milestone | **v0.10.0** specified (D-136, spec #353, tickets #354–#363), approved by the PO 2026-11-24; build sessions 1 and 2 done (#354–#361), the rc session (#362) next; before it **v0.9.0** (export/import, CSV, reminder, shared recipes, *Alle Daten löschen*, empty first start; D-128, D-130, D-131, D-133–D-135) released 2026-11-20 (90099, from `main` `f663318b`); the next release is the PO's choice; M5 / 1.0 postponed until the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00`, restarted from `main` `f663318b` after the v0.9.0 merge; v0.10.0 spec and build commits on top (PR #364) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -96,7 +92,7 @@
 
 ## Waiting on the PO
 
-1. **v0.10.0 build session 1 questions:** #355's options A–D, the app-wide rotation in place (#357), the implementers' choices for #354 and #356, and whether the Galaxy is a foldable (see „Next"). Answers in a session or on PR #364; nothing waits for them before build session 2.
+1. **v0.10.0 build session questions:** #355's options A–D, the app-wide rotation in place (#357), the implementers' choices for #354 and #356, whether the Galaxy is a foldable, and build session 2's points (tour skip on the last page, English wording, *Sprache*; see „Next"). Answers in a session or on PR #364; the rc can be built without them, and rc.1 lets the PO judge them on the phone.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
