@@ -25,11 +25,12 @@
 - **CI:** green on all five jobs on `4379b120`, the step 2 head, including #357's new emulator cases on API 35 and 36. On `97ad2b9b` those cases had failed; all the causes were in the tests (see `docs/history.md`). The app's portrait release was confirmed on the device: after the timer the requested orientation is `UNSPECIFIED`.
 - **To do before rc.1 (#362):**
   - **Calibrate and gate the jank lines.** The eight new jank lines of #357 are in `JankGate.REPORT_ONLY`; calibrate them on three CI runs (D-117) and gate them, because the ticket asks for the jank budget.
+  - **T4 timer review (#362):** cover #357's `app` changes and the open `close()` question in the D-136 build notes.
   - **Watch the new emulator cases.** They have been green once, on `4379b120`. If they flake, tune their waits, and keep the rotation via `user_rotation` and the creation counter (`DisplayRotation.kt`). With rotation locked, WindowManager writes a forced portrait back into `user_rotation`, so a test re-applies „held sideways" after leaving the timer.
 - **For the PO (asked in the session's last message, not decided):**
   - **#355's options A–D.** A is the SCR-34 sheet only, as decided. B, C and D would be D-136 amendments.
   - **#357: rotation in place app-wide.** Every non-timer screen now rotates without re-creation, so it keeps scroll position and open sheets. One 09 §4 check was added for it.
-  - **Choices the implementers made where the spec was silent** (in history; the PO may change them):
+  - **Choices the implementers made where the spec was silent** (D-136 build notes of build session 1; the PO may change them):
     - #354: no *Abbrechen* in the edit sheets; a correction is typed with a sign; an edited day gets now (today) or noon; the row trash icon stays; correction edits do not recompute.
     - #356: no sheet right after the first-start setup; the sheet hides during an alert or timer screen and comes back; *Später* and a dismissal both store the versionCode.
   - **Is the PO's Galaxy a foldable?** Android ignores the portrait request at sw ≥ 600 dp.
@@ -42,6 +43,8 @@
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
   - **Worktrees:** never remove an agent worktree while a Gradle build runs: `spotlessCheck` scans `.claude/worktrees/` and fails on a vanished path (2026-11-17). Brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
+  - **Combined check:** two tickets that each pass alone can fail together. Detekt limits sit at `MainActivity` (`TooManyFunctions` 11, `onCreate` `LongMethod` 60) and `UmamitRoot` (complexity). Always run the check on the merged head before pushing (2026-11-24).
+  - **Docs push on a red head:** a docs-only push skips the build and emulator jobs and counts as a successful run, hiding a red code head. Push docs with the fix, or after a green run (2026-11-24).
   - **Release APK download:** `gh release download` fails here (it uses GraphQL, which is blocked); `gh api -H "Accept: application/octet-stream" repos/katznmeik/UmamiT/releases/assets/<id>` works (2026-11-20).
   - **Maven resolution hiccup:** a „Checks" job can fail at configuration with „Could not find org.jetbrains.kotlin:…" for an artifact that exists (Maven Central, 2026-11-20, on `main`); rerun the failed job once.
   - **Artifacts:** CI artifacts (full logcat) cannot be downloaded here (the blob host is blocked by the proxy); job logs work with `gh api …/actions/jobs/<id>/logs`.
