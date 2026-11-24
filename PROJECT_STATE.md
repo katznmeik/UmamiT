@@ -5,12 +5,12 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-24 (v0.10.0 specify session: the PO chose a feedback round; D-136, spec #353, tickets #354–#363, `docs/plans/v0.10.0.md`). **Next:** the PO approves the spec (incl. the tour copy in 03 SCR-33), the tickets and the plan; then build session 1.
+**Last updated:** 2026-11-24 (v0.10.0 specify session: the PO chose a feedback round; D-136, spec #353, tickets #354–#363, `docs/plans/v0.10.0.md`). **Next:** build session 1 (`/implement-spec #353`); the PO approved spec, tickets and plan on 2026-11-24.
 
-## Next: the PO's approval of v0.10.0
+## Next: build session 1 of v0.10.0
 
 - **v0.10.0 is specified** (2026-11-24): the PO chose a feedback round on v0.9.0 (five points) and answered Q1–Q9 as options: **D-136** (items 10–16 are Claude's defaults). Scope: every stock event editable with past costs recomputed; a „Vollbild-Alarm wieder erlauben" sheet after an update plus a research ticket; the timer screens portrait; English as a second app language; a six-page tour. **Timer-code release** (T4 timer review, three accuracy variants per rc). No migration.
-- **Waiting on the PO:** approval of spec #353 (sections listed there, incl. the draft tour copy in 03 SCR-33), tickets #354–#363 (`needs-triage`; relabel `ready-for-agent` after approval) and `docs/plans/v0.10.0.md`. No code before that (CLAUDE.md rule 1). No milestone PR yet: the plan has build session 1 open the draft PR.
+- **Approved by the PO (2026-11-24, „Approve all"):** spec #353 (incl. Claude's items 10–16 and the tour copy in 03 SCR-33), tickets #354–#363 (`ready-for-agent`) and `docs/plans/v0.10.0.md`. Build session 1 opens the draft milestone PR and works steps 1–2 of the plan's order (#354 beside #355, then #357 beside #356).
 - **After v0.10.0** the PO plans another feedback round.
 - v0.9.0 is done: [`v0.9.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.9.0) (90099) from `main` `f663318b`; details in `docs/history.md`.
 - **Open (not blocking):**
@@ -50,7 +50,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.10.0** specified (D-136, spec #353, tickets #354–#363), waiting for the PO's approval; before it **v0.9.0** (export/import, CSV, reminder, shared recipes, *Alle Daten löschen*, empty first start; D-128, D-130, D-131, D-133–D-135) released 2026-11-20 (90099, from `main` `f663318b`); the next release is the PO's choice; M5 / 1.0 postponed until the PO's go |
+| Current milestone | **v0.10.0** specified (D-136, spec #353, tickets #354–#363), approved by the PO 2026-11-24, build not started; before it **v0.9.0** (export/import, CSV, reminder, shared recipes, *Alle Daten löschen*, empty first start; D-128, D-130, D-131, D-133–D-135) released 2026-11-20 (90099, from `main` `f663318b`); the next release is the PO's choice; M5 / 1.0 postponed until the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00`, restarted from `main` `f663318b` after the v0.9.0 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -72,7 +72,7 @@
 
 ## Waiting on the PO
 
-1. **v0.10.0 approval:** spec #353 (incl. the tour copy in 03 SCR-33), tickets #354–#363 and `docs/plans/v0.10.0.md`.
+1. **v0.10.0:** nothing until rc.1 (the 09 §4 „v0.10.0" checklist, with #355's probe steps for the Vollbild grant).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
