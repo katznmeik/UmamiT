@@ -75,8 +75,8 @@ import com.umamit.feature.journal.R as JournalR
  *
  * The turns of the phone (D-136 build note „Portrait timer", SCR-05, NFR-COMP-02) are the exception: their checks (no
  * new activity, the timer upright, Journal turned) fail on API 35 and 36 alike, whatever the gate; their frames are
- * reported only ([rotation]). Still no alert rings here: the alert turned with the phone is in
- * [TimerAlertOverLockScreenTest].
+ * reported only, except timer → landscape Journal, which gates ([rotation], D-117). Still no alert rings here: the
+ * alert turned with the phone is in [TimerAlertOverLockScreenTest].
  */
 @RunWith(AndroidJUnit4::class)
 class TransitionJankTest {
@@ -414,9 +414,10 @@ class TransitionJankTest {
     }
 
     /**
-     * The turns of the phone: the reference and the frames as every test measures them, reported only (all in
-     * [JankGate.REPORT_ONLY]); but every check in [block] and every UI step fails the test, on API 35 and 36 alike,
-     * never skips it (D-136 build note „Portrait timer").
+     * The turns of the phone: the reference and the frames as every test measures them; every check in [block] and
+     * every UI step fails the test, on API 35 and 36 alike, never skips it (D-136 build note „Portrait timer"). Then
+     * the relative gate, for the turns outside [JankGate.REPORT_ONLY] (timer → landscape Journal, D-117, #357): over
+     * the limit, or without a usable reference, such a turn fails the test where [JankGate.gates] holds.
      */
     private fun rotation(block: () -> Unit) {
         rotation.save()
@@ -429,11 +430,15 @@ class TransitionJankTest {
             reference?.let { Log.i(TAG, it.line(budgetNs, windows)) }
             reports.forEach { Log.i(TAG, it.line(budgetNs, windows, reference)) }
         }
-        check(
-            reports.all {
-                it.transition in JankGate.REPORT_ONLY
-            },
-        ) { "a turn of the phone measured a gated transition" }
+        val over = reports.filter { JankGate.gates(it.transition) && !it.passes(reference) }
+        if (over.isNotEmpty()) {
+            throw AssertionError(
+                "NFR-PERF-12: a turn of the phone over the relative limit (median longest frame ≤ " +
+                    "${JankGate.STALL_FACTOR}× the reference's typical frame, janky frames ≤ the reference's " +
+                    "scaled + ${JankGate.JANKY_ALLOWANCE}):\n" +
+                    over.joinToString("\n") { it.line(budgetNs, recorder.windowCount, reference) },
+            )
+        }
     }
 
     /** The waiting session (no step runs, so no alert can come, rule 8); its id. */
