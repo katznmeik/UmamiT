@@ -31,6 +31,7 @@ import com.umamit.core.data.FsiPromptRepository
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.designsystem.theme.UmamiAppTheme
 import com.umamit.core.model.ThemeMode
+import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.notification.TimerScreenIntents
 import com.umamit.core.timer.reliability.TimerReliability
@@ -158,16 +159,7 @@ class MainActivity : ComponentActivity() {
         // Seeded with the controller's current alert, so a re-created activity's first frame already knows it (A-07).
         val alertKey = brewTimer.state.map { it.alertKey() }
             .stateIn(lifecycleScope, SharingStarted.Eagerly, brewTimer.state.value.alertKey())
-        lifecycleScope.launch {
-            // A close waiting over the keyguard counts as visible once an alert rings, in the alert's turn (rule 8).
-            combine(brewTimer.state, timerVisible, keyguard.closePending) { state, visible, closePending ->
-                val shown = timerVisibleForFlags(visible, closePending, alerting = state.alertKey() != null)
-                lockScreenFlags(state, timerVisible = shown)
-            }.distinctUntilChanged().collect {
-                setShowWhenLocked(it.showWhenLocked)
-                setTurnScreenOn(it.turnScreenOn)
-            }
-        }
+        followLockScreenFlags(brewTimer.state, timerVisible, keyguard.closePending)
         setContent {
             val mode by themeMode.collectAsStateWithLifecycle()
             UmamiAppTheme(mode ?: ThemeMode.SYSTEM) {
@@ -338,6 +330,27 @@ class MainActivity : ComponentActivity() {
                 Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_GRANT_READ_URI_PERMISSION,
             )
+    }
+}
+
+/**
+ * The lock-screen flags following the timer's [state], whether the root shows the timer ([timerVisible]) and a close
+ * waiting over the keyguard ([closePending]), for as long as the activity lives (SCR-05, TMR-06). A close waiting over
+ * the keyguard counts as visible once an alert rings, in the alert's turn (rule 8).
+ */
+private fun ComponentActivity.followLockScreenFlags(
+    state: StateFlow<TimerUiState>,
+    timerVisible: StateFlow<Boolean>,
+    closePending: StateFlow<Boolean>,
+) {
+    lifecycleScope.launch {
+        combine(state, timerVisible, closePending) { current, visible, pending ->
+            val shown = timerVisibleForFlags(visible, pending, alerting = current.alertKey() != null)
+            lockScreenFlags(current, timerVisible = shown)
+        }.distinctUntilChanged().collect {
+            setShowWhenLocked(it.showWhenLocked)
+            setTurnScreenOn(it.turnScreenOn)
+        }
     }
 }
 
