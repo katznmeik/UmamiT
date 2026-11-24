@@ -24,7 +24,12 @@ internal class DisplayRotation(private val shell: (String) -> String) {
         shell("settings put system accelerometer_rotation 0")
     }
 
-    /** The phone turned to landscape (90°). */
+    /**
+     * The phone turned to landscape (90°), or still held so. With rotation locked, WindowManager writes the rotation
+     * that an app's fixed orientation forced back into `user_rotation` (seen on API 35 and 36: `user_rotation=0` once
+     * the portrait timer turned the display), whereas a real phone's sensor still reports it sideways. So after a timer
+     * screen turned the display upright, a test calls this again to keep the phone held sideways.
+     */
     fun landscape() {
         shell("settings put system user_rotation ${Surface.ROTATION_90}")
     }

@@ -3,6 +3,7 @@ package com.umamit.app
 import android.Manifest
 import android.app.Application
 import android.app.KeyguardManager
+import android.content.pm.ActivityInfo
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.lifecycle.Lifecycle
@@ -377,6 +378,12 @@ class TransitionJankTest {
             checkSession(session)
             record("timer → landscape Journal") { device.pressBack() }
             await(text(sessionTeaName), "the session in the journal after back")
+            // Released: the app asks for no orientation any more on Journal.
+            check(waitFor { Upright.read()?.requested == ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }) {
+                "Journal after the timer still asks for an orientation: ${Upright.read()}\n${rotation.state()}"
+            }
+            // Still held sideways, as the sensor would say ([DisplayRotation.landscape]).
+            rotation.landscape()
             awaitTurned("Journal after the timer")
         }
         checkCreations(created, "entering and leaving the timer from Journal in landscape")
