@@ -37,6 +37,9 @@ class DataBackupEnglishScreenshotTest(private val dark: Boolean) {
 
         /** Until 25 Nov 2026, 08:30 in Berlin. */
         private const val UNTIL_MS = 1_795_591_800_000L
+
+        /** What the screen hands over from values-en (DataBackupRoute, GEN-10). */
+        private val ENGLISH_WORDS = ConfirmWords(replace = "REPLACE", wipe = "DELETE")
     }
 
     @get:Rule
@@ -75,10 +78,14 @@ class DataBackupEnglishScreenshotTest(private val dark: Boolean) {
         "restoreTyped",
         DataBackupUiState(
             dialog = BackupDialog.Replace(FakeDataBackup.PREVIEW),
-            confirmText = DataBackupUiState.confirmWord(),
+            confirmWords = ENGLISH_WORDS,
+            confirmText = ENGLISH_WORDS.replace,
         ),
     )
 
     @Test
-    fun wipeDialog() = capture("wipeDialog", DataBackupUiState(dialog = BackupDialog.Wipe(safetyCopy = false)))
+    fun wipeDialog() = capture(
+        "wipeDialog",
+        DataBackupUiState(dialog = BackupDialog.Wipe(safetyCopy = false), confirmWords = ENGLISH_WORDS),
+    )
 }

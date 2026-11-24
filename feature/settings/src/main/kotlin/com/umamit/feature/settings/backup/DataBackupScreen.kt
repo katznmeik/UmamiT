@@ -137,6 +137,12 @@ fun DataBackupRoute(
     val openedIn = remember(dialogOpen) { alertKey }
     val dialogCovered = dialogOpen && alertCovers(alertKey, openedIn)
     LaunchedEffect(dialogCovered) { if (dialogCovered) viewModel.dismissDialog() }
+    // The words the hints name come from the resources this screen shows, never from the JVM's locale (GEN-10).
+    val confirmWords = ConfirmWords(
+        replace = stringResource(R.string.backup_confirm_word),
+        wipe = stringResource(R.string.backup_wipe_word),
+    )
+    LaunchedEffect(confirmWords) { viewModel.useConfirmWords(confirmWords) }
     val currentOnImportFinish by rememberUpdatedState(onImportFinish)
     LaunchedEffect(state.imported) {
         val imported = state.imported ?: return@LaunchedEffect

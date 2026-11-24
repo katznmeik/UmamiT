@@ -143,13 +143,7 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
             stored.takeIf { it.type.isPackage }?.copy(
                 deltaGrams = grams,
                 priceCents = priceCents,
-                currency = if (priceCents !=
-                    null
-                ) {
-                    stored.currency ?: InventoryEvent.DEFAULT_CURRENCY
-                } else {
-                    stored.currency
-                },
+                currency = stored.currency ?: InventoryEvent.DEFAULT_CURRENCY.takeIf { priceCents != null },
                 packageLabel = if (grams == stored.deltaGrams) {
                     stored.packageLabel
                 } else {

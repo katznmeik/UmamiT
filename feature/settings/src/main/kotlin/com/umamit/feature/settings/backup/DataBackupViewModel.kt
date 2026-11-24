@@ -1,5 +1,6 @@
 package com.umamit.feature.settings.backup
 
+import android.content.res.Resources
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,7 +11,6 @@ import com.umamit.core.backup.archive.BackupPreview
 import com.umamit.core.backup.archive.BackupProgress
 import com.umamit.core.backup.restore.RestoreResult
 import com.umamit.core.backup.restore.UndoPreview
-import com.umamit.core.common.AppLanguage
 import com.umamit.core.common.WallClock
 import com.umamit.core.common.today
 import com.umamit.feature.settings.R
@@ -59,6 +59,25 @@ sealed interface BackupPick {
     data class CreateJournal(val fileName: String) : BackupPick
 }
 
+/**
+ * The words to type before *Ersetzen* ([replace], BAK-02 AC3) and *Löschen* ([wipe], SET-33), in the language of the
+ * resources the screen shows (GEN-10): the hints name these same words, so what the hint asks for is what enables the
+ * button, whatever the JVM's locale is (under *System* with a phone list such as [Français, English] the resources
+ * are English while the JVM's locale is French).
+ */
+data class ConfirmWords(val replace: String, val wipe: String) {
+    companion object {
+        /** The German words, until the screen hands over its own ([DataBackupViewModel.useConfirmWords]). */
+        val GERMAN = ConfirmWords(replace = "ERSETZEN", wipe = "LÖSCHEN")
+
+        /** The words of [resources]: `backup_confirm_word` and `backup_wipe_word`. */
+        fun of(resources: Resources): ConfirmWords = ConfirmWords(
+            replace = resources.getString(R.string.backup_confirm_word),
+            wipe = resources.getString(R.string.backup_wipe_word),
+        )
+    }
+}
+
 /** A step that covers the screen with no back (03 SCR-26). */
 enum class BackupBusy { CHECKING, IMPORTING, UNDOING }
 
@@ -82,9 +101,10 @@ data class DataBackupUiState(
     @param:StringRes val message: Int? = null,
     val saveFailed: Boolean = false,
     val imported: ImportedBackup? = null,
+    val confirmWords: ConfirmWords = ConfirmWords.GERMAN,
 ) {
-    /** *Ersetzen* is enabled only by exactly „ERSETZEN" / „REPLACE" (BAK-02 AC3, like SET-33's word). */
-    val canReplace: Boolean get() = confirmText == confirmWord()
+    /** *Ersetzen* is enabled only by exactly [ConfirmWords.replace], „ERSETZEN" / „REPLACE" (BAK-02 AC3). */
+    val canReplace: Boolean get() = confirmText == confirmWords.replace
 
     /**
      * *Alle Daten löschen* is offered: no timer (D-131 Q2), no export, no import, check or undo (#346 answer 3). Its
@@ -92,23 +112,10 @@ data class DataBackupUiState(
      */
     val canAskWipe: Boolean get() = !timerActive && export == null && busy == null
 
-    /** *Löschen* is enabled only by exactly „LÖSCHEN": no trimming, no case folding (SET-33). */
-    val canWipe: Boolean get() = dialog is BackupDialog.Wipe && confirmText == wipeWord() && canAskWipe
+    /** *Löschen* is enabled only by exactly [ConfirmWords.wipe], „LÖSCHEN": no trimming, no case folding (SET-33). */
+    val canWipe: Boolean get() = dialog is BackupDialog.Wipe && confirmText == confirmWords.wipe && canAskWipe
 
     companion object {
-        const val CONFIRM_WORD = "ERSETZEN"
-        const val WIPE_WORD = "LÖSCHEN"
-        const val CONFIRM_WORD_ENGLISH = "REPLACE"
-        const val WIPE_WORD_ENGLISH = "DELETE"
-
-        /** The word to type before *Ersetzen* in the app's language: the one `backup_confirm_hint` names (GEN-10). */
-        fun confirmWord(language: AppLanguage = AppLanguage.current()): String =
-            if (language == AppLanguage.ENGLISH) CONFIRM_WORD_ENGLISH else CONFIRM_WORD
-
-        /** The word to type before *Löschen* in the app's language (hint: `backup_wipe_confirm_hint`, GEN-10). */
-        fun wipeWord(language: AppLanguage = AppLanguage.current()): String =
-            if (language == AppLanguage.ENGLISH) WIPE_WORD_ENGLISH else WIPE_WORD
-
         /** How long „Daten werden gelöscht. …" shows before the wipe (#346 answer 2). */
         const val WIPE_NOTICE_MS = 1_000L
 
@@ -262,6 +269,11 @@ class DataBackupViewModel @Inject constructor(
 
     fun typeConfirm(text: String) {
         mutable.update { it.copy(confirmText = text) }
+    }
+
+    /** The words the screen's hints name, from its resources (GEN-10): the ones [replace] and [confirmWipe] need. */
+    fun useConfirmWords(words: ConfirmWords) {
+        mutable.update { it.copy(confirmWords = words) }
     }
 
     /** *Ersetzen*: only with exactly „ERSETZEN" typed; then the full-screen „Sicherung wird eingespielt …". */

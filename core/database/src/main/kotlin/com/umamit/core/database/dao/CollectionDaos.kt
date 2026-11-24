@@ -17,6 +17,8 @@ import com.umamit.core.database.entity.VesselEntity
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.Recipe
 import kotlinx.coroutines.flow.Flow
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 import kotlin.math.abs
 
@@ -419,12 +421,13 @@ abstract class InventoryDao {
 
     /**
      * *Bestand korrigieren* (INV-03, 05 §3.10): writes one `ADJUSTMENT` row [id] whose delta is
-     * [newTotalGrams] minus the tea's current stock, read and written in one transaction. Nothing is
-     * written when they are equal; the written row is returned, else null.
+     * [newTotalGrams] minus the tea's current stock, to 0,1 g like every stock amount (the sum of the deltas carries
+     * float noise, #354), read and written in one transaction. Nothing is written when they are equal; the written
+     * row is returned, else null.
      */
     @Transaction
     open suspend fun correctStock(teaId: String, newTotalGrams: Double, id: String, now: Long): InventoryEventEntity? {
-        val delta = newTotalGrams - remainingGrams(teaId)
+        val delta = tenthGrams(newTotalGrams - remainingGrams(teaId))
         if (abs(delta) < UNCHANGED_GRAMS) return null
         val row = InventoryEventEntity(
             id = id,
@@ -516,6 +519,9 @@ abstract class InventoryDao {
     private companion object {
         /** Below this the totals are equal: sums of 0,1 g steps in doubles differ only by rounding noise. */
         const val UNCHANGED_GRAMS = 1e-6
+
+        /** [grams] to 0,1 g, the step of every stock amount. */
+        fun tenthGrams(grams: Double): Double = BigDecimal.valueOf(grams).setScale(1, RoundingMode.HALF_UP).toDouble()
     }
 }
 

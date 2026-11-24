@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.domain.input.GermanNumber
 import com.umamit.feature.collection.R
@@ -142,8 +143,9 @@ internal data class CorrectionForm(val delta: String, val day: LocalDate) {
     fun delta(today: LocalDate): Double? = parsed?.takeIf { dateError(today) == null }
 
     companion object {
-        /** „+5", „−3", „+37,5": [grams] with its sign for the field. */
-        fun format(grams: Double): String = (if (grams < 0) "−" else "+") + editableGrams(abs(grams))
+        /** „+5", „−3", „+37,5" („+37.5" in English): [grams] to 0,1 g with its sign for the field. */
+        fun format(grams: Double, language: AppLanguage = AppLanguage.current()): String =
+            (if (grams < 0) "−" else "+") + editableGrams(abs(grams), language)
 
         /** The signed grams of [text]; null for 0, blank or not a weight. */
         fun parse(text: String): Double? {

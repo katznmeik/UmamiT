@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -225,7 +227,8 @@ class FakeStockRepository internal constructor(private val c: FakeCollection) : 
     /** As on Room: one ADJUSTMENT of the difference at [now], none when the stock is unchanged. */
     override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
         require(newTotalGrams.isFinite() && newTotalGrams >= 0.0) { "A stock total is at least 0 g" }
-        val delta = newTotalGrams - c.eventRows.value.values.filter { it.teaId == teaId }.sumOf { it.deltaGrams }
+        val remaining = c.eventRows.value.values.filter { it.teaId == teaId }.sumOf { it.deltaGrams }
+        val delta = BigDecimal.valueOf(newTotalGrams - remaining).setScale(1, RoundingMode.HALF_UP).toDouble()
         if (abs(delta) < UNCHANGED_GRAMS) return null
         val event = InventoryEvent(
             id = "adjustment-${c.eventRows.value.size + 1}",

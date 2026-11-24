@@ -91,6 +91,20 @@ class AppLanguageNotificationsTest {
     }
 
     @Test
+    fun `a text built after a language change follows the new language`() {
+        localeManager.applicationLocales = LocaleList.forLanguageTags("de")
+        assertThat(LowStockReminderNotifications.notification(context, teas).title()).isEqualTo("2 Tees werden knapp")
+
+        localeManager.applicationLocales = LocaleList.forLanguageTags("en")
+        assertThat(LowStockReminderNotifications.notification(context, teas).title())
+            .isEqualTo("2 teas are running low")
+
+        localeManager.applicationLocales = LocaleList.getEmptyLocaleList()
+        assertThat(LowStockReminderNotifications.notification(context, teas).text())
+            .isEqualTo("Hisui · empty, Tanabata · 12.5 g")
+    }
+
+    @Test
     fun `with System the process's language holds`() {
         val reminder = LowStockReminderNotifications.notification(context, teas)
         assertThat(reminder.text()).isEqualTo("Hisui · empty, Tanabata · 12.5\u00A0g")

@@ -126,8 +126,9 @@
     <string name="backup_checking">Checking backup …</string>
     <string name="backup_preview_title">Restore backup?</string>
     <string name="backup_preview_body">Backup from %1$s · %2$s. It replaces all your data on this device. A safety copy is made first, which you can restore for 7 days.</string>
-    <string name="backup_confirm_hint">Type REPLACE to confirm</string>
-    <string name="backup_confirm_talkback">Confirmation word, type REPLACE</string>
+    <string name="backup_confirm_word">REPLACE</string>
+    <string name="backup_confirm_hint">Type %1$s to confirm</string>
+    <string name="backup_confirm_talkback">Confirmation word, type %1$s</string>
     <string name="backup_replace">Replace</string>
     <string name="backup_importing">Restoring backup …</string>
     <string name="backup_imported">Backup restored · %1$s</string>
@@ -157,8 +158,9 @@
     <string name="backup_wipe_title">Delete all data?</string>
     <string name="backup_wipe_body">All teas, sessions, recipes, vessels, photos and settings are deleted from this device. This can\'t be undone. Make a backup first.</string>
     <string name="backup_wipe_safety_copy">The safety copy of the last restore is deleted too.</string>
-    <string name="backup_wipe_confirm_hint">Type DELETE to confirm</string>
-    <string name="backup_wipe_confirm_talkback">Type DELETE</string>
+    <string name="backup_wipe_word">DELETE</string>
+    <string name="backup_wipe_confirm_hint">Type %1$s to confirm</string>
+    <string name="backup_wipe_confirm_talkback">Type %1$s</string>
     <string name="backup_wipe_confirm">Delete</string>
     <string name="backup_wipe_notice">Deleting data. UmamiT will close; open the app again afterwards.</string>
     <string name="backup_wipe_failed">Can\'t delete. Nothing was deleted.</string>

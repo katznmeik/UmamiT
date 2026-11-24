@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.data.TeaPurchase
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
@@ -43,6 +44,7 @@ import com.umamit.feature.collection.R
 import com.umamit.feature.collection.editor.DateField
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 
 const val PURCHASE_SHEET_GRAMS_TAG = "purchase_sheet_grams"
@@ -237,9 +239,15 @@ private fun PurchaseSheetContent(
     }
 }
 
-/** Grams for an editable field: „50", „37,5" (no thousands separators, which [GermanNumber] reads as well). */
-internal fun editableGrams(grams: Double): String =
-    BigDecimal.valueOf(grams).stripTrailingZeros().toPlainString().replace('.', ',')
+/**
+ * Grams for an editable field, to 0,1 g as the field reads them (INV-03): „50", „37,5" in German, „37.5" in English
+ * (GEN-10), with no thousands separators; [GermanNumber] reads either decimal mark. A stored sum's float noise
+ * (−7.300000000000004) opens as „7,3".
+ */
+internal fun editableGrams(grams: Double, language: AppLanguage = AppLanguage.current()): String {
+    val text = BigDecimal.valueOf(grams).setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+    return if (language == AppLanguage.ENGLISH) text else text.replace('.', ',')
+}
 
 /**
  * What the sheet holds: the typed grams and price and the chosen day. A blank price is no price; blank grams are

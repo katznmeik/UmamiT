@@ -1,6 +1,7 @@
 package com.umamit.feature.collection.detail
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.common.AppLanguage
 import org.junit.Test
 import java.time.LocalDate
 
@@ -29,6 +30,28 @@ class CorrectionFormTest {
         assertThat(CorrectionForm.format(-15.0)).isEqualTo("−15")
         assertThat(CorrectionForm.format(5.0)).isEqualTo("+5")
         assertThat(CorrectionForm.format(37.5)).isEqualTo("+37,5")
+    }
+
+    @Test
+    fun `a stored difference with float noise opens to 0,1 g and is read back`() {
+        // newTotal − remaining as a sum of doubles (INV-03, #354): the field must not open locked.
+        val noisy = -7.300000000000004
+        val text = CorrectionForm.format(noisy, AppLanguage.GERMAN)
+        assertThat(text).isEqualTo("−7,3")
+        assertThat(CorrectionForm(text, today).deltaError).isNull()
+        assertThat(CorrectionForm(text, today).delta(today)).isEqualTo(-7.3)
+        assertThat(editableGrams(0.30000000000000004, AppLanguage.GERMAN)).isEqualTo("0,3")
+        assertThat(editableGrams(49.99999999999999, AppLanguage.GERMAN)).isEqualTo("50")
+    }
+
+    @Test
+    fun `the field's decimal mark follows the app's language`() {
+        assertThat(editableGrams(37.5, AppLanguage.GERMAN)).isEqualTo("37,5")
+        assertThat(editableGrams(37.5, AppLanguage.ENGLISH)).isEqualTo("37.5")
+        assertThat(editableGrams(50.0, AppLanguage.ENGLISH)).isEqualTo("50")
+        val english = CorrectionForm.format(-7.300000000000004, AppLanguage.ENGLISH)
+        assertThat(english).isEqualTo("−7.3")
+        assertThat(CorrectionForm(english, today).delta(today)).isEqualTo(-7.3)
     }
 
     @Test

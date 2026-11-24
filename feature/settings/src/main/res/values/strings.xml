@@ -154,8 +154,10 @@
     <string name="backup_checking">Sicherung wird geprüft …</string>
     <string name="backup_preview_title">Sicherung einspielen?</string>
     <string name="backup_preview_body">Sicherung vom %1$s · %2$s. Sie ersetzt alle deine Daten auf diesem Gerät. Vorher wird eine Sicherheitskopie angelegt, die du 7 Tage lang zurückholen kannst.</string>
-    <string name="backup_confirm_hint">Tippe ERSETZEN zur Bestätigung</string>
-    <string name="backup_confirm_talkback">Bestätigungswort, ERSETZEN eintippen</string>
+    <!-- The word to type before *Ersetzen* (BAK-02 AC3): the hint names it and the field must hold exactly it. -->
+    <string name="backup_confirm_word">ERSETZEN</string>
+    <string name="backup_confirm_hint">Tippe %1$s zur Bestätigung</string>
+    <string name="backup_confirm_talkback">Bestätigungswort, %1$s eintippen</string>
     <string name="backup_replace">Ersetzen</string>
     <string name="backup_importing">Sicherung wird eingespielt …</string>
     <string name="backup_imported">Sicherung eingespielt · %1$s</string>
@@ -187,8 +189,10 @@
     <string name="backup_wipe_title">Alle Daten löschen?</string>
     <string name="backup_wipe_body">Alle Tees, Sessions, Rezepte, Gefäße, Fotos und Einstellungen werden von diesem Gerät gelöscht. Das kann nicht rückgängig gemacht werden. Erstelle vorher eine Sicherung.</string>
     <string name="backup_wipe_safety_copy">Auch die Rücksicherung des letzten Imports wird gelöscht.</string>
-    <string name="backup_wipe_confirm_hint">Tippe LÖSCHEN zur Bestätigung</string>
-    <string name="backup_wipe_confirm_talkback">LÖSCHEN eintippen</string>
+    <!-- The word to type before *Löschen* (SET-33): the hint names it and the field must hold exactly it. -->
+    <string name="backup_wipe_word">LÖSCHEN</string>
+    <string name="backup_wipe_confirm_hint">Tippe %1$s zur Bestätigung</string>
+    <string name="backup_wipe_confirm_talkback">%1$s eintippen</string>
     <string name="backup_wipe_confirm">Löschen</string>
     <string name="backup_wipe_notice">Daten werden gelöscht. UmamiT schließt sich, öffne die App danach neu.</string>
     <string name="backup_wipe_failed">Löschen nicht möglich. Es wurde nichts gelöscht.</string>

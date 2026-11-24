@@ -80,7 +80,7 @@ private fun SizeNoteDialog(estimate: BackupEstimate, actions: DataBackupActions)
 @Composable
 private fun ReplaceDialog(preview: BackupPreview, state: DataBackupUiState, actions: DataBackupActions) {
     val zone = runCatching { ZoneId.of(preview.zoneId) }.getOrDefault(ZoneId.systemDefault())
-    val talkBack = stringResource(R.string.backup_confirm_talkback)
+    val talkBack = stringResource(R.string.backup_confirm_talkback, state.confirmWords.replace)
     BackupAlert(
         title = stringResource(R.string.backup_preview_title),
         body = stringResource(
@@ -97,7 +97,7 @@ private fun ReplaceDialog(preview: BackupPreview, state: DataBackupUiState, acti
         ConfirmWordField(
             value = state.confirmText,
             onValueChange = actions.typeConfirm,
-            hint = stringResource(R.string.backup_confirm_hint),
+            hint = stringResource(R.string.backup_confirm_hint, state.confirmWords.replace),
             talkBack = talkBack,
             tag = DataBackupTags.CONFIRM_FIELD,
         )
