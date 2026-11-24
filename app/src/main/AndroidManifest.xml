@@ -44,10 +44,14 @@
         <!-- adjustResize: the keyboard is reported as an inset the screens pad for themselves (edge-to-edge);
              never a pan of the whole window (D-102). -->
         <!-- configChanges uiMode: a night switch (the Design hand-over, D-114, or the phone's own under System)
-             recolours the app in place, in one frame, with no re-creation (D-117 build note A-08). -->
+             recolours the app in place, in one frame, with no re-creation (D-117 build note A-08).
+             orientation|screenLayout|screenSize|smallestScreenSize: a rotation lays the app out again in place, with
+             no re-creation (D-136 build note „Portrait timer"); every screen but the timer screens still rotates, and
+             those (SCR-05, SCR-07) ask for portrait from code while on top, also over the lock screen. No
+             screenOrientation here: the rest of the app keeps the system's choice. -->
         <activity
             android:name=".MainActivity"
-            android:configChanges="uiMode"
+            android:configChanges="orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

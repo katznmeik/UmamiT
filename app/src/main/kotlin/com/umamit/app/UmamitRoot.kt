@@ -76,6 +76,11 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *
  * @param journalSources the journal tab and the „Gespeichert" sheet, which never shows over an alert (M1-16).
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
+ * @param onTimerScreenOnTopChange whether a timer screen (SCR-05, SCR-07: [isTimerScreen]) is the top route or a
+ *   notification's request for the timer is pending, for the activity's portrait request (D-136 Q5, build note
+ *   „Portrait timer"). From the back stack, not [onTimerVisibleChange]: it includes the quick timer before *Start*, and
+ *   a close over the keyguard keeps it until the timer is popped at `ON_STOP`, so the timer never turns while the
+ *   keyguard comes back.
  * @param keyguard whether the phone is locked. Locked, a close of the timer (back, a back swipe, the route's own
  *   close) reports the timer as gone at once, so the flags clear in that turn, and keeps it drawn, inert, so only
  *   the system's keyguard animation plays; the pop follows at `ON_STOP` with no transition, and no shell frame is
@@ -135,6 +140,7 @@ internal fun UmamitRoot(
     timerRequest: StateFlow<TimerRequest> = NO_TIMER_REQUEST,
     onConsumeTimerRequest: (Long) -> Unit = {},
     onTimerVisibleChange: (Boolean) -> Unit = {},
+    onTimerScreenOnTopChange: (Boolean) -> Unit = {},
     keyguard: KeyguardLock = KeyguardLock.Unlocked,
     timerScreen: @Composable (
         onClose: () -> Unit,
@@ -248,6 +254,8 @@ internal fun UmamitRoot(
     // Re-derived when it runs, not this composition's value: a cancel in the same turn (a new alert, rule 8) has
     // already reported the timer again, and a stale `false` would clear the flags while the alert rings.
     LaunchedEffect(timerVisible) { currentOnTimerVisibleChange(keyguard.reportedNow(currentTimerShown)) }
+    // Portrait while a timer screen is on top or about to be (D-136 Q5); a locked close keeps it until the pop.
+    ReportTimerScreenOnTop(entry, timerFirst.requestPending, onTimerScreenOnTopChange)
     val navigateAbove = timerFirst.navigateAbove
     // *Einrichtung erneut zeigen* (ONB-04): above the shell or the timer, so it gives way to an alert too.
     val rerunSetup: () -> Unit = { navigateAbove(OnboardingRoute) { launchSingleTop = true } }

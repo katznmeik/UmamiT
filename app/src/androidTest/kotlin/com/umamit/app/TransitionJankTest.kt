@@ -70,6 +70,11 @@ import com.umamit.feature.journal.R as JournalR
  * a cold activity start) The locked close of the timer is measured report-only ([timerToLockScreen]).
  * A UI step that fails fails a gated test once the gate is on; otherwise (API 35, the gate switched
  * off, or a test with only [JankGate.REPORT_ONLY] transitions) it skips the test with the reason.
+ *
+ * The turns of the phone (D-136 build note „Portrait timer", SCR-05, NFR-COMP-02) are the exception: their checks (no
+ * new activity, the timer upright, Journal turned) fail on API 35 and 36 alike, whatever the gate; their frames are
+ * reported only ([rotation]). Still no alert rings here: the alert turned with the phone is in
+ * [TimerAlertOverLockScreenTest].
  */
 @RunWith(AndroidJUnit4::class)
 class TransitionJankTest {
@@ -93,6 +98,8 @@ class TransitionJankTest {
     private var scenario: ActivityScenario<MainActivity>? = null
     private var budgetNs = DEFAULT_BUDGET_NS
     private var reference: JankReference? = null
+    private val rotation = DisplayRotation(::shell)
+    private val creations = MainActivityCreations()
 
     private val teaName = SeedData.tanabata.name
     private val sessionTeaName = SeedData.teas.single { it.id == SeedData.HISUI_TEA_ID }.name
@@ -111,6 +118,8 @@ class TransitionJankTest {
 
     @After
     fun tearDown() {
+        creations.stop()
+        rotation.restore()
         endTimer()
         runCatching { data.savedSheets().dismiss(SESSION_ID) }
         scenario?.close()
@@ -303,6 +312,162 @@ class TransitionJankTest {
         } finally {
             if (lockWasDisabled) shell("locksettings set-disabled true")
             runCatching { UnlockedDevice.unlock() }
+        }
+    }
+
+    /**
+     * The phone turned with the timer on top (D-136 Q5, build note „Portrait timer"): the timer stays upright and the
+     * activity is not created again, on every turn; the session is untouched. Then the control, with the same turns:
+     * once the timer is closed, the shell does turn to landscape, in place too, so the upright timer was the app's
+     * request and not a display that never turned.
+     */
+    @Test
+    fun rotateWithTimerOnTop() = rotation {
+        launchOnStart()
+        openSetup()
+        await(By.text(context.getString(BrewR.string.brew_setup_start)), "Session starten").click()
+        val session = awaitWaitingSession()
+        awaitTimer()
+        val created = creations.count
+        repeat(JankGate.runs) {
+            record("timer turned to landscape") { rotation.landscape() }
+            checkUpright("the timer after the turn to landscape")
+            record("timer turned to portrait") { rotation.portrait() }
+            checkUpright("the timer after the turn back")
+        }
+        checkCreations(created, "turning the phone with the timer on top")
+        checkSession(session)
+
+        rotation.landscape()
+        checkUpright("the timer held in landscape")
+        endTimer()
+        awaitStart()
+        awaitTurned("the shell after the timer closed in landscape")
+        checkCreations(created, "leaving the timer in landscape")
+    }
+
+    /**
+     * The timer entered from Journal held in landscape, through the active brew bar, and left again (D-136 Q5, build
+     * note „Portrait timer"): it comes up upright, Journal turns back to landscape, and neither creates the activity
+     * again; the waiting session is the same throughout.
+     */
+    @Test
+    fun timerFromLandscapeJournal() = rotation {
+        launchOnStart()
+        openSetup()
+        await(By.text(context.getString(BrewR.string.brew_setup_start)), "Session starten").click()
+        val session = awaitWaitingSession()
+        awaitTimer()
+        // Back keeps the session (03 §2.3): the shell with the bar.
+        device.pressBack()
+        awaitStart()
+        tab(context.getString(Tab.Journal.label)).click()
+        await(text(sessionTeaName), "the session in the journal")
+        rotation.landscape()
+        awaitTurned("Journal in landscape")
+        val created = creations.count
+        repeat(JankGate.runs) {
+            val bar = await(text(teaName), "the active brew bar on Journal")
+            record("landscape Journal → timer") { bar.click() }
+            awaitTimer()
+            checkUpright("the timer entered from Journal in landscape")
+            checkSession(session)
+            record("timer → landscape Journal") { device.pressBack() }
+            await(text(sessionTeaName), "the session in the journal after back")
+            awaitTurned("Journal after the timer")
+        }
+        checkCreations(created, "entering and leaving the timer from Journal in landscape")
+        checkSession(session)
+    }
+
+    /**
+     * Journal still turns (D-136 Q5: the rest of the app rotates, NFR-COMP-02), now in place: the display and the
+     * activity's configuration go to landscape and back, Journal stays shown, and no activity is created again.
+     */
+    @Test
+    fun journalStillRotates() = rotation {
+        launchOnStart()
+        tab(context.getString(Tab.Journal.label)).click()
+        await(text(sessionTeaName), "the session in the journal")
+        val created = creations.count
+        repeat(JankGate.runs) {
+            record("Journal turned to landscape") { rotation.landscape() }
+            awaitTurned("Journal after the turn to landscape")
+            await(text(sessionTeaName), "the session in the journal in landscape")
+            record("Journal turned to portrait") { rotation.portrait() }
+            awaitUpright("Journal after the turn back")
+        }
+        checkCreations(created, "turning the phone on Journal")
+    }
+
+    /**
+     * The turns of the phone: the reference and the frames as every test measures them, reported only (all in
+     * [JankGate.REPORT_ONLY]); but every check in [block] and every UI step fails the test, on API 35 and 36 alike,
+     * never skips it (D-136 build note „Portrait timer").
+     */
+    private fun rotation(block: () -> Unit) {
+        rotation.save()
+        creations.start()
+        runCatching(::measureReference).onFailure { Log.w(TAG, "reference not measured: ${it.message}", it) }
+        try {
+            block()
+        } finally {
+            val windows = recorder.windowCount
+            reference?.let { Log.i(TAG, it.line(budgetNs, windows)) }
+            reports.forEach { Log.i(TAG, it.line(budgetNs, windows, reference)) }
+        }
+        check(
+            reports.all {
+                it.transition in JankGate.REPORT_ONLY
+            },
+        ) { "a turn of the phone measured a gated transition" }
+    }
+
+    /** The waiting session (no step runs, so no alert can come, rule 8); its id. */
+    private fun awaitWaitingSession(): String {
+        var active: TimerUiState.Active? = null
+        val ready = waitFor {
+            active = controller.state.value as? TimerUiState.Active
+            active?.phase == TimerPhase.READY
+        }
+        check(ready) { "the session after Session starten is ${active?.phase}, not waiting (READY)" }
+        return checkNotNull(active?.sessionId) { "the waiting session has no id: $active" }
+    }
+
+    /** The timer on top: the shell is not composed under it, so Start's *Schnelltimer* is gone. */
+    private fun awaitTimer() {
+        awaitGone(text(context.getString(HomeR.string.home_quick_timer)), "Start under the timer")
+        await(text(teaName), "the tea on the timer")
+    }
+
+    private fun checkSession(id: String) {
+        val active = controller.state.value as? TimerUiState.Active
+        check(active?.sessionId == id && active.phase == TimerPhase.READY) {
+            "the session changed: ${controller.state.value}, expected $id waiting (READY)"
+        }
+    }
+
+    private fun checkCreations(before: Int, what: String) {
+        check(creations.count == before) {
+            "${creations.count - before} new MainActivity after $what; the rotation must be handled in place\n" +
+                screenState()
+        }
+    }
+
+    /** Still upright after a moment: the display must not turn at all (a turn would take less than [SETTLE_MS]). */
+    private fun checkUpright(what: String) {
+        Thread.sleep(SETTLE_MS)
+        val upright = Upright.read()
+        check(upright?.portrait == true) { "$what is not upright: $upright\n${screenState()}" }
+    }
+
+    private fun awaitUpright(what: String) {
+        check(waitFor { Upright.read()?.portrait == true }) { "$what is not upright: ${Upright.read()}" }
+    }
+
+    private fun awaitTurned(what: String) {
+        check(waitFor { Upright.read()?.landscape == true }) {
+            "$what did not turn to landscape: ${Upright.read()}\n${screenState()}"
         }
     }
 

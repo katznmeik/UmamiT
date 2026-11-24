@@ -45,7 +45,8 @@ internal object JankGate {
      * „Gate scope"). Over all runs (R1–R8) only transitions that never exceeded the limit stay gated (resume, every
      * pop, Gespeichert in/out, both sheets' exit, timer → shell); setup → timer (up to 4.6×) and session page push
      * (up to 3.0×) are reported only (D-117 build note „Gate scope"). The two lock-screen transitions are reported only
-     * by design (D-117 build note „Lock screen", NFR-PERF-12, audit A-17/A-20 „Measurable").
+     * by design (D-117 build note „Lock screen", NFR-PERF-12, audit A-17/A-20 „Measurable"). The turns of the phone
+     * (D-136 build note „Portrait timer") are reported only until three CI runs calibrate them (D-117).
      */
     val REPORT_ONLY: Set<String> = setOf(
         "tab Start → Journal",
@@ -60,6 +61,15 @@ internal object JankGate {
         "session page push",
         "timer → lock screen",
         "Abgegossen over lock screen",
+        // The turns of the phone (D-136 build note „Portrait timer"): reported only until calibrated (D-117).
+        "timer turned to landscape",
+        "timer turned to portrait",
+        "landscape Journal → timer",
+        "timer → landscape Journal",
+        "Journal turned to landscape",
+        "Journal turned to portrait",
+        "alert turned in the app",
+        "alert turned over lock screen",
     )
 
     private val arguments get() = InstrumentationRegistry.getArguments()

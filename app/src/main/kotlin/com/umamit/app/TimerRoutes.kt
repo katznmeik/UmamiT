@@ -2,9 +2,17 @@ package com.umamit.app
 
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.toRoute
 import com.umamit.core.model.TimerSlot
+
+/**
+ * Whether this destination is a timer screen: the timer (SCR-05, either timer of D-098) or the quick timer before its
+ * *Start* (SCR-07). While one is the top route the activity stays portrait (D-136 Q5, build note „Portrait timer").
+ */
+internal fun NavDestination.isTimerScreen(): Boolean = hasRoute<TimerRoute>() || hasRoute<QuickTimerRoute>()
 
 /**
  * A tap on the row for the [other] timer on the timer [route] of [entry] (D-098): the other timer's route above it;

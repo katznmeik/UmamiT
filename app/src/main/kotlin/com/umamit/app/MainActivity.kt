@@ -58,6 +58,11 @@ import javax.inject.Inject
  * the keyguard with the screen off no frame is drawn until the screen turns on, so
  * the flags cannot wait for the navigation (D-064).
  *
+ * The timer screens (SCR-05, SCR-07) stay portrait, also over the lock screen (D-136 Q5, build note „Portrait timer"):
+ * while the root reports one on top ([requestTimerOrientation]) the activity asks for portrait, and for the system's
+ * choice again when it leaves; a request to open the timer asks at once, before the lock-screen flags. The activity
+ * handles a rotation itself (`configChanges`), so neither the request nor a turn of the phone re-creates it.
+ *
  * A link shared to the app reaches it from [ShareTeaLinkActivity] ([openTeaLink], CAT-17): the
  * shell shows Sammlung › Katalog, which loads it. The timer is never covered for it: while the
  * timer or another screen above the tabs is shown, the share waits until the tabs are back (rule 8).
@@ -104,7 +109,7 @@ class MainActivity : ComponentActivity() {
     /** Links shared to the app (CAT-17); a pending one survives a recreation. */
     private val teaLinkShares = TeaLinkShares()
 
-    /** Recipe files received (PRF-08); kept in a view model, so a copy running during a rotation still arrives. */
+    /** Recipe files received (PRF-08); kept in a view model, so a copy running during a re-creation still arrives. */
     private val receivedRecipesModel: ReceivedRecipesModel by viewModels()
 
     /** Recipe files received (PRF-08); a pending or shown one survives a recreation. */
@@ -129,6 +134,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             openTimerIfAsked(intent)
         } else if (timerRequests.restore(savedInstanceState, intent)) {
+            requestTimerOrientation(timerScreenOnTop = true)
             showTimerOverLockScreen()
         }
         takeTaps(intent, savedInstanceState)
@@ -165,6 +171,7 @@ class MainActivity : ComponentActivity() {
                     timerRequest = timerRequests.request,
                     onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = ::onTimerVisibleChange,
+                    onTimerScreenOnTopChange = { requestTimerOrientation(it) },
                     keyguard = keyguard,
                     teaLinkShare = teaLinkShares.share,
                     onTakeTeaLinkShare = teaLinkShares::taken,
@@ -258,6 +265,8 @@ class MainActivity : ComponentActivity() {
 
     private fun openTimerIfAsked(intent: Intent?) {
         if (intent == null || !TimerScreenIntents.isOpenTimer(intent)) return
+        // Portrait before the flags: the window shows over the lock screen already upright (D-136 Q5).
+        requestTimerOrientation(timerScreenOnTop = true)
         // A close waiting over the keyguard gives way to the request, as to a new alert: no pop at `ON_STOP` leaves
         // `showWhenLocked` set over the shell. Reported first, so the flags are never cleared in between (rule 8).
         showTimerOverLockScreen()
@@ -322,7 +331,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Holds [MainActivity]'s [ReceivedRecipeFiles] over a rotation; their copies run in its scope. */
+/** Holds [MainActivity]'s [ReceivedRecipeFiles] over a re-creation; their copies run in its scope. */
 class ReceivedRecipesModel : ViewModel() {
     val files = ReceivedRecipeFiles(scope = viewModelScope)
 }
