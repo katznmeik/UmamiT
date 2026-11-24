@@ -37,7 +37,7 @@ import javax.inject.Inject
  * Every one opens its own timer's screen (SCR-05, SCR-07) when tapped, whichever role it has (04 §8.2,
  * D-098); a Live Update the user dismisses reports it through its delete intent (04 §8.3).
  *
- * Texts and actions are in the app's language also when the process has no activity ([AppLanguageContext], GEN-10):
+ * Texts and actions are in the app's language also when the process has no activity ([AppLanguageContext], GEN-13):
  * each notification reads the language once, when it is built, so all its texts are in one language and the next
  * one after a language change is in the new language.
  */
@@ -78,7 +78,7 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
      */
     fun timerResumed(states: List<TimerUiState.Active>): Notification = inLanguage().timerResumed(states)
 
-    /** The notifications in the app's language as it is now: one per notification (GEN-10). */
+    /** The notifications in the app's language as it is now: one per notification (GEN-13). */
     private fun inLanguage() = InLanguage(AppLanguageContext.of(appContext))
 
     /** The builders of one notification, all in [context]'s language. */

@@ -7,7 +7,7 @@ import org.robolectric.plugins.PackagePropertiesLoader
 import org.robolectric.util.inject.Supersedes
 
 /**
- * Every Robolectric test of every Android module runs in German unless it asks for a language (GEN-10, D-136
+ * Every Robolectric test of every Android module runs in German unless it asks for a language (GEN-13, D-136
  * item 15). Robolectric's own default is en-US, and a class's `@Config(qualifiers = "w411dp-…")` replaces any
  * default qualifier, so this replaces Robolectric's [ConfigConfigurer] and appends `+de-rDE` to every merged
  * qualifier string that names no language: the resources' configuration and `Locale.getDefault()` are then German.

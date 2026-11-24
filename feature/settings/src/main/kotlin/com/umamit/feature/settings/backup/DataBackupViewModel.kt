@@ -61,7 +61,7 @@ sealed interface BackupPick {
 
 /**
  * The words to type before *Ersetzen* ([replace], BAK-02 AC3) and *Löschen* ([wipe], SET-33), in the language of the
- * resources the screen shows (GEN-10): the hints name these same words, so what the hint asks for is what enables the
+ * resources the screen shows (GEN-13): the hints name these same words, so what the hint asks for is what enables the
  * button, whatever the JVM's locale is (under *System* with a phone list such as [Français, English] the resources
  * are English while the JVM's locale is French).
  */
@@ -271,7 +271,7 @@ class DataBackupViewModel @Inject constructor(
         mutable.update { it.copy(confirmText = text) }
     }
 
-    /** The words the screen's hints name, from its resources (GEN-10): the ones [replace] and [confirmWipe] need. */
+    /** The words the screen's hints name, from its resources (GEN-13): the ones [replace] and [confirmWipe] need. */
     fun useConfirmWords(words: ConfirmWords) {
         mutable.update { it.copy(confirmWords = words) }
     }

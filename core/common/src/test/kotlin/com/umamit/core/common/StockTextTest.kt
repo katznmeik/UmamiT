@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import java.util.Locale
 
-/** A tea's grams as the screens and the daily reminder show them (INV-05, INV-10, INV-11; GEN-10): to 0,1 g. */
+/** A tea's grams as the screens and the daily reminder show them (INV-05, INV-10, INV-11; GEN-13): to 0,1 g. */
 class StockTextTest {
     @Test
     fun `grams are German to a tenth, a whole number without a decimal`() {

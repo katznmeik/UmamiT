@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The catalog's, the low-stock and the backup reminders' notifications and channels follow the app's language, not
- * the process's (GEN-10 AC1; D-136, „A process without an activity"): a process with no activity runs in the phone's
+ * the process's (GEN-13 AC1; D-136, „A process without an activity"): a process with no activity runs in the phone's
  * language (here English, or German where a test says so), while Android holds the app's language. Synthetic teas
  * (D-016).
  */

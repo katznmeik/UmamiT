@@ -15,7 +15,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The timer's notifications follow the app's language, not the process's (GEN-10, SET-35; D-136 item 15): a process
+ * The timer's notifications follow the app's language, not the process's (GEN-13, SET-35; D-136 item 15): a process
  * with no activity runs in the phone's language (here English), while Android holds German for the app.
  */
 @RunWith(RobolectricTestRunner::class)

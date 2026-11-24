@@ -5,7 +5,7 @@ import com.umamit.testlocale.inLocale
 import org.junit.Test
 import java.util.Locale
 
-/** Vessels A–Z in the app's language (GEN-10): case and accents second, a fresh collator per sort. */
+/** Vessels A–Z in the app's language (GEN-13): case and accents second, a fresh collator per sort. */
 class VesselNameOrderTest {
     private val names = listOf("oolong-Kanne", "Öko-Kyusu", "Houhin", "Äsche-Schale")
 

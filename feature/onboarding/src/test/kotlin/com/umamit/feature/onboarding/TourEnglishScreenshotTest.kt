@@ -9,7 +9,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The tour (SCR-33) in English (GEN-10, ONB-07), light and dark: each of the six pages at font scale 1.0 and page 1
+ * The tour (SCR-33) in English (GEN-13, ONB-07), light and dark: each of the six pages at font scale 1.0 and page 1
  * at 2.0. Goldens: `src/test/screenshots/TourEn_*`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)

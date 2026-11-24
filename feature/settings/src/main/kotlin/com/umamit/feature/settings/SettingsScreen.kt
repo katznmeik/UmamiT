@@ -139,7 +139,7 @@ class SettingsActions(
      * *Design* dialog closes and whenever the screen shows, both only with no alert playing.
      */
     val handOverTheme: () -> Unit = {},
-    /** SET-35 *Sprache* (GEN-10): handed to Android at once, which re-creates the activity in that language. */
+    /** SET-35 *Sprache* (GEN-13): handed to Android at once, which re-creates the activity in that language. */
     val setLanguage: (LanguageChoice) -> Unit = {},
     /** SET-22 *Katalog: Fotos laden*. */
     val setCatalogPhotos: (Boolean) -> Unit = {},

@@ -77,7 +77,7 @@ object TimerNotifications {
 
     /**
      * Creates (or updates the names of) the timer channels; idempotent. Names and descriptions are in the app's
-     * language also when the process has no activity ([AppLanguageContext], GEN-10), read once per call, so all four
+     * language also when the process has no activity ([AppLanguageContext], GEN-13), read once per call, so all four
      * channels are named in one language.
      */
     fun ensureChannels(context: Context) {

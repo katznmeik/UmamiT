@@ -23,7 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * SET-35 *Sprache* (GEN-10, 03 SCR-25): the row sits below *Design*, its dialog offers *System*, „Deutsch" and
+ * SET-35 *Sprache* (GEN-13, 03 SCR-25): the row sits below *Design*, its dialog offers *System*, „Deutsch" and
  * „English", and a pick closes the dialog and goes to Android's per-app language ([AppLocales]) at once.
  */
 @RunWith(RobolectricTestRunner::class)

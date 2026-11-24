@@ -11,7 +11,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.YearMonth
 
-/** Statistik's month span labels in the app's language (GEN-10): German by default, English when named. */
+/** Statistik's month span labels in the app's language (GEN-13): German by default, English when named. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class PeriodLabelLanguageTest {

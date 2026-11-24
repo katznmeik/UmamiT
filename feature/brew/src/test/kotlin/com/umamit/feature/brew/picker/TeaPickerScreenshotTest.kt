@@ -53,7 +53,7 @@ class TeaPickerScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     @Test
     fun freshness() {
-        // setQualifiers replaces the German pin of config/test-locale, so it names German again (GEN-10, #358).
+        // setQualifiers replaces the German pin of config/test-locale, so it names German again (GEN-13, #358).
         RuntimeEnvironment.setQualifiers(if (short) "w360dp-h640dp-xhdpi +de-rDE" else "w411dp-h891dp-xhdpi +de-rDE")
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {

@@ -5,7 +5,7 @@ import com.umamit.testlocale.inLocale
 import org.junit.Test
 import java.util.Locale
 
-/** The spoken rating and taste values follow the app's language (GEN-10): German by default, English on request. */
+/** The spoken rating and taste values follow the app's language (GEN-13): German by default, English on request. */
 class LanguageNumbersTest {
 
     @Test

@@ -6,7 +6,7 @@ import android.os.LocaleList
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
-/** SET-35 *Sprache* (GEN-10, D-136 Q6): the phone's language, or German or English for the app alone. */
+/** SET-35 *Sprache* (GEN-13, D-136 Q6): the phone's language, or German or English for the app alone. */
 enum class LanguageChoice {
     SYSTEM,
     GERMAN,
@@ -16,7 +16,7 @@ enum class LanguageChoice {
 /**
  * Reads and sets the app's own language through Android's per-app language (`LocaleManager`, min SDK 35; D-136
  * item 15). Android stores it, so there is no settings key and no backup carries it; the phone's per-app language
- * settings show and change the same value. *System* is the empty list: the app then follows the phone (GEN-10 AC3).
+ * settings show and change the same value. *System* is the empty list: the app then follows the phone (GEN-13 AC3).
  *
  * A change re-creates the activity in the new language (`locale` is not in `configChanges`): the screen, its saved
  * state and a running timer, which lives in the timer service, stay.

@@ -241,7 +241,7 @@ private fun PurchaseSheetContent(
 
 /**
  * Grams for an editable field, to 0,1 g as the field reads them (INV-03): „50", „37,5" in German, „37.5" in English
- * (GEN-10), with no thousands separators; [GermanNumber] reads either decimal mark. A stored sum's float noise
+ * (GEN-13), with no thousands separators; [GermanNumber] reads either decimal mark. A stored sum's float noise
  * (−7.300000000000004) opens as „7,3".
  */
 internal fun editableGrams(grams: Double, language: AppLanguage = AppLanguage.current()): String {

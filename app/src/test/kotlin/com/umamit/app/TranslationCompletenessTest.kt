@@ -7,12 +7,12 @@ import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * GEN-10 AC1: every text entry (`string`, `plurals`, `string-array`) in any file of `values` of every module has a
+ * GEN-13 AC1: every text entry (`string`, `plurals`, `string-array`) in any file of `values` of every module has a
  * `values-en` entry (D-136 item 15, #359), with the same format arguments (every Java format specifier: `%1$s`,
  * `%.1f`, `%02d`, `%,d` …; `%%` and `%n` are no argument). Lint's `MissingTranslation` says the same for the whole
  * build; this test names the module and the entry, and it also guards what lint cannot see.
  *
- * **The exclusion set (GEN-10 AC2).** The fixed tea vocabulary stays German in both languages: the Sorte names
+ * **The exclusion set (GEN-13 AC2).** The fixed tea vocabulary stays German in both languages: the Sorte names
  * (`sorte_*`), the descriptors and their groups (`ui_descriptor_*`) and the taste-slider names (`ui_taste_<slider>`).
  * They carry `translatable="false"` in their `values/strings*.xml`, which is the one place that lists them; this test
  * skips them and fails when `values-en` redefines one.
@@ -37,7 +37,7 @@ class TranslationCompletenessTest {
         val vocabulary = modules().flatMap { module ->
             read(module, "values").filter { it.value.untranslatable }.keys.map { module to it }
         }
-        assertWithMessage("the fixed tea vocabulary (GEN-10 AC2) is missing").that(vocabulary).isNotEmpty()
+        assertWithMessage("the fixed tea vocabulary (GEN-13 AC2) is missing").that(vocabulary).isNotEmpty()
         val translated = vocabulary.filter { (module, name) -> name in read(module, "values-en") }
         assertWithMessage(
             "translatable=\"false\" entries redefined in values-en: $translated",

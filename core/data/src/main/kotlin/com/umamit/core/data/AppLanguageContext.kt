@@ -10,15 +10,16 @@ import android.os.LocaleList
 import com.umamit.core.common.AppLanguage
 
 /**
- * [base] in the app's own language (GEN-10 AC1; D-136, „A process without an activity"), for texts built without an
- * activity: the catalog refresh's, the low-stock and the backup reminders' notifications and their channels.
+ * [base] in the app's own language (GEN-13 AC1; D-136, „A process without an activity"), for texts built without an
+ * activity: the catalog refresh's, the low-stock and the backup reminders' notifications and their channels, and
+ * `core:timer`'s notifications and channels.
  *
  * Android keeps the per-app language for the package, but a process holds it only while it has an activity: when the
  * last activity of a process goes, the process's configuration falls back to the phone's language (Android 15 and
  * 16). So the wrapper reads [LocaleManager.getApplicationLocales] once, when it is made: one snapshot for the text it
  * builds ([of] makes a new one per text, which sees a language changed since). *System* (no app language) uses the
- * process's resources as they are; so does a failed lookup, as a notification must never fail over its language. The
- * model is `core:timer`'s own `AppLanguageContext` for the timer's notifications.
+ * process's resources as they are; so does a failed lookup, as a notification must never fail over its language.
+ * This is the app's one copy: `core:timer` uses it too.
  */
 class AppLanguageContext private constructor(base: Context) : ContextWrapper(base) {
     /** The app's resources in its own language, or the process's for *System* and on any failure. */

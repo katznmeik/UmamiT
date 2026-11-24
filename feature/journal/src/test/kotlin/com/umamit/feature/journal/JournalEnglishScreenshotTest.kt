@@ -27,7 +27,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 
 /**
- * SCR-15 in English (GEN-10, #359), light and dark at font scale 1.0: the journal with sessions (running, today,
+ * SCR-15 in English (GEN-13, #359), light and dark at font scale 1.0: the journal with sessions (running, today,
  * yesterday, an older date), the filter chips and the empty journal. Photos are the placeholder illustration only.
  * Goldens: `src/test/screenshots/`.
  */

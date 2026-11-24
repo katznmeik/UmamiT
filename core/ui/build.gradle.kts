@@ -18,6 +18,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     // `toUri` for openInBrowser (D-123).
     implementation(libs.androidx.core.ktx)
-    // GEN-10: the editable values read back through GermanNumber in both languages (GermanFormatTest).
+    // GEN-13: the editable values read back through GermanNumber in both languages (GermanFormatTest).
     testImplementation(project(":core:domain"))
 }

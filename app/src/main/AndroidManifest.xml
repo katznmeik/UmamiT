@@ -50,7 +50,7 @@
              no re-creation (D-136 build note „Portrait timer"); every screen but the timer screens still rotates, and
              those (SCR-05, SCR-07) ask for portrait from code while on top, also over the lock screen. No
              screenOrientation here: the rest of the app keeps the system's choice.
-             No locale|layoutDirection: a language change (SET-35, GEN-10) re-creates the activity, so every text,
+             No locale|layoutDirection: a language change (SET-35, GEN-13) re-creates the activity, so every text,
              including the numbers and dates formatted outside Compose state, is made again in the new language; the
              screen's saved state and a running timer (the timer service) stay. -->
 

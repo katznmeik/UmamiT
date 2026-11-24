@@ -17,7 +17,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * SCR-05 in English (GEN-10, #359), light and dark at font scale 1.0: READY with the stock, RUNNING with the quick
+ * SCR-05 in English (GEN-13, #359), light and dark at font scale 1.0: READY with the stock, RUNNING with the quick
  * timer's row, the pre-alert, PAUSED, the alert, the rinse's alert, FINISHED and a cold brew's READY. The states are
  * [TimerStates]'s; the tea's name is data and stays as it is. No photo on the seal (D-095). Goldens:
  * `src/test/screenshots/`.

@@ -20,7 +20,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Einstellungen (SCR-25) in English (GEN-10, #359), light and dark at font scale 1.0: with a missing check, with
+ * Einstellungen (SCR-25) in English (GEN-13, #359), light and dark at font scale 1.0: with a missing check, with
  * *Language* picked, and scrolled to *Timer & alarm*'s end. Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)

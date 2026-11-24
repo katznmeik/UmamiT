@@ -16,7 +16,7 @@ import java.util.Locale
 
 /**
  * The runner of the device tests of `:app` and `:core:timer` (CI emulator job): the app's own language is German
- * (GEN-10, D-136 item 15) before every test, so the German texts the tests read and assert hold on the en-US
+ * (GEN-13, D-136 item 15) before every test, so the German texts the tests read and assert hold on the en-US
  * emulator. The per-app language goes through the platform `LocaleManager`, as *Sprache* (SET-35) does.
  *
  * Android keeps that language for the package, but a process holds it only while it has an activity: when its last

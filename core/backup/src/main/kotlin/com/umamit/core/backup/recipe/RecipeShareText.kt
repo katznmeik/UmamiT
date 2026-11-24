@@ -10,7 +10,7 @@ import java.util.Locale
  * take `String.format` arguments in [locale].
  */
 interface RecipeShareLabels {
-    /** The locale the share text's numbers are formatted in: the app language's („4,0 g" or „4.0 g", GEN-10). */
+    /** The locale the share text's numbers are formatted in: the app language's („4,0 g" or „4.0 g", GEN-13). */
     val locale: Locale
 
     fun method(method: BrewMethod): String
@@ -60,7 +60,7 @@ enum class RecipeSharePart {
  * rules: the tea (and its secondary name) with the recipe's name; method, leaf, water, base temperature and the
  * vessel type if there is one; one line per step with its temperature (its own, else the base) and its duration
  * („0:10", „1:30", „4:00:00"); the shop link on a line of its own for a catalog tea; „Geteilt aus UmamiT …".
- * Its words and numbers follow the app language through [RecipeShareLabels] (GEN-10); the recipe file does not.
+ * Its words and numbers follow the app language through [RecipeShareLabels] (GEN-13); the recipe file does not.
  */
 object RecipeShareText {
     private val GERMAN = Locale.GERMANY

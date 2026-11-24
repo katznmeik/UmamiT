@@ -4,7 +4,7 @@
   runner runs in its own process of this test APK (targetProcesses), so the
   test survives killing the main process, where the controller, the alarm
   receiver and the foreground service run as in the app. The runner sets the
-  German app language first (GEN-10, GermanLocaleRunner in sharedAndroidTest).
+  German app language first (GEN-13, GermanLocaleRunner in sharedAndroidTest).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 

@@ -2144,7 +2144,7 @@ tokens (§3.6); reduce motion: they appear at once.
   three radio rows *System* · *Deutsch* · *English*; the row shows the
   choice („System"). The names „Deutsch" and „English" are shown in their
   own language in both UIs. A change recolours nothing and keeps the
-  current screen; the app's texts switch at once (GEN-10).
+  current screen; the app's texts switch at once (GEN-13).
 - A new section **Hilfe** above *Über* with one row **Einführung** („Die
   wichtigsten Funktionen in sechs Seiten"), which opens SCR-33 (SET-36).
 

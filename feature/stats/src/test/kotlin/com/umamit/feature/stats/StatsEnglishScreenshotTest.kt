@@ -22,7 +22,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.time.YearMonth
 
 /**
- * Statistik (SCR-18) in English (GEN-10, #359), light and dark at font scale 1.0: the shell with the *Overview* tab
+ * Statistik (SCR-18) in English (GEN-13, #359), light and dark at font scale 1.0: the shell with the *Overview* tab
  * over invented results (90 d), and with a chosen month span. Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)

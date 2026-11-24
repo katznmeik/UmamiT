@@ -80,7 +80,7 @@
 | **Sicherung (backup file)** | From v0.9.0 (D-128, D-130): the `.umamit` ZIP that *Sicherung erstellen* writes and *Sicherung einspielen* reads back, replacing all personal data (05 §8). Not the Android device backup (BAK-05), which has no photos. |
 | **Sicherheitskopie (safety copy)** | From v0.9.0 (D-130): the private copy of the data made just before an import replaces it; *Import rückgängig machen* brings it back for 7 × 24 h or until the next import. |
 | **Einführung (tour)** | From v0.10.0 (D-136): the six swipe-through pages of SCR-33 that show the main features; on the first start and from *Einstellungen* › *Hilfe*. |
-| **App-Sprache (app language)** | From v0.10.0 (D-136): German or English for the app's own texts (GEN-10); the shop's texts and the tea vocabulary stay German. |
+| **App-Sprache (app language)** | From v0.10.0 (D-136): German or English for the app's own texts (GEN-13); the shop's texts and the tea vocabulary stay German. |
 | **Rezeptdatei (recipe file)** | From v0.9.0 (D-130): the small JSON file `<Tee>.umamit-rezept.json` (until v0.9.0-rc.1 `<Tee>.umamit-rezept`, D-134) attached to a shared recipe (05 §8a); another UmamiT takes it over on SCR-32 as a new recipe. |
 | **Nochmal aufgießen / So nochmal aufgießen** | *Nochmal aufgießen* (Start, BRW-11) is the tap on one of the six teas under *Zuletzt aufgegossen* (v0.5.1, D-110; until v0.5.0 a section of three tiles): it starts the tea at once in READY with its last session's values. *So nochmal aufgießen* (on a session's detail page, from v0.4.0) opens the brew setup with that session's values as brewed, to check before *Start*. |
 | **Quick timer (Schnelltimer)** | A countdown without a tea; nothing is recorded (TMR-22). Not a session. |

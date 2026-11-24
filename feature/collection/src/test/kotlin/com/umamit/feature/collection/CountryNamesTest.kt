@@ -5,7 +5,7 @@ import com.umamit.testlocale.inLocale
 import org.junit.Test
 import java.util.Locale
 
-/** A tea's country by its code in the app's language (GEN-10); anything that is no code stays as typed. */
+/** A tea's country by its code in the app's language (GEN-13); anything that is no code stays as typed. */
 class CountryNamesTest {
 
     @Test

@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Start (SCR-02) in English (GEN-10, #359), light and dark at font scale 1.0: the seeded list, the empty state and
+ * Start (SCR-02) in English (GEN-13, #359), light and dark at font scale 1.0: the seeded list, the empty state and
  * the low-stock card. The fixtures are [HomeScreenScreenshotTest]'s; the tea names are data and stay as they are.
  * Placeholder images only. Goldens: `src/test/screenshots/`.
  */

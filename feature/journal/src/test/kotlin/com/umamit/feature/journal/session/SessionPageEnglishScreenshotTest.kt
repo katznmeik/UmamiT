@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The session page (SCR-16) in English (GEN-10, #359), light and dark at font scale 1.0: the page of
+ * The session page (SCR-16) in English (GEN-13, #359), light and dark at font scale 1.0: the page of
  * [SessionPageScreenshotTest] (synthetic data, D-016), rated with a note, and its taste editor unfolded. Goldens:
  * `src/test/screenshots/`.
  */

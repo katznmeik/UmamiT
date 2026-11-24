@@ -48,8 +48,8 @@
     <string name="recipe_file_vessel_type_other">Andere</string>
     <!-- The journal CSV (BAK-04, D-130 Q9, Q10): the header row, in BAK-04's column order. The csv_ strings have no
          values-en (translatable="false"): the English file's own words are in Kotlin (EnglishJournalCsvWords,
-         GEN-10, D-136 item 15), and it reads the rest from here, the same in both files: the ten taste headers
-         (GEN-10 AC2), csv_celsius and the three separators. -->
+         GEN-13, D-136 item 15), and it reads the rest from here, the same in both files: the ten taste headers
+         (GEN-13 AC2), csv_celsius and the three separators. -->
     <string name="csv_header_date" translatable="false">Datum</string>
     <string name="csv_header_time" translatable="false">Uhrzeit</string>
     <string name="csv_header_tea" translatable="false">Tee</string>

@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-24 (D-136 (v0.10.0): GEN-10, ONB-07, TMR-31 sheet, INV-03 edit, INV-08 recompute, SET-35, SET-36; 2026-11-20: D-134/D-135 (v0.9.0-rc.2): PRF-08 file name and type, GEN-01 three uses, ONB-06 removed, CAT-15, WARE-06, SET-33; 2026-11-19: v0.9.0, D-131 build notes: SET-33 as built; 2026-11-18: v0.9.0, D-130: GEN-01 (d) a received recipe's shop link on a tap, PRF-08, BAK-01, BAK-02, BAK-04, BAK-06 in full, SET-20 a switch; 2026-11-17: v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-24 (D-136 (v0.10.0): GEN-13, ONB-07, TMR-31 sheet, INV-03 edit, INV-08 recompute, SET-35, SET-36; 2026-11-20: D-134/D-135 (v0.9.0-rc.2): PRF-08 file name and type, GEN-01 three uses, ONB-06 removed, CAT-15, WARE-06, SET-33; 2026-11-19: v0.9.0, D-131 build notes: SET-33 as built; 2026-11-18: v0.9.0, D-130: GEN-01 (d) a received recipe's shop link on a tap, PRF-08, BAK-01, BAK-02, BAK-04, BAK-06 in full, SET-20 a switch; 2026-11-17: v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -140,7 +140,7 @@ kettle). Imported or legacy values are snapped to the nearest 5 °C
 
 ---
 
-**GEN-10 — App language** `Must` (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136))
+**GEN-13 — App language** `Must` (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136))
 German (the default) or English, chosen in *Einstellungen* › *Darstellung* ›
 *Sprache* (SET-35) or in the phone's per-app language settings.
 - AC1: every app text (screens, dialogs, snackbars, notifications, the
@@ -2047,7 +2047,7 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 | SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Aufguss & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Aufguss & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
 | SET-34 | ~~Tassengröße~~ **removed in rc.3 (D-115 A2)**: the setting, its row and dialog are gone; Statistik and the tea detail count volume (INV-08, INS-05). Until rc.2 (D-115 A1, R2–R3): 50–500 ml in 10 ml steps, **150 ml** (`cupSizeMl`, retired, 05 §6) | — | — |
-| SET-35 | Sprache (*Darstellung*; v0.10.0, D-136): System · Deutsch · English (GEN-10), through Android's per-app language | System | Must |
+| SET-35 | Sprache (*Darstellung*; v0.10.0, D-136): System · Deutsch · English (GEN-13), through Android's per-app language | System | Must |
 | SET-36 | Einführung (*Hilfe*; v0.10.0, D-136): opens the tour (ONB-07, SCR-33) | — | Must |
 | SET-28 | Vorrats-Erinnerung (INV-11, in *Aufguss & Vorrat*; a switch „Tägliche Vorrats-Erinnerung" in v0.3.0, D-098; from v0.5.0 *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich · Aus*, D-108) | Täglich | Should |
 | SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is not *Aus*; v0.3.0, D-098) | **18:00** | Should |

@@ -77,7 +77,7 @@ fun DurationPicker(initialSeconds: Int, onApply: (Int) -> Unit, onDismiss: () ->
                     PickerField(
                         DurationSteps.Field.MINUTES,
                         R.string.ui_duration_picker_minutes,
-                        // Digits only, the same in German and English (GEN-10).
+                        // Digits only, the same in German and English (GEN-13).
                         "%02d".format(Locale.ROOT, m),
                         R.string.ui_duration_picker_minutes_less,
                         R.string.ui_duration_picker_minutes_more,

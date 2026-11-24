@@ -5,7 +5,7 @@ import java.util.IllformedLocaleException
 import java.util.Locale
 
 /**
- * The name of the country [code] (ISO 3166-1 alpha-2) in the app's language (GEN-10), e.g. „Japan" for `JP`,
+ * The name of the country [code] (ISO 3166-1 alpha-2) in the app's language (GEN-13), e.g. „Japan" for `JP`,
  * „Südkorea" or „South Korea" for `KR`; a value that is no code (a name typed earlier) or has no name stays as it is.
  * Display only: the tea keeps the code.
  */

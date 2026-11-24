@@ -9,7 +9,7 @@ import com.umamit.core.model.TeaCategory
  */
 interface JournalCsvLabels {
     /**
-     * The language of the whole file (GEN-10, D-136 item 15): its words, separator, numbers and dates. Resolved once
+     * The language of the whole file (GEN-13, D-136 item 15): its words, separator, numbers and dates. Resolved once
      * per export, so one file never mixes the two.
      */
     val language: AppLanguage
@@ -22,7 +22,7 @@ interface JournalCsvLabels {
 
     /**
      * The label of a descriptor key (`marine.nori` → „Nori"); null for a key the app does not know (JRN-04). German in
-     * both languages (GEN-10 AC2).
+     * both languages (GEN-13 AC2).
      */
     fun descriptor(key: String): String?
 
@@ -30,11 +30,11 @@ interface JournalCsvLabels {
 }
 
 /**
- * The English words of the CSV (GEN-10, D-136 item 15), in Kotlin rather than in a `values-en/strings.xml`: Lint's
+ * The English words of the CSV (GEN-13, D-136 item 15), in Kotlin rather than in a `values-en/strings.xml`: Lint's
  * `MissingTranslation` would then demand every other string of this module in English, and the words follow
  * [JournalCsvLabels.language] rather than the resources' locale, so a phone list such as [Français, English] still
  * gives one consistent file. Null where English keeps the German word: the ten taste headers (the taste-slider names
- * stay German, GEN-10 AC2), the temperature and the separators.
+ * stay German, GEN-13 AC2), the temperature and the separators.
  */
 internal object EnglishJournalCsvWords {
     @Suppress("CyclomaticComplexMethod") // one word per column of BAK-04

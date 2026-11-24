@@ -40,7 +40,7 @@ class ExportJournalCsvTest {
         count to out.toByteArray()
     }
 
-    /** The labels as the export makes them: in the app language of the moment (GEN-10, D-136 item 15). */
+    /** The labels as the export makes them: in the app language of the moment (GEN-13, D-136 item 15). */
     private fun labelsNow() = ResourceJournalCsvLabels(context.resources, DESCRIPTOR_LABELS::get)
 
     @Test
@@ -320,8 +320,8 @@ class ExportJournalCsvTest {
                     CRLF
             }
 
-        // English (GEN-10, D-136 item 15): `,`, a decimal point, ISO dates, the BOM; the taste headers, the
-        // descriptors and the tea names stay German (GEN-10 AC2). Quoting now follows `,`: „Nori, Spinat" is quoted,
+        // English (GEN-13, D-136 item 15): `,`, a decimal point, ISO dates, the BOM; the taste headers, the
+        // descriptors and the tea names stay German (GEN-13 AC2). Quoting now follows `,`: „Nori, Spinat" is quoted,
         // „'+Glas; klein" is not.
         const val HEADER_EN = "Date,Time,Tea,Category,Recipe,Vessel,Leaf (g),Water (ml),Infusions,Duration," +
             "Tea rating,Brewing rating,Cost (€),Descriptors,Notes,Infusion details," +

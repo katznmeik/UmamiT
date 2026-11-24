@@ -15,7 +15,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.time.ZoneId
 
 /**
- * *Data & backup* (SCR-26) in English (GEN-10, #359), light and dark at font scale 1.0, on synthetic data: never
+ * *Data & backup* (SCR-26) in English (GEN-13, #359), light and dark at font scale 1.0, on synthetic data: never
  * saved, saved with an undo, the restore dialog with its typed word, and the delete dialog. Goldens:
  * `src/test/screenshots/`.
  */
@@ -38,7 +38,7 @@ class DataBackupEnglishScreenshotTest(private val dark: Boolean) {
         /** Until 25 Nov 2026, 08:30 in Berlin. */
         private const val UNTIL_MS = 1_795_591_800_000L
 
-        /** What the screen hands over from values-en (DataBackupRoute, GEN-10). */
+        /** What the screen hands over from values-en (DataBackupRoute, GEN-13). */
         private val ENGLISH_WORDS = ConfirmWords(replace = "REPLACE", wipe = "DELETE")
     }
 

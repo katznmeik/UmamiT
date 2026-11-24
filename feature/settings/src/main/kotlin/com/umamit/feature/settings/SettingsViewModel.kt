@@ -60,7 +60,7 @@ class SettingsViewModel @Inject constructor(
     val language: StateFlow<LanguageChoice> = languageChoice.asStateFlow()
 
     /**
-     * SET-35 *Sprache* (GEN-10): handed to Android at once, which re-creates the activity in the new language; this
+     * SET-35 *Sprache* (GEN-13): handed to Android at once, which re-creates the activity in the new language; this
      * view model, the screen's saved state and a running timer stay.
      */
     fun setLanguage(choice: LanguageChoice) {

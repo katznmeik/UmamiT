@@ -11,7 +11,7 @@ import java.util.Locale
 
 /**
  * The one set of grams, price and date formats of the app (CLAUDE.md rule 4, D-101), in the app's language
- * (GEN-10, D-136 item 15; [AppLanguage], read at every call): German keeps its rules exactly, decimal comma and
+ * (GEN-13, D-136 item 15; [AppLanguage], read at every call): German keeps its rules exactly, decimal comma and
  * „21. Okt. 2026"; English has a decimal point and „Oct 21, 2026". Times are 24 h in both („07:05"). Display only:
  * nothing stored goes through it. Parsing the typed counterparts stays in `GermanNumber` (`core:domain`), which reads a
  * decimal point too, so the editable values ([editableEuros], [gramsOneDecimal]) parse back in both languages.

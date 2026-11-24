@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config
 import java.util.Locale
 
 /**
- * GEN-10: the word to type follows the language of the resources the screen shows, like the hint that names it
+ * GEN-13: the word to type follows the language of the resources the screen shows, like the hint that names it
  * (BAK-02 AC3, SET-33), never the JVM's locale.
  */
 @RunWith(RobolectricTestRunner::class)

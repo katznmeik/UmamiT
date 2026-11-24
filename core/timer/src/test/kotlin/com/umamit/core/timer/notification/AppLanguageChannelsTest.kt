@@ -14,7 +14,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The timer's channel names and descriptions follow the app's language, not the process's (GEN-10 AC1; D-136 item
+ * The timer's channel names and descriptions follow the app's language, not the process's (GEN-13 AC1; D-136 item
  * 15): [TimerNotifications.ensureChannels] runs from the service and its receivers, often in a process with no
  * activity, which runs in the phone's language.
  */

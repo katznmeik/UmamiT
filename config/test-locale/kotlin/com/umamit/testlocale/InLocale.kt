@@ -4,7 +4,7 @@ import java.util.Locale
 
 /**
  * Runs [block] with [locale] as the default locale, then restores the one before: the English side of a plain JVM
- * test of a formatter (GEN-10). A Robolectric test names its language in its qualifiers instead
+ * test of a formatter (GEN-13). A Robolectric test names its language in its qualifiers instead
  * ([GermanConfigConfigurer]).
  */
 fun <T> inLocale(locale: Locale, block: () -> T): T {

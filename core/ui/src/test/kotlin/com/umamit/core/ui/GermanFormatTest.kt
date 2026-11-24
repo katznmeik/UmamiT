@@ -11,7 +11,7 @@ import java.util.Locale
 
 /**
  * The shared grams, price and date formats (CLAUDE.md rule 4, D-101): German by default, decimal comma, fixed
- * rounding; English when the locale is English (GEN-10).
+ * rounding; English when the locale is English (GEN-13).
  */
 class GermanFormatTest {
 

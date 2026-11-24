@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The setup (SCR-04) in English (GEN-10, #359), light and dark at font scale 1.0: the Kyusu setup and a cold brew
+ * The setup (SCR-04) in English (GEN-13, #359), light and dark at font scale 1.0: the Kyusu setup and a cold brew
  * with low stock. The fixtures are [BrewSetupScreenshotTest]'s; the tea, recipe and vessel names are data and stay as
  * they are. Placeholder images only. Goldens: `src/test/screenshots/`.
  */

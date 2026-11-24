@@ -27,7 +27,7 @@ internal fun Project.configureKotlinAndroid(android: CommonExtension) {
         compileOptions.targetCompatibility = JAVA_VERSION
         testOptions.unitTests.isIncludeAndroidResources = true
         configureLint(lint)
-        // GEN-10 (D-136 item 15): every Robolectric test runs in German unless it names a language, whatever
+        // GEN-13 (D-136 item 15): every Robolectric test runs in German unless it names a language, whatever
         // else its qualifiers say (`config/test-locale`: Robolectric's config plugin, found through META-INF/services).
         sourceSets.getByName("test") {
             kotlin.directories.add("$rootDir/config/test-locale/kotlin")
@@ -83,7 +83,7 @@ internal fun Project.configureKotlinJvm() {
 }
 
 /**
- * The JVM's default locale in tests is German whatever the machine's is (GEN-10, D-136 item 15): the app's
+ * The JVM's default locale in tests is German whatever the machine's is (GEN-13, D-136 item 15): the app's
  * formatting follows the current locale, and the tests expect German unless they choose English themselves.
  * Robolectric tests set it again from their (German, `config/test-locale`) configuration.
  */

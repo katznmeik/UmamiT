@@ -42,7 +42,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 /**
- * A language change with a brew running keeps the brew (GEN-10 AC3, SET-35; D-136 item 15). *Sprache* hands the
+ * A language change with a brew running keeps the brew (GEN-13 AC3, SET-35; D-136 item 15). *Sprache* hands the
  * language to Android ([AppLocales]), which re-creates the activity in English (`locale` is not in `configChanges`);
  * the session, its phase and its deadline in the timer controller stay exactly as they were, and the Live Update is
  * still posted. Then German again, as the runner set it ([GermanLocaleRunner]). The step is long, so no alert

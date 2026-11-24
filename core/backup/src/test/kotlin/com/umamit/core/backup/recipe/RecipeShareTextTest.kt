@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The share text (PRF-08 AC1, the example in 03 SCR-12) against the module's own strings.xml (#340): German, and
- * English when the app is English (GEN-10, #359).
+ * English when the app is English (GEN-13, #359).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])

@@ -5,7 +5,7 @@ import com.umamit.testlocale.inLocale
 import org.junit.Test
 import java.util.Locale
 
-/** A count with thousands separators in the app's language (rule 4, GEN-10). */
+/** A count with thousands separators in the app's language (rule 4, GEN-13). */
 class GroupedCountTest {
     @Test
     fun `German groups with a dot`() {

@@ -15,7 +15,7 @@ import java.util.Locale
 /**
  * The texts of the timer's notifications per phase (04 §8.2, §8.3; D-064): the step
  * word follows the step kind as on SCR-05 (D-058), the quick timer is „Schnelltimer". The strings come from
- * [context] at each post, so the next update after a language change is in the new language (GEN-10).
+ * [context] at each post, so the next update after a language change is in the new language (GEN-13).
  */
 internal class TimerNotificationTexts(private val context: Context) {
 
@@ -115,14 +115,14 @@ internal class TimerNotificationTexts(private val context: Context) {
     /** The tea of [state], or „Schnelltimer". */
     fun teaOf(state: TimerUiState.Active): String = state.teaName ?: context.getString(R.string.timer_quick_title)
 
-    /** „14:30": the wall-clock end of a long step in the zone of [now] (TMR-18), 24 h in both languages (GEN-10). */
+    /** „14:30": the wall-clock end of a long step in the zone of [now] (TMR-18), 24 h in both languages (GEN-13). */
     private fun timeOfDay(state: TimerUiState.Active, now: ClockReading): String {
         val end = Instant.ofEpochMilli(checkNotNull(state.deadlineWallMs)).atZone(now.zone)
         return TIME_OF_DAY.format(end)
     }
 
     private companion object {
-        // Digits and colons only, the same in German and English (GEN-10): no language to follow, so Locale.ROOT.
+        // Digits and colons only, the same in German and English (GEN-13): no language to follow, so Locale.ROOT.
         val TIME_OF_DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm", Locale.ROOT)
         const val SECONDS_PER_MINUTE = 60L
         const val SECONDS_PER_HOUR = 3_600L

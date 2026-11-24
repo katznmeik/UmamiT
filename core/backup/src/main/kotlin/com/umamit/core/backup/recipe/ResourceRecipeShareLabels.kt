@@ -10,7 +10,7 @@ import java.util.Locale
 
 /**
  * [RecipeShareLabels] from this module's `strings.xml` (CLAUDE.md rule 4), German or English with [resources], and
- * the numbers in [language], the app language when the labels are made (GEN-10, D-136 item 15).
+ * the numbers in [language], the app language when the labels are made (GEN-13, D-136 item 15).
  */
 class ResourceRecipeShareLabels(private val resources: Resources, language: AppLanguage = AppLanguage.current()) :
     RecipeShareLabels {

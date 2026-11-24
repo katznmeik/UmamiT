@@ -10,7 +10,7 @@ import org.robolectric.annotation.Config
 import java.util.Locale
 
 /**
- * The central German pin of the Robolectric tests (`config/test-locale`, GEN-10, D-136 item 15): with or without a
+ * The central German pin of the Robolectric tests (`config/test-locale`, GEN-13, D-136 item 15): with or without a
  * class's qualifiers, the resources and the default locale are German and the qualifiers' size stays; a test that
  * names English gets English.
  */

@@ -120,7 +120,7 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
         )
     }
 
-    /** The *Sprache* dialog (SET-35, GEN-10): *System*, „Deutsch" and „English", English picked. */
+    /** The *Sprache* dialog (SET-35, GEN-13): *System*, „Deutsch" and „English", English picked. */
     @Test
     fun settingsLanguagePicker() = capture("Settings_language", clickText = "Sprache") {
         SettingsScreen(

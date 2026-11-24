@@ -36,7 +36,7 @@ class RecipeFileTest {
         return (result as RecipeFileResult.Valid).recipe
     }
 
-    /** GEN-10 (#359): only the share text follows the app language; the file is the same byte for byte. */
+    /** GEN-13 (#359): only the share text follows the app language; the file is the same byte for byte. */
     @Test
     fun `the file is the same in English as in German`() {
         val before = Locale.getDefault()

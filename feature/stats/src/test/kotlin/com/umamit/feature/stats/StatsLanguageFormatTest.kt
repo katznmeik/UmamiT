@@ -7,7 +7,7 @@ import org.junit.Test
 import java.time.YearMonth
 import java.util.Locale
 
-/** Statistik's axis numbers, ratings and months in the app's language (GEN-10): German by default, or English. */
+/** Statistik's axis numbers, ratings and months in the app's language (GEN-13): German by default, or English. */
 class StatsLanguageFormatTest {
     private val october = YearMonth.of(2026, 10)
 

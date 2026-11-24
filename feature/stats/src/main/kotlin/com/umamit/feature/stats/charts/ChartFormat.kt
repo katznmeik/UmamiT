@@ -41,7 +41,7 @@ enum class ChartUnit {
     }
 }
 
-/** Number helpers shared by the charts, in the app's language (GEN-10). */
+/** Number helpers shared by the charts, in the app's language (GEN-13). */
 internal object ChartNumbers {
     private const val MAX_AXIS_DECIMALS = 1
 

@@ -21,7 +21,7 @@ import java.util.Locale
  * `MANUAL`), newest first; the separator between the fields, CRLF after every row, a field holding the separator, `"`
  * or a line break in quotes with its `"` doubled. An empty value stays empty and no cell carries a unit.
  *
- * The file follows the labels' [JournalCsvLabels.language], resolved once per export (GEN-10, D-136 item 15). German,
+ * The file follows the labels' [JournalCsvLabels.language], resolved once per export (GEN-13, D-136 item 15). German,
  * for German Excel: `;`, decimal comma and dates by 05 §7 and 08 („4,0", „21.10.2026", „07:45"). English: `,`, decimal
  * point and ISO dates („4.0", „2026-10-21", „07:45"); ISO, because a spreadsheet reads it as a date in any locale and
  * it needs no quotes, where „Oct 21, 2026" would hold the separator.
@@ -195,7 +195,7 @@ object JournalCsv {
     }
 }
 
-/** One export's separator, number locale and date format (GEN-10, D-136 item 15), by [AppLanguage]. */
+/** One export's separator, number locale and date format (GEN-13, D-136 item 15), by [AppLanguage]. */
 private class CsvFormat(val locale: Locale, val separator: Char, val decimalMark: Char, datePattern: String) {
     val date: DateTimeFormatter = DateTimeFormatter.ofPattern(datePattern, locale)
     val time: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", locale)

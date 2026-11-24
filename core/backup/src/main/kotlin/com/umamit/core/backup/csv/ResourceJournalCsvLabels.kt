@@ -6,9 +6,9 @@ import com.umamit.core.common.AppLanguage
 import com.umamit.core.model.TeaCategory
 
 /**
- * [JournalCsvLabels] in [language], the app's language when the labels are made, i.e. once per export (GEN-10,
+ * [JournalCsvLabels] in [language], the app's language when the labels are made, i.e. once per export (GEN-13,
  * D-136 item 15): German from this module's `strings.xml` (CLAUDE.md rule 4), English from [EnglishJournalCsvWords]
- * where English has its own word, else the German one (the taste headers, GEN-10 AC2). The descriptor labels live in
+ * where English has its own word, else the German one (the taste headers, GEN-13 AC2). The descriptor labels live in
  * `core:ui` (08 §4), so the caller passes [descriptorLabel], as the journal builds its search words (JRN-09); they
  * stay German in both languages.
  */

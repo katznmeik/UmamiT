@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 
 /**
- * *Sprache* (SET-35, GEN-10, 03 SCR-25): *System*, „Deutsch" and „English", the two names in their own language. A
+ * *Sprache* (SET-35, GEN-13, 03 SCR-25): *System*, „Deutsch" and „English", the two names in their own language. A
  * pick closes the dialog and goes to Android at once, which re-creates the activity in the new language.
  */
 @Composable

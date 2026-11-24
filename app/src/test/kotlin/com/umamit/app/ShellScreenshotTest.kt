@@ -84,7 +84,7 @@ class ShellScreenshotTest(private val dark: Boolean, private val wide: Boolean) 
         name: String,
         brew: ActiveBrew = ActiveBrew("Gyokuro", "Aufguss 2/3", 45, Color(0xFF8DA36B)),
     ) {
-        // German again: setQualifiers replaces the pinned locale, and the app has values-en now (GEN-10).
+        // German again: setQualifiers replaces the pinned locale, and the app has values-en now (GEN-13).
         val size = if (wide) "w900dp-h500dp-xhdpi" else "w411dp-h891dp-xhdpi"
         RuntimeEnvironment.setQualifiers("$size +de-rDE")
         val source = MutableStateFlow<ActiveBrew?>(brew)

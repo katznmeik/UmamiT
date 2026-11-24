@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import java.util.Locale
 
-/** GEN-10 AC3: English for any English locale, German for every other language; read at each call. */
+/** GEN-13 AC3: English for any English locale, German for every other language; read at each call. */
 class AppLanguageTest {
     @Test
     fun `English for any English locale`() {

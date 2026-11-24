@@ -14,7 +14,7 @@ private const val SECONDS_PER_HOUR = 3_600
 
 /**
  * A duration as the timer shows it (04 §5): „m:ss", and „h:mm:ss" from one hour on. Digits and colons only, the same in
- * both app languages (GEN-10), so the locale is fixed to [Locale.ROOT].
+ * both app languages (GEN-13), so the locale is fixed to [Locale.ROOT].
  */
 fun clockText(totalSeconds: Int): String {
     val hours = totalSeconds / SECONDS_PER_HOUR
@@ -27,12 +27,12 @@ fun clockText(totalSeconds: Int): String {
     }
 }
 
-/** A rating with one decimal in the app's language (GEN-10): „4,5" (English „4.5"). */
+/** A rating with one decimal in the app's language (GEN-13): „4,5" (English „4.5"). */
 fun ratingText(rating: Float): String = "%.1f".format(AppLanguage.current().locale, rating)
 
 /**
  * A tea's average rating to one decimal, rounded half up from the [average] itself and not from a float of it:
- * 4,35 is „4,4", 4,45 „4,5", 3,25 „3,3" (TEA-08, TEA-11); in English with a decimal point (GEN-10).
+ * 4,35 is „4,4", 4,45 „4,5", 3,25 „3,3" (TEA-08, TEA-11); in English with a decimal point (GEN-13).
  */
 fun averageRatingText(average: Double): String =
     "%.1f".format(AppLanguage.current().locale, BigDecimal.valueOf(average).setScale(1, RoundingMode.HALF_UP))

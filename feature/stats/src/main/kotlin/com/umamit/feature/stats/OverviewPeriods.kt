@@ -15,7 +15,7 @@ private val MONTH_YEAR = MonthPattern("MMM yyyy")
 private val YEAR_SHORT = MonthPattern("yy")
 
 /**
- * A month pattern in the app's language (GEN-10): „Okt.", „Okt. 2026" in German, „Oct", „Oct 2026" in English. Both
+ * A month pattern in the app's language (GEN-13): „Okt.", „Okt. 2026" in German, „Oct", „Oct 2026" in English. Both
  * formatters are immutable; the language picks one at every call, so a language change never leaves it stale.
  */
 private class MonthPattern(pattern: String) {

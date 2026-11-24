@@ -69,7 +69,7 @@ class TeawareViewModel @Inject constructor(
 
     internal companion object {
         /**
-         * A–Z in the app's language (GEN-10): „Öko" next to „Oolong", case and accents second. A new collator for each
+         * A–Z in the app's language (GEN-13): „Öko" next to „Oolong", case and accents second. A new collator for each
          * sort, so a language change is never stale.
          */
         val byName: Comparator<String>

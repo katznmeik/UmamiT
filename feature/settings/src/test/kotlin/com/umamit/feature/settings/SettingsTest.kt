@@ -159,7 +159,7 @@ class SettingsTest {
     private fun clickRow(text: String) = compose.onNodeWithText(text).performScrollTo().performClick()
 
     /** A tap on [hour] on the time picker's 24 h dial (its items carry the hour as content description). */
-    // The tests run in German (GEN-10, config/test-locale): the clock face says „21 Uhr", with a no-break space.
+    // The tests run in German (GEN-13, config/test-locale): the clock face says „21 Uhr", with a no-break space.
     private fun pickHour(hour: Int) =
         compose.onNode(hasContentDescription("$hour\u00A0", substring = true) and hasClickAction()).performClick()
 

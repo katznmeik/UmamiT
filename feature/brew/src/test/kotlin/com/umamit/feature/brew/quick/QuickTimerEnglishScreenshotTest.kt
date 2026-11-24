@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * SCR-07 in English (GEN-10, #359), light and dark at font scale 1.0: before its *Start* (the chips, the pre-alert
+ * SCR-07 in English (GEN-13, #359), light and dark at font scale 1.0: before its *Start* (the chips, the pre-alert
  * too short, the pre-alert menu) and running. Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)

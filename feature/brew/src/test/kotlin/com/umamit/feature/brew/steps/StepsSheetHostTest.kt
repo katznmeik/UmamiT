@@ -479,6 +479,6 @@ class StepsSheetHostTest {
 }
 
 // Compose's own descriptions of the sheet's scrim and Material 3's of its handle (androidx's German translations); the
-// tests run in German (GEN-10, config/test-locale).
+// tests run in German (GEN-13, config/test-locale).
 private const val SHEET_SCRIM = "Tabelle schließen"
 private const val SHEET_HANDLE = "Ziehpunkt"

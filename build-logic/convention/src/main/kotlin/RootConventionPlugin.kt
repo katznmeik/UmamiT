@@ -19,7 +19,7 @@ class RootConventionPlugin : Plugin<Project> {
             sources = listOf(
                 file("build-logic/convention/src/main/kotlin"),
                 file("build-logic/convention/src/test/kotlin"),
-                // The shared test sources every Android module's unit tests compile (GEN-10, KotlinAndroid.kt).
+                // The shared test sources every Android module's unit tests compile (GEN-13, KotlinAndroid.kt).
                 file("config/test-locale/kotlin"),
             ),
         )

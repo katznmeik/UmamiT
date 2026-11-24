@@ -136,5 +136,5 @@ private fun NotesSection(page: SessionPage, actions: SessionPageActions) {
     }
 }
 
-/** „4.501" (English „4,501"): a count in the app's language (rule 4, GEN-10). */
+/** „4.501" (English „4,501"): a count in the app's language (rule 4, GEN-13). */
 internal fun grouped(count: Int): String = "%,d".format(AppLanguage.current().locale, count)
