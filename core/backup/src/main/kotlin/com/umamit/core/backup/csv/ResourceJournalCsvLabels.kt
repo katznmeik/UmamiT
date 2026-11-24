@@ -2,18 +2,31 @@ package com.umamit.core.backup.csv
 
 import android.content.res.Resources
 import com.umamit.core.backup.R
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.model.TeaCategory
 
 /**
- * [JournalCsvLabels] from this module's `strings.xml` (CLAUDE.md rule 4). The descriptor labels live in `core:ui`
- * (08 §4), so the caller passes [descriptorLabel], as the journal builds its search words (JRN-09).
+ * [JournalCsvLabels] in [language], the app's language when the labels are made, i.e. once per export (GEN-10,
+ * D-136 item 15): German from this module's `strings.xml` (CLAUDE.md rule 4), English from [EnglishJournalCsvWords]
+ * where English has its own word, else the German one (the taste headers, GEN-10 AC2). The descriptor labels live in
+ * `core:ui` (08 §4), so the caller passes [descriptorLabel], as the journal builds its search words (JRN-09); they
+ * stay German in both languages.
  */
 class ResourceJournalCsvLabels(
     private val resources: Resources,
     private val descriptorLabel: (key: String) -> String?,
+    override val language: AppLanguage = AppLanguage.current(),
 ) : JournalCsvLabels {
-    private val headers = JournalCsvColumn.entries.associateWith { resources.getString(it.headerRes()) }
-    private val categories = TeaCategory.entries.associateWith { resources.getString(it.labelRes()) }
+    private val english = language == AppLanguage.ENGLISH
+    private val headers = JournalCsvColumn.entries.associateWith { column ->
+        (if (english) EnglishJournalCsvWords.header(column) else null) ?: resources.getString(column.headerRes())
+    }
+    private val categories = TeaCategory.entries.associateWith { category ->
+        if (english) EnglishJournalCsvWords.category(category) else resources.getString(category.labelRes())
+    }
+    private val templates = JournalCsvPart.entries.associateWith { part ->
+        (if (english) EnglishJournalCsvWords.template(part) else null) ?: resources.getString(part.templateRes())
+    }
 
     override fun header(column: JournalCsvColumn): String = headers.getValue(column)
 
@@ -21,16 +34,16 @@ class ResourceJournalCsvLabels(
 
     override fun descriptor(key: String): String? = descriptorLabel(key)
 
-    override fun template(part: JournalCsvPart): String = resources.getString(
-        when (part) {
-            JournalCsvPart.INFUSIONS_OF -> R.string.csv_infusions_of
-            JournalCsvPart.CELSIUS -> R.string.csv_celsius
-            JournalCsvPart.RINSE -> R.string.csv_rinse
-            JournalCsvPart.STEP_PARTS_SEPARATOR -> R.string.csv_step_parts_separator
-            JournalCsvPart.STEPS_SEPARATOR -> R.string.csv_steps_separator
-            JournalCsvPart.DESCRIPTORS_SEPARATOR -> R.string.csv_descriptors_separator
-        },
-    )
+    override fun template(part: JournalCsvPart): String = templates.getValue(part)
+}
+
+private fun JournalCsvPart.templateRes(): Int = when (this) {
+    JournalCsvPart.INFUSIONS_OF -> R.string.csv_infusions_of
+    JournalCsvPart.CELSIUS -> R.string.csv_celsius
+    JournalCsvPart.RINSE -> R.string.csv_rinse
+    JournalCsvPart.STEP_PARTS_SEPARATOR -> R.string.csv_step_parts_separator
+    JournalCsvPart.STEPS_SEPARATOR -> R.string.csv_steps_separator
+    JournalCsvPart.DESCRIPTORS_SEPARATOR -> R.string.csv_descriptors_separator
 }
 
 @Suppress("CyclomaticComplexMethod") // one string per column of BAK-04

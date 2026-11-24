@@ -1,6 +1,7 @@
 package com.umamit.core.backup.csv
 
 import com.umamit.core.backup.recipe.RecipeShareText
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.common.sessionZone
 import com.umamit.core.database.dao.JournalSessionRow
 import com.umamit.core.database.entity.BrewSessionEntity
@@ -16,11 +17,17 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * The journal as CSV for German Excel (BAK-04, D-130 Q9, Q10): a header row, then one row per finished session
- * (`COMPLETED` and `MANUAL`), newest first; `;` between the fields, CRLF after every row, a field holding `;`, `"` or a
- * line break in quotes with its `"` doubled. Numbers and dates by 05 §7 and 08 („4,0", „21.10.2026", „07:45"); an
- * empty value stays empty and no cell carries a unit. A free-text cell starting with `=`, `+`, `-` or `@` gets a
- * leading apostrophe, so Excel does not read it as a formula. The byte order mark is the writer's ([ExportJournalCsv]).
+ * The journal as CSV (BAK-04, D-130 Q9, Q10): a header row, then one row per finished session (`COMPLETED` and
+ * `MANUAL`), newest first; the separator between the fields, CRLF after every row, a field holding the separator, `"`
+ * or a line break in quotes with its `"` doubled. An empty value stays empty and no cell carries a unit.
+ *
+ * The file follows the labels' [JournalCsvLabels.language], resolved once per export (GEN-10, D-136 item 15). German,
+ * for German Excel: `;`, decimal comma and dates by 05 §7 and 08 („4,0", „21.10.2026", „07:45"). English: `,`, decimal
+ * point and ISO dates („4.0", „2026-10-21", „07:45"); ISO, because a spreadsheet reads it as a date in any locale and
+ * it needs no quotes, where „Oct 21, 2026" would hold the separator.
+ *
+ * A free-text cell starting with `=`, `+`, `-` or `@` gets a leading apostrophe, so Excel does not read it as a
+ * formula. The byte order mark is the writer's ([ExportJournalCsv]).
  *
  * The derived cells follow the journal: „Aufgüsse" counts as the journal row does (TMR-12), „Aufgüsse im Detail"
  * lists the brewed steps (ended, not skipped) with their actual time, and the taste columns average the session's
@@ -28,12 +35,7 @@ import java.util.Locale
  * effect (JRN-03, D-128 item 13); the other four stay empty even where a hidden value is stored (D-130 Q10).
  */
 object JournalCsv {
-    private val GERMAN = Locale.GERMANY
-    private val DATE = DateTimeFormatter.ofPattern("dd.MM.yyyy", GERMAN)
-    private val TIME = DateTimeFormatter.ofPattern("HH:mm", GERMAN)
-    private const val SEPARATOR = ';'
     private const val ROW_END = "\r\n"
-    private const val QUOTE_TRIGGERS = ";\"\r\n"
     private const val CENTS_PER_EURO = 100
     private const val MS_PER_SECOND = 1_000L
     private const val SECONDS_PER_MINUTE = 60L
@@ -55,46 +57,52 @@ object JournalCsv {
 
     /** Appends the header and the rows of [sessions]' finished ones to [out]; returns how many sessions it wrote. */
     fun write(sessions: List<JournalSessionRow>, labels: JournalCsvLabels, out: Appendable): Int {
-        writeRow(out, JournalCsvColumn.entries.map(labels::header))
+        val format = CsvFormat.of(labels.language)
+        writeRow(out, format, JournalCsvColumn.entries.map(labels::header))
         val rows = sessions
             .filter { it.session.status != SessionStatus.IN_PROGRESS }
             .sortedByDescending { it.session.startedAt }
         val zones = HashMap<String, ZoneId>()
         rows.forEach { row ->
             val zoneId = row.session.zoneId
-            writeRow(out, cells(row, labels, zones.getOrPut(zoneId) { sessionZone(zoneId) }))
+            writeRow(out, format, cells(row, labels, format, zones.getOrPut(zoneId) { sessionZone(zoneId) }))
         }
         return rows.size
     }
 
-    private fun cells(row: JournalSessionRow, labels: JournalCsvLabels, zone: ZoneId): List<String?> {
+    private fun cells(
+        row: JournalSessionRow,
+        labels: JournalCsvLabels,
+        format: CsvFormat,
+        zone: ZoneId,
+    ): List<String?> {
         val session = row.session
         val started = Instant.ofEpochMilli(session.startedAt).atZone(zone)
         val steps = row.steps.sortedBy { it.position }
         val set = tasteSet(row)
         val averages = TasteProfile.averages(infusionTastes(steps), set)
         return listOf(
-            DATE.format(started),
-            TIME.format(started),
+            format.date.format(started),
+            format.time.format(started),
             textCell(session.teaName),
             session.category?.let(labels::category)?.let(::textCell),
             session.profileName?.let(::textCell),
             session.vesselName?.let(::textCell),
-            session.leafGrams?.let { "%.1f".format(GERMAN, it) },
+            session.leafGrams?.let { "%.1f".format(format.locale, it) },
             session.waterMl?.toString(),
-            infusions(session, steps, labels),
+            infusions(session, steps, labels, format),
             duration(session, steps),
-            session.rating?.let(::rating),
-            session.brewingRating?.let(::rating),
-            session.costCents?.let(::euros),
+            session.rating?.let { rating(it, format) },
+            session.brewingRating?.let { rating(it, format) },
+            session.costCents?.let { euros(it, format) },
             row.descriptors
                 .sortedWith(compareBy({ it.createdAt }, { it.descriptorKey }))
                 .mapNotNull { labels.descriptor(it.descriptorKey) }
                 .joinToString(labels.template(JournalCsvPart.DESCRIPTORS_SEPARATOR))
                 .let(::textCell),
             session.notes?.let(::textCell),
-            stepDetails(session, steps, labels),
-        ) + TASTE_COLUMNS.map { axis -> averages[axis]?.let { "%.1f".format(GERMAN, it) } }
+            stepDetails(session, steps, labels, format),
+        ) + TASTE_COLUMNS.map { axis -> averages[axis]?.let { "%.1f".format(format.locale, it) } }
     }
 
     /**
@@ -115,12 +123,13 @@ object JournalCsv {
         session: BrewSessionEntity,
         steps: List<SessionStepEntity>,
         labels: JournalCsvLabels,
+        format: CsvFormat,
     ): String {
         val ended = steps.filter { it.actualSeconds != null }
         val rinses = ended.count { it.kind == StepKind.RINSE }
         val poured = ended.count { it.kind != StepKind.RINSE && !it.skipped }
         val planned = maxOf(session.plannedStepCount - rinses, poured)
-        return labels.template(JournalCsvPart.INFUSIONS_OF).format(GERMAN, poured, planned)
+        return labels.template(JournalCsvPart.INFUSIONS_OF).format(format.locale, poured, planned)
     }
 
     /** „0:12:30": the first step's start (else the session's) to the session's end; empty without an end. */
@@ -129,7 +138,7 @@ object JournalCsv {
         val start = steps.mapNotNull { it.startedAt }.minOrNull() ?: session.startedAt
         val seconds = ((end - start) / MS_PER_SECOND).coerceAtLeast(0)
         return "%d:%02d:%02d".format(
-            GERMAN,
+            Locale.ROOT,
             seconds / SECONDS_PER_HOUR,
             seconds % SECONDS_PER_HOUR / SECONDS_PER_MINUTE,
             seconds % SECONDS_PER_MINUTE,
@@ -144,6 +153,7 @@ object JournalCsv {
         session: BrewSessionEntity,
         steps: List<SessionStepEntity>,
         labels: JournalCsvLabels,
+        format: CsvFormat,
     ): String {
         val parts = labels.template(JournalCsvPart.STEP_PARTS_SEPARATOR)
         return steps
@@ -154,33 +164,53 @@ object JournalCsv {
                     labels.template(JournalCsvPart.RINSE)
                 } else {
                     (step.tempC ?: session.baseTempC)?.let {
-                        labels.template(JournalCsvPart.CELSIUS).format(GERMAN, it)
+                        labels.template(JournalCsvPart.CELSIUS).format(format.locale, it)
                     }
                 }
                 if (head == null) time else head + parts + time
             }
     }
 
-    /** „4,5", and „4" for a whole star. */
-    private fun rating(value: Double): String =
-        if (value % 1.0 == 0.0) value.toLong().toString() else "%.1f".format(GERMAN, value)
+    /** „4,5" („4.5"), and „4" for a whole star. */
+    private fun rating(value: Double, format: CsvFormat): String =
+        if (value % 1.0 == 0.0) value.toLong().toString() else "%.1f".format(format.locale, value)
 
-    /** „0,36" from the cents, without floating point. */
-    private fun euros(cents: Long): String = "%d,%02d".format(GERMAN, cents / CENTS_PER_EURO, cents % CENTS_PER_EURO)
+    /** „0,36" („0.36") from the cents, without floating point. */
+    private fun euros(cents: Long, format: CsvFormat): String =
+        "%d%c%02d".format(Locale.ROOT, cents / CENTS_PER_EURO, format.decimalMark, cents % CENTS_PER_EURO)
 
-    private fun writeRow(out: Appendable, fields: List<String?>) {
+    private fun writeRow(out: Appendable, format: CsvFormat, fields: List<String?>) {
         fields.forEachIndexed { index, field ->
-            if (index > 0) out.append(SEPARATOR)
-            if (field != null) out.append(quoted(field))
+            if (index > 0) out.append(format.separator)
+            if (field != null) out.append(quoted(field, format))
         }
         out.append(ROW_END)
     }
 
-    /** [field] as is, or in quotes with its `"` doubled when it holds `;`, `"` or a line break. */
-    internal fun quoted(field: String): String = if (field.any { it in QUOTE_TRIGGERS }) {
+    /** [field] as is, or in quotes with its `"` doubled when it holds the separator, `"` or a line break. */
+    private fun quoted(field: String, format: CsvFormat): String = if (field.any { it in format.quoteTriggers }) {
         "\"" + field.replace("\"", "\"\"") + "\""
     } else {
         field
+    }
+}
+
+/** One export's separator, number locale and date format (GEN-10, D-136 item 15), by [AppLanguage]. */
+private class CsvFormat(val locale: Locale, val separator: Char, val decimalMark: Char, datePattern: String) {
+    val date: DateTimeFormatter = DateTimeFormatter.ofPattern(datePattern, locale)
+    val time: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", locale)
+
+    /** What puts a field in quotes: the separator, `"` and a line break. */
+    val quoteTriggers = "$separator\"\r\n"
+
+    companion object {
+        private val GERMAN = CsvFormat(AppLanguage.GERMAN.locale, ';', ',', "dd.MM.yyyy")
+        private val ENGLISH = CsvFormat(AppLanguage.ENGLISH.locale, ',', '.', "yyyy-MM-dd")
+
+        fun of(language: AppLanguage): CsvFormat = when (language) {
+            AppLanguage.GERMAN -> GERMAN
+            AppLanguage.ENGLISH -> ENGLISH
+        }
     }
 }
 
