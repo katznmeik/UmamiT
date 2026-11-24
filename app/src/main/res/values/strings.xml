@@ -5,4 +5,8 @@
     <string name="tab_journal">Journal</string>
     <string name="tab_collection">Sammlung</string>
     <string name="tab_stats">Statistik</string>
+    <string name="fsi_sheet_title">Vollbild-Alarm wieder erlauben</string>
+    <string name="fsi_sheet_text">Android hat den Vollbild-Alarm mit dem Update ausgeschaltet. Ohne ihn erscheint der Alarm bei gesperrtem Bildschirm nur als Benachrichtigung.</string>
+    <string name="fsi_sheet_allow">Erlauben</string>
+    <string name="fsi_sheet_later">Später</string>
 </resources>

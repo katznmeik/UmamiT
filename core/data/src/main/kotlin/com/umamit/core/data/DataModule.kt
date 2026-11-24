@@ -41,6 +41,9 @@ abstract class DataModule {
     abstract fun settingsRepository(impl: DataStoreSettingsRepository): SettingsRepository
 
     @Binds
+    abstract fun fsiPromptRepository(impl: DataStoreFsiPromptRepository): FsiPromptRepository
+
+    @Binds
     abstract fun sessionRepository(impl: RoomSessionRepository): SessionRepository
 
     @Binds

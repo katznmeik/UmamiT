@@ -192,6 +192,7 @@ internal fun UmamitRoot(
     onConsumeStartRequest: (Long) -> Unit = {},
     backupRequest: StateFlow<Long> = NO_START_REQUEST,
     onConsumeBackupRequest: (Long) -> Unit = {},
+    fsiPrompt: FsiPrompt = FsiPrompt.None,
 ) {
     val navController = rememberNavController()
     // The tea archived on a detail, for the snackbar with *Rückgängig* on the screen below it, wherever that is: a
@@ -247,6 +248,8 @@ internal fun UmamitRoot(
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
     val timerShown = timerOnTop || timerFirst.requestPending
+    // A timer screen (SCR-05, SCR-07) is on top or about to be: the Vollbild sheet (SCR-34) waits until it is left.
+    val timerScreenOnTop = entry.timerScreenOrPending(timerFirst.requestPending)
     // From the back stack, not the route's composition: it changes when navigation starts, not after the fade. A
     // close over the keyguard ends it at once, while the timer is still drawn (A-17).
     val timerVisible = leaving.reported(timerShown)
@@ -559,6 +562,13 @@ internal fun UmamitRoot(
     // overlapping in a crossfade never fight over it; the timer's own transitions flip them at the fade's midpoint
     // (A-16). Last, so it shifts no saveable key above.
     RootSystemBarIcons(entry, timerShown, alert, timerFirst.requestPending)
+    // A window of its own, so its place here shifts nothing; not on the first start, over a timer screen or an alert.
+    FsiPromptHost(
+        prompt = fsiPrompt,
+        onboardingCompleted = !startWithSetup,
+        timerScreenOnTop = timerScreenOnTop,
+        alerting = alert != null,
+    )
 }
 
 /**

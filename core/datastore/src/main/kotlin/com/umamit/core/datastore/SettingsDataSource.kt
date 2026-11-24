@@ -115,6 +115,12 @@ data class StoredSettings(
      * cleared by the import, its undo and the copy's expiry only; device-bound (05 §8); no migration.
      */
     val safetyCopyAt: Long? = null,
+    /**
+     * The versionCode in which the „Vollbild-Alarm wieder erlauben" sheet was shown or answered (TMR-31, SCR-34,
+     * D-136 item 13); 0 = never. Written by that sheet only; device-bound (05 §8); a file of v0.9.x has no key, no
+     * migration.
+     */
+    val fsiPromptedVersionCode: Int = 0,
 )
 
 /** JSON serializer for [StoredSettings]; an unreadable file reads as the defaults. */
@@ -253,6 +259,14 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
         dataStore.updateData { it.copy(safetyCopyAt = atMs) }
     }
 
+    /** The versionCode the Vollbild sheet last was shown or answered in (TMR-31, SCR-34, 05 §6); 0 = never. */
+    val fsiPromptedVersionCode: Flow<Int> = dataStore.data.map { it.fsiPromptedVersionCode }
+
+    /** Records that the Vollbild sheet was shown or answered in [versionCode] (SCR-34); only that sheet calls it. */
+    suspend fun markFsiPromptedVersionCode(versionCode: Int) {
+        dataStore.updateData { it.copy(fsiPromptedVersionCode = versionCode) }
+    }
+
     /**
      * Applies [transform] atomically to the stored settings, every key of 05 §6: the import lays a backup's keys over
      * them in one write (05 §8 „Replace" step 4).
@@ -346,4 +360,5 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     lastBackupAt = markersOf.lastBackupAt,
     backupReminderLastAt = markersOf.backupReminderLastAt,
     safetyCopyAt = markersOf.safetyCopyAt,
+    fsiPromptedVersionCode = markersOf.fsiPromptedVersionCode,
 )

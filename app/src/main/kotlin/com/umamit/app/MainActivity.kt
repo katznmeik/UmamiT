@@ -27,11 +27,13 @@ import com.umamit.app.timer.TimerActiveBrewSource
 import com.umamit.app.timer.TimerScreenRequests
 import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.FsiPromptRepository
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.designsystem.theme.UmamiAppTheme
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.notification.TimerScreenIntents
+import com.umamit.core.timer.reliability.TimerReliability
 import com.umamit.feature.brew.timer.BrewTimer
 import com.umamit.feature.journal.JournalSources
 import dagger.hilt.android.AndroidEntryPoint
@@ -91,6 +93,12 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var settings: SettingsRepository
 
+    @Inject
+    lateinit var reliability: TimerReliability
+
+    @Inject
+    lateinit var fsiPrompted: FsiPromptRepository
+
     private val timerVisible = MutableStateFlow(false)
 
     /** Whether the phone is locked, for the close of the timer over the keyguard (SCR-05, A-17/A-18). */
@@ -146,6 +154,7 @@ class MainActivity : ComponentActivity() {
         val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         val themeMode = themeModeState(settings)
+        val fsiPrompt = AndroidFsiPrompt.of(this, reliability, fsiPrompted, lifecycleScope)
         // Seeded with the controller's current alert, so a re-created activity's first frame already knows it (A-07).
         val alertKey = brewTimer.state.map { it.alertKey() }
             .stateIn(lifecycleScope, SharingStarted.Eagerly, brewTimer.state.value.alertKey())
@@ -168,6 +177,7 @@ class MainActivity : ComponentActivity() {
                     journalSources = journalSources,
                     alertKey = alertKey,
                     onboardingCompleted = onboardingCompleted,
+                    fsiPrompt = fsiPrompt,
                     timerRequest = timerRequests.request,
                     onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = ::onTimerVisibleChange,

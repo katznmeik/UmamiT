@@ -52,6 +52,7 @@ object BackupFormat {
         "backupReminderLastAt",
         "lastBackupAt",
         "safetyCopyAt",
+        "fsiPromptedVersionCode",
     )
 
     /** The entry of photo [id]. */
