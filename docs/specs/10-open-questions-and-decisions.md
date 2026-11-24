@@ -398,6 +398,17 @@ personal data or shop content).
   - **Images.** A13 is painted for the dark theme, so the light theme shows it through the same ink-on-washi colour matrix the timer uses (copied, since `feature:brew` stayed untouched).
   - **Open for the PO: *Überspringen* on the last page.** SCR-33 hides it on the last page, but D-136 item 16 and ONB-07 AC1 say „on every page". As built it shows on all six pages, beside *Fertig*.
 
+**Build notes (rc session, 2026-11-24; Claude's, for the PO to change).**
+- **GEN-10 AC1, texts without an activity (fix round, #362):**
+  - **`core:data` (T3).** A public `AppLanguageContext` in `core:data` (`AppLanguageContext.of(context)`) gives resources in `LocaleManager.getApplicationLocales()` when an app language is set, and the context's own under *System* or when a lookup fails. `CatalogNotifications`, `LowStockReminderNotifications` and `BackupReminderNotifications` wrap their context once per text they build, channels included; no caller changed. The low-stock reminder's grams come from `stockGramsText(grams, language)` in the wrapped context's language („12,5 g" / „12.5 g"). German output is unchanged byte for byte.
+  - **`core:timer` (T4).** `TimerNotifications.ensureChannels` reads the channel names and descriptions through the timer's `AppLanguageContext`; every other channel property and every caller is unchanged.
+  - **Tests.** Robolectric tests with the process in one language and the app in the other, in both directions, plus *System*. They were red before the fix (4 of 5 in `core:data`, 3 of 4 in `core:timer`; *System* passes either way).
+  - **Two `AppLanguageContext` classes** (`core:data` public, `core:timer` internal) for now, together with the number of `LocaleManager` lookups per post: both for the T4 timer review.
+- **The jank lines of the turns (#357, D-117 calibration):** on three API 36 CI runs (`b40aef15`, `16a7eab7` whose emulator jobs failed elsewhere, `abf629ce`), by D-117's rule that only a transition never over the limit gates:
+  - **Gated:** *timer → landscape Journal* (stall 1.5×, 1.1×, 1.3×; janky frames one under the allowance each time). `TransitionJankTest.rotation()` now applies the relative gate like every other test; before, it only checked that every turn was report-only.
+  - **Report only, with the reason.** *Timer turned to landscape / portrait* measure no frames, since the timer stays upright and nothing redraws, so a gate would check nothing. *Alert turned in the app / over lock screen* have no reference (NOREF), which never passes. *Landscape Journal → timer* is over in every run (6.9–8.9×: one frame of about 1 s while the screen turns upright), for `/review-animations` and the PO's eye. *Journal turned to landscape / portrait* flipped around the limit (2.0 / 2.4 / 3.0 and 2.6 / 2.3 / 3.1).
+  - The fix round's CI run is the first with the gate on.
+
 <a id="d-135"></a>
 ### D-135 — v0.9.0 rc.2: no seed teas and no seed vessels; a fresh install and *Alle Daten löschen* start empty (GEN-01, ONB-06, CAT-15, WARE-06, SET-33; 03 SCR-01; 05 §6; 08 §2.5a; 09 §4 „v0.9.0"; CLAUDE.md rule 7; amends D-036's four network uses, D-050, D-093's fresh-install seed, D-131's „onboarding and the seed teas") · *Accepted (PO, 2026-11-20)*: the PO's answers Q1–Q6 below (final session #344, asked as options)
 
