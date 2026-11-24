@@ -31,8 +31,8 @@
     <string name="onboarding_catalog_progress" tools:ignore="PluralsCandidate">Pages: %1$d of %2$d · Products: %3$d</string>
     <string name="onboarding_catalog_running_hint">The catalog keeps loading in the background, even with the phone locked. You can get started already.</string>
     <plurals name="onboarding_catalog_tea_count">
-        <item quantity="one">%1$d tea</item>
-        <item quantity="other">%1$d teas</item>
+        <item quantity="one">%1$d tea</item>
+        <item quantity="other">%1$d teas</item>
     </plurals>
     <string name="onboarding_catalog_done">Catalog loaded: %1$s</string>
     <string name="onboarding_catalog_cancelled">Loading cancelled. You can load the catalog later under Collection › Catalog.</string>

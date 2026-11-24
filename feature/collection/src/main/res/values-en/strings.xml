@@ -137,8 +137,8 @@
     </plurals>
     <string name="collection_tea_recipe_edit">Edit %1$s</string>
     <string name="collection_tea_recipe_add">Add recipe</string>
-    <string name="collection_tea_stock">%1$s g left</string>
-    <string name="collection_tea_stock_low">%1$s g left · low</string>
+    <string name="collection_tea_stock">%1$s g left</string>
+    <string name="collection_tea_stock_low">%1$s g left · low</string>
     <string name="collection_tea_stock_empty">Empty</string>
     <string name="collection_tea_stock_none">No stock recorded</string>
     <string name="collection_tea_stat_stock_none">–</string>

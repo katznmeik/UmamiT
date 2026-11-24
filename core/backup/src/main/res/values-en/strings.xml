@@ -5,7 +5,7 @@
     <string name="recipe_file_refused_newer_version">This file comes from a newer version of UmamiT. Update the app and try again.</string>
     <string name="recipe_file_refused_damaged">The recipe file is damaged.</string>
 
-    <!-- The share text (PRF-08 AC1, GEN-10): English when the app is English; the recipe file itself is unchanged.
+    <!-- The share text (PRF-08 AC1, GEN-13): English when the app is English; the recipe file itself is unchanged.
          %1$s the tea, %2$s the recipe's name. -->
     <string name="recipe_file_share_title">%1$s – Recipe “%2$s”</string>
     <!-- %1$s the tea, %2$s its secondary name, %3$s the recipe's name. -->

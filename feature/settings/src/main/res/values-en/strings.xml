@@ -83,7 +83,7 @@
     <string name="settings_catalog_refresh_now">Update now</string>
     <string name="settings_catalog_refresh_detail">Loads all teas from Tee-Kontor Kiel, from green tea to chai. The first load takes about half an hour, later updates a few minutes; it keeps going with the phone locked.</string>
     <string name="settings_catalog_photos">Load photos</string>
-    <string name="settings_catalog_photos_detail">Load one photo per tea when updating, about 80–100 MB in total</string>
+    <string name="settings_catalog_photos_detail">Load one photo per tea when updating, about 80–100 MB in total</string>
     <string name="settings_section_teaware">Teaware</string>
     <string name="settings_teaware">Teaware</string>
     <string name="settings_section_data">Data</string>

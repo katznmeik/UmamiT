@@ -8,8 +8,8 @@
     <string name="catalog_header">Tee-Kontor Kiel · %1$s · updated %2$s</string>
     <string name="catalog_header_undated">Tee-Kontor Kiel · %1$s</string>
     <plurals name="catalog_all_count">
-        <item quantity="one">%1$d tea</item>
-        <item quantity="other">%1$d teas</item>
+        <item quantity="one">%1$d tea</item>
+        <item quantity="other">%1$d teas</item>
     </plurals>
     <plurals name="catalog_marked_count">
         <item quantity="one">%1$d bookmarked</item>
@@ -42,7 +42,7 @@
     <string name="catalog_filter_sort">Sort</string>
     <string name="catalog_sort_type">Variety</string>
     <string name="catalog_sort_name">Name</string>
-    <string name="catalog_sort_price">Price per 100 g</string>
+    <string name="catalog_sort_price">Price per 100 g</string>
     <string name="catalog_filter_types">Variety</string>
     <string name="catalog_filter_origins">Origin</string>
     <string name="catalog_filter_flavour">Flavoring</string>
@@ -160,7 +160,7 @@
     <string name="catalog_package_grams">%1$s g</string>
     <string name="catalog_package_price">%1$s €</string>
     <string name="catalog_package_estimate">≈ %1$s €</string>
-    <string name="catalog_package_savings">%1$d %% saved</string>
+    <string name="catalog_package_savings">%1$d %% saved</string>
     <string name="catalog_package_price_on_add">Price when you add it</string>
     <string name="catalog_package_estimate_note">≈ estimated from the shop\'s price. The app fetches the exact price when you add the package.</string>
     <string name="catalog_tea_add">Add to collection</string>

@@ -8,18 +8,18 @@
     <string name="data_catalog_cancel">Cancel</string>
     <string name="data_catalog_result_success_title">Catalog loaded</string>
     <plurals name="data_catalog_tea_count">
-        <item quantity="one">%1$d tea</item>
-        <item quantity="other">%1$d teas</item>
+        <item quantity="one">%1$d tea</item>
+        <item quantity="other">%1$d teas</item>
     </plurals>
     <string name="data_catalog_summary_separator">" · "</string>
-    <string name="data_catalog_summary_new" tools:ignore="PluralsCandidate">%1$d new</string>
-    <string name="data_catalog_summary_changed" tools:ignore="PluralsCandidate">%1$d changed</string>
-    <string name="data_catalog_summary_discontinued" tools:ignore="PluralsCandidate">%1$d no longer sold</string>
+    <string name="data_catalog_summary_new" tools:ignore="PluralsCandidate">%1$d new</string>
+    <string name="data_catalog_summary_changed" tools:ignore="PluralsCandidate">%1$d changed</string>
+    <string name="data_catalog_summary_discontinued" tools:ignore="PluralsCandidate">%1$d no longer sold</string>
     <plurals name="data_catalog_summary_recipes">
-        <item quantity="one">%1$d recipe to check</item>
-        <item quantity="other">%1$d recipes to check</item>
+        <item quantity="one">%1$d recipe to check</item>
+        <item quantity="other">%1$d recipes to check</item>
     </plurals>
-    <string name="data_catalog_summary_unchanged">no changes</string>
+    <string name="data_catalog_summary_unchanged">no changes</string>
     <string name="data_catalog_result_failed_title">Catalog not loaded</string>
     <string name="data_catalog_result_kept">Your previous catalog is kept.</string>
     <string name="data_catalog_result_blocked">The shop has blocked the request for now – please try again later.</string>
