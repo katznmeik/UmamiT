@@ -12,6 +12,7 @@ import org.robolectric.util.inject.Supersedes
  * default qualifier, so this replaces Robolectric's [ConfigConfigurer] and appends `+de-rDE` to every merged
  * qualifier string that names no language: the resources' configuration and `Locale.getDefault()` are then German.
  * An English test names it, e.g. `@Config(qualifiers = "en-rUS-w411dp-h891dp-xhdpi")` or `"+en-rUS"`.
+ * `RuntimeEnvironment.setQualifiers` at run time bypasses this pin, so a German test that calls it appends `+de-rDE`.
  *
  * Registered through `META-INF/services`; build-logic adds `config/test-locale` to the unit-test sources of every
  * Android module.

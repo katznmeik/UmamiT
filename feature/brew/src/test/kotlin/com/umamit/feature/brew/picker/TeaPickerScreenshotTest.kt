@@ -53,7 +53,8 @@ class TeaPickerScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     @Test
     fun freshness() {
-        RuntimeEnvironment.setQualifiers(if (short) "w360dp-h640dp-xhdpi" else "w411dp-h891dp-xhdpi")
+        // setQualifiers replaces the German pin of config/test-locale, so it names German again (GEN-10, #358).
+        RuntimeEnvironment.setQualifiers(if (short) "w360dp-h640dp-xhdpi +de-rDE" else "w411dp-h891dp-xhdpi +de-rDE")
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
