@@ -11,7 +11,7 @@ import androidx.annotation.StringRes
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.umamit.core.timer.notification.AppLanguageContext
+import com.umamit.core.data.AppLanguageContext
 import com.umamit.core.timer.service.BrewTimerService
 import com.umamit.core.timer.service.ForegroundServiceState
 
@@ -77,11 +77,12 @@ object TimerNotifications {
 
     /**
      * Creates (or updates the names of) the timer channels; idempotent. Names and descriptions are in the app's
-     * language also when the process has no activity ([AppLanguageContext], GEN-10).
+     * language also when the process has no activity ([AppLanguageContext], GEN-10), read once per call, so all four
+     * channels are named in one language.
      */
     fun ensureChannels(context: Context) {
         val manager = NotificationManagerCompat.from(context)
-        val texts = AppLanguageContext(context)
+        val texts = AppLanguageContext.of(context)
         manager.createNotificationChannelsCompat(
             listOf(
                 channel(
