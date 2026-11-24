@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Notification channels (04 §8.1) -->
+    <string name="timer_channel_brew_timer_name">Infusion timer</string>
+    <string name="timer_channel_brew_timer_description">The running infusion as a Live Update</string>
+    <string name="timer_channel_steep_finished_name">Infusion done</string>
+    <string name="timer_channel_steep_finished_description">Alarm at the end of an infusion</string>
+    <string name="timer_channel_sessions_name">Sessions</string>
+    <string name="timer_channel_sessions_description">Automatically saved sessions</string>
+    <string name="timer_channel_other_name">Second timer</string>
+    <string name="timer_channel_other_description">The second running timer, silent next to the infusion</string>
+    <string name="timer_text_quick_held">Done, waiting for the infusion</string>
+    <!-- A brew held behind the other brew's alert (D-108). -->
+    <string name="timer_text_brew_held">Done, waiting for the other infusion</string>
+
+    <!-- Timer notifications and Live Update (04 §8.2, §8.3; M1-11). The step word follows
+         the step kind, as on the timer screen (D-058). -->
+    <string name="timer_quick_title">Quick timer</string>
+    <string name="timer_step_infusion">Infusion</string>
+    <string name="timer_step_rinse">Rinse</string>
+    <string name="timer_step_whisk">Whisk</string>
+    <!-- Gyokuro · Infusion 2 of 3 -->
+    <string name="timer_title_step" tools:ignore="PluralsCandidate">%1$s · %2$s %3$d of %4$d</string>
+    <string name="timer_title_finished">%1$s · All infusions done</string>
+    <!-- Ready · 0:20 -->
+    <string name="timer_text_ready">Ready · %1$s</string>
+    <!-- Ready · 0:20 · Kettle at 60 °C -->
+    <string name="timer_text_ready_kettle">Ready · %1$s · Kettle at %2$d °C</string>
+    <!-- At most 10 °C (BRW-10, as SCR-05): Cold water / Ice cubes for an ice brew -->
+    <string name="timer_text_ready_cold">Ready · %1$s · Cold water</string>
+    <string name="timer_text_ready_ice">Ready · %1$s · Ice cubes</string>
+    <string name="timer_text_running">Steeping …</string>
+    <string name="timer_text_running_temp">Steeping at %1$d °C</string>
+    <string name="timer_text_pre_alert">Almost done …</string>
+    <!-- Long step (TMR-18): Done at 14:30 -->
+    <string name="timer_text_long_step">Done at %1$s</string>
+    <string name="timer_text_paused">Paused · %1$s left</string>
+    <string name="timer_text_finished">Tap to finish</string>
+    <!-- Short critical text of the status-bar chip outside RUNNING (04 §8.3) -->
+    <string name="timer_chip_ready">Ready</string>
+    <string name="timer_chip_temp">%1$d °C</string>
+    <string name="timer_chip_cold">Cold water</string>
+    <string name="timer_chip_ice">Ice cubes</string>
+    <string name="timer_chip_paused">Paused</string>
+    <string name="timer_chip_finished">Done</string>
+
+    <!-- Alert (04 §8.2, full-screen alert) -->
+    <string name="timer_alert_title">Pour now!</string>
+    <!-- Gyokuro · Infusion 2 -->
+    <string name="timer_alert_text">%1$s · %2$s %3$d</string>
+
+    <!-- Notification actions (04 §8.2, §10; TMR-41) -->
+    <string name="timer_action_start">Start</string>
+    <string name="timer_action_pause">Pause</string>
+    <string name="timer_action_resume">Resume</string>
+    <string name="timer_action_poured">Poured</string>
+    <string name="timer_action_poured_rinse">Poured off</string>
+    <string name="timer_action_quick_done">Done</string>
+    <string name="timer_action_finish_session">End session</string>
+    <string name="timer_action_cancel">Cancel</string>
+
+    <!-- „Session saved" (TMR-14, NotifySessionSaved) -->
+    <string name="timer_session_saved_title">Session saved</string>
+    <string name="timer_session_saved_text">%1$s · in the journal</string>
+    <string name="timer_session_saved_text_no_tea">In the journal</string>
+
+    <!-- After a reboot the session goes on (04 §7.3, D-063) -->
+    <string name="timer_resumed_title">Your timer is still running</string>
+    <string name="timer_resumed_text">%1$s · after the restart</string>
+    <!-- Both timers survived the reboot: one notice names both, the brew first (04 §7.3, D-098) -->
+    <string name="timer_resumed_title_both">Your timers are still running</string>
+    <string name="timer_resumed_text_both">%1$s and %2$s · after the restart</string>
+</resources>

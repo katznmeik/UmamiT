@@ -7,9 +7,12 @@ import java.util.Locale
 
 /**
  * The words and templates of the share text, from `strings.xml` ([ResourceRecipeShareLabels]); format templates
- * take `String.format` arguments.
+ * take `String.format` arguments in [locale].
  */
 interface RecipeShareLabels {
+    /** The locale the share text's numbers are formatted in: the app language's („4,0 g" or „4.0 g", GEN-10). */
+    val locale: Locale
+
     fun method(method: BrewMethod): String
 
     fun stepKind(kind: StepKind): String
@@ -57,6 +60,7 @@ enum class RecipeSharePart {
  * rules: the tea (and its secondary name) with the recipe's name; method, leaf, water, base temperature and the
  * vessel type if there is one; one line per step with its temperature (its own, else the base) and its duration
  * („0:10", „1:30", „4:00:00"); the shop link on a line of its own for a catalog tea; „Geteilt aus UmamiT …".
+ * Its words and numbers follow the app language through [RecipeShareLabels] (GEN-10); the recipe file does not.
  */
 object RecipeShareText {
     private val GERMAN = Locale.GERMANY
@@ -64,7 +68,8 @@ object RecipeShareText {
     private const val SECONDS_PER_HOUR = 3_600
 
     fun build(recipe: SharedRecipe, labels: RecipeShareLabels): String {
-        fun format(part: RecipeSharePart, vararg args: Any): String = labels.template(part).format(GERMAN, *args)
+        val locale = labels.locale
+        fun format(part: RecipeSharePart, vararg args: Any): String = labels.template(part).format(locale, *args)
         val separator = labels.template(RecipeSharePart.SEPARATOR)
         val tea = recipe.tea
         val title = tea.secondaryName
@@ -74,7 +79,7 @@ object RecipeShareText {
             labels.method(recipe.method),
             format(
                 RecipeSharePart.AMOUNTS,
-                format(RecipeSharePart.GRAMS, "%.1f".format(GERMAN, recipe.leafGrams)),
+                format(RecipeSharePart.GRAMS, "%.1f".format(locale, recipe.leafGrams)),
                 format(RecipeSharePart.MILLILITRES, recipe.waterMl),
             ),
             format(RecipeSharePart.CELSIUS, recipe.baseTempC),

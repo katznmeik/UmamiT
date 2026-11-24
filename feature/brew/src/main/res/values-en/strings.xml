@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Steps sheet (SCR-31) -->
+    <string name="brew_steps_title">Steps for this session</string>
+    <string name="brew_steps_kind_infusion">Infusion</string>
+    <string name="brew_steps_kind_rinse">Rinse</string>
+    <string name="brew_steps_kind_whisk">Whisk</string>
+    <string name="brew_steps_status_done">done</string>
+    <string name="brew_steps_status_running">running</string>
+    <string name="brew_steps_status_skipped">skipped</string>
+    <string name="brew_steps_temperature">%1$d °C</string>
+    <string name="brew_steps_add">Add infusion</string>
+    <string name="brew_steps_pre_alert">Pre-alert</string>
+    <string name="brew_steps_pre_alert_off">Off</string>
+    <string name="brew_steps_pre_alert_seconds">%1$d s</string>
+    <!-- Per step (TMR-23, D-093 Q17): Automatic with the lead it will use, „Auto · 5 s" or „Auto · none". -->
+    <string name="brew_steps_pre_alert_auto">Auto · %1$s</string>
+    <string name="brew_steps_pre_alert_auto_option">Automatic · %1$s</string>
+    <string name="brew_steps_pre_alert_none">none</string>
+    <!-- An explicit value the step is too short for (E7), or one on a long step (TMR-18): no pre-alert. -->
+    <string name="brew_steps_pre_alert_too_short">%1$s · too short</string>
+    <string name="brew_steps_pre_alert_long_step">%1$s · none</string>
+    <string name="brew_steps_save_to_recipe">Save to recipe</string>
+    <string name="brew_steps_saved_to_recipe">Saved to recipe</string>
+    <string name="brew_steps_done">Done</string>
+
+    <!-- TalkBack (03 §6) -->
+    <string name="brew_steps_step_label">%1$d %2$s</string>
+    <string name="brew_steps_step_description">Step %1$d, %2$s, %3$s, %4$s, %5$s</string>
+    <string name="brew_steps_step_description_no_temperature">Step %1$d, %2$s, %3$s, %4$s</string>
+    <plurals name="brew_steps_temperature_description">
+        <item quantity="one">%1$d degree</item>
+        <item quantity="other">%1$d degrees</item>
+    </plurals>
+    <string name="brew_steps_duration_change_description">Steep time, step %1$d: %2$s. Change</string>
+    <string name="brew_steps_temperature_value_description">Temperature %1$s</string>
+    <string name="brew_steps_longer">Lengthen steep time, step %1$d</string>
+    <string name="brew_steps_shorter">Shorten steep time, step %1$d</string>
+    <string name="brew_steps_warmer">Raise temperature, step %1$d</string>
+    <string name="brew_steps_cooler">Lower temperature, step %1$d</string>
+    <string name="brew_steps_delete">Delete, step %1$d</string>
+    <string name="brew_steps_pre_alert_description">Pre-alert, step %1$d: %2$s. Change</string>
+    <string name="brew_steps_pre_alert_auto_description">Automatic, %1$s</string>
+    <string name="brew_steps_pre_alert_too_short_description">%1$s, too short</string>
+    <string name="brew_steps_pre_alert_long_step_description">%1$s, none</string>
+    <plurals name="brew_steps_pre_alert_seconds_description">
+        <item quantity="one">%1$d second before</item>
+        <item quantity="other">%1$d seconds before</item>
+    </plurals>
+    <!-- The taste of the infusion ended last on the timer (SCR-05 v0.6.1, D-114; JRN-03, JRN-05). -->
+    <string name="brew_timer_taste_infusion">Infusion %1$d</string>
+    <string name="brew_timer_taste_button">Taste · %1$s</string>
+    <string name="brew_timer_taste_button_done">Taste · %1$s ✓</string>
+    <string name="brew_timer_taste_description">Add taste for %1$s</string>
+    <string name="brew_timer_taste_description_done">Add taste for %1$s, added</string>
+    <string name="brew_timer_taste_sheet_done">Done</string>
+</resources>

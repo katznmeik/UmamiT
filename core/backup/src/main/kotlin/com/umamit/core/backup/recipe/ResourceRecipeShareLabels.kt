@@ -2,12 +2,20 @@ package com.umamit.core.backup.recipe
 
 import android.content.res.Resources
 import com.umamit.core.backup.R
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.VesselType
+import java.util.Locale
 
-/** [RecipeShareLabels] from this module's `strings.xml` (CLAUDE.md rule 4). */
-class ResourceRecipeShareLabels(private val resources: Resources) : RecipeShareLabels {
+/**
+ * [RecipeShareLabels] from this module's `strings.xml` (CLAUDE.md rule 4), German or English with [resources], and
+ * the numbers in [language], the app language when the labels are made (GEN-10, D-136 item 15).
+ */
+class ResourceRecipeShareLabels(private val resources: Resources, language: AppLanguage = AppLanguage.current()) :
+    RecipeShareLabels {
+    override val locale: Locale = language.locale
+
     override fun method(method: BrewMethod): String = resources.getString(
         when (method) {
             BrewMethod.KYUSU -> R.string.recipe_file_method_kyusu

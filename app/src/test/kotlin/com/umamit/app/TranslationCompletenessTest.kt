@@ -16,28 +16,17 @@ import javax.xml.parsers.DocumentBuilderFactory
  * They carry `translatable="false"` in their `values/strings*.xml`, which is the one place that lists them; this test
  * skips them and fails when `values-en` redefines one.
  *
- * **Pending modules.** Run 2 of #359 (T3) translates the timer path. Until then these modules have no `values-en`
- * yet and are skipped; run 2 empties the list, and the test fails for a pending module that is complete already, so
- * the list cannot go stale.
+ * Every module is checked: run 2 of #359 translated the timer path (`feature/brew`, `core/timer`, `core/backup`), the
+ * last modules that were pending.
  */
 class TranslationCompletenessTest {
-    /** Modules whose English is not done yet (#359 run 2). Remove each one when its `values-en` is complete. */
-    private val pendingModules = setOf("feature/brew", "core/timer", "core/backup")
-
     private val repoRoot = File(System.getProperty("user.dir")).parentFile
 
     @Test
     fun everyDefaultStringHasAnEnglishValueWithTheSameArguments() {
         val problems = mutableListOf<String>()
         for (module in modules()) {
-            val missing = problemsOf(module)
-            if (module in pendingModules) {
-                assertWithMessage("$module is in the pending list but its English is complete: remove it from the list")
-                    .that(missing)
-                    .isNotEmpty()
-            } else {
-                problems += missing.map { "$module: $it" }
-            }
+            problems += problemsOf(module).map { "$module: $it" }
         }
         assertWithMessage("English is incomplete:\n" + problems.joinToString("\n")).that(problems).isEmpty()
     }
@@ -52,12 +41,6 @@ class TranslationCompletenessTest {
         assertWithMessage(
             "translatable=\"false\" entries redefined in values-en: $translated",
         ).that(translated).isEmpty()
-    }
-
-    @Test
-    fun pendingModulesExist() {
-        val unknown = pendingModules - modules().toSet()
-        assertWithMessage("pending modules without a values/strings.xml: $unknown").that(unknown).isEmpty()
     }
 
     private fun modules(): List<String> {
