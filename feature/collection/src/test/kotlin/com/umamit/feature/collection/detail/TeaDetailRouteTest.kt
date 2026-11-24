@@ -3,6 +3,7 @@ package com.umamit.feature.collection.detail
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,6 +26,7 @@ import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.testing.FakeTeaPhotos
 import com.umamit.core.ui.STOCK_SHEET_FIELD_TAG
 import com.umamit.feature.collection.detail.TeaDetailFixture.TEA_ID
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -120,6 +123,24 @@ class TeaDetailRouteTest {
 
         compose.onNodeWithText("12\u00A0g übrig · knapp").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Vorrat: 12\u00A0g").assertExists()
+    }
+
+    @Test
+    fun `Kauf bearbeiten writes the purchase, VORRAT follows and the snackbar says Kauf geaendert (D-136)`() {
+        show()
+
+        compose.onNodeWithTag(teaDetailHistoryRowTag("initial")).performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitForIdle()
+        compose.onNodeWithTag(PURCHASE_SHEET_GRAMS_TAG).performTextReplacement("80")
+        compose.onNodeWithTag(PURCHASE_SHEET_SAVE_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Kauf geändert").assertIsDisplayed()
+        val event = runBlocking { collection.stock.observeEvents(TEA_ID).first().single() }
+        assertThat(event.id).isEqualTo("initial")
+        assertThat(event.deltaGrams).isEqualTo(80.0)
+        compose.onNodeWithContentDescription("Vorrat: 80 g").assertExists()
     }
 
     @Test

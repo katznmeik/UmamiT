@@ -75,11 +75,22 @@ class StockEditTest {
     }
 
     @Test
-    fun `the first package is a purchase too, and its own day keeps its time`() = runTest {
-        assertThat(data.stock.updatePurchase("e1", 100.0, 1_000, opened)).isTrue()
+    fun `the first package is a purchase too and gets new grams, price and day`() = runTest {
+        assertThat(data.stock.updatePurchase("e1", 120.0, 1_000, LocalDate.of(2026, 10, 2))).isTrue()
 
         val event = event("e1")
         assertThat(event.type).isEqualTo(InventoryEventType.INITIAL)
+        assertThat(event.deltaGrams).isEqualTo(120.0)
+        assertThat(event.priceCents).isEqualTo(1_000)
+        assertThat(event.packageLabel).isEqualTo("120 g")
+        assertThat(event.occurredAtMillis).isEqualTo(noon(LocalDate.of(2026, 10, 2)))
+    }
+
+    @Test
+    fun `a purchase left on its day keeps its time and its label for unchanged grams`() = runTest {
+        assertThat(data.stock.updatePurchase("e1", 100.0, 1_000, opened)).isTrue()
+
+        val event = event("e1")
         assertThat(event.priceCents).isEqualTo(1_000)
         assertThat(event.occurredAtMillis).isEqualTo(initialAt)
         assertThat(event.packageLabel).isEqualTo("100 g")
@@ -205,7 +216,7 @@ class StockEditTest {
     }
 
     @Test
-    fun `Statistik's money drunk and cost per litre read the recomputed costs`() = runTest {
+    fun `Statistik reads the new money spent, money drunk and cost per litre`() = runTest {
         val stats =
             RoomStatsRepository(data.db.statsDao(), data.settings, PhotoFiles(File("photos")), Dispatchers.Default)
         val clock = Clock.fixed(Instant.ofEpochMilli(now), ZoneOffset.UTC)
@@ -217,6 +228,8 @@ class StockEditTest {
 
         val after = StatsCalculator(stats.observeInput().first(), clock).consumption(StatsRange.ALL)
         assertThat(after.drunkCents).isEqualTo(80L + 100L + 33L + 80L)
+        // Money spent sums the purchases' prices: p1 now costs 22,00 € instead of 7,00 €.
+        assertThat(after.moneyCents - before.moneyCents).isEqualTo(1_500L)
         // Each session pours 100 ml: (80 + 100 + 33 + 80) ct over 0,4 l.
         assertThat(after.costPerLiter!!.literCents).isEqualTo(733L)
     }
