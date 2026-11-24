@@ -31,6 +31,8 @@ class GermanLocaleRunner : AndroidJUnitRunner() {
         val args = arguments ?: Bundle()
         val listeners = listOfNotNull(args.getString(ARGUMENT_LISTENER)?.takeIf { it.isNotBlank() })
         args.putString(ARGUMENT_LISTENER, (listeners + PinGermanBeforeEachTest::class.java.name).joinToString(","))
+        // German for the work before the first test too; on the main thread, so without waiting (the listener waits).
+        targetContext.getSystemService(LocaleManager::class.java)?.applicationLocales = GERMAN
         super.onCreate(args)
     }
 
@@ -75,7 +77,10 @@ class GermanLocaleRunner : AndroidJUnitRunner() {
  */
 class PinGermanBeforeEachTest : RunListener() {
     override fun testStarted(description: Description) {
-        runCatching { GermanLocaleRunner.pinGerman(InstrumentationRegistry.getInstrumentation().targetContext) }
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val before = context.applicationContext.resources.configuration.locales
+        if (before[0].language != "de") Log.i(TAG, "before ${description.displayName}: the process was in $before")
+        runCatching { GermanLocaleRunner.pinGerman(context) }
             .onFailure { Log.e(TAG, "before ${description.displayName}: ${it.message}", it) }
     }
 

@@ -1,5 +1,6 @@
 package com.umamit.core.timer.notification
 
+import android.annotation.SuppressLint
 import android.app.LocaleManager
 import android.content.Context
 import android.content.ContextWrapper
@@ -30,6 +31,9 @@ internal class AppLanguageContext(base: Context) : ContextWrapper(base) {
         return if (locales == null || locales.isEmpty) baseContext.resources else resourcesIn(locales)
     }
 
+    // AppBundleLocaleChanges: the app ships as one APK from GitHub Releases, not as a bundle split by language, and
+    // that APK keeps both languages (`localeFilters`, D-136 item 15), so no language has to be downloaded.
+    @SuppressLint("AppBundleLocaleChanges")
     private fun resourcesIn(locales: LocaleList): Resources = inLanguage?.takeIf { it.first == locales }?.second
         ?: createConfigurationContext(Configuration().apply { setLocales(locales) }).resources
             .also { inLanguage = locales to it }
