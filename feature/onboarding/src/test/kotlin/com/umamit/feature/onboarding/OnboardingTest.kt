@@ -1,6 +1,7 @@
 package com.umamit.feature.onboarding
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -53,9 +54,16 @@ class OnboardingTest {
         return viewModel
     }
 
-    /** Welcome → reliability → the catalog page (ONB-03). */
-    private fun toCatalogPage() {
+    /** Welcome → the tour → *Überspringen* → the reliability page. */
+    private fun toReliabilityPage() {
         compose.onNodeWithText("Los geht's").performClick()
+        compose.onNodeWithText("Überspringen").performClick()
+        compose.waitForIdle()
+    }
+
+    /** Welcome → tour → reliability → the catalog page (ONB-03). */
+    private fun toCatalogPage() {
+        toReliabilityPage()
         compose.onNodeWithText("Weiter").performScrollTo().performClick()
         compose.waitForIdle()
     }
@@ -67,6 +75,9 @@ class OnboardingTest {
 
             compose.onNodeWithText("Aus Liebe zum Tee").assertIsDisplayed()
             compose.onNodeWithText("Los geht's").performClick()
+            compose.onNodeWithText("Start und Timer").assertIsDisplayed()
+            compose.onNodeWithText("Überspringen").performClick()
+            compose.waitForIdle()
             compose.onNodeWithText("Damit der Timer zuverlässig klingelt").assertIsDisplayed()
             compose.onNodeWithText("Weiter").performScrollTo().performClick()
             compose.waitForIdle()
@@ -155,7 +166,7 @@ class OnboardingTest {
     @Test
     fun `the setup sends nothing on its own and shows no photo line, up to the catalog page`() {
         show()
-        compose.onNodeWithText("Los geht's").performClick()
+        toReliabilityPage()
 
         compose.onNodeWithText("Teefotos werden geladen …").assertDoesNotExist()
         compose.onNodeWithText("Überspringen").assertDoesNotExist()
@@ -170,7 +181,7 @@ class OnboardingTest {
     @Test
     fun `the rows show the checks, a missing one opens its page, and they follow on return`() {
         show()
-        compose.onNodeWithText("Los geht's").performClick()
+        toReliabilityPage()
 
         compose.onNodeWithTag(OnboardingTags.row(ReliabilityCheck.Battery)).assertIsDisplayed()
         compose.onNodeWithText("Freigeben").performClick()
@@ -190,7 +201,7 @@ class OnboardingTest {
     @Test
     fun `the Samsung auto-restart hint is shown below the rows`() {
         show()
-        compose.onNodeWithText("Los geht's").performClick()
+        toReliabilityPage()
 
         compose.onNodeWithText("Gerätewartung öffnen").performScrollTo().assertIsDisplayed()
     }
@@ -205,5 +216,61 @@ class OnboardingTest {
 
         assertThat(settings.settings.first()).isEqualTo(UserSettings(onboardingCompleted = true))
         assertThat(finished).isEqualTo(1)
+    }
+
+    @Test
+    fun `the first start runs welcome, the six tour pages, then the reliability page`() {
+        show()
+        compose.onNodeWithText("Aus Liebe zum Tee").assertIsDisplayed()
+        compose.onNodeWithText("Los geht's").performClick()
+        compose.waitForIdle()
+
+        listOf(
+            "Start und Timer",
+            "Zwei Timer und Schnelltimer",
+            "Sammlung und Katalog",
+            "Journal und Geschmack",
+            "Statistik",
+            "Sicherung und Rezepte teilen",
+        ).forEachIndexed { index, title ->
+            compose.onNodeWithText(title).assertIsDisplayed()
+            compose.onNodeWithTag(TourTags.DOTS).assertContentDescriptionEquals("Seite ${index + 1} von 6")
+            if (index < 5) compose.onNodeWithTag(TourTags.NEXT).performClick()
+            compose.waitForIdle()
+        }
+        compose.onNodeWithText("Damit der Timer zuverlässig klingelt").assertDoesNotExist()
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Damit der Timer zuverlässig klingelt").assertIsDisplayed()
+        // The tour writes nothing: the run-once marker is the setup's (ONB-04).
+        assertThat(finished).isEqualTo(0)
+    }
+
+    @Test
+    fun `Ueberspringen on a middle tour page goes on to the reliability page`() {
+        show()
+        compose.onNodeWithText("Los geht's").performClick()
+        compose.onNodeWithTag(TourTags.NEXT).performClick()
+        compose.onNodeWithTag(TourTags.NEXT).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Sammlung und Katalog").assertIsDisplayed()
+
+        compose.onNodeWithTag(TourTags.SKIP).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Damit der Timer zuverlässig klingelt").assertIsDisplayed()
+    }
+
+    @Test
+    fun `back on the first tour page leaves like Ueberspringen`() {
+        show()
+        compose.onNodeWithText("Los geht's").performClick()
+        compose.waitForIdle()
+
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Damit der Timer zuverlässig klingelt").assertIsDisplayed()
     }
 }

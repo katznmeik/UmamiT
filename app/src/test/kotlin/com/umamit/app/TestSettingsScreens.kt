@@ -40,6 +40,7 @@ internal fun testSettingsScreens(collection: FakeCollection = FakeCollection()):
                     openAbout = host.onOpenAbout,
                     openTeaware = host.onOpenTeaware,
                     openDataBackup = host.onOpenDataBackup,
+                    openTour = host.onOpenTour,
                 ),
                 scrollToTopRequest = host.scrollToTopRequest,
             )

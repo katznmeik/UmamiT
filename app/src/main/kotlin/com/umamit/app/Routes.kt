@@ -179,6 +179,13 @@ internal data object AboutRoute
 @Serializable
 internal data object OnboardingRoute
 
+/**
+ * The tour (SCR-33) from *Einstellungen* › *Hilfe* › *Einführung* (SET-36): full-screen above the shell or the timer,
+ * so back, *Fertig* and *Überspringen* return to the settings. (On the first start it is a page of the setup.)
+ */
+@Serializable
+internal data object TourRoute
+
 /** *Diagnose* (SCR-27, M1-20), under *Über*. */
 @Serializable
 internal data object DiagnosticsRoute
