@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
+import com.umamit.core.data.AppLanguageContext
 import com.umamit.core.data.R
 
 /**
@@ -24,7 +25,8 @@ object BackupReminderNotifications {
     private const val REQUEST_OPEN = 13
 
     /** Creates the channel; idempotent. */
-    fun ensureChannel(context: Context) {
+    fun ensureChannel(base: Context) {
+        val context = AppLanguageContext.of(base)
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.data_reminders_channel),
@@ -39,7 +41,8 @@ object BackupReminderNotifications {
     }
 
     /** The reminder for [sessions] since the last export; [neverSaved] without one. */
-    fun notification(context: Context, sessions: Int, neverSaved: Boolean): Notification {
+    fun notification(base: Context, sessions: Int, neverSaved: Boolean): Notification {
+        val context = AppLanguageContext.of(base)
         val text = if (neverSaved) {
             context.getString(R.string.data_backup_reminder_text_never)
         } else {

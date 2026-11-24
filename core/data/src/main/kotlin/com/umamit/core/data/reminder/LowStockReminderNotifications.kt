@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.umamit.core.common.stockGramsText
+import com.umamit.core.data.AppLanguageContext
 import com.umamit.core.data.R
 import com.umamit.core.model.LowStockTea
 
@@ -29,7 +30,8 @@ object LowStockReminderNotifications {
     private const val REQUEST_OPEN = 12
 
     /** Creates the channel; idempotent. */
-    fun ensureChannel(context: Context) {
+    fun ensureChannel(base: Context) {
+        val context = AppLanguageContext.of(base)
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.data_stock_channel),
@@ -44,7 +46,8 @@ object LowStockReminderNotifications {
     }
 
     /** The reminder for [teas] (not empty), least stock first. */
-    fun notification(context: Context, teas: List<LowStockTea>): Notification {
+    fun notification(base: Context, teas: List<LowStockTea>): Notification {
+        val context = AppLanguageContext.of(base)
         require(teas.isNotEmpty()) { "A day without a low tea posts nothing (INV-11 AC2)" }
         val one = teas.singleOrNull()
         val title = when {
@@ -81,10 +84,14 @@ object LowStockReminderNotifications {
     }
 
     /** „Tanabata · 14 g", „Tanabata · 12,5 g", „Hisui · leer" (INV-05, German format to 0,1 g). */
-    private fun line(context: Context, tea: LowStockTea): String = if (tea.isEmpty) {
+    private fun line(context: AppLanguageContext, tea: LowStockTea): String = if (tea.isEmpty) {
         context.getString(R.string.data_stock_reminder_line_empty, tea.teaName)
     } else {
-        context.getString(R.string.data_stock_reminder_line, tea.teaName, stockGramsText(tea.remainingGrams))
+        context.getString(
+            R.string.data_stock_reminder_line,
+            tea.teaName,
+            stockGramsText(tea.remainingGrams, context.appLanguage),
+        )
     }
 
     /** A tap opens Start at its root (03 §2.4); the app's root lets an alert finish first (rule 8). */
