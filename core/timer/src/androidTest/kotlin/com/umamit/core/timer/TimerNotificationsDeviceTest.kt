@@ -430,6 +430,7 @@ class TimerNotificationsDeviceTest {
         appendLine("SDK=${Build.VERSION.SDK_INT} timerPid=${timerPid()}")
         appendLine("canUseFullScreenIntent=${notificationManager.canUseFullScreenIntent()}")
         appendLine("keyguardLocked=${keyguard.isKeyguardLocked} interactive=${power.isInteractive}")
+        appendLine("appLanguage=${shell("cmd locale get-app-locales $packageName").trim()}")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
             appendLine("canPostPromotedNotifications=${notificationManager.canPostPromotedNotifications()}")
         }
