@@ -21,4 +21,14 @@ class StockTextTest {
         assertThat(stockGramsText(12.5)).isEqualTo("12.5")
         assertThat(stockGramsText(1_250.0)).isEqualTo("1,250")
     }
+
+    @Test
+    fun `a given language holds whatever the default locale is`() {
+        inLocale(Locale.US) {
+            assertThat(stockGramsText(12.5, AppLanguage.GERMAN)).isEqualTo("12,5")
+            assertThat(stockGramsText(1_250.0, AppLanguage.GERMAN)).isEqualTo("1.250")
+        }
+        assertThat(stockGramsText(12.5, AppLanguage.ENGLISH)).isEqualTo("12.5")
+        assertThat(stockGramsText(1_250.0, AppLanguage.ENGLISH)).isEqualTo("1,250")
+    }
 }

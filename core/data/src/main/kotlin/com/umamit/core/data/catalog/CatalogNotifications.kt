@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
+import com.umamit.core.data.AppLanguageContext
 import com.umamit.core.data.R
 
 /**
@@ -30,7 +31,8 @@ internal object CatalogNotifications {
     private const val REQUEST_OPEN = 11
 
     /** Creates the channel; idempotent, and needed before a foreground notification is shown on it. */
-    fun ensureChannel(context: Context) {
+    fun ensureChannel(base: Context) {
+        val context = AppLanguageContext.of(base)
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.data_catalog_channel),
@@ -45,7 +47,8 @@ internal object CatalogNotifications {
     }
 
     /** „Katalog wird geladen · Seiten: 120 von 1560 · Produkte: 40" with *Abbrechen*. */
-    fun progress(context: Context, progress: CatalogRefreshProgress): Notification {
+    fun progress(base: Context, progress: CatalogRefreshProgress): Notification {
+        val context = AppLanguageContext.of(base)
         val starting = progress.pagesTotal == 0
         val text = if (starting) {
             context.getString(R.string.data_catalog_progress_starting)
@@ -78,7 +81,8 @@ internal object CatalogNotifications {
     }
 
     /** The end of a run; null when there is nothing to tell (the user cancelled it). */
-    fun result(context: Context, outcome: CatalogRefreshOutcome): Notification? {
+    fun result(base: Context, outcome: CatalogRefreshOutcome): Notification? {
+        val context = AppLanguageContext.of(base)
         val (title, text) = when (outcome) {
             CatalogRefreshOutcome.Cancelled -> return null
 
