@@ -60,7 +60,8 @@ import com.umamit.feature.journal.R as JournalR
  *
  * The screens are driven through UiAutomator with real taps and back presses: a Compose test rule
  * would pace every composition with its own test clock and so never show a real frame's cost. The
- * animations run at scale 1 for this class (the CI emulator has them off), restored afterwards.
+ * animations run at scale 1 for this class (the CI emulator has them off), restored afterwards; Compose's own
+ * scale in the app's window is made to follow that setting on every launch ([ComposeAnimationScale]).
  *
  * Data: one tea for the detail, the tea picker, the setup and the timer, and a finished session of a
  * second tea for the journal and the „Gespeichert" sheet, written once through the app's own stores
@@ -123,8 +124,8 @@ class TransitionJankTest {
         rotation.restore()
         endTimer()
         runCatching { data.savedSheets().dismiss(SESSION_ID) }
-        scenario?.close()
-        recorder.release()
+        // Restored while the activity is still open, so Compose's scale in the process follows the setting back
+        // ([ComposeAnimationScale]).
         savedScales.forEach { (key, value) ->
             if (value.isBlank() ||
                 value == "null"
@@ -134,6 +135,8 @@ class TransitionJankTest {
                 shell("settings put global $key $value")
             }
         }
+        scenario?.close()
+        recorder.release()
     }
 
     @Test
@@ -596,6 +599,8 @@ class TransitionJankTest {
             scenario = ActivityScenario.launch(MainActivity::class.java)
         }
         awaitStart()
+        // The class measures at animation scale 1: Compose's own scale must follow the setting (#358).
+        ComposeAnimationScale(scenario!!, ::shell).ensure(1f)
         readBudget()
         Thread.sleep(SETTLE_MS)
     }
