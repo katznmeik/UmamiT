@@ -22,6 +22,14 @@
   - step 5: #359 run 2 (`feature:brew`, `core:timer`, T3) beside #361 (T2).
   
   Stop after step 5. The rc session (#362) follows.
+- **First thing in build session 2: CI on `f238a673`** (or the head after it). Step 2 is not verified until both emulator jobs are green.
+  - On `97ad2b9b`, #357's four new emulator cases failed on API 35 and 36; every older test passed. `f238a673` fixes three of them as test bugs (see `docs/history.md`).
+  - **Open: `TransitionJankTest.timerFromLandscapeJournal` on API 35.** Journal stayed upright after back from the timer. If it fails again, read the diagnostics in the job log (`gh api repos/katznmeik/UmamiT/actions/jobs/<id>/logs`):
+    - the requested orientation still portrait: an app bug, the release not reaching WindowManager. Fix it at T4, against the build note;
+    - unspecified, with `user_rotation=1` and the display at 0: the platform or the test's rotation stand-in;
+    - `user_rotation` no longer 1: the test mechanism.
+  - Never weaken a build-note assertion. If one cannot hold, ask the PO.
+  - The #357 implementer's worktree is kept for this; `xhigh` needs the PO's OK.
 - **To do before rc.1 (#362):**
   - **Calibrate and gate the jank lines.** The eight new jank lines of #357 are in `JankGate.REPORT_ONLY`; calibrate them on three CI runs (D-117) and gate them, because the ticket asks for the jank budget.
   - **Watch the new emulator cases.** They ran in CI for the first time on `97ad2b9b`. If they flake, tune their waits through the #357 approach: rotation via `user_rotation` and the creation counter (`DisplayRotation.kt`).
