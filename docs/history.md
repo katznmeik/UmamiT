@@ -11,6 +11,13 @@
 
 ## Releases and plans
 
+### v0.10.0: specify session (2026-11-24)
+
+- The PO chose a **feedback round** on v0.9.0 (not the D-112 ideas, quick access or M5) and gave five points: edit everything on the tea detail (purchases), the Vollbild-Benachrichtigung reset by every update, a glitchy timer when turning the locked phone, English, a tutorial. Another feedback round follows.
+- Grilled in two rounds of four options: **D-136** Q1–Q9 (every stock event editable, past costs recomputed; research + a reminder sheet; timer screens portrait; English via the per-app language, tea vocabulary stays German; a swipe-through tour; one release v0.10.0; Claude drafts copy, the PO approves). Items 10–16 are Claude's defaults (timer-code release, the recompute rule, SCR-34, portrait mechanism, locale, tour pages).
+- Specs: 02, 03 (new SCR-33, SCR-34), 05 §6, 07, 09 §2/§4, 10, 11, CLAUDE.md rule 4. Spec issue #353, tickets #354–#363 (`needs-triage`), plan `docs/plans/v0.10.0.md`. Waiting for the PO's approval.
+- The session was assigned `claude/elegant-galileo-46r9pb` and worked on `claude/inspiring-ritchie-8hfw00` as asked.
+
 ### v0.9.0: released (2026-11-20)
 
 - **PO approval (2026-11-20, in session):** „All approved" for the rc.2 items that Claude had posted on PR #345 (comments 7036535012 and 7036569672). Both ways of receiving a recipe file worked on rc.2: (a) tapping `<Tee>.umamit-rezept.json` in My Files and (b) sharing it from My Files or a messenger (asked as options). This is recorded in D-134's and D-130's build notes. Everything else on 09 §4 „v0.9.0" and the design review had been approved on rc.1.
@@ -828,6 +835,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-24 | **v0.10.0 specify session:** the PO chose a feedback round (five points); grilled Q1–Q9 (D-136); specs 02, 03, 05, 07, 09, 10, 11 and CLAUDE.md rule 4 updated; spec #353, tickets #354–#363, plan `docs/plans/v0.10.0.md`; waiting for the PO's approval. |
 | 2026-11-18 | **v0.9.0 specify session:** grilled Q1–Q16 (D-130); specs 02, 03, 05, 06, 09, 11 and CLAUDE.md rule 7 updated; spec #333, tickets #334–#344 and #330, `docs/plans/v0.9.0.md`; waiting for the PO's approval. |
 | 2026-11-18 | **v0.8.0 session 6:** the PO approved the whole checklist on rc.2; `umamit.version=0.8.0` (80099); PR #328 merged (`60e07bbe`), CI and all three accuracy variants green on it; [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) released and verified. Next: the v0.9.0 specify session. |
 | 2026-11-17 | **v0.8.0 build session 3:** the PO confirmed the sage alarm (bar static sage too); #325 and #329 built; the T3, T4 and ad-hoc motion reviews with one fix round; the full gate, CI and all three accuracy variants green on `9c0e4225`; `v0.8.0-rc.1` (80001) published with the checklist and the design review. Next: session 4 (the PO's check, merge, final `v0.8.0`). |

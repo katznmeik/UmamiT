@@ -1,6 +1,6 @@
 # 07 · Non-Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-20 (NFR-PRIV-02 three uses, D-135; 2026-11-18: NFR-PRIV-02: a received recipe's link on a tap, D-130; 2026-11-14: NFR-PERF-12 transitions, D-117; 2026-11-09: NFR-PERF-11 with every tea section, D-108; 2026-10-28: NFR-PRIV-02: four network uses, D-094; 2026-10-26: NFR-PERF-11 with Kräutertees, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-11-24 (NFR-COMP-02 portrait timer, D-136; 2026-11-20: NFR-PRIV-02 three uses, D-135; 2026-11-18: NFR-PRIV-02: a received recipe's link on a tap, D-130; 2026-11-14: NFR-PERF-12 transitions, D-117; 2026-11-09: NFR-PERF-11 with every tea section, D-108; 2026-10-28: NFR-PRIV-02: four network uses, D-094; 2026-10-26: NFR-PERF-11 with Kräutertees, D-093)
 > v0.2: single user, single device (Samsung Galaxy, Android 17 / One UI 9),
 > no store; catalog network access.
 
@@ -97,7 +97,7 @@ Automated instrumented checks run in the CI emulator job on GitHub Actions
 | ID | Requirement |
 |---|---|
 | NFR-COMP-01 | Android 15–17+ (API 35+); primary: Samsung Galaxy on One UI 9 (One UI 8 until 2026-10-28). |
-| NFR-COMP-02 | Portrait and landscape; split screen; Samsung DeX and foldables should not break layouts (best effort). |
+| NFR-COMP-02 | Portrait and landscape; split screen; Samsung DeX and foldables should not break layouts (best effort). **From v0.10.0 ([D-136](10-open-questions-and-decisions.md#d-136) Q5):** the timer screens (SCR-05, SCR-07) stay portrait, in the app and over the lock screen. |
 | NFR-COMP-04 | Edge-to-edge, gesture and 3-button navigation. |
 | NFR-COMP-05 | Light and dark system themes. |
 

@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-11-20 (D-134/D-135: SCR-12 file name, onboarding seed photo line, SCR-26 fresh start; 2026-11-19: v0.9.0, D-131 build notes: SCR-26 *Alle Daten löschen* as built; 2026-11-18: v0.9.0, D-130: SCR-26 *Daten & Sicherung* in full, SCR-08 ⋮ *Rezept importieren*, SCR-12 ⋮ *Rezept teilen*, the new SCR-32 *Rezept übernehmen*, their messages in §5; 2026-11-17: v0.8.0-rc.2, D-129: the picker's hand-over to the setup on SCR-03; v0.8.0, D-128: the wording list in §3.7 and all German copy, the timer in the light theme in §3.1, SCR-05 and SCR-07, `TasteInfo` and the taste sets in §3.8, SCR-05, SCR-09, SCR-10 and SCR-16, the setup's titles on SCR-04, the anchored ⋮ in §2.2, refresh progress on SCR-25, SCR-26 planned for v0.9.0; 2026-11-14: v0.7.1, D-117: two ratings on SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18 and §3.8, transitions without stale frames in §3.6; v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SESSIONS, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal aufgießen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-11-24 (D-136 (v0.10.0): SCR-01 tour step, SCR-05/SCR-07 portrait, SCR-25 *Sprache* and *Hilfe*, SCR-29 edit sheets, new SCR-33 tour and SCR-34 Vollbild sheet; 2026-11-20: D-134/D-135: SCR-12 file name, onboarding seed photo line, SCR-26 fresh start; 2026-11-19: v0.9.0, D-131 build notes: SCR-26 *Alle Daten löschen* as built; 2026-11-18: v0.9.0, D-130: SCR-26 *Daten & Sicherung* in full, SCR-08 ⋮ *Rezept importieren*, SCR-12 ⋮ *Rezept teilen*, the new SCR-32 *Rezept übernehmen*, their messages in §5; 2026-11-17: v0.8.0-rc.2, D-129: the picker's hand-over to the setup on SCR-03; v0.8.0, D-128: the wording list in §3.7 and all German copy, the timer in the light theme in §3.1, SCR-05 and SCR-07, `TasteInfo` and the taste sets in §3.8, SCR-05, SCR-09, SCR-10 and SCR-16, the setup's titles on SCR-04, the anchored ⋮ in §2.2, refresh progress on SCR-25, SCR-26 planned for v0.9.0; 2026-11-14: v0.7.1, D-117: two ratings on SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18 and §3.8, transitions without stale frames in §3.6; v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SESSIONS, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal aufgießen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -548,6 +548,8 @@ brühig", and „brühige Fülle" / „Brühe" in the Umami slider's info (08 §
 
 1. *Willkommen* — full-bleed ink-wash, logo, „UmamiT", welcome text
    **„Aus Liebe zum Tee"** (serif), お茶で、いい時間を。, *Los geht's*.
+1b. *Einführung* (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136), ONB-07) — the tour of SCR-33, between
+   the welcome and the reliability page; *Überspringen* goes on to 2.
 2. *Damit der Timer zuverlässig klingelt* — checklist rows with status ✓/!:
    Benachrichtigungen erlauben · Akku: Uneingeschränkt · Live-Benachrichtigungen ·
    Vollbild-Alarm (ONB-02). Each row has an action button; *Weiter* always
@@ -982,6 +984,11 @@ timer screen offers the taste of the infusion ended last (JRN-03, JRN-05):
   with the `fade` token at the first *Abgegossen* (at once with reduce
   motion).
 
+**Orientation (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136) Q5):** SCR-05 stays in portrait whatever
+the phone does, in the app and over the lock screen (the full-screen
+intent); the rest of the app still rotates (NFR-COMP-02). Turning the phone
+with the timer on top causes no re-creation, flicker or jump.
+
 ### SCR-06 „Gespeichert" sheet
 
 Small bottom sheet after *Session beenden*, auto-dismisses after 10 s:
@@ -1104,6 +1111,8 @@ everything fits it keeps its height and nothing moves at *Start* (rule 8).
   *Pause*, *Weiter* and *Fertig* now stand where *Start* stood (lower than in
   v0.2.2, by the chips and the row); the ring stays where it was. No new
   animation.
+
+**Orientation (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136) Q5):** portrait only, as SCR-05.
 
 ### SCR-08 Sammlung › Meine Tees
 
@@ -2130,6 +2139,15 @@ the new date. TalkBack announces the result once (a polite live region),
 never each count. The bar and line take their height with the fold's
 tokens (§3.6); reduce motion: they appear at once.
 
+**v0.10.0 ([D-136](10-open-questions-and-decisions.md#d-136)):**
+- *Darstellung* gets **Sprache** below *Design* (SET-35): a dialog with
+  three radio rows *System* · *Deutsch* · *English*; the row shows the
+  choice („System"). The names „Deutsch" and „English" are shown in their
+  own language in both UIs. A change recolours nothing and keeps the
+  current screen; the app's texts switch at once (GEN-10).
+- A new section **Hilfe** above *Über* with one row **Einführung** („Die
+  wichtigsten Funktionen in sechs Seiten"), which opens SCR-33 (SET-36).
+
 ### SCR-26 Daten & Sicherung
 
 Planned before v0.9.0 as the device-backup explanation and *Alle Daten löschen*, neither built until v0.9.0 ([D-131](10-open-questions-and-decisions.md#d-131)). From
@@ -2241,6 +2259,45 @@ Tees' ⋮ *Rezept importieren*.
 - TalkBack: the summary reads as one block; the tea choice is a radio
   group.
 
+### SCR-33 Einführung (tour, v0.10.0)
+
+ONB-07, [D-136](10-open-questions-and-decisions.md#d-136) Q7/Q9. A full-screen pager of six pages in the washi theme
+(light or dark per *Design*). Each page: the illustration at the top (the
+existing asset, cropped and paper-matched as on its own screen), a title
+(display sans, headline) and two short lines of body text. Below: page dots,
+then *Weiter* (filled), on the last page *Fertig*. *Überspringen* (text
+button) top right on every page except the last. Swiping works both ways;
+back on page 1 leaves like *Überspringen*. Draft copy (Claude's; the PO
+reviews it with the spec):
+
+| # | Image | Titel (de) | Text (de) | Title (en) | Text (en) |
+|---|---|---|---|---|---|
+| 1 | A3 | Start und Timer | Tippe einen Tee unter *Zuletzt aufgegossen* an oder starte eine *Neue Session*. Der Timer führt dich durch jeden Aufguss, mit Vorwarnung und Alarm. | Start and timer | Tap a tea under *Recently brewed* or start a *New session*. The timer guides you through every infusion, with a pre-alert and an alarm. |
+| 2 | A13 | Zwei Timer und Schnelltimer | Zwei Timer laufen gleichzeitig: zwei Sessions oder eine Session und der Schnelltimer. Die Zeile oben wechselt zum anderen Timer. | Two timers and quick timer | Two timers can run at once: two sessions, or a session and the quick timer. The row at the top switches to the other timer. |
+| 3 | A8 | Sammlung und Katalog | Lade den Katalog von Tee-Kontor Kiel und nimm Tees in *Meine Tees* auf, oder teile einen Shop-Link mit UmamiT. Rezepte, Vorrat und Kosten pflegst du am Tee. | Collection and catalog | Load the Tee-Kontor Kiel catalog and add teas to *My teas*, or share a shop link with UmamiT. Recipes, stock and costs live on the tea. |
+| 4 | A6 | Journal und Geschmack | Jede Session landet im Journal. Bewerte Tee und Zubereitung, halte Geschmack pro Aufguss fest und übernimm gute Zeiten ins Rezept. | Journal and taste | Every session lands in the journal. Rate the tea and the brewing, note the taste of each infusion and keep good times in the recipe. |
+| 5 | A9 | Statistik | Sieh, was du trinkst: Sessions, Sorten, Lieblingstees, Gewohnheiten, Verbrauch und Kosten pro Liter. | Statistics | See what you drink: sessions, kinds, favourite teas, habits, use and cost per litre. |
+| 6 | A5 | Sicherung und Rezepte teilen | Unter *Einstellungen › Daten & Sicherung* sicherst du alle Daten in eine Datei. Ein Rezept teilst du über ⋮ im Rezept. | Backup and sharing recipes | In *Settings › Data & backup* you save all your data to one file. Share a recipe from ⋮ in the recipe. |
+
+The in-app names in *italics* use the strings the app shows in that
+language (the build checks them against `strings.xml`). Buttons: *Weiter* /
+*Next*, *Fertig* / *Done*, *Überspringen* / *Skip*. TalkBack: each page is
+one heading plus its text; the dots read „Seite 2 von 6" / „Page 2 of 6".
+At font 2.0 the text scrolls inside the page and the buttons stay in view.
+
+### SCR-34 Vollbild-Alarm wieder erlauben (sheet, v0.10.0)
+
+TMR-31, [D-136](10-open-questions-and-decisions.md#d-136) Q4. A modal bottom sheet on the first open in a new versionCode
+when full-screen alerts are not allowed (never on the first start, never
+over a timer screen; it waits until the timer screen is left). Title
+„Vollbild-Alarm wieder erlauben" / „Allow full-screen alarm again"; text
+„Android hat den Vollbild-Alarm mit dem Update ausgeschaltet. Ohne ihn
+erscheint der Alarm bei gesperrtem Bildschirm nur als Benachrichtigung." /
+„Android turned off the full-screen alarm with the update. Without it the
+alarm shows only as a notification when the screen is locked." Buttons
+*Erlauben* / *Allow* (filled, opens the system page) and *Später* / *Later*.
+Shown at most once per versionCode.
+
 ### SCR-27 Über
 
 Logo, version, Tee-Kontor source note („Katalogdaten und Fotos © Tee-Kontor
@@ -2330,6 +2387,16 @@ TalkBack: the hero's action „Foto vergrößern", the viewer „Foto 2 von 5".
 Motion: it opens and closes with the `fade` token (no shared-element
 zoom); with reduce motion at once. An alert takes the screen as
 everywhere (rule 8).
+
+SCR-29 in v0.10.0 ([D-136](10-open-questions-and-decisions.md#d-136) Q2, INV-03): a tap on a *Kauf* row opens
+„Kauf bearbeiten" (the *Nachkauf erfassen* sheet filled in: *Kaufdatum*,
+Menge in g, Preis in €), a tap on a *Bestand korrigiert* row „Korrektur
+bearbeiten" (Tag, Änderung in g with its sign, e.g. „+5" or „−3"). Both have
+*Speichern* (filled) and *Löschen* (text, error colour, with the existing
+confirmation); invalid values show at the field as in *Nachkauf erfassen*.
+After *Speichern* the snackbar „Kauf geändert" / „Korrektur geändert"; the
+row, VORRAT, € pro g and the tea's sessions' costs show the new values.
+*Aufgegossen* rows open their session as before.
 
 ### SCR-31 Schritte-Sheet (session steps)
 

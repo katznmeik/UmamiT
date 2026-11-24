@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-20 (D-134/D-135 (v0.9.0-rc.2): PRF-08 file name and type, GEN-01 three uses, ONB-06 removed, CAT-15, WARE-06, SET-33; 2026-11-19: v0.9.0, D-131 build notes: SET-33 as built; 2026-11-18: v0.9.0, D-130: GEN-01 (d) a received recipe's shop link on a tap, PRF-08, BAK-01, BAK-02, BAK-04, BAK-06 in full, SET-20 a switch; 2026-11-17: v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-24 (D-136 (v0.10.0): GEN-10, ONB-07, TMR-31 sheet, INV-03 edit, INV-08 recompute, SET-35, SET-36; 2026-11-20: D-134/D-135 (v0.9.0-rc.2): PRF-08 file name and type, GEN-01 three uses, ONB-06 removed, CAT-15, WARE-06, SET-33; 2026-11-19: v0.9.0, D-131 build notes: SET-33 as built; 2026-11-18: v0.9.0, D-130: GEN-01 (d) a received recipe's shop link on a tap, PRF-08, BAK-01, BAK-02, BAK-04, BAK-06 in full, SET-20 a switch; 2026-11-17: v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -140,6 +140,21 @@ kettle). Imported or legacy values are snapped to the nearest 5 °C
 
 ---
 
+**GEN-10 — App language** `Must` (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136))
+German (the default) or English, chosen in *Einstellungen* › *Darstellung* ›
+*Sprache* (SET-35) or in the phone's per-app language settings.
+- AC1: every app text (screens, dialogs, snackbars, notifications, the
+  alert, the tour, the recipe share text, the CSV) is in the chosen
+  language; numbers, dates and durations follow it („4,0 g" / „4.0 g",
+  „21. Okt. 2026" / „Oct 21, 2026"); units stay metric and temperatures in
+  5 °C steps.
+- AC2: the Tee-Kontor texts (names, descriptions, brewing text) and the fixed
+  tea vocabulary (Sorte names, descriptors, taste-slider names) stay German
+  in both languages (D-136 Q6).
+- AC3: *System* follows the phone (English for an English phone, German for
+  any other); a change applies at once without losing state or a running
+  timer; the backup file and its keys do not change.
+
 ## 2. First-start setup (ONB) — SCR-01
 
 **ONB-01 — Welcome** `Must`
@@ -180,6 +195,16 @@ onboarding shows no „Teefotos werden geladen …" line.
 **ONB-04 — Run once** `Must`
 Shown until completed; reachable again via Einstellungen › Über ›
 *Einrichtung erneut zeigen*.
+
+**ONB-07 — Tour** `Must` (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136))
+Six swipe-through pages after the welcome (ONB-01) and before the
+reliability page (ONB-02), on the first start and after *Alle Daten löschen*
+(SET-33); again from *Einstellungen* › *Hilfe* › *Einführung* (SET-36).
+Copy and images in 03 SCR-33.
+- AC1: *Überspringen* on every page goes to the next onboarding step (first
+  start) or back to the settings; back on the first page does the same.
+- AC2: TalkBack reads each page's title and text; the pages work at font
+  2.0 (text scrolls, buttons stay in view).
 
 ---
 
@@ -1375,6 +1400,10 @@ If notifications are blocked, Live Updates are not allowed
 exact alarms are unavailable, the timer and Home show „Der Timer ist
 eventuell unzuverlässig – *Beheben*" deep-linking to the relevant setting.
 Now Bar presence is not checked (best effort, TMR-41).
+- **v0.10.0 ([D-136](10-open-questions-and-decisions.md#d-136)):** on the first
+  app open in a new versionCode with full-screen alerts not allowed, the
+  sheet „Vollbild-Alarm wieder erlauben" (SCR-34) offers *Erlauben* once per
+  update; the banner stays. Not on the first start or over a timer screen.
 - **Alarm volume (v0.3.0, D-098):** the phone's alarm volume at 0 is a check
   of its own: „Alarmlautstärke ist aus" with *Beheben* (the system's sound
   settings), in the banner and in SET-24.
@@ -1625,6 +1654,14 @@ history list (SCR-29).
   remaining events at once; the tea's `opened_date` is left as it is (only
   the editor changes it).
 
+- **Edit (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136)):** a tap on a purchase (INITIAL or PURCHASE)
+  or a correction in SCR-29 opens its sheet filled in („Kauf bearbeiten":
+  *Kaufdatum*, grams, price; „Korrektur bearbeiten": day and the signed
+  difference, not 0), with *Speichern* and *Löschen*, under the same rules
+  as *Nachkauf erfassen* (no day after today, grams > 0). It keeps the
+  event; stock, € pro g, the costs of the tea's sessions (INV-08) and
+  Statistik follow at once. *Aufgegossen* rows still open their session.
+
 **INV-04 — Session edits** `Must` update the linked deduction.
 
 **INV-05 — Stock status** `Must`
@@ -1700,6 +1737,11 @@ poured infusion = one cup.)
 - **Since v0.1.0:** the session's cost (`cost_cents`) is stored at
   completion.
 - **v0.4.1 (D-100):** price per gram and cost per cup on the tea detail.
+- **v0.10.0 ([D-136](10-open-questions-and-decisions.md#d-136) Q3):** when a purchase is edited or deleted (INV-03),
+  every finished session of that tea with a leaf weight gets its
+  `cost_cents` recomputed as leaf × the tea's weighted cost per gram after
+  the change (none when no purchase has a price), in the same transaction.
+  Adding a purchase still prices only later sessions.
   **v0.7.0:** the statistics (INS-05).
 - **v0.4.1 (D-104, #182):** the detail's VORRAT shows three lines below the
   stock, each in cents rounded half up:
@@ -2005,6 +2047,8 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 | SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Aufguss & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Aufguss & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
 | SET-34 | ~~Tassengröße~~ **removed in rc.3 (D-115 A2)**: the setting, its row and dialog are gone; Statistik and the tea detail count volume (INV-08, INS-05). Until rc.2 (D-115 A1, R2–R3): 50–500 ml in 10 ml steps, **150 ml** (`cupSizeMl`, retired, 05 §6) | — | — |
+| SET-35 | Sprache (*Darstellung*; v0.10.0, D-136): System · Deutsch · English (GEN-10), through Android's per-app language | System | Must |
+| SET-36 | Einführung (*Hilfe*; v0.10.0, D-136): opens the tour (ONB-07, SCR-33) | — | Must |
 | SET-28 | Vorrats-Erinnerung (INV-11, in *Aufguss & Vorrat*; a switch „Tägliche Vorrats-Erinnerung" in v0.3.0, D-098; from v0.5.0 *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich · Aus*, D-108) | Täglich | Should |
 | SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is not *Aus*; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Aufguss anlassen | an | Must |
