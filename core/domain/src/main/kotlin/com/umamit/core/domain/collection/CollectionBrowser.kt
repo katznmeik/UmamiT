@@ -14,6 +14,7 @@ import java.util.Locale
  * and the sort (TEA-11) over the collection's rows. Pure, so the list's view model only gathers the rows.
  */
 object CollectionBrowser {
+    // Stays German in both app languages (GEN-10 AC2, D-136 Q6): tea names and Sorte groups are German tea vocabulary.
     private val collator: Collator = Collator.getInstance(Locale.GERMAN).apply { strength = Collator.SECONDARY }
 
     /** A–Z by name, ignoring case; the id keeps equal names in a stable order. */

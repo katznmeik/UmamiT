@@ -9,19 +9,21 @@ android {
     namespace = "com.umamit.app"
     defaultConfig {
         applicationId = "com.umamit.app" // D-027: never change after the first release
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // German app language for the device tests on the en-US emulator (GEN-10; core/timer/src/sharedAndroidTest).
+        testInstrumentationRunner = "com.umamit.core.timer.GermanLocaleRunner"
     }
     buildFeatures {
         buildConfig = true
     }
-    // The app is German only; drop other locales from library resources.
+    // The app's two languages (GEN-10, D-136 item 15): German in `values/`, English in `values-en/`; the other
+    // locales of the library resources are dropped. Keep in step with res/xml/locales_config.xml.
     androidResources {
-        localeFilters += "de"
+        localeFilters += listOf("de", "en")
     }
 }
 
-// UnlockedDevice.kt is shared with :core:timer's device tests and lives there (TMR-A-15, #308): a source
-// folder only, no dependency. :core:timer's Detekt checks it.
+// UnlockedDevice.kt (TMR-A-15, #308) and GermanLocaleRunner.kt (GEN-10) are shared with :core:timer's device tests and
+// live there: a source folder only, no dependency. :core:timer's Detekt checks them.
 extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
     sourceSets.getByName("androidTest").kotlin.directories.add("$rootDir/core/timer/src/sharedAndroidTest/kotlin")
 }

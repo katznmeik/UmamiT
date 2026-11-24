@@ -1,16 +1,30 @@
 package com.umamit.feature.stats
 
 import android.content.res.Resources
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.domain.stats.PeriodUnit
 import com.umamit.core.domain.stats.StatsPeriod
 import com.umamit.core.model.MonthSpan
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAccessor
 import java.util.Locale
 
-private val MONTH_SHORT = DateTimeFormatter.ofPattern("MMM", Locale.GERMAN)
-private val MONTH_YEAR = DateTimeFormatter.ofPattern("MMM yyyy", Locale.GERMAN)
-private val YEAR_SHORT = DateTimeFormatter.ofPattern("yy", Locale.GERMAN)
+private val MONTH_SHORT = MonthPattern("MMM")
+private val MONTH_YEAR = MonthPattern("MMM yyyy")
+private val YEAR_SHORT = MonthPattern("yy")
+
+/**
+ * A month pattern in the app's language (GEN-10): „Okt.", „Okt. 2026" in German, „Oct", „Oct 2026" in English. Both
+ * formatters are immutable; the language picks one at every call, so a language change never leaves it stale.
+ */
+private class MonthPattern(pattern: String) {
+    private val german = DateTimeFormatter.ofPattern(pattern, Locale.GERMAN)
+    private val english = DateTimeFormatter.ofPattern(pattern, AppLanguage.ENGLISH.locale)
+
+    fun format(month: TemporalAccessor): String =
+        (if (AppLanguage.current() == AppLanguage.ENGLISH) english else german).format(month)
+}
 
 /** „KW 44" for a week (its ISO number), „Okt." for a month. */
 internal fun StatsPeriod.label(resources: Resources): String = when (unit) {

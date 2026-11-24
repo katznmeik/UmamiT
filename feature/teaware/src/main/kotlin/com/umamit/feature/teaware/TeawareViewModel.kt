@@ -2,6 +2,7 @@ package com.umamit.feature.teaware
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.VesselArchive
 import com.umamit.core.data.VesselRepository
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.Collator
-import java.util.Locale
 import javax.inject.Inject
 
 /** A vessel as SCR-13 lists it: type icon, name and volume. */
@@ -67,11 +67,15 @@ class TeawareViewModel @Inject constructor(
         viewModelScope.launch { archive.restore(vesselId) }
     }
 
-    private companion object {
-        /** German A–Z: „Öko" next to „Oolong", case and accents second (GEN-10's spirit). */
-        val byName: Comparator<String> = Collator.getInstance(Locale.GERMAN)
-            .apply { strength = Collator.SECONDARY }
-            .let { collator -> Comparator { a, b -> collator.compare(a.trim(), b.trim()) } }
+    internal companion object {
+        /**
+         * A–Z in the app's language (GEN-10): „Öko" next to „Oolong", case and accents second. A new collator for each
+         * sort, so a language change is never stale.
+         */
+        val byName: Comparator<String>
+            get() = Collator.getInstance(AppLanguage.current().locale)
+                .apply { strength = Collator.SECONDARY }
+                .let { collator -> Comparator { a, b -> collator.compare(a.trim(), b.trim()) } }
     }
 }
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The app's languages for Android's per-app language (android:localeConfig; GEN-10, SET-35, D-136 item 15):
+  German, the default resources in values/, and English in values-en/. The phone's app settings offer exactly
+  these; Einstellungen › Darstellung › Sprache sets the same value through LocaleManager. Keep in step with
+  localeFilters in app/build.gradle.kts.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="de" />
+    <locale android:name="en" />
+</locale-config>

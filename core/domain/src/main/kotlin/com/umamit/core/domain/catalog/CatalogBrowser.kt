@@ -15,6 +15,7 @@ import java.util.Locale
  * The search itself runs on the catalog's full-text index; this takes its hits.
  */
 object CatalogBrowser {
+    // Stays German in both app languages (GEN-10 AC2, D-136 Q6): the catalog's names and Sorte groups are the shop's.
     private val collator: Collator = Collator.getInstance(Locale.GERMAN).apply { strength = Collator.SECONDARY }
     private val byName = Comparator<CatalogTeaSummary> { a, b -> collator.compare(a.name, b.name) }
         .thenBy { it.key }

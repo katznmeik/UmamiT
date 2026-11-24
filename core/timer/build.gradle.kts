@@ -6,12 +6,14 @@ plugins {
 android {
     defaultConfig {
         // The process-death test (#42) runs in the CI emulator job; its runner runs in its
-        // own process (src/androidTest/AndroidManifest.xml).
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // own process (src/androidTest/AndroidManifest.xml). It sets the German app language first (GEN-10,
+        // src/sharedAndroidTest), so the asserted German texts hold on the en-US emulator.
+        testInstrumentationRunner = "com.umamit.core.timer.GermanLocaleRunner"
     }
 }
 
-// UnlockedDevice.kt, one copy for the device tests of this module and of :app (TMR-A-15, #308):
+// UnlockedDevice.kt (TMR-A-15, #308) and GermanLocaleRunner.kt (GEN-10): one copy each for the device tests of this
+// module and of :app:
 // src/sharedAndroidTest is a source folder of both androidTest source sets, not a module. Detekt's
 // sources are src/{main,test} and src/androidTest only, so the folder is added to them here.
 // The accuracy report and its log parser (AccuracyReport.kt, FireTime.kt; TMR-A-09, D-127) are used

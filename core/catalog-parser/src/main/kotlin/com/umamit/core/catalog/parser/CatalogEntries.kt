@@ -58,7 +58,10 @@ object CatalogEntries {
         }
         .sortedBy { it.key }
 
-    /** [name] lower-case, without sizes and punctuation: „Bio Abendrot-Matcha 30g" → „bio abendrot matcha". */
+    /**
+     * [name] lower-case, without sizes and punctuation: „Bio Abendrot-Matcha 30g" → „bio abendrot matcha". A matching
+     * key of the shop's German data, never shown: German whatever the app's language (D-136 item 15).
+     */
     fun normalisedName(name: String): String =
         name.lowercase(Locale.GERMAN).replace(SIZE, " ").replace(NOT_A_WORD, " ").trim()
 
