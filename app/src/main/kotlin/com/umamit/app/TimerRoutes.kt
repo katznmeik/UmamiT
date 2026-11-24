@@ -68,9 +68,6 @@ internal fun NavHostController.hasTimer(): Boolean = try {
 /** The timer a timer route opened for none shows, in its entry's saved state ([pinTimer]). */
 private const val PINNED_SLOT_KEY = "com.umamit.app.PINNED_TIMER_SLOT"
 
-/** Whether this destination is a timer screen: SCR-05 ([TimerRoute]) or SCR-07 ([QuickTimerRoute]). */
-internal fun NavDestination.isTimerScreen(): Boolean = hasRoute<TimerRoute>() || hasRoute<QuickTimerRoute>()
-
 /** A timer screen is the top entry, or one is about to be ([requestPending]). */
 internal fun NavBackStackEntry?.timerScreenOrPending(requestPending: Boolean): Boolean =
     requestPending || this?.destination?.isTimerScreen() == true
