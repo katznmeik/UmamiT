@@ -34,12 +34,28 @@ internal class DisplayRotation(private val shell: (String) -> String) {
         shell("settings put system user_rotation ${Surface.ROTATION_0}")
     }
 
+    /**
+     * What decides the display's rotation, for a failure message (D-136 build note „Portrait timer"): the rotation
+     * settings and the display's rotation lines of `dumpsys window displays`, so a failed turn tells a release the app
+     * never sent (the requested orientation in [Upright] still portrait) from a display that did not follow it.
+     */
+    fun state(): String {
+        val settings = "user_rotation=${shell("settings get system user_rotation").trim()} " +
+            "accelerometer_rotation=${shell("settings get system accelerometer_rotation").trim()}"
+        val display = Dumpsys.matchingLines(shell("dumpsys window displays"), DISPLAY_MARKERS)
+        return "$settings\n$display"
+    }
+
     /** Back to the settings [save] read; nothing when it never ran. */
     fun restore() {
         val saved = accelerometer ?: return
         put("user_rotation", userRotation)
         put("accelerometer_rotation", saved)
         accelerometer = null
+    }
+
+    private companion object {
+        val DISPLAY_MARKERS = listOf("mRotation=", "mUserRotation", "mLastOrientation", "mCurrentAppOrientation")
     }
 
     private fun put(key: String, value: String?) {
@@ -51,8 +67,11 @@ internal class DisplayRotation(private val shell: (String) -> String) {
     }
 }
 
-/** The resumed [MainActivity]'s configuration orientation and its display's rotation, read on the main thread. */
-internal data class Upright(val orientation: Int, val rotation: Int) {
+/**
+ * The resumed [MainActivity]'s configuration orientation, its display's rotation and the orientation it asks for
+ * ([requested], `ActivityInfo.SCREEN_ORIENTATION_*`), read on the main thread.
+ */
+internal data class Upright(val orientation: Int, val rotation: Int, val requested: Int) {
     val portrait: Boolean get() = orientation == Configuration.ORIENTATION_PORTRAIT && rotation == Surface.ROTATION_0
     val landscape: Boolean get() = orientation == Configuration.ORIENTATION_LANDSCAPE && rotation == Surface.ROTATION_90
 
@@ -64,7 +83,14 @@ internal data class Upright(val orientation: Int, val rotation: Int) {
                 ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED)
                     .filterIsInstance<MainActivity>()
                     .firstOrNull()
-                    ?.let { upright = Upright(it.resources.configuration.orientation, it.display.rotation) }
+                    ?.let {
+                        upright =
+                            Upright(
+                                it.resources.configuration.orientation,
+                                it.display.rotation,
+                                it.requestedOrientation,
+                            )
+                    }
             }
             return upright
         }

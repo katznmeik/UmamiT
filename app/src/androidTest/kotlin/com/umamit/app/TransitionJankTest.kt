@@ -341,8 +341,9 @@ class TransitionJankTest {
         rotation.landscape()
         checkUpright("the timer held in landscape")
         endTimer()
-        awaitStart()
         awaitTurned("the shell after the timer closed in landscape")
+        // Not *Schnelltimer* (awaitStart): in landscape it can sit below the fold; *Aufguss starten* is at the top.
+        await(text(context.getString(HomeR.string.home_start_brew)), "Start in landscape after the timer")
         checkCreations(created, "leaving the timer in landscape")
     }
 
@@ -367,9 +368,11 @@ class TransitionJankTest {
         awaitTurned("Journal in landscape")
         val created = creations.count
         repeat(JankGate.runs) {
-            val bar = await(text(teaName), "the active brew bar on Journal")
+            // The bar is one element with a spoken description (its texts are cleared); Journal's running row has the
+            // tea's name as text, so the text alone would match that row instead.
+            val bar = await(desc(teaName), "the active brew bar on Journal")
             record("landscape Journal → timer") { bar.click() }
-            awaitTimer()
+            awaitTimerOverJournal()
             checkUpright("the timer entered from Journal in landscape")
             checkSession(session)
             record("timer → landscape Journal") { device.pressBack() }
@@ -434,6 +437,12 @@ class TransitionJankTest {
         return checkNotNull(active?.sessionId) { "the waiting session has no id: $active" }
     }
 
+    /** The timer on top of Journal: the shell is not composed under it, so Journal's finished session is gone. */
+    private fun awaitTimerOverJournal() {
+        awaitGone(text(sessionTeaName), "Journal under the timer")
+        await(text(teaName), "the tea on the timer")
+    }
+
     /** The timer on top: the shell is not composed under it, so Start's *Schnelltimer* is gone. */
     private fun awaitTimer() {
         awaitGone(text(context.getString(HomeR.string.home_quick_timer)), "Start under the timer")
@@ -458,16 +467,18 @@ class TransitionJankTest {
     private fun checkUpright(what: String) {
         Thread.sleep(SETTLE_MS)
         val upright = Upright.read()
-        check(upright?.portrait == true) { "$what is not upright: $upright\n${screenState()}" }
+        check(upright?.portrait == true) { "$what is not upright: $upright\n${rotation.state()}\n${screenState()}" }
     }
 
     private fun awaitUpright(what: String) {
-        check(waitFor { Upright.read()?.portrait == true }) { "$what is not upright: ${Upright.read()}" }
+        check(waitFor { Upright.read()?.portrait == true }) {
+            "$what is not upright: ${Upright.read()}\n${rotation.state()}"
+        }
     }
 
     private fun awaitTurned(what: String) {
         check(waitFor { Upright.read()?.landscape == true }) {
-            "$what did not turn to landscape: ${Upright.read()}\n${screenState()}"
+            "$what did not turn to landscape: ${Upright.read()}\n${rotation.state()}\n${screenState()}"
         }
     }
 
@@ -607,6 +618,9 @@ class TransitionJankTest {
         await(By.text(label), "the tab $label")
         return device.findObjects(By.text(label)).maxBy { it.visibleBounds.bottom }
     }
+
+    private fun desc(value: String): BySelector =
+        By.desc(Pattern.compile(".*${Pattern.quote(value)}.*", Pattern.DOTALL))
 
     private fun text(value: String): BySelector =
         By.text(Pattern.compile(".*${Pattern.quote(value)}.*", Pattern.DOTALL))

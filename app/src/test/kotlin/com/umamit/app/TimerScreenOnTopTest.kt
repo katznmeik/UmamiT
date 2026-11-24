@@ -60,7 +60,10 @@ class TimerScreenOnTopTest {
                     journalSources = testJournalSources(),
                     alertKey = alertKey,
                     timerRequest = timerRequest,
-                    onTimerScreenOnTopChange = { onTop += it },
+                    onTimerScreenOnTopChange = {
+                        onTop += it
+                        compose.activity.requestTimerOrientation(it)
+                    },
                     keyguard = keyguard,
                     timerScreen = { onClose, openSettings, _, _ ->
                         Column {
@@ -224,6 +227,27 @@ class TimerScreenOnTopTest {
 
         compose.onNodeWithText("TIMER").assertDoesNotExist()
         assertThat(onTop.last()).isFalse()
+    }
+
+    @Test
+    fun `the activity asks for portrait on the timer and releases it on Journal after back`() {
+        show()
+        compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
+        compose.waitForIdle()
+        assertThat(compose.activity.requestedOrientation).isEqualTo(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
+
+        openTimer()
+        assertThat(compose.activity.requestedOrientation).isEqualTo(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+
+        back()
+        compose.onNodeWithText("TIMER").assertDoesNotExist()
+        assertThat(compose.activity.requestedOrientation).isEqualTo(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
+
+        // Again, as the CI case does more than once.
+        openTimer()
+        assertThat(compose.activity.requestedOrientation).isEqualTo(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+        back()
+        assertThat(compose.activity.requestedOrientation).isEqualTo(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
     }
 
     @Test

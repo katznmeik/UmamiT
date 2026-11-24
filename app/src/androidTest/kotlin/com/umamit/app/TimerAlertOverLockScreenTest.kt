@@ -185,19 +185,20 @@ class TimerAlertOverLockScreenTest {
      */
     @Test
     fun theAlertBringsTheTimerUpUprightInTheApp() {
-        ActivityScenario.launch(MainActivity::class.java).use {
-            val session = startOnLandscapeJournal()
-            val created = creations.count
-            val alert = eventually("the alert (ID 2) at the deadline", STEP + ALERT_TIMEOUT) {
-                activeNotification(TimerNotifications.ID_ALERT)
-            }
-            val tap = alert.contentIntent
-            check("the alert has no content intent", tap != null)
-            tap!!.send()
-            checkAlertUpright(session, created, "the alert brought up in the app")
-            turnDuringAlert("alert turned in the app", session, created)
-            pour()
+        // Not closed: after an alert the scenario's close waits on a stop and destroy it does not get here; tearDown
+        // finishes the activity, as for the alert above.
+        ActivityScenario.launch(MainActivity::class.java)
+        val session = startOnLandscapeJournal()
+        val created = creations.count
+        val alert = eventually("the alert (ID 2) at the deadline", STEP + ALERT_TIMEOUT) {
+            activeNotification(TimerNotifications.ID_ALERT)
         }
+        val tap = alert.contentIntent
+        check("the alert has no content intent", tap != null)
+        tap!!.send()
+        checkAlertUpright(session, created, "the alert brought up in the app")
+        turnDuringAlert("alert turned in the app", session, created)
+        pour()
     }
 
     /** Over the lock screen, the app stopped behind it on Journal held in landscape (D-136 Q5): no new activity. */
@@ -212,28 +213,26 @@ class TimerAlertOverLockScreenTest {
     fun theAlertOverTheLockScreenComesUpUprightWithTheAppClosed() = overLockScreenFromLandscape(appClosed = true)
 
     private fun overLockScreenFromLandscape(appClosed: Boolean) {
+        // Closed before the alert when [appClosed]; otherwise left open: after the alert, still behind the keyguard,
+        // the scenario's close would wait on a destroy it does not get; tearDown finishes the activity.
         val scenario = ActivityScenario.launch(MainActivity::class.java)
-        try {
-            val session = startOnLandscapeJournal()
-            if (appClosed) scenario.close()
-            val created = creations.count + if (appClosed) 1 else 0
-            eventually("the Live Update", TIMEOUT) { activeNotification(TimerNotifications.ID_LIVE_UPDATE) }
-            shell("input keyevent KEYCODE_SLEEP")
-            val locked = eventuallyOrNull(LOCK_TIMEOUT) { Unit.takeIf { keyguard.isKeyguardLocked } } != null
-            check("no keyguard after sleep on this image", locked)
-            eventually("the alert (ID 2) at the deadline", STEP + ALERT_TIMEOUT) {
-                activeNotification(TimerNotifications.ID_ALERT)
-            }
-            eventually("MainActivity resumed by the full-screen intent", ALERT_TIMEOUT) { resumedMainActivity() }
-            check("the alert must turn the screen on", power.isInteractive)
-            check("the timer must show over the lock screen", keyguard.isKeyguardLocked)
-            checkAlertUpright(session, created, "the alert over the lock screen")
-            turnDuringAlert("alert turned over lock screen", session, created)
-            check("the timer must still show over the lock screen", keyguard.isKeyguardLocked)
-            pour()
-        } finally {
-            if (!appClosed) scenario.close()
+        val session = startOnLandscapeJournal()
+        if (appClosed) scenario.close()
+        val created = creations.count + if (appClosed) 1 else 0
+        eventually("the Live Update", TIMEOUT) { activeNotification(TimerNotifications.ID_LIVE_UPDATE) }
+        shell("input keyevent KEYCODE_SLEEP")
+        val locked = eventuallyOrNull(LOCK_TIMEOUT) { Unit.takeIf { keyguard.isKeyguardLocked } } != null
+        check("no keyguard after sleep on this image", locked)
+        eventually("the alert (ID 2) at the deadline", STEP + ALERT_TIMEOUT) {
+            activeNotification(TimerNotifications.ID_ALERT)
         }
+        eventually("MainActivity resumed by the full-screen intent", ALERT_TIMEOUT) { resumedMainActivity() }
+        check("the alert must turn the screen on", power.isInteractive)
+        check("the timer must show over the lock screen", keyguard.isKeyguardLocked)
+        checkAlertUpright(session, created, "the alert over the lock screen")
+        turnDuringAlert("alert turned over lock screen", session, created)
+        check("the timer must still show over the lock screen", keyguard.isKeyguardLocked)
+        pour()
     }
 
     /**
@@ -284,7 +283,7 @@ class TimerAlertOverLockScreenTest {
                 Thread.sleep(SETTLE_MS)
             }
             val upright = Upright.read()
-            check("$transition: the timer is not upright: $upright", upright?.portrait == true)
+            check("$transition: the timer is not upright: $upright\n${rotation.state()}", upright?.portrait == true)
             checkAlertUpright(session, created, transition)
             frames?.let { JankRun(it, budgetNs) }
         }
