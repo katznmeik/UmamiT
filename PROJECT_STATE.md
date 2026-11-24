@@ -15,6 +15,7 @@
 
   All on PR [#364](https://github.com/katznmeik/UmamiT/pull/364) (draft). The tickets stay open until the merge.
 - **CI:** green on all five jobs on `b40aef15` (steps 3–4) and @@CI5@@.
+- **Resume (build session 2 not finished):** the emulator jobs must be green on the step 5 head (#359 run 2 + #361) before the rc session starts. The fix for the device tests' German pin (T4) was in progress at the time of writing; this file is updated when it lands.
 - **The rc session (#362)** (Opus `medium` orchestrator; T3/T4 reviewers per the plan):
   - **Calibrate and gate the jank lines.** The eight jank lines of #357 are in `JankGate.REPORT_ONLY`; calibrate them on three CI runs (D-117) and gate them. Since `ComposeAnimationScale` (build session 2), `TransitionJankTest` measures at Compose scale 1 for certain; use only runs from `b40aef15` on.
   - **T3 milestone review** of the whole PR; **T4 timer review**: #357's `app` changes and its `close()` question (D-136 build notes), #358's `TimerNotificationTexts` (`Locale.ROOT`), the `GermanLocaleRunner` of `:core:timer`'s device tests, `StepsSheetHostTest`/`TeaPickerScreenshotTest` test changes, and #359 run 2's resources in `feature:brew` and `core:timer`.
