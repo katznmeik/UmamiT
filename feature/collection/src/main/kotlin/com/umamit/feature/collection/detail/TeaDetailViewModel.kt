@@ -89,8 +89,17 @@ sealed interface TeaDetailEvent {
     /** *Als Titelbild* or *Löschen* couldn't be written; nothing changed. */
     data object PhotoChangeFailed : TeaDetailEvent
 
-    /** *Bestand korrigieren*, *Nachkauf erfassen* or a history entry's *Löschen* couldn't be written (INV-03). */
+    /**
+     * *Bestand korrigieren*, *Nachkauf erfassen*, a history entry's *Löschen* or its edit couldn't be written
+     * (INV-03).
+     */
     data object StockChangeFailed : TeaDetailEvent
+
+    /** „Kauf bearbeiten"'s *Speichern* was written: „Kauf geändert" (SCR-29, D-136 item 11). */
+    data object PurchaseEdited : TeaDetailEvent
+
+    /** „Korrektur bearbeiten"'s *Speichern* was written: „Korrektur geändert" (SCR-29, D-136 item 11). */
+    data object CorrectionEdited : TeaDetailEvent
 
     /** ⋮ *Aus Katalog zurücksetzen* couldn't be written; nothing changed (PRF-06). */
     data object ResetFailed : TeaDetailEvent
@@ -256,6 +265,31 @@ class TeaDetailViewModel @Inject constructor(
     fun recordPurchase(purchase: TeaPurchase) {
         if (purchase.purchasedOn.isAfter(clock.today())) return
         writeStock { stock.recordPurchase(teaId, purchase) }
+    }
+
+    /**
+     * „Kauf bearbeiten"'s *Speichern* (INV-03, SCR-29, D-136 items 11–12): the purchase [eventId] gets the sheet's
+     * grams, price and day; its id stays, and the costs of the tea's sessions are recomputed in the same write. A
+     * day after today is refused and nothing is written; an entry gone meanwhile is said as a failed change.
+     */
+    fun updatePurchase(eventId: String, purchase: TeaPurchase) {
+        if (purchase.purchasedOn.isAfter(clock.today())) return
+        writeStock {
+            val written = stock.updatePurchase(eventId, purchase.grams, purchase.priceCents, purchase.purchasedOn)
+            events.send(if (written) TeaDetailEvent.PurchaseEdited else TeaDetailEvent.StockChangeFailed)
+        }
+    }
+
+    /**
+     * „Korrektur bearbeiten"'s *Speichern* (INV-03, SCR-29, D-136 item 11): the correction [eventId] gets the signed
+     * difference and the day; session costs stay. 0 g or a day after today is refused and nothing is written.
+     */
+    fun updateCorrection(eventId: String, signedDeltaGrams: Double, day: LocalDate) {
+        if (day.isAfter(clock.today()) || signedDeltaGrams == 0.0 || !signedDeltaGrams.isFinite()) return
+        writeStock {
+            val written = stock.updateCorrection(eventId, signedDeltaGrams, day)
+            events.send(if (written) TeaDetailEvent.CorrectionEdited else TeaDetailEvent.StockChangeFailed)
+        }
     }
 
     /** A stock write that fails (a full disk, a locked database) changes nothing and is said once (D-090). */

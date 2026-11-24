@@ -2,9 +2,11 @@ package com.umamit.core.data
 
 import com.umamit.core.common.WallClock
 import com.umamit.core.common.today
+import com.umamit.core.data.catalog.CatalogColumns
 import com.umamit.core.database.dao.InventoryDao
 import com.umamit.core.database.dao.RecipeDao
 import com.umamit.core.database.dao.RecipeDeletion
+import com.umamit.core.database.dao.SessionCost
 import com.umamit.core.database.dao.TeaDao
 import com.umamit.core.database.dao.VesselDao
 import com.umamit.core.model.InventoryEvent
@@ -20,8 +22,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.math.abs
 
 /** [TeaRepository] on Room (05 §3.1, §3.9). */
 class RoomTeaRepository @Inject constructor(private val dao: TeaDao, private val time: WallClock) : TeaRepository {
@@ -106,7 +111,7 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
         dao.upsert(event.toEntity(createdAt = dao.get(event.id)?.createdAt ?: now, updatedAt = now))
     }
 
-    override suspend fun deleteEvent(id: String): Boolean = dao.deleteUnlessBrew(id) > 0
+    override suspend fun deleteEvent(id: String): Boolean = dao.deleteAndRecost(id, time.nowMs(), SESSION_COST)
 
     override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
         require(newTotalGrams.isFinite() && newTotalGrams >= 0.0) { "A stock total is at least 0 g" }
@@ -127,5 +132,63 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
         val now = time.nowMs()
         dao.recordPurchase(event.toEntity(createdAt = now, updatedAt = now), now)
         return event
+    }
+
+    override suspend fun updatePurchase(id: String, grams: Double, priceCents: Long?, purchasedOn: LocalDate): Boolean {
+        require(grams.isFinite() && grams > 0.0) { "A package weighs more than 0 g" }
+        require(priceCents == null || priceCents >= 0) { "A price is at least 0" }
+        require(!purchasedOn.isAfter(time.today())) { "A purchase is never in the future" }
+        val now = time.nowMs()
+        return dao.editEvent(id, now, SESSION_COST) { stored ->
+            stored.takeIf { it.type.isPackage }?.copy(
+                deltaGrams = grams,
+                priceCents = priceCents,
+                currency = if (priceCents !=
+                    null
+                ) {
+                    stored.currency ?: InventoryEvent.DEFAULT_CURRENCY
+                } else {
+                    stored.currency
+                },
+                packageLabel = if (grams == stored.deltaGrams) {
+                    stored.packageLabel
+                } else {
+                    CatalogColumns.packageLabel(grams, null)
+                },
+                occurredAt = occurredAt(stored.occurredAt, purchasedOn, now),
+                updatedAt = now,
+            )
+        }
+    }
+
+    override suspend fun updateCorrection(id: String, signedDeltaGrams: Double, day: LocalDate): Boolean {
+        require(signedDeltaGrams.isFinite() && abs(signedDeltaGrams) >= UNCHANGED_GRAMS) { "A correction is not 0 g" }
+        require(!day.isAfter(time.today())) { "A correction is never in the future" }
+        val now = time.nowMs()
+        return dao.editEvent(id, now, recost = null) { stored ->
+            stored.takeIf { it.type == InventoryEventType.ADJUSTMENT }?.copy(
+                deltaGrams = signedDeltaGrams,
+                occurredAt = occurredAt(stored.occurredAt, day, now),
+                updatedAt = now,
+            )
+        }
+    }
+
+    /** The edited event's time: unchanged on its own day, else now for today or noon of [day] in the phone's zone. */
+    private fun occurredAt(stored: Long, day: LocalDate, now: Long): Long {
+        val zone = time.zone()
+        return when (day) {
+            Instant.ofEpochMilli(stored).atZone(zone).toLocalDate() -> stored
+            Instant.ofEpochMilli(now).atZone(zone).toLocalDate() -> now
+            else -> day.atTime(LocalTime.NOON).atZone(zone).toInstant().toEpochMilli()
+        }
+    }
+
+    private companion object {
+        /** Below this a correction is 0 g, as `correctStock` reads equal totals. */
+        const val UNCHANGED_GRAMS = 1e-6
+
+        /** INV-08's finish rule ([costCents]) for the recompute after a purchase is edited or deleted (D-136). */
+        val SESSION_COST = SessionCost { leaf, events -> costCents(leaf, events.map { it.toModel() }) }
     }
 }

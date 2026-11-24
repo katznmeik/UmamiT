@@ -197,6 +197,17 @@
     <string name="collection_purchase_date_future">Das Datum liegt in der Zukunft.</string>
     <string name="collection_purchase_cancel">Abbrechen</string>
     <string name="collection_purchase_save">Erfassen</string>
+    <!-- Editing a stock event (INV-03, SCR-29, D-136 item 11) -->
+    <string name="collection_purchase_edit_title">Kauf bearbeiten</string>
+    <string name="collection_correction_edit_title">Korrektur bearbeiten</string>
+    <string name="collection_correction_delta">Änderung</string>
+    <string name="collection_correction_delta_hint">Mit Vorzeichen, z. B. +5 oder −3</string>
+    <string name="collection_correction_delta_invalid">Gib die Änderung in g an, z. B. +5 oder −3, nicht 0.</string>
+    <string name="collection_correction_date">Tag</string>
+    <string name="collection_stock_edit_save">Speichern</string>
+    <string name="collection_stock_edit_delete">Löschen</string>
+    <string name="collection_purchase_edited">Kauf geändert</string>
+    <string name="collection_correction_edited">Korrektur geändert</string>
     <!-- VORRAT's stock history (SCR-29, INV-03, D-104): newest first; a brew row opens its session. -->
     <string name="collection_tea_history_purchase">Kauf</string>
     <string name="collection_tea_history_correction">Bestand korrigiert</string>

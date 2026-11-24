@@ -354,6 +354,18 @@ data class TeaStockLevel(
     @ColumnInfo(name = "last_purchase_id") val lastPurchaseId: String?,
 )
 
+/** A finished session's leaf and stored cost, for [InventoryDao]'s recompute (INV-08, D-136 item 12). */
+data class SessionLeaf(
+    @ColumnInfo(name = "id") val id: String,
+    @ColumnInfo(name = "leaf_grams") val leafGrams: Double,
+    @ColumnInfo(name = "cost_cents") val costCents: Long?,
+)
+
+/** INV-08's cost of a session of `leafGrams` from its tea's stock `events` (null: none), for the recompute. */
+fun interface SessionCost {
+    fun cents(leafGrams: Double, events: List<InventoryEventEntity>): Long?
+}
+
 @Dao
 abstract class InventoryDao {
     /**
@@ -443,6 +455,60 @@ abstract class InventoryDao {
 
     @Query("UPDATE tea SET is_archived = 0, updated_at = :now WHERE id = :teaId AND is_archived = 1")
     protected abstract suspend fun restoreFromArchive(teaId: String, now: Long)
+
+    /**
+     * Edits the stock history's event [id] (INV-03, SCR-29, D-136 item 11): [edit] gets the stored row and returns
+     * the row to write (same id and tea), or null to refuse it. With [recost] (an edited purchase), the costs of the
+     * tea's finished sessions are recomputed from its events after the edit ([recostSessions], INV-08, D-136
+     * item 12). Read, edit and recompute run in one transaction. Returns whether the event was written.
+     */
+    @Transaction
+    open suspend fun editEvent(
+        id: String,
+        now: Long,
+        recost: SessionCost?,
+        edit: (InventoryEventEntity) -> InventoryEventEntity?,
+    ): Boolean {
+        val stored = get(id) ?: return false
+        val edited = edit(stored)?.takeIf { it.id == stored.id && it.teaId == stored.teaId } ?: return false
+        upsert(edited)
+        if (recost != null) recostSessions(stored.teaId, now, recost)
+        return true
+    }
+
+    /**
+     * [deleteUnlessBrew] with INV-08's recompute (D-136 item 12): when the deleted event was a purchase (INITIAL or
+     * PURCHASE), the costs of the tea's finished sessions are recomputed from the remaining events in the same
+     * transaction; a correction's delete leaves them as they are. Returns whether an event was deleted.
+     */
+    @Transaction
+    open suspend fun deleteAndRecost(id: String, now: Long, recost: SessionCost): Boolean {
+        val stored = get(id) ?: return false
+        if (deleteUnlessBrew(id) == 0) return false
+        if (stored.type.isPackage) recostSessions(stored.teaId, now, recost)
+        return true
+    }
+
+    /**
+     * Every finished session of [teaId] with a leaf weight gets [recost]'s cost from the tea's events now (INV-08,
+     * D-136 item 12); a session whose cost is unchanged is not written. Called inside a transaction.
+     */
+    private suspend fun recostSessions(teaId: String, now: Long, recost: SessionCost) {
+        val events = eventsForTea(teaId)
+        finishedLeaves(teaId).forEach { session ->
+            val cents = recost.cents(session.leafGrams, events)
+            if (cents != session.costCents) setSessionCost(session.id, cents, now)
+        }
+    }
+
+    @Query(
+        "SELECT id, leaf_grams, cost_cents FROM brew_session " +
+            "WHERE tea_id = :teaId AND status != 'IN_PROGRESS' AND leaf_grams > 0",
+    )
+    protected abstract suspend fun finishedLeaves(teaId: String): List<SessionLeaf>
+
+    @Query("UPDATE brew_session SET cost_cents = :cents, updated_at = :now WHERE id = :sessionId")
+    protected abstract suspend fun setSessionCost(sessionId: String, cents: Long?, now: Long)
 
     private companion object {
         /** Below this the totals are equal: sums of 0,1 g steps in doubles differ only by rounding noise. */

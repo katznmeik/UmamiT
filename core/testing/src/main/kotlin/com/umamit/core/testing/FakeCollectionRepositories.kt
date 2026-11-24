@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -257,6 +258,41 @@ class FakeStockRepository internal constructor(private val c: FakeCollection) : 
         )
         addEvent(event)
         return event
+    }
+
+    /**
+     * As on Room, for the events only (the fake keeps no sessions, so no cost is recomputed): a purchase gets the
+     * grams, price and day; an unknown id or a non-purchase is refused; a future day or no grams throws.
+     */
+    override suspend fun updatePurchase(id: String, grams: Double, priceCents: Long?, purchasedOn: LocalDate): Boolean {
+        require(grams.isFinite() && grams > 0.0) { "A package weighs more than 0 g" }
+        require(!purchasedOn.isAfter(today())) { "A purchase is never in the future" }
+        val stored = c.eventRows.value[id]?.takeIf { it.type.isPackage } ?: return false
+        addEvent(
+            stored.copy(
+                deltaGrams = grams,
+                priceCents = priceCents,
+                occurredAtMillis = editedAt(stored.occurredAtMillis, purchasedOn),
+            ),
+        )
+        return true
+    }
+
+    /** As on Room: a correction gets the signed difference and day; 0 g or a future day throws. */
+    override suspend fun updateCorrection(id: String, signedDeltaGrams: Double, day: LocalDate): Boolean {
+        require(signedDeltaGrams.isFinite() && abs(signedDeltaGrams) >= UNCHANGED_GRAMS) { "A correction is not 0 g" }
+        require(!day.isAfter(today())) { "A correction is never in the future" }
+        val stored = c.eventRows.value[id]?.takeIf { it.type == InventoryEventType.ADJUSTMENT } ?: return false
+        addEvent(stored.copy(deltaGrams = signedDeltaGrams, occurredAtMillis = editedAt(stored.occurredAtMillis, day)))
+        return true
+    }
+
+    private fun today(): LocalDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+
+    private fun editedAt(stored: Long, day: LocalDate): Long = when (day) {
+        Instant.ofEpochMilli(stored).atZone(zone).toLocalDate() -> stored
+        today() -> now
+        else -> day.atTime(LocalTime.NOON).atZone(zone).toInstant().toEpochMilli()
     }
 
     /** The time of the next [correctStock] and [recordPurchase]. */

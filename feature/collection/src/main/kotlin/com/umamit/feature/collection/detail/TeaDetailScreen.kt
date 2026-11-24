@@ -25,6 +25,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +55,7 @@ import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.AlertGate
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.StockSheet
@@ -60,6 +63,7 @@ import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.feature.collection.R
+import java.time.LocalDate
 
 /** The detail's scrolling content (SCR-09). */
 const val TEA_DETAIL_TAG = "tea_detail"
@@ -84,7 +88,8 @@ const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
  * *Favorit*, *Archivieren*, *Wiederherstellen*, *Löschen* (the dialog's confirmed delete); *Bestand korrigieren*'s
  * and *Nachkauf erfassen*'s saves (INV-03); the browser for INV-09's link; and *+ Foto*, the photo picker (TEA-05).
  * The stock history's confirmed *Löschen* of a purchase or correction, and a brew row's session page (SCR-29;
- * [openSession] null: brew rows open nothing).
+ * [openSession] null: brew rows open nothing); „Kauf bearbeiten" and „Korrektur bearbeiten"'s *Speichern*
+ * ([updatePurchase], [updateCorrection]; D-136 item 11).
  * The confirmed ⋮ *Aus Katalog zurücksetzen* (PRF-06). VORRAT's *Warnung* and *Knapp ab* (D-108).
  * LETZTE SESSIONS (TEA-13, D-112): a row opens its session page through [openSession] (null: the rows open
  * nothing), and the header's *Alle anzeigen* [showAllSessions] the Journal filtered to the tea (null: hidden).
@@ -105,6 +110,8 @@ class TeaDetailActions(
     val openShop: (url: String) -> Unit = {},
     val addPhoto: () -> Unit = {},
     val deleteStockEntry: (eventId: String) -> Unit = {},
+    val updatePurchase: (eventId: String, purchase: TeaPurchase) -> Unit = { _, _ -> },
+    val updateCorrection: (eventId: String, signedDeltaGrams: Double, day: LocalDate) -> Unit = { _, _, _ -> },
     val openSession: ((sessionId: String) -> Unit)? = null,
     val setCoverPhoto: (photoId: String) -> Unit = {},
     val deletePhoto: (photoId: String) -> Unit = {},
@@ -134,6 +141,7 @@ fun TeaDetailScreen(
     modifier: Modifier = Modifier,
     alertKey: String? = null,
     photo: @Composable (path: String) -> Painter? = { rememberPhotoPainter(it) },
+    snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     // Pushed before the tea was read: its arrival splits its work over two frames (A-12, NFR-PERF-12).
     val arrivesDuringPush = remember { state == TeaDetailUiState.Loading }
@@ -167,6 +175,14 @@ fun TeaDetailScreen(
                 is TeaDetailUiState.Ready -> Detail(state.tea, actions, alertKey, photo, deferBelow = arrivesDuringPush)
             }
         }
+        // „Kauf geändert" / „Korrektur geändert" (SCR-29, D-136 item 11), above *Session starten*.
+        SnackbarHost(
+            snackbar,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = SNACKBAR_CLEARANCE),
+        )
     }
 }
 
@@ -197,6 +213,8 @@ private fun Detail(
     val purchaseSheet = rememberAlertGate(alertKey)
     val entryDeleteAsk = rememberAlertGate(alertKey)
     var askedEntry by rememberSaveable { mutableStateOf<String?>(null) }
+    val entryEdit = rememberAlertGate(alertKey)
+    var editedEntry by rememberSaveable { mutableStateOf<String?>(null) }
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
@@ -235,6 +253,10 @@ private fun Detail(
                                     entryDeleteAsk.open()
                                 },
                                 onOpenSession = actions.openSession,
+                                onEdit = { id ->
+                                    editedEntry = id
+                                    entryEdit.open()
+                                },
                             )
                         }
                         FreshnessSection(tea.freshness)
@@ -315,6 +337,61 @@ private fun Detail(
             onSave = actions.recordPurchase,
             onDismissRequest = purchaseSheet::close,
         )
+    }
+    // „Kauf bearbeiten" / „Korrektur bearbeiten" (SCR-29, D-136 item 11): as the purchase sheet (rule 8). *Löschen*
+    // hands over to the delete question above.
+    StockEntryEditSheet(
+        history = tea.history,
+        editedId = editedEntry,
+        today = tea.today,
+        alertKey = alertKey,
+        sheet = entryEdit,
+        actions = actions,
+        onAskDelete = { id ->
+            askedEntry = id
+            entryDeleteAsk.open()
+        },
+    )
+}
+
+/**
+ * The edit sheet of the history entry [editedId] while [sheet] is shown: „Kauf bearbeiten" for a purchase,
+ * „Korrektur bearbeiten" for a correction. An entry gone meanwhile (deleted elsewhere) closes it.
+ */
+@Suppress("LongParameterList") // the entry, the day, the alert, the gate and the actions
+@Composable
+private fun StockEntryEditSheet(
+    history: List<StockEntry>,
+    editedId: String?,
+    today: LocalDate,
+    alertKey: String?,
+    sheet: AlertGate,
+    actions: TeaDetailActions,
+    onAskDelete: (eventId: String) -> Unit,
+) {
+    AlertGated(sheet) {
+        val entry = history.firstOrNull { it.id == editedId && it.canDelete }
+        when (entry?.kind) {
+            null, StockEntryKind.BREW -> LaunchedEffect(Unit) { sheet.close() }
+
+            StockEntryKind.PURCHASE -> PurchaseSheet(
+                today = today,
+                alertKey = alertKey,
+                onSave = { actions.updatePurchase(entry.id, it) },
+                onDismissRequest = sheet::close,
+                edited = entry,
+                onDelete = { onAskDelete(entry.id) },
+            )
+
+            StockEntryKind.CORRECTION -> CorrectionSheet(
+                edited = entry,
+                today = today,
+                alertKey = alertKey,
+                onSave = { delta, day -> actions.updateCorrection(entry.id, delta, day) },
+                onDelete = { onAskDelete(entry.id) },
+                onDismissRequest = sheet::close,
+            )
+        }
     }
 }
 
@@ -519,3 +596,6 @@ private fun ResetDialog(offer: CatalogResetOffer, onReset: () -> Unit, onDismiss
 }
 
 private val FAB_CLEARANCE = 88.dp
+
+/** The snackbar sits above the sticky *Session starten* bar. */
+private val SNACKBAR_CLEARANCE = 80.dp
