@@ -11,6 +11,19 @@
 
 ## Releases and plans
 
+### v0.10.0: released (2026-11-25)
+
+- **Setup.** The final session (#363) was assigned `claude/intelligent-knuth-3fje0d` and worked on `claude/inspiring-ritchie-8hfw00` as asked.
+- **PO approval (2026-11-25, in session):** all of 09 §4 „v0.10.0" and the design review on rc.1. The PO ran `/review-animations` in the session (scope: the SCR-29 sheets, SCR-34, the SCR-33 tour, *Sprache*, rotation in place): approved, its two tour polish findings deferred to the tour rework (asked as options).
+- **The PO's tour feedback:** too broad, should describe more and harder features (e.g. adding a tea without the Katalog); the pages look empty. Recorded as feedback in D-136; the PO chose to ship and rework the tour in the next release, starting with a grilling round.
+- **Release.**
+  - `3a98a3ef` on the branch: 09 §4 ticked, `umamit.version=0.10.0`, D-136 final-session notes, CLAUDE.md rule 4 current. CI green after one rerun of „Checks" (dependency resolution: ktlint and junit not resolved).
+  - PR #364 merged (merge commit `1933bc15`, the same tree as `3a98a3ef`). CI on `main`: the API 35 emulator job failed twice behind the launcher's ANR window, green on the third run.
+  - All three accuracy variants PASS on `1933bc15` (runs 45633063252, 45633068880, 45633075837).
+  - `release.yml` dispatch answered HTTP 500/502 four times without a run; the fifth queued run 45652763878.
+  - [`v0.10.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.10.0) from `main` `1933bc15`, not a pre-release, versionCode 100099, APK SHA-256 `ed5d151b…142c`, certificate the same as v0.9.0's (checked on the downloaded APK with `apksigner`).
+  - #353–#363 closed by the merge; the branch restarted from `main`.
+
 ### v0.10.0: rc session #362, rc.1 published (2026-11-24/25)
 
 - **Setup.** Orchestrator on Opus `medium`. The session was assigned `claude/eager-albattani-6m7yn8` and worked on `claude/inspiring-ritchie-8hfw00` as asked. No PO answers had arrived on PR #364.
@@ -888,6 +901,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-25 | **v0.10.0 final session (#363):** the PO approved rc.1 and ran `/review-animations` (approved; two tour findings deferred); the tour feedback recorded for the next release; PR #364 merged (`1933bc15`), all three accuracy variants PASS, `v0.10.0` (100099) released and verified. Next: a specify session, tour rework first. |
 | 2026-11-25 | **v0.10.0 rc session (#362):** GEN-13 AC1 fix (texts without an activity in the app language), jank calibration (*timer → landscape Journal* gates), T3 and T4 reviews with two fix rounds, the app language renumbered GEN-13, the accuracy harness follows the test runner; gate, CI and all three accuracy variants PASS on `5978b729`; `v0.10.0-rc.1` (100001) published. Next: the PO's check, then #363. |
 | 2026-11-24 | **v0.10.0 build session 2:** steps 3–5 on PR #364: #358 (app language, formatting), #360 (CSV), #359 runs 1 and 2 (English strings), #361 (tour); a test-only emulator fix for #358 (Compose's animation scale). CI green on `b40aef15` and `abf629ce`; fixes for #358 (Compose's animation scale in the jank test; the per-app language without an activity, T4). |
 | 2026-11-24 | **v0.10.0 build session 1:** draft PR #364; steps 1–2 of the plan: #354 (stock edits, cost recompute), #355 (Vollbild research), #357 (portrait timer, rotation in place; D-136 build note), #356 (Vollbild sheet SCR-34). Verified locally; CI green on step 1 (`2d3d9f76`); on step 2 the four new #357 emulator cases failed first (all test causes), green on `4379b120`. |
