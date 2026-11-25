@@ -19,6 +19,7 @@
   - the page dots change colour all at once halfway through a swipe (`TourScreen.kt` `TourDots`); blend by `currentPageOffsetFraction`;
   - the pill's width snaps when „Weiter" becomes „Fertig"; a fixed minimum width or a short crossfade.
 - **Still open for the PO from v0.10.0** (not answered by the approval; take them into the grilling round):
+  - **the Vollbild probe result** (09 §4 „v0.10.0" item 2): whether the update to rc.1 turned *Vollbild-Benachrichtigungen* off, and what #355's probe steps showed. The item was approved but no data was given; D-136's build notes need it for #355's options B–D;
   - #355's options B–D for the Vollbild grant (only A, the SCR-34 sheet, is built);
   - *Überspringen* on the tour's last page (built on all six pages);
   - English number input: „1,250" is refused and „1.250" reads as 1250 g;
@@ -27,7 +28,7 @@
   - whether the Galaxy is a foldable; the English wording; *Sprache* closing at once; [Français, English] under *System*.
 - **Next session:** a specify session (Opus `medium`): the grilling round on the tour and the open points above → spec, decision D-137, tickets and plan `docs/plans/v0.11.0.md` (the version is the PO's choice) → the PO's approval. No code before the go.
 - **Open (not blocking):**
-  - **The launcher ANR on the API 35 emulator:** on `main` `1933bc15` every `TransitionJankTest` case failed twice behind „Application Not Responding: com.google.android.apps.nexuslauncher" (the same tree passed on the PR head); the third run was green. The `ForeignAnrDialog` handler logged nothing for it, so it does not catch the launcher's ANR on API 35: a harness gap for a later ticket.
+  - **The launcher ANR on the API 35 emulator:** on `main` `1933bc15` every `TransitionJankTest` case failed twice behind „Application Not Responding: com.google.android.apps.nexuslauncher" (the same tree passed on the PR head); the third run was green. The `ForeignAnrDialog` handler logged nothing for it (0 lines in job 139316775975), so it does not catch the launcher's ANR on API 35: a harness gap for a later ticket.
   - `ReceiveRecipeDeviceTest` no longer proves grant enforcement; the phone check covered it on v0.9.0 rc.2.
 - **Release dispatch hiccup (2026-11-25):** `workflow_dispatch` of `release.yml` answered HTTP 500/502 four times with no run created; the fifth try queued it. Check the runs list before retrying, so nothing is dispatched twice.
 - **Still true:** umamit.db v9 (no migration in v0.10.0); the network has three uses (D-135); `checkManifestPermissions` passes unchanged.
@@ -94,7 +95,7 @@
 ## Waiting on the PO
 
 1. **The next release:** the grilling round on the tour rework and the open v0.10.0 points (in the next specify session).
-2. **v0.10.0 questions:** #355's options A–D, the app-wide rotation in place (#357), the implementers' choices for #354 and #356, whether the Galaxy is a foldable, and build session 2's points (tour skip on the last page, English wording, *Sprache*; see „Next"). Answers in a session or on PR #364; the rc can be built without them, and rc.1 lets the PO judge them on the phone.
+2. **v0.10.0 questions:** the open points in „Next" (for the grilling round), including the Vollbild probe result.
 3. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 4. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 5. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
