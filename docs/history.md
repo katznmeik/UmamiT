@@ -11,6 +11,37 @@
 
 ## Releases and plans
 
+### v0.10.0: rc session #362, rc.1 published (2026-11-24/25)
+
+- **Setup.** Orchestrator on Opus `medium`. The session was assigned `claude/eager-albattani-6m7yn8` and worked on `claude/inspiring-ritchie-8hfw00` as asked. No PO answers had arrived on PR #364.
+- **Fix: GEN-13 AC1, texts without an activity.**
+  - T3 (Opus `medium`): `core:data` `AppLanguageContext` for the catalog, low-stock and backup notifications and their channels, and `stockGramsText(grams, language)`.
+  - T4 (Opus `high`): the timer channel names.
+  - New tests set the process in one language and the app in the other; they were red before the fix.
+- **Jank calibration (D-117).** The eight turn lines were read from three API 36 runs (`b40aef15`, `16a7eab7`, `abf629ce`).
+  - Only *timer → landscape Journal* never exceeded the limit, so it gates now. `TransitionJankTest.rotation()` applies the gate.
+  - It passed at 1.7× on its first gated run (`bd91d48c`).
+  - The other seven stay report-only: 0 frames, NOREF, always over, or flipping around the limit.
+- **Reviews.**
+  - The T3 milestone review: no blocker, three should-fix, plus the duplicate GEN-10.
+  - The T4 timer review: no blocker, no rule-8 risk. Its named question had these numbers: 6 `LocaleManager` lookups per alert post (14 when the service starts at the alert); the `close()` cause is test tooling.
+  - `/review-animations` is user-invoke only. The PO chose to run it and invoked it without a scope, so it has not run yet.
+- **Fix rounds.**
+  - T3 (`1523f2ef`): the stock edit sheets on float noise, the English decimal mark, the confirm word from the hint's resources, one language snapshot per `core:data` text, the full format-specifier check.
+  - T4 (`23ea46e8`): one language source and one lookup per notification (the timer's copy removed); the FSI check off the alert's main-thread path; `BuildConfig.VERSION_CODE`; two English no-break spaces; the `close()` comments.
+  - T3 (`961f1a64`, `99afbbdc`): the app language renumbered to **GEN-13**, and 21 English no-break spaces.
+- **CI.**
+  - Green on `bd91d48c`, `1523f2ef`, `b6f093fb` and `5978b729`.
+  - On `00c3327e`, API 35 failed in every `TransitionJankTest` case behind a launcher ANR window (foreign). API 36 was green on the same code, and the next head was green.
+- **Accuracy.**
+  - All three variants on `b6f093fb` failed before step 1: `scripts/accuracy-run.sh` still named `AndroidJUnitRunner`, but since #358 the `core:timer` APK declares `GermanLocaleRunner`.
+  - A T3 fix (`5978b729`) reads the runner from the device; `stress-instrumented.sh` gets the same fix.
+  - Then all three PASS on `5978b729`.
+- **Release.**
+  - Full local gate PASS, and renders in `docs/design/review/v0.10.0/` (138, light and dark, de and en).
+  - `v0.10.0-rc.1` (100001) from `5978b729`: the first release run failed on a Maven Central HTTP 429 in its unit-test step, and the rerun passed.
+  - APK SHA-256 `7fea0c3b…f7b9`, certificate the same as v0.9.0's.
+
 ### v0.10.0: build session 2 (2026-11-24)
 
 - Orchestrator on Opus `medium`; the session was assigned `claude/focused-cannon-n1p2q6` and worked on `claude/inspiring-ritchie-8hfw00` as asked. No PO answers to build session 1's questions had arrived (PR #364 had no comments).
@@ -857,6 +888,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-25 | **v0.10.0 rc session (#362):** GEN-13 AC1 fix (texts without an activity in the app language), jank calibration (*timer → landscape Journal* gates), T3 and T4 reviews with two fix rounds, the app language renumbered GEN-13, the accuracy harness follows the test runner; gate, CI and all three accuracy variants PASS on `5978b729`; `v0.10.0-rc.1` (100001) published. Next: the PO's check, then #363. |
 | 2026-11-24 | **v0.10.0 build session 2:** steps 3–5 on PR #364: #358 (app language, formatting), #360 (CSV), #359 runs 1 and 2 (English strings), #361 (tour); a test-only emulator fix for #358 (Compose's animation scale). CI green on `b40aef15` and `abf629ce`; fixes for #358 (Compose's animation scale in the jank test; the per-app language without an activity, T4). |
 | 2026-11-24 | **v0.10.0 build session 1:** draft PR #364; steps 1–2 of the plan: #354 (stock edits, cost recompute), #355 (Vollbild research), #357 (portrait timer, rotation in place; D-136 build note), #356 (Vollbild sheet SCR-34). Verified locally; CI green on step 1 (`2d3d9f76`); on step 2 the four new #357 emulator cases failed first (all test causes), green on `4379b120`. |
 | 2026-11-24 | **v0.10.0 specify session:** the PO chose a feedback round (five points); grilled Q1–Q9 (D-136); specs 02, 03, 05, 07, 09, 10, 11 and CLAUDE.md rule 4 updated; spec #353, tickets #354–#363, plan `docs/plans/v0.10.0.md`; approved by the PO the same day. |
