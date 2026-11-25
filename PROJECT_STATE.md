@@ -14,6 +14,7 @@
   - All three accuracy variants PASS on `5978b729`: runs 45503182911 (standard), 45503187252 (alongside) and 45503191669 (two-brews), API 36, 50 steps.
   - The first release run failed on a Maven Central HTTP 429 and passed on the rerun.
 - **The PO's part** (CLAUDE.md rules 6 and 9):
+  - **`/review-animations`** (the PO's pick; it did not run in the rc session): type it with the scope below. Its findings are answered before the merge; any fix means an rc.2;
   - the on-device checklist 09 §4 „v0.10.0", including #355's probe steps for the Vollbild grant on the update to the rc;
   - the design review: `docs/design/review/v0.10.0/`, 138 renders, light and dark, de and en.
 
@@ -34,11 +35,12 @@
   - **Accuracy harness:** `scripts/accuracy-run.sh` and `stress-instrumented.sh` now read the runner from the device. They still named `AndroidJUnitRunner` after #358 set `GermanLocaleRunner`, so all three runs on `b6f093fb` failed before step 1.
 - **`/review-animations`:** it is user-invoke only, and the PO chose to run it. It was invoked in the rc session without a scope and has not run yet. Run it before the merge, with this scope: the SCR-29 sheets, SCR-34, the SCR-33 tour, *Sprache* and rotation in place (CI: one frame of ~1 s on *landscape Journal → timer*).
 - **The final session (#363), after the PO's approval:**
-  1. Merge PR #364 (merge commit).
-  2. All three accuracy variants on `main`'s merge commit.
-  3. `umamit.version=0.10.0` and the final `v0.10.0` (100099) from `main`; What's new `docs/whats-new/v0.10.0.md` exists (check it).
-  4. Make CLAUDE.md rule 4's „(D-136, planned)" current.
-  5. Close #353–#363 and restart the branch from `main`.
+  1. `/review-animations` has run and its findings are answered, and the PO approved the checklist and the design review. Otherwise an rc.2 round comes first.
+  2. Merge PR #364 (merge commit).
+  3. All three accuracy variants on `main`'s merge commit.
+  4. `umamit.version=0.10.0` and the final `v0.10.0` (100099) from `main`; What's new `docs/whats-new/v0.10.0.md` exists (check it).
+  5. Make CLAUDE.md rule 4's „(D-136, planned)" current.
+  6. Close #353–#363 and restart the branch from `main`.
 - **For the PO (asked in the session's last message, not decided):**
   - **From build session 1:** #355's options A–D; the app-wide rotation in place (#357); the implementers' choices for #354 and #356; whether the Galaxy is a foldable.
   - **From build session 2:** *Überspringen* on the tour's last page; the English wording; *Sprache* closing at once; [Français, English] under *System*.
@@ -86,6 +88,7 @@
 - **Release token (D-118):** `RELEASE_TOKEN` (the PO's fine-grained token, UmamiT only, Contents + Workflows read and write) publishes; it expires (the PO chose the date) and is renewed by the PO; an expired token fails „Create tag and GitHub Release" with 401/403. `main` has used it since the merge of #290; it published `v0.7.1`.
 - **Release dispatch:** `release.yml` refuses a commit without a successful CI run, so dispatch it only after CI on the merge commit in `main` has finished. `accuracy.yml` needs the full 40-character SHA as `ref`. **D-132:** a final release needs `docs/whats-new/v<version>.md` at its ref or `release.yml` fails before tagging; an rc without one publishes the table alone.
 - **Known flakes (rerun the failed job once; seen on rc.2, 2026-11-18):**
+  - API 36: *timer → landscape Journal* gates since 2026-11-24 with one janky frame of margin, and a failed reference measurement now fails `timerFromLandscapeJournal` too; rerun once before investigating.
   - API 36 emulator: `ProcessDeathTest`'s two-brews case, and `TransitionJankTest.savedSheetInAndOut` on a slow emulator.
   - `release.yml`'s „Unit tests" step: `JournalPerformanceTest`'s wall-clock budget. It fails before the tag is made, so rerunning the failed jobs is safe.
 - **Jank coverage of #331:** `TransitionJankTest` taps a tea row (`openSetup()`) but measures only the picker's in and out and setup → timer, not the tap → setup hand-over itself. The PO's eye is the check.
@@ -118,10 +121,10 @@
 ## Waiting on the PO
 
 1. **v0.10.0-rc.1:** the on-device checklist 09 §4 „v0.10.0" and the design review `docs/design/review/v0.10.0/`; approval for the merge and the final.
-1. **v0.10.0 questions:** #355's options A–D, the app-wide rotation in place (#357), the implementers' choices for #354 and #356, whether the Galaxy is a foldable, and build session 2's points (tour skip on the last page, English wording, *Sprache*; see „Next"). Answers in a session or on PR #364; the rc can be built without them, and rc.1 lets the PO judge them on the phone.
-2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
-3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
-4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
+2. **v0.10.0 questions:** #355's options A–D, the app-wide rotation in place (#357), the implementers' choices for #354 and #356, whether the Galaxy is a foldable, and build session 2's points (tour skip on the last page, English wording, *Sprache*; see „Next"). Answers in a session or on PR #364; the rc can be built without them, and rc.1 lets the PO judge them on the phone.
+3. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
+4. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
+5. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
 
 ## Open for later
 
