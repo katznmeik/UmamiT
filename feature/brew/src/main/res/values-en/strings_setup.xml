@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tea picker (SCR-03) -->
+    <string name="brew_picker_title">Choose tea</string>
+    <string name="brew_picker_search">Search</string>
+    <string name="brew_picker_recent">Recent</string>
+    <string name="brew_picker_favorites">Favorites</string>
+    <string name="brew_picker_all">All</string>
+    <!-- Group headers of the tea picker's All and search results (SCR-03, D-097). -->
+    <string name="brew_picker_group_green">Green teas</string>
+    <string name="brew_picker_group_white">White teas</string>
+    <string name="brew_picker_group_oolong">Oolongs</string>
+    <string name="brew_picker_group_black">Black teas</string>
+    <string name="brew_picker_group_puerh">Pu-erh</string>
+    <string name="brew_picker_group_herbal">Herbal teas</string>
+    <string name="brew_picker_group_other">Other</string>
+    <!-- SCR-03 footer (D-073): to the catalog, the add sheet and back to the setup of the new tea. -->
+    <string name="brew_picker_catalog">From the catalog</string>
+    <string name="brew_picker_quick_timer">Without tea (quick timer)</string>
+    <string name="brew_picker_empty">No teas in your collection yet.</string>
+    <string name="brew_picker_no_results">No tea found for “%1$s”.</string>
+    <!-- SCR-03, TEA-04 (D-093, D-100): a long press on a tea; the tea is archived, with undo. -->
+    <string name="brew_picker_tea_menu">Options</string>
+    <string name="brew_picker_remove">Archive</string>
+    <!-- E15: the tea of the active brew session can't be archived. -->
+    <string name="brew_picker_remove_blocked">End the session first</string>
+    <string name="brew_picker_removed">%1$s archived</string>
+    <string name="brew_picker_undo">Undo</string>
+
+    <!-- Brew setup (SCR-04) -->
+    <string name="brew_setup_title">New session</string>
+    <!-- SCR-04 opened from a running timer's ⋮ (the route carries the active session's id, D-128). -->
+    <string name="brew_setup_title_adjust">Adjust session</string>
+    <!-- The top bar's ⋮ (TalkBack) and its items (SCR-04, D-100, D-098). -->
+    <string name="brew_setup_more">More options</string>
+    <string name="brew_setup_menu_tea">View tea</string>
+    <string name="brew_setup_menu_catalog">View in catalog</string>
+    <!-- Between „Kabusecha" and „85 g left" under the tea name; quoted to keep the spaces. -->
+    <string name="brew_setup_meta_separator">" · "</string>
+    <string name="brew_setup_stock">%1$s g left</string>
+    <!-- BRW-08, INV-05 (D-097): the stock is at or below „Low from"; %1$s is the stock in g („14"). -->
+    <string name="brew_setup_stock_low">%1$s g left · low</string>
+    <!-- BRW-08 (D-100): the stock is above 0 g and below this brew's leaf; %1$s is the stock in g („3"). -->
+    <string name="brew_setup_stock_short">Only %1$s g left</string>
+    <string name="brew_setup_stock_short_low">Only %1$s g left · low</string>
+    <!-- INV-05: the stock is 0 g or less. -->
+    <string name="brew_setup_stock_empty">Empty</string>
+    <!-- TalkBack: „double-tap to correct stock" on „38.0 g left" (BRW-02, INV-03). -->
+    <string name="brew_setup_stock_correct">Correct stock</string>
+    <!-- Brew again from a session whose recipe is gone (BRW-06, D-100): the first recipe chip. -->
+    <string name="brew_setup_without_recipe">No recipe</string>
+    <string name="brew_setup_vessel">Vessel</string>
+    <string name="brew_setup_vessel_none">No vessel</string>
+    <string name="brew_setup_vessel_option">%1$s · %2$d ml</string>
+    <string name="brew_setup_vessel_description">Vessel: %1$s. Change</string>
+    <!-- WARE-02 (D-100): a recipe's vessel that was archived, „Kyusu 250 ml (archived)". -->
+    <string name="brew_setup_vessel_archived">%1$s (archived)</string>
+    <!-- The end of the Vessel list: opens the vessel editor (SCR-14) above the setup (WARE-02, D-100). -->
+    <string name="brew_setup_vessel_new">New vessel …</string>
+    <string name="brew_setup_water">Water</string>
+    <string name="brew_setup_leaf">Leaf</string>
+    <string name="brew_setup_ml">%1$d ml</string>
+    <string name="brew_setup_grams">%1$s g</string>
+    <string name="brew_setup_water_less">Less water</string>
+    <string name="brew_setup_water_more">More water</string>
+    <string name="brew_setup_leaf_less">Less leaf</string>
+    <string name="brew_setup_leaf_more">More leaf</string>
+    <string name="brew_setup_ratio">%1$s g / 100 ml</string>
+    <string name="brew_setup_ratio_lock">Keep ratio</string>
+    <string name="brew_setup_steps">Infusions</string>
+    <string name="brew_setup_steps_edit">Edit</string>
+    <string name="brew_setup_steps_edit_description">Edit infusions</string>
+    <string name="brew_setup_pre_alert">Pre-alert</string>
+    <string name="brew_setup_pre_alert_seconds">%1$d s</string>
+    <!-- Each step's pre-alert in order (SCR-04, TMR-23): „10 · 5 · 5 s", „–" for none; all equal: „10 s". -->
+    <string name="brew_setup_pre_alert_none">–</string>
+    <string name="brew_setup_pre_alert_separator">" · "</string>
+    <!-- TalkBack: „10 seconds, 5 seconds, none". -->
+    <plurals name="brew_setup_pre_alert_seconds_description">
+        <item quantity="one">%1$d second</item>
+        <item quantity="other">%1$d seconds</item>
+    </plurals>
+    <string name="brew_setup_pre_alert_none_description">none</string>
+    <string name="brew_setup_pre_alert_spoken_separator">", "</string>
+    <string name="brew_setup_save_to_recipe">Save to recipe</string>
+    <string name="brew_setup_saved_to_recipe">Saved to recipe</string>
+    <string name="brew_setup_start">Start session</string>
+    <string name="brew_setup_not_found_title">This tea is gone</string>
+    <string name="brew_setup_not_found_body">Pick another tea from your collection.</string>
+</resources>

@@ -5,11 +5,13 @@ import androidx.room.Room
 import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TeaCategory
+import com.umamit.testlocale.inLocale
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Test
@@ -17,6 +19,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.ByteArrayOutputStream
+import java.util.Locale
 import kotlin.time.measureTime
 
 /** *Journal als CSV* (BAK-04, D-130 Q9, Q10, #337): the bytes against a golden, and 1 000 sessions in time. */
@@ -31,10 +34,47 @@ class ExportJournalCsvTest {
     @After
     fun tearDown() = db.close()
 
-    private fun exportBytes(): Pair<Int, ByteArray> = runBlocking {
+    private fun exportBytes(csvLabels: JournalCsvLabels = labels): Pair<Int, ByteArray> = runBlocking {
         val out = ByteArrayOutputStream()
-        val count = export(out, labels)
+        val count = export(out, csvLabels)
         count to out.toByteArray()
+    }
+
+    /** The labels as the export makes them: in the app language of the moment (GEN-13, D-136 item 15). */
+    private fun labelsNow() = ResourceJournalCsvLabels(context.resources, DESCRIPTOR_LABELS::get)
+
+    @Test
+    @Config(qualifiers = "+en-rUS")
+    fun `in English the synthetic journal exports as the English golden, byte for byte`() = runBlocking {
+        insertJournal()
+        val english = labelsNow()
+
+        val (count, bytes) = exportBytes(english)
+
+        assertThat(english.language).isEqualTo(AppLanguage.ENGLISH)
+        assertThat(count).isEqualTo(5)
+        assertThat(bytes).isEqualTo(GOLDEN_EN.toByteArray(Charsets.UTF_8))
+        assertThat(bytes.take(3)).containsExactly(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()).inOrder()
+    }
+
+    @Test
+    @Config(qualifiers = "+en-rUS")
+    fun `in English an empty journal exports the English header row alone`() {
+        val (count, bytes) = exportBytes(labelsNow())
+
+        assertThat(count).isEqualTo(0)
+        assertThat(bytes.toString(Charsets.UTF_8)).isEqualTo(BOM + HEADER_EN + CRLF)
+    }
+
+    @Test
+    fun `the language is the one when the labels are made, for the whole file`() = runBlocking {
+        insertJournal()
+        val german = labelsNow()
+
+        val (_, bytes) = inLocale(Locale.US) { exportBytes(german) }
+
+        assertThat(german.language).isEqualTo(AppLanguage.GERMAN)
+        assertThat(bytes).isEqualTo(GOLDEN.toByteArray(Charsets.UTF_8))
     }
 
     @Test
@@ -279,5 +319,37 @@ class ExportJournalCsvTest {
                 it +
                     CRLF
             }
+
+        // English (GEN-13, D-136 item 15): `,`, a decimal point, ISO dates, the BOM; the taste headers, the
+        // descriptors and the tea names stay German (GEN-13 AC2). Quoting now follows `,`: „Nori, Spinat" is quoted,
+        // „'+Glas; klein" is not.
+        const val HEADER_EN = "Date,Time,Tea,Category,Recipe,Vessel,Leaf (g),Water (ml),Infusions,Duration," +
+            "Tea rating,Brewing rating,Cost (€),Descriptors,Notes,Infusion details," +
+            "Umami,Süße,Bitterkeit,Adstringenz,Körper,Aroma,Röstung/Malz,Säure,Frische,Würze"
+
+        val GREEN_ROW_EN = "2026-10-21,07:45,Nebelhang Sencha,Green,Kyusu,Shiboridashi,4.0,120,3 of 4,0:12:30," +
+            "4.5,4,0.36,\"Nori, Spinat\",\"Süß; \"\"weich\"\"\nzweite Zeile\"," +
+            "Rinse 0:10 | 60$NBSP°C 1:33 | 65$NBSP°C 0:20 | 70$NBSP°C 0:45," +
+            "4.5,3.0,,,,,,,,"
+
+        const val HERBAL_ROW_EN = "2026-10-22,19:05,\"Wiesen \"\"Kräuter\"\"; Mischung\",Herbal,,,,,1 of 2,0:05:30," +
+            ",,,,,5:00," +
+            ",2.0,,,,,,3.0,4.0,"
+
+        val OVERRIDE_ROW_EN = "2026-10-23,06:00,Rauchgrün,Green,,'+Glas; klein,,,1 of 1,0:10:00," +
+            ",,,,'- etwas bitter,80$NBSP°C 1:00," +
+            ",,,,,,2.0,,,"
+
+        val GONE_ROW_EN = "2026-10-20,23:30,Bergoolong,Oolong,,,5.0,,1 of 1,," +
+            "3,,12.34,,,95$NBSP°C 0:40," +
+            ",,,,,,3.0,,,"
+
+        const val UNCATEGORISED_ROW_EN = "2026-10-19,12:00,'=Unbekannter Tee,,,,,,1 of 1,0:10:00," +
+            ",,,'@frisch,,0:30," +
+            "2.0,,,,,,,,,"
+
+        val GOLDEN_EN = BOM +
+            listOf(HEADER_EN, OVERRIDE_ROW_EN, HERBAL_ROW_EN, GREEN_ROW_EN, GONE_ROW_EN, UNCATEGORISED_ROW_EN)
+                .joinToString("") { it + CRLF }
     }
 }

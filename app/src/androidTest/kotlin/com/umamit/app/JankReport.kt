@@ -45,7 +45,14 @@ internal object JankGate {
      * „Gate scope"). Over all runs (R1–R8) only transitions that never exceeded the limit stay gated (resume, every
      * pop, Gespeichert in/out, both sheets' exit, timer → shell); setup → timer (up to 4.6×) and session page push
      * (up to 3.0×) are reported only (D-117 build note „Gate scope"). The two lock-screen transitions are reported only
-     * by design (D-117 build note „Lock screen", NFR-PERF-12, audit A-17/A-20 „Measurable").
+     * by design (D-117 build note „Lock screen", NFR-PERF-12, audit A-17/A-20 „Measurable"). The turns of the phone
+     * (D-136 build note „Portrait timer") were calibrated on three API 36 CI runs (D-117, #357): timer → landscape
+     * Journal stayed under the limit (1.5×, 1.1×, 1.3×), so it gates. The other turns stay reported only: the timer
+     * turned to landscape or portrait measures 0 frames (the timer is held in portrait, so nothing redraws and a gate
+     * would be vacuous); the alert turned in the app or over the lock screen has no usable reference (NOREF, so a
+     * gate would fail every run); landscape Journal → timer is over in every run (6.9–8.9×, one frame of about 1 s
+     * for the forced portrait); the Journal turned to landscape or portrait flipped around the limit (2.0, 2.4, 3.0
+     * and 2.6, 2.3, 3.1).
      */
     val REPORT_ONLY: Set<String> = setOf(
         "tab Start → Journal",
@@ -60,6 +67,19 @@ internal object JankGate {
         "session page push",
         "timer → lock screen",
         "Abgegossen over lock screen",
+        // The turns of the phone (D-136 build note „Portrait timer"), calibrated on three API 36 CI runs (D-117,
+        // #357); timer → landscape Journal (1.5×, 1.1×, 1.3×) gates. The timer's turns measure 0 frames (held in
+        // portrait, nothing redraws: a gate would be vacuous).
+        "timer turned to landscape",
+        "timer turned to portrait",
+        // Over in every run (6.9–8.9×): one frame of about 1 s for the forced portrait.
+        "landscape Journal → timer",
+        // Flipped around the 3.0 limit (2.0, 2.4, 3.0 and 2.6, 2.3, 3.1).
+        "Journal turned to landscape",
+        "Journal turned to portrait",
+        // No usable reference (NOREF: passes() is false, so a gate would fail every run).
+        "alert turned in the app",
+        "alert turned over lock screen",
     )
 
     private val arguments get() = InstrumentationRegistry.getArguments()

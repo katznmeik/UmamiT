@@ -12,13 +12,15 @@ class RootConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         check(this == rootProject) { "umamit.root must be applied to the root project only" }
         configureSpotless(
-            kotlinTargets = listOf("build-logic/convention/src/**/*.kt"),
+            kotlinTargets = listOf("build-logic/convention/src/**/*.kt", "config/test-locale/**/*.kt"),
             kotlinGradleTargets = listOf("*.kts", "build-logic/*.kts", "build-logic/convention/*.kts"),
         )
         configureDetekt(
             sources = listOf(
                 file("build-logic/convention/src/main/kotlin"),
                 file("build-logic/convention/src/test/kotlin"),
+                // The shared test sources every Android module's unit tests compile (GEN-13, KotlinAndroid.kt).
+                file("config/test-locale/kotlin"),
             ),
         )
     }

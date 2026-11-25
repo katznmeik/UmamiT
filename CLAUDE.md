@@ -52,6 +52,9 @@ and effort to pick, the branch and PR, the phase and its steps by pointer
    - metric units, temperatures in **5 °C steps**;
    - German number and date formats („4,0 g", „21. Okt. 2026");
    - every UI string goes in `strings.xml`.
+   Since v0.10.0 (D-136) English is a second app language
+   (`values-en/`, GEN-13): every new string gets both, and numbers and dates
+   follow the chosen language; the shop texts and tea vocabulary stay German.
    Docs and code are in English.
 5. **Delegation** follows `docs/specs/12-agent-plan.md`. The tiers are set
    to save usage (D-101):

@@ -75,6 +75,18 @@ class StockCorrectionTest {
     }
 
     @Test
+    fun theDeltaIsStoredToATenthOfAGramDespiteTheSumsFloatNoise() = runTest {
+        // 0,1 + 0,2 more brewed: 87,9 minus the stock is −7.299999999999997 in doubles, not −7,3 (#354).
+        data.stock.addEvent(InventoryEvent("e3", "t1", InventoryEventType.BREW, -0.1, 3L, currency = null))
+        data.stock.addEvent(InventoryEvent("e4", "t1", InventoryEventType.BREW, -0.2, 4L, currency = null))
+
+        data.stock.correctStock("t1", newTotalGrams = 87.9)
+
+        assertThat(adjustments().single().deltaGrams).isEqualTo(-7.3)
+        assertThat(data.stock.correctStock("t1", newTotalGrams = 87.9)).isNull()
+    }
+
+    @Test
     fun aCorrectionNeverChangesTheCostPerGram() = runTest {
         data.stock.correctStock("t1", newTotalGrams = 10.0)
 

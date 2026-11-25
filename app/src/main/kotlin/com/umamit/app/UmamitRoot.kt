@@ -76,6 +76,11 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *
  * @param journalSources the journal tab and the „Gespeichert" sheet, which never shows over an alert (M1-16).
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
+ * @param onTimerScreenOnTopChange whether a timer screen (SCR-05, SCR-07: [isTimerScreen]) is the top route or a
+ *   notification's request for the timer is pending, for the activity's portrait request (D-136 Q5, build note
+ *   „Portrait timer"). From the back stack, not [onTimerVisibleChange]: it includes the quick timer before *Start*, and
+ *   a close over the keyguard keeps it until the timer is popped at `ON_STOP`, so the timer never turns while the
+ *   keyguard comes back.
  * @param keyguard whether the phone is locked. Locked, a close of the timer (back, a back swipe, the route's own
  *   close) reports the timer as gone at once, so the flags clear in that turn, and keeps it drawn, inert, so only
  *   the system's keyguard animation plays; the pop follows at `ON_STOP` with no transition, and no shell frame is
@@ -135,6 +140,7 @@ internal fun UmamitRoot(
     timerRequest: StateFlow<TimerRequest> = NO_TIMER_REQUEST,
     onConsumeTimerRequest: (Long) -> Unit = {},
     onTimerVisibleChange: (Boolean) -> Unit = {},
+    onTimerScreenOnTopChange: (Boolean) -> Unit = {},
     keyguard: KeyguardLock = KeyguardLock.Unlocked,
     timerScreen: @Composable (
         onClose: () -> Unit,
@@ -186,6 +192,7 @@ internal fun UmamitRoot(
     onConsumeStartRequest: (Long) -> Unit = {},
     backupRequest: StateFlow<Long> = NO_START_REQUEST,
     onConsumeBackupRequest: (Long) -> Unit = {},
+    fsiPrompt: FsiPrompt = FsiPrompt.None,
 ) {
     val navController = rememberNavController()
     // The tea archived on a detail, for the snackbar with *Rückgängig* on the screen below it, wherever that is: a
@@ -241,6 +248,8 @@ internal fun UmamitRoot(
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
     val timerShown = timerOnTop || timerFirst.requestPending
+    // A timer screen (SCR-05, SCR-07) is on top or about to be: the Vollbild sheet (SCR-34) waits until it is left.
+    val timerScreenOnTop = entry.timerScreenOrPending(timerFirst.requestPending)
     // From the back stack, not the route's composition: it changes when navigation starts, not after the fade. A
     // close over the keyguard ends it at once, while the timer is still drawn (A-17).
     val timerVisible = leaving.reported(timerShown)
@@ -248,9 +257,13 @@ internal fun UmamitRoot(
     // Re-derived when it runs, not this composition's value: a cancel in the same turn (a new alert, rule 8) has
     // already reported the timer again, and a stale `false` would clear the flags while the alert rings.
     LaunchedEffect(timerVisible) { currentOnTimerVisibleChange(keyguard.reportedNow(currentTimerShown)) }
+    // Portrait while a timer screen is on top or about to be (D-136 Q5); a locked close keeps it until the pop.
+    ReportTimerScreenOnTop(entry, timerFirst.requestPending, onTimerScreenOnTopChange)
     val navigateAbove = timerFirst.navigateAbove
     // *Einrichtung erneut zeigen* (ONB-04): above the shell or the timer, so it gives way to an alert too.
     val rerunSetup: () -> Unit = { navigateAbove(OnboardingRoute) { launchSingleTop = true } }
+    // *Einführung* (SET-36): the tour above the shell or the timer; it returns to the settings.
+    val openTour: () -> Unit = { navigateAbove(TourRoute) { launchSingleTop = true } }
     val finishSetup: () -> Unit = {
         if (navController.previousBackStackEntry != null) {
             navController.popBackStack()
@@ -333,7 +346,7 @@ internal fun UmamitRoot(
                 collectionSegments = collectionSegments,
                 collectionScreens = collectionScreens,
                 journalScreens = journalScreens,
-                settings = settings.withRoot(rerunSetup, onBackupImported),
+                settings = settings.withRoot(rerunSetup, onBackupImported, openTour),
                 teaLinkShare = share,
                 onTakeTeaLinkShare = onTakeTeaLinkShare,
                 recipeFiles = receivedRecipes,
@@ -395,6 +408,7 @@ internal fun UmamitRoot(
                     shell(ShellOpening.CatalogRefresh(sheetToken), 0L, 0L)
                 }
                 composable<OnboardingRoute> { onboardingScreen(finishSetup) }
+                composable<TourRoute> { settings.tour(dropUnlessResumed { navController.popBackStack() }) }
                 composable<TimerRoute> { timerEntry ->
                     val route = timerEntry.toRoute<TimerRoute>()
                     LeavingTimerGuard(leaving, closeTimer) {
@@ -529,6 +543,7 @@ internal fun UmamitRoot(
                         },
                         alertKey = { alert },
                         rerunSetup = rerunSetup,
+                        openTour = openTour,
                         backupImported = onBackupImported,
                     ),
                 )
@@ -551,6 +566,13 @@ internal fun UmamitRoot(
     // overlapping in a crossfade never fight over it; the timer's own transitions flip them at the fade's midpoint
     // (A-16). Last, so it shifts no saveable key above.
     RootSystemBarIcons(entry, timerShown, alert, timerFirst.requestPending)
+    // A window of its own, so its place here shifts nothing; not on the first start, over a timer screen or an alert.
+    FsiPromptHost(
+        prompt = fsiPrompt,
+        onboardingCompleted = !startWithSetup,
+        timerScreenOnTop = timerScreenOnTop,
+        alerting = alert != null,
+    )
 }
 
 /**

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="data_catalog_channel">Catalog</string>
+    <string name="data_catalog_channel_description">Progress and result of the catalog refresh</string>
+    <string name="data_catalog_progress_title">Loading the catalog</string>
+    <string name="data_catalog_progress_starting">Reading the sitemap …</string>
+    <string name="data_catalog_progress" tools:ignore="PluralsCandidate">Pages: %1$d of %2$d · Products: %3$d</string>
+    <string name="data_catalog_cancel">Cancel</string>
+    <string name="data_catalog_result_success_title">Catalog loaded</string>
+    <plurals name="data_catalog_tea_count">
+        <item quantity="one">%1$d tea</item>
+        <item quantity="other">%1$d teas</item>
+    </plurals>
+    <string name="data_catalog_summary_separator">" · "</string>
+    <string name="data_catalog_summary_new" tools:ignore="PluralsCandidate">%1$d new</string>
+    <string name="data_catalog_summary_changed" tools:ignore="PluralsCandidate">%1$d changed</string>
+    <string name="data_catalog_summary_discontinued" tools:ignore="PluralsCandidate">%1$d no longer sold</string>
+    <plurals name="data_catalog_summary_recipes">
+        <item quantity="one">%1$d recipe to check</item>
+        <item quantity="other">%1$d recipes to check</item>
+    </plurals>
+    <string name="data_catalog_summary_unchanged">no changes</string>
+    <string name="data_catalog_result_failed_title">Catalog not loaded</string>
+    <string name="data_catalog_result_kept">Your previous catalog is kept.</string>
+    <string name="data_catalog_result_blocked">The shop has blocked the request for now – please try again later.</string>
+    <string name="data_catalog_result_offline">No connection to the shop – please try again later.</string>
+    <string name="data_catalog_result_unavailable">The shop can\'t be reached right now – please try again later.</string>
+    <string name="data_catalog_result_shop_changed">The shop\'s page has changed – an app update is needed. Your previous catalog is kept.</string>
+    <string name="data_catalog_result_storage">The catalog couldn\'t be saved – is the storage full?</string>
+    <string name="data_stock_channel">Stock</string>
+    <string name="data_stock_channel_description">Reminder about teas running low or empty</string>
+    <string name="data_stock_reminder_title" tools:ignore="PluralsCandidate">%1$d teas are running low</string>
+    <string name="data_stock_reminder_title_one">%1$s is running low</string>
+    <string name="data_stock_reminder_title_one_empty">%1$s is empty</string>
+    <string name="data_stock_reminder_line">%1$s · %2$s g</string>
+    <string name="data_stock_reminder_line_empty">%1$s · empty</string>
+    <string name="data_stock_reminder_separator">", "</string>
+    <string name="data_reminders_channel">Reminders</string>
+    <string name="data_reminders_channel_description">Reminder to back up your data</string>
+    <string name="data_backup_reminder_title">Time for a backup</string>
+    <string name="data_backup_reminder_text" tools:ignore="PluralsCandidate">%1$d new sessions since the last backup.</string>
+    <string name="data_backup_reminder_text_never">You haven\'t made a backup yet.</string>
+</resources>

@@ -9,15 +9,18 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextReplacement
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.TeaPurchase
 import com.umamit.core.designsystem.theme.UmamiTheme
 import org.junit.Rule
 import org.junit.Test
@@ -26,7 +29,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.LocalDate
 
-/** VORRAT's stock history (INV-03, SCR-29, D-104; spec #171 seam 2): rows, the delete question, the brew link. */
+/**
+ * VORRAT's stock history (INV-03, SCR-29, D-104; spec #171 seam 2): rows, the delete question, the brew link, and the
+ * edit sheets of a purchase and a correction (D-136 item 11).
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
 class TeaDetailHistoryScreenTest {
@@ -35,12 +41,18 @@ class TeaDetailHistoryScreenTest {
 
     private val deleted = mutableListOf<String>()
     private val opened = mutableListOf<String>()
+    private val editedPurchases = mutableListOf<Pair<String, TeaPurchase>>()
+    private val editedCorrections = mutableListOf<Triple<String, Double, LocalDate>>()
     private val actions = TeaDetailActions(
         deleteStockEntry = { deleted += it },
         openSession = { opened += it },
+        updatePurchase = { id, purchase -> editedPurchases += id to purchase },
+        updateCorrection = { id, delta, day -> editedCorrections += Triple(id, delta, day) },
     )
     private var alertKey by mutableStateOf<String?>(null)
-    private var tea by mutableStateOf(TeaDetailScreenTest.sample().copy(history = HISTORY))
+    private var tea by mutableStateOf(
+        TeaDetailScreenTest.sample().copy(history = HISTORY, today = LocalDate.of(2026, 11, 8)),
+    )
 
     private fun show() {
         compose.setContent {
@@ -58,6 +70,16 @@ class TeaDetailHistoryScreenTest {
         compose.onNodeWithTag(teaDetailHistoryDeleteTag(id)).performScrollTo()
             .performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
+    }
+
+    private fun openEdit(id: String) {
+        // By its action, as askDelete: the pencil FAB may cover the row's centre.
+        row(id).performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitForIdle()
+    }
+
+    private fun hasClickLabel(label: String) = SemanticsMatcher("click label $label") {
+        it.config.getOrNull(SemanticsActions.OnClick)?.label == label
     }
 
     @Test
@@ -129,11 +151,102 @@ class TeaDetailHistoryScreenTest {
     }
 
     @Test
-    fun `purchase and correction rows open nothing`() {
+    fun `TalkBack names a purchase's and a correction's tap as editing (D-136)`() {
         show()
 
-        compose.onNodeWithTag(teaDetailHistoryRowTag("p1")).assertHasNoClickAction()
-        compose.onNodeWithTag(teaDetailHistoryRowTag("a1")).assertHasNoClickAction()
+        row("p1").assert(hasClickLabel("Kauf bearbeiten"))
+        row("a1").assert(hasClickLabel("Korrektur bearbeiten"))
+        row("b1").assert(hasClickLabel("Session ansehen"))
+    }
+
+    @Test
+    fun `a purchase row opens Kauf bearbeiten filled in, and Speichern hands over the new values`() {
+        show()
+
+        openEdit("p1")
+        compose.onNodeWithText("Kauf bearbeiten").assertIsDisplayed()
+        compose.onNodeWithTag(PURCHASE_SHEET_GRAMS_TAG).assert(hasText("100"))
+        compose.onNodeWithTag(PURCHASE_SHEET_PRICE_TAG).assert(hasText("18,90"))
+        compose.onNodeWithTag(PURCHASE_SHEET_DATE_TAG).assert(hasText("20. Okt. 2026", substring = true))
+        compose.onNodeWithTag(PURCHASE_SHEET_GRAMS_TAG).performTextReplacement("80")
+        compose.onNodeWithTag(PURCHASE_SHEET_PRICE_TAG).performTextReplacement("")
+        compose.onNodeWithTag(PURCHASE_SHEET_SAVE_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        assertThat(editedPurchases).containsExactly("p1" to TeaPurchase(80.0, null, LocalDate.of(2026, 10, 20)))
+        compose.onNodeWithText("Kauf bearbeiten").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a purchase with 0 g cannot be saved`() {
+        show()
+
+        openEdit("p1")
+        compose.onNodeWithTag(PURCHASE_SHEET_GRAMS_TAG).performTextReplacement("0")
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(PURCHASE_SHEET_SAVE_TAG).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("Gib die Menge in g an, z. B. 50.").assertExists()
+    }
+
+    @Test
+    fun `a correction row opens Korrektur bearbeiten with its signed difference`() {
+        show()
+
+        openEdit("a1")
+        compose.onNodeWithText("Korrektur bearbeiten").assertIsDisplayed()
+        compose.onNodeWithTag(CORRECTION_SHEET_DELTA_TAG).assert(hasText("−15"))
+        compose.onNodeWithTag(CORRECTION_SHEET_DATE_TAG).assert(hasText("23. Okt. 2026", substring = true))
+        compose.onNodeWithTag(CORRECTION_SHEET_DELTA_TAG).performTextReplacement("+5")
+        compose.onNodeWithTag(CORRECTION_SHEET_SAVE_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        assertThat(editedCorrections).containsExactly(Triple("a1", 5.0, LocalDate.of(2026, 10, 23)))
+        compose.onNodeWithText("Korrektur bearbeiten").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a correction of 0 g cannot be saved`() {
+        show()
+
+        openEdit("a1")
+        compose.onNodeWithTag(CORRECTION_SHEET_DELTA_TAG).performTextReplacement("0")
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(CORRECTION_SHEET_SAVE_TAG).performScrollTo().assertIsNotEnabled()
+        assertThat(editedCorrections).isEmpty()
+    }
+
+    @Test
+    fun `Loeschen in the edit sheet asks first`() {
+        show()
+
+        openEdit("a1")
+        compose.onNodeWithTag(CORRECTION_SHEET_DELETE_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Korrektur löschen?").assertIsDisplayed()
+        assertThat(deleted).isEmpty()
+        compose.onNodeWithTag(HISTORY_DELETE_CONFIRM_TAG).performClick()
+        compose.waitForIdle()
+
+        assertThat(deleted).containsExactly("a1")
+        assertThat(editedCorrections).isEmpty()
+        compose.onNodeWithText("Korrektur bearbeiten").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes the edit sheet for good (rule 8)`() {
+        show()
+        openEdit("p1")
+
+        alertKey = "brew-1"
+        compose.waitForIdle()
+        compose.onNodeWithText("Kauf bearbeiten").assertDoesNotExist()
+        alertKey = null
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Kauf bearbeiten").assertDoesNotExist()
+        assertThat(editedPurchases).isEmpty()
     }
 
     @Test

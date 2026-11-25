@@ -129,7 +129,14 @@ class SettingsTest {
 
     private fun show(): SettingsViewModel {
         val viewModel =
-            SettingsViewModel(settings, tester, reliability, preview, AppNightMode(context, Dispatchers.Unconfined))
+            SettingsViewModel(
+                settings,
+                tester,
+                reliability,
+                preview,
+                AppNightMode(context, Dispatchers.Unconfined),
+                AppLocales(context),
+            )
         val catalogViewModel = CatalogSettingsViewModel(catalog, catalogRefresh)
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
@@ -152,8 +159,9 @@ class SettingsTest {
     private fun clickRow(text: String) = compose.onNodeWithText(text).performScrollTo().performClick()
 
     /** A tap on [hour] on the time picker's 24 h dial (its items carry the hour as content description). */
+    // The tests run in German (GEN-13, config/test-locale): the clock face says „21 Uhr", with a no-break space.
     private fun pickHour(hour: Int) =
-        compose.onNode(hasContentDescription("$hour ", substring = true) and hasClickAction()).performClick()
+        compose.onNode(hasContentDescription("$hour\u00A0", substring = true) and hasClickAction()).performClick()
 
     @Test
     fun `the refresh result shows until the settings are left, a running refresh stays shown (SET-23)`() {
@@ -347,7 +355,7 @@ class SettingsTest {
         assertThat(appearance).isLessThan(timer)
         compose.onNodeWithTag(SettingsTags.THEME).assertIsDisplayed()
         compose.onNodeWithText("Design").assertIsDisplayed()
-        compose.onNodeWithText("System").assertIsDisplayed()
+        compose.onNodeWithTag(SettingsTags.THEME).assertTextContains("System", substring = true)
         assertThat(stored().theme).isEqualTo(ThemeMode.SYSTEM)
     }
 
@@ -577,7 +585,7 @@ class SettingsTest {
         compose.onNodeWithTag(SettingsTags.VOLUME).performScrollTo()
         compose.onNodeWithText("Lautstärke").assertIsDisplayed()
         compose.onNodeWithText("100 %").assertIsDisplayed()
-        compose.onNodeWithText("Wirkt auf die Alarmlautstärke des Handys").assertIsDisplayed()
+        compose.onNodeWithText("Wirkt auf die Alarmlautstärke des Handys").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(SettingsTags.VOLUME)
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "100 %"))
 

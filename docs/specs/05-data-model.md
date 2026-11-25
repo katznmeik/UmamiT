@@ -674,6 +674,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `backupReminderLastAt` | Long? (epoch ms) | null | BAK-06 (v0.9.0): the last check (a run, whether it posted or not) or the switch's last turn-on, which the 30 days count from (06 §5.4) |
 | `lastBackupAt` | Long? (epoch ms) | null | BAK-01, „Letzte Sicherung" (v0.9.0, D-130 Q12; was planned as `lastManualBackupAt`): set by a finished export only; „N neue Sessions" and the reminder's ≥ 20 count completed and manual sessions with `created_at` after it, whatever date they carry (D-133 Q9) |
 | `safetyCopyAt` | Long? (epoch ms) | null | BAK-02 (v0.9.0, D-130 Q5): when the safety copy was made; *Import rückgängig machen* shows while the copy exists and now < this + 7 × 24 h |
+| `fsiPromptedVersionCode` | Int | 0 | TMR-31, SCR-34 (v0.10.0, D-136 item 13): the versionCode in which the „Vollbild-Alarm wieder erlauben" sheet was shown or answered; device-bound |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
 | `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 (v0.4.0, D-100): the *Sammlung* segment used last |
 | `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK/RATING | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100; `RATING` v0.6.0, D-112): *Zuletzt aufgegossen*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*, *Bewertung* (highest average first, unrated after rated); empty teas last in each |
@@ -750,7 +751,7 @@ v0.9.0 (BAK-01, BAK-02, [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q
   (`seedDataCreated`, `seedVesselsV2Added`, `seedPhotosAttempted`,
   `seedTeaLinksDone`), `dismissedHints`, `lowStockReminderLastDate`,
   `backupReminderLastAt`, `lastBackupAt`, `safetyCopyAt` (Claude, D-130
-  item 22). The catalog's refresh state lives in `catalog.db` and is not
+  item 22), `fsiPromptedVersionCode` (v0.10.0, D-136). The catalog's refresh state lives in `catalog.db` and is not
   touched.
 - **Export (BAK-01):** the rows are read in one read transaction (a
   consistent snapshot even while a timer writes; allowed while a timer is

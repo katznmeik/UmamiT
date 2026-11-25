@@ -197,6 +197,17 @@
     <string name="collection_purchase_date_future">Das Datum liegt in der Zukunft.</string>
     <string name="collection_purchase_cancel">Abbrechen</string>
     <string name="collection_purchase_save">Erfassen</string>
+    <!-- Editing a stock event (INV-03, SCR-29, D-136 item 11) -->
+    <string name="collection_purchase_edit_title">Kauf bearbeiten</string>
+    <string name="collection_correction_edit_title">Korrektur bearbeiten</string>
+    <string name="collection_correction_delta">Änderung</string>
+    <string name="collection_correction_delta_hint">Mit Vorzeichen, z. B. +5 oder −3</string>
+    <string name="collection_correction_delta_invalid">Gib die Änderung in g an, z. B. +5 oder −3, nicht 0.</string>
+    <string name="collection_correction_date">Tag</string>
+    <string name="collection_stock_edit_save">Speichern</string>
+    <string name="collection_stock_edit_delete">Löschen</string>
+    <string name="collection_purchase_edited">Kauf geändert</string>
+    <string name="collection_correction_edited">Korrektur geändert</string>
     <!-- VORRAT's stock history (SCR-29, INV-03, D-104): newest first; a brew row opens its session. -->
     <string name="collection_tea_history_purchase">Kauf</string>
     <string name="collection_tea_history_correction">Bestand korrigiert</string>
@@ -273,42 +284,42 @@
     <string name="collection_tea_season_autumn">Herbst</string>
     <string name="collection_tea_season_winter">Winter</string>
     <!-- Sorte names of the built-in styles (08 §3, glossary *Sorte*): Sorte wählen (SCR-11) and the editor's Sorte. -->
-    <string name="sorte_gyokuro">Gyokuro</string>
-    <string name="sorte_kabusecha">Kabusecha</string>
-    <string name="sorte_sencha">Sencha</string>
-    <string name="sorte_fukamushi_sencha">Fukamushi Sencha</string>
-    <string name="sorte_shincha">Shincha</string>
-    <string name="sorte_matcha">Matcha</string>
-    <string name="sorte_karigane">Kukicha / Karigane</string>
-    <string name="sorte_bancha">Bancha</string>
-    <string name="sorte_hojicha">Hōjicha</string>
-    <string name="sorte_hojicha_powder">Hōjicha-Pulver</string>
-    <string name="sorte_genmaicha">Genmaicha</string>
-    <string name="sorte_kamairicha">Kamairicha</string>
-    <string name="sorte_tamaryokucha">Tamaryokucha</string>
-    <string name="sorte_longjing">Long Jing</string>
-    <string name="sorte_anji_bai_cha">Anji Bai Cha</string>
-    <string name="sorte_bi_luo_chun">Bi Luo Chun</string>
-    <string name="sorte_korean_green">Koreanischer Grüntee</string>
-    <string name="sorte_flavored_green">Aromatisierter Grüntee</string>
-    <string name="sorte_green_generic">Grüntee (sonstiger)</string>
-    <string name="sorte_herbal">Kräutertee</string>
-    <string name="sorte_flavored_white">Aromatisierter Weißer Tee</string>
-    <string name="sorte_flavored_oolong">Aromatisierter Oolong</string>
-    <string name="sorte_sheng">Sheng Pu-Erh</string>
-    <string name="sorte_shou">Shou Pu-Erh</string>
-    <string name="sorte_white_generic">Weißer Tee</string>
-    <string name="sorte_oolong_generic">Oolong</string>
-    <string name="sorte_darjeeling">Darjeeling</string>
-    <string name="sorte_assam">Assam</string>
-    <string name="sorte_ceylon">Ceylon</string>
-    <string name="sorte_flavored_black">Aromatisierter Schwarztee</string>
-    <string name="sorte_black_generic">Schwarzer Tee</string>
-    <string name="sorte_dark_generic">Pu-Erh</string>
-    <string name="sorte_rooibos">Rotbusch</string>
-    <string name="sorte_fruit">Früchtetee</string>
-    <string name="sorte_chai">Chai</string>
-    <string name="sorte_other">Andere / unbekannt</string>
+    <string name="sorte_gyokuro" translatable="false">Gyokuro</string>
+    <string name="sorte_kabusecha" translatable="false">Kabusecha</string>
+    <string name="sorte_sencha" translatable="false">Sencha</string>
+    <string name="sorte_fukamushi_sencha" translatable="false">Fukamushi Sencha</string>
+    <string name="sorte_shincha" translatable="false">Shincha</string>
+    <string name="sorte_matcha" translatable="false">Matcha</string>
+    <string name="sorte_karigane" translatable="false">Kukicha / Karigane</string>
+    <string name="sorte_bancha" translatable="false">Bancha</string>
+    <string name="sorte_hojicha" translatable="false">Hōjicha</string>
+    <string name="sorte_hojicha_powder" translatable="false">Hōjicha-Pulver</string>
+    <string name="sorte_genmaicha" translatable="false">Genmaicha</string>
+    <string name="sorte_kamairicha" translatable="false">Kamairicha</string>
+    <string name="sorte_tamaryokucha" translatable="false">Tamaryokucha</string>
+    <string name="sorte_longjing" translatable="false">Long Jing</string>
+    <string name="sorte_anji_bai_cha" translatable="false">Anji Bai Cha</string>
+    <string name="sorte_bi_luo_chun" translatable="false">Bi Luo Chun</string>
+    <string name="sorte_korean_green" translatable="false">Koreanischer Grüntee</string>
+    <string name="sorte_flavored_green" translatable="false">Aromatisierter Grüntee</string>
+    <string name="sorte_green_generic" translatable="false">Grüntee (sonstiger)</string>
+    <string name="sorte_herbal" translatable="false">Kräutertee</string>
+    <string name="sorte_flavored_white" translatable="false">Aromatisierter Weißer Tee</string>
+    <string name="sorte_flavored_oolong" translatable="false">Aromatisierter Oolong</string>
+    <string name="sorte_sheng" translatable="false">Sheng Pu-Erh</string>
+    <string name="sorte_shou" translatable="false">Shou Pu-Erh</string>
+    <string name="sorte_white_generic" translatable="false">Weißer Tee</string>
+    <string name="sorte_oolong_generic" translatable="false">Oolong</string>
+    <string name="sorte_darjeeling" translatable="false">Darjeeling</string>
+    <string name="sorte_assam" translatable="false">Assam</string>
+    <string name="sorte_ceylon" translatable="false">Ceylon</string>
+    <string name="sorte_flavored_black" translatable="false">Aromatisierter Schwarztee</string>
+    <string name="sorte_black_generic" translatable="false">Schwarzer Tee</string>
+    <string name="sorte_dark_generic" translatable="false">Pu-Erh</string>
+    <string name="sorte_rooibos" translatable="false">Rotbusch</string>
+    <string name="sorte_fruit" translatable="false">Früchtetee</string>
+    <string name="sorte_chai" translatable="false">Chai</string>
+    <string name="sorte_other" translatable="false">Andere / unbekannt</string>
 
     <!-- SCR-11 Sorte wählen (TEA-01, D-100). -->
     <string name="sorte_picker_title">Sorte wählen</string>

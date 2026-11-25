@@ -14,6 +14,7 @@ import com.umamit.feature.teaware.VesselEditorRoute
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import com.umamit.feature.onboarding.TourRoute as TourScreenRoute
 
 /**
  * What the settings (SCR-25) get from their host, in a tab's stack or above the timer.
@@ -29,6 +30,8 @@ internal class SettingsHost(
     val onOpenTeaware: () -> Unit = {},
     /** *Daten & Sicherung* (SET-30): SCR-26. */
     val onOpenDataBackup: () -> Unit = {},
+    /** *Einführung* (SET-36): the tour, SCR-33. */
+    val onOpenTour: () -> Unit = {},
 )
 
 /**
@@ -74,6 +77,7 @@ internal class VesselEditorHost(
  *   each screen's content, so a new alert reaches the screen whatever the graph's lifetime.
  * @property scrollToTopRequest the tab's re-select request for the settings (03 §2.2); 0 above the timer.
  * @property rerunSetup *Einrichtung erneut zeigen* on *Über* (ONB-04).
+ * @property openTour *Einführung* under *Hilfe* (SET-36): the tour above the shell or the timer.
  * @property backupImported a finished import on *Daten & Sicherung* (BAK-02 AC6): the root shows Start.
  */
 internal class SettingsNav(
@@ -86,6 +90,7 @@ internal class SettingsNav(
     val alertKey: () -> String?,
     val scrollToTopRequest: Int = 0,
     val rerunSetup: () -> Unit,
+    val openTour: () -> Unit = {},
     val backupImported: (ImportedBackup) -> Unit = {},
 )
 
@@ -100,6 +105,7 @@ internal class AboutHost(val onBack: () -> Unit, val onRerunSetup: () -> Unit, v
 internal class SettingsScreens(
     val onRerunSetup: () -> Unit = {},
     val onBackupImported: (ImportedBackup) -> Unit = {},
+    val onOpenTour: () -> Unit = {},
     val screen: @Composable (SettingsHost) -> Unit = { host ->
         SettingsRoute(
             onBack = host.onBack,
@@ -108,6 +114,7 @@ internal class SettingsScreens(
             scrollToTopRequest = host.scrollToTopRequest,
             onOpenTeaware = host.onOpenTeaware,
             onOpenDataBackup = host.onOpenDataBackup,
+            onOpenTour = host.onOpenTour,
         )
     },
     val about: @Composable (AboutHost) -> Unit = { host ->
@@ -119,6 +126,8 @@ internal class SettingsScreens(
         )
     },
     val diagnostics: @Composable (onBack: () -> Unit) -> Unit = { onBack -> DiagnosticsRoute(onBack = onBack) },
+    /** The tour (SCR-33): *Fertig*, *Überspringen* and back all call `onClose`. */
+    val tour: @Composable (onClose: () -> Unit) -> Unit = { onClose -> TourScreenRoute(onClose = onClose) },
     val teaware: @Composable (TeawareHost) -> Unit = { host ->
         TeawareRoute(
             onBack = host.onBack,
@@ -147,18 +156,21 @@ internal class SettingsScreens(
     val importedSnackbar: @Composable (imported: ImportedBackup?, onDone: () -> Unit, host: SnackbarHostState) -> Unit =
         { imported, onDone, host -> if (imported != null) ImportedBackupSnackbar(imported, onDone, hostState = host) },
 ) {
-    /** The same screens with the root's [onRerunSetup] and [onBackupImported]. */
-    fun withRoot(onRerunSetup: () -> Unit, onBackupImported: (ImportedBackup) -> Unit) = SettingsScreens(
-        onRerunSetup,
-        onBackupImported,
-        screen,
-        about,
-        diagnostics,
-        teaware,
-        vesselEditor,
-        dataBackup,
-        importedSnackbar,
-    )
+    /** The same screens with the root's [onRerunSetup], [onBackupImported] and [onOpenTour]. */
+    fun withRoot(onRerunSetup: () -> Unit, onBackupImported: (ImportedBackup) -> Unit, onOpenTour: () -> Unit) =
+        SettingsScreens(
+            onRerunSetup,
+            onBackupImported,
+            onOpenTour,
+            screen,
+            about,
+            diagnostics,
+            tour,
+            teaware,
+            vesselEditor,
+            dataBackup,
+            importedSnackbar,
+        )
 }
 
 /**

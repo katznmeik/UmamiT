@@ -495,6 +495,18 @@ class SettingsDataSourceTest {
     }
 
     @Test
+    fun fsiPromptedVersionCodeIsZeroUntilMarkedAndSurvivesASettingsUpdate() = runTest {
+        val source = dataSource()
+        assertThat(source.fsiPromptedVersionCode.first()).isEqualTo(0)
+
+        source.markFsiPromptedVersionCode(1_000)
+        source.update { it.copy(vibration = !it.vibration) }
+
+        assertThat(source.fsiPromptedVersionCode.first()).isEqualTo(1_000)
+        assertThat(source.stored().fsiPromptedVersionCode).isEqualTo(1_000)
+    }
+
+    @Test
     fun updateStoredWritesTheStoredKeysInOneWrite() = runTest {
         // 05 §8 „Replace" step 4: the import lays a backup's keys over the stored ones; the rest stays.
         val source = dataSource()

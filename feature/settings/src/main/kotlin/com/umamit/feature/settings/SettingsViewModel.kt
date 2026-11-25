@@ -31,13 +31,14 @@ import javax.inject.Inject
  * reliability checks (SET-24) and *Alarm testen* through the production player (SET-31, D-059).
  */
 @HiltViewModel
-@Suppress("TooManyFunctions") // one function per row action of SCR-25, the checks, the tests and the *Design* hand-over
+@Suppress("TooManyFunctions") // one per row action of SCR-25, the checks, the tests, the *Design* hand-over, *Sprache*
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val tester: AlertTester,
     reliability: TimerReliability,
     private val preview: TonePreview,
     private val nightMode: AppNightMode,
+    private val locales: AppLocales,
 ) : ViewModel() {
 
     /** The stored settings; null until the file is read. */
@@ -48,7 +49,24 @@ class SettingsViewModel @Inject constructor(
     /** The checks as last read; [refresh] reads them again on every resume. */
     val status: StateFlow<ReliabilityStatus> = checks.status
 
-    fun refresh() = checks.refresh()
+    fun refresh() {
+        checks.refresh()
+        languageChoice.value = locales.current()
+    }
+
+    private val languageChoice = MutableStateFlow(locales.current())
+
+    /** SET-35 *Sprache* as Android holds it ([AppLocales]); read again on every resume. */
+    val language: StateFlow<LanguageChoice> = languageChoice.asStateFlow()
+
+    /**
+     * SET-35 *Sprache* (GEN-13): handed to Android at once, which re-creates the activity in the new language; this
+     * view model, the screen's saved state and a running timer stay.
+     */
+    fun setLanguage(choice: LanguageChoice) {
+        languageChoice.value = choice
+        locales.apply(choice)
+    }
 
     /** A row's *Beheben*: the check's pages, for the screen to start. */
     fun open(check: ReliabilityCheck): List<Intent> = checks.open(check)

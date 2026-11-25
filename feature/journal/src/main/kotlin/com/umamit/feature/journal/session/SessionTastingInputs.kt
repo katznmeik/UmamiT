@@ -20,12 +20,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.TastingLimits
 import com.umamit.feature.journal.R
 import com.umamit.feature.journal.RatingRows
-import java.util.Locale
 
 const val SESSION_NOTES_TAG = "session_notes"
 
@@ -136,5 +136,5 @@ private fun NotesSection(page: SessionPage, actions: SessionPageActions) {
     }
 }
 
-/** „4.501": a count in the German format (rule 4). */
-private fun grouped(count: Int): String = "%,d".format(Locale.GERMAN, count)
+/** „4.501" (English „4,501"): a count in the app's language (rule 4, GEN-13). */
+internal fun grouped(count: Int): String = "%,d".format(AppLanguage.current().locale, count)

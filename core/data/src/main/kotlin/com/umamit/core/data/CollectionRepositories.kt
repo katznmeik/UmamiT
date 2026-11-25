@@ -10,6 +10,7 @@ import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.UserSettings
 import com.umamit.core.model.Vessel
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 /** The teas of the collection (05 §3.1) with their default recipe and cover photo. */
 interface TeaRepository {
@@ -122,7 +123,8 @@ interface StockRepository {
     /**
      * Deletes the history entry [id] (INV-03, SCR-29, D-104): a purchase (INITIAL or PURCHASE) or a correction
      * (ADJUSTMENT). A BREW event is refused: it leaves only with its journal entry (D-102). The tea's
-     * `opened_date` is never touched. Returns whether an event was deleted.
+     * `opened_date` is never touched. A deleted purchase recomputes the costs of the tea's finished sessions in the
+     * same transaction, as [updatePurchase] does (INV-08, D-136 item 12). Returns whether an event was deleted.
      */
     suspend fun deleteEvent(id: String): Boolean
 
@@ -145,6 +147,30 @@ interface StockRepository {
      * @throws IllegalArgumentException when the day is after today.
      */
     suspend fun recordPurchase(teaId: String, purchase: TeaPurchase): InventoryEvent
+
+    /**
+     * *Kauf bearbeiten* (INV-03, SCR-29, D-136 item 11): the purchase [id] (INITIAL or PURCHASE) gets [grams],
+     * [priceCents] (null: no price) and the day [purchasedOn]. It keeps its id and type; its package label follows
+     * new grams; a day left as it was keeps its time, another day is at now (today) or at noon in the phone's zone.
+     * In the same transaction every finished session of the tea with a leaf weight gets `cost_cents` = leaf × the
+     * tea's weighted cost per gram after the edit (null without a priced purchase; INV-08, D-136 item 12). The tea
+     * (its `opened_date` and archive flag) is not touched. Returns false, writing nothing, for an unknown id or an
+     * event that is not a purchase.
+     *
+     * @throws IllegalArgumentException when [grams] is not above 0, [priceCents] is negative or the day is after
+     *   today; nothing is written.
+     */
+    suspend fun updatePurchase(id: String, grams: Double, priceCents: Long?, purchasedOn: LocalDate): Boolean
+
+    /**
+     * *Korrektur bearbeiten* (INV-03, SCR-29, D-136 item 11): the correction [id] (ADJUSTMENT) gets the signed
+     * difference [signedDeltaGrams] and the day [day] (time as in [updatePurchase]). Session costs stay as they are.
+     * Returns false, writing nothing, for an unknown id or an event that is not a correction.
+     *
+     * @throws IllegalArgumentException when [signedDeltaGrams] is 0 or not a number, or the day is after today;
+     *   nothing is written.
+     */
+    suspend fun updateCorrection(id: String, signedDeltaGrams: Double, day: LocalDate): Boolean
 }
 
 /** The settings of 05 §6 (M1 subset) and the seed markers. */

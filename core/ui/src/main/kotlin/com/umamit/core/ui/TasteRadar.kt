@@ -24,11 +24,11 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TasteSet
 import com.umamit.core.model.TastingLimits
-import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -62,10 +62,16 @@ object TasteRadarShape {
         return reach * cos(angle).toFloat() to reach * sin(angle).toFloat()
     }
 
-    /** „4" or „3,5": a value as TalkBack says it (averages have a decimal). */
+    /** „4" or „3,5" (English „3.5"): a value as TalkBack says it (averages have a decimal). */
     fun valueText(value: Double): String {
         val rounded = Math.round(value * TENTHS) / TENTHS
-        return if (rounded % 1.0 == 0.0) rounded.toInt().toString() else "%.1f".format(Locale.GERMAN, rounded)
+        return if (rounded % 1.0 ==
+            0.0
+        ) {
+            rounded.toInt().toString()
+        } else {
+            "%.1f".format(AppLanguage.current().locale, rounded)
+        }
     }
 }
 

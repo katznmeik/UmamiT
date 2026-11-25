@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Einstellungen (SCR-25) with a missing check, with all ready, with the *Vorwarnton* picker
+ * Einstellungen (SCR-25) with a missing check, with all ready, with the *Sprache* (SET-35) and *Vorwarnton* pickers
  * (SET-26), its *Lautstärke* (SET-27), *Bei „Nicht stören“ klingeln* (SET-32) and the alarm volume at 0
  * (TMR-31), scrolled to its *Katalog* section (SET-22, SET-23), and Über (SCR-27), in light and dark at font
  * scale 1.0 and 2.0 (03 §6).
@@ -117,6 +117,19 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
             alerting = false,
             onBack = {},
             actions = SettingsActions(),
+        )
+    }
+
+    /** The *Sprache* dialog (SET-35, GEN-13): *System*, „Deutsch" and „English", English picked. */
+    @Test
+    fun settingsLanguagePicker() = capture("Settings_language", clickText = "Sprache") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            language = LanguageChoice.ENGLISH,
         )
     }
 

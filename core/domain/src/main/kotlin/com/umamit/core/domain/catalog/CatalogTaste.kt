@@ -15,6 +15,8 @@ import java.util.Locale
  */
 internal object CatalogTaste {
     private const val UMAMI_KEY = "umami"
+
+    // Stays German in both app languages (GEN-13 AC2, D-136 Q6): the notes and scales are the shop's German words.
     private val collator: Collator = Collator.getInstance(Locale.GERMAN).apply { strength = Collator.SECONDARY }
 
     /** A whole taste note or scale label normalised like search (GEN-10): lower case, no diacritics, single spaces. */

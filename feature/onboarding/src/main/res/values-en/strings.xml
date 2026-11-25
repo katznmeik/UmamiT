@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="onboarding_app_name">UmamiT</string>
+    <string name="onboarding_welcome">For the love of tea</string>
+    <string name="onboarding_welcome_japanese">お茶で、いい時間を。</string>
+    <string name="onboarding_start">Let\'s go</string>
+    <string name="onboarding_reliability_title">So the timer rings reliably</string>
+    <string name="onboarding_reliability_intro">A few settings so the alarm reaches you even when the screen is locked. You can catch up on anything missing later in Settings.</string>
+    <string name="onboarding_check_notifications">Allow notifications</string>
+    <string name="onboarding_check_notifications_explanation">For the alarm and the running infusion.</string>
+    <string name="onboarding_check_notifications_action">Allow</string>
+    <string name="onboarding_check_battery">Battery: Unrestricted</string>
+    <string name="onboarding_check_battery_explanation">So Android doesn\'t put the timer to sleep. On Samsung devices, also add UmamiT to “Never sleeping apps”.</string>
+    <string name="onboarding_check_battery_action">Allow</string>
+    <string name="onboarding_check_live">Live notifications</string>
+    <string name="onboarding_check_live_explanation">Shows the infusion in the status bar and on the lock screen.</string>
+    <string name="onboarding_check_live_action">Turn on</string>
+    <string name="onboarding_check_full_screen">Full-screen alarm</string>
+    <string name="onboarding_check_full_screen_explanation">Shows the alarm over the lock screen.</string>
+    <string name="onboarding_check_full_screen_action">Allow</string>
+    <string name="onboarding_restart_title">Automatic restart</string>
+    <string name="onboarding_restart_body">Samsung sometimes restarts the phone at night. Afterwards a running timer only rings once you\'ve unlocked the phone. Under Battery and device care › Automatic optimization, turn off “Auto restart”.</string>
+    <string name="onboarding_restart_link">Open device care</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_save_failed">Couldn\'t save. Tap again; is the storage full?</string>
+    <string name="onboarding_catalog_title">Load the catalog</string>
+    <string name="onboarding_catalog_body">Make all teas from Tee-Kontor Kiel available offline, from green tea to chai. The first load takes about half an hour; you can use the app in the meantime.</string>
+    <string name="onboarding_catalog_load">Load catalog now</string>
+    <string name="onboarding_catalog_later">Later</string>
+    <string name="onboarding_catalog_starting">Reading the sitemap …</string>
+    <string name="onboarding_catalog_progress" tools:ignore="PluralsCandidate">Pages: %1$d of %2$d · Products: %3$d</string>
+    <string name="onboarding_catalog_running_hint">The catalog keeps loading in the background, even with the phone locked. You can get started already.</string>
+    <plurals name="onboarding_catalog_tea_count">
+        <item quantity="one">%1$d tea</item>
+        <item quantity="other">%1$d teas</item>
+    </plurals>
+    <string name="onboarding_catalog_done">Catalog loaded: %1$s</string>
+    <string name="onboarding_catalog_cancelled">Loading cancelled. You can load the catalog later under Collection › Catalog.</string>
+    <string name="onboarding_catalog_failed">The catalog couldn\'t be loaded just now. You can try again later under Collection › Catalog.</string>
+
+    <!-- Einführung (SCR-33, ONB-07, D-136): the tour. -->
+    <string name="tour_page1_title">Start and timer</string>
+    <string name="tour_page1_text">Tap a tea under Recently brewed or start a New session. The timer guides you through every infusion, with a pre-alert and an alarm.</string>
+    <string name="tour_page2_title">Two timers and quick timer</string>
+    <string name="tour_page2_text">Two timers can run at once: two sessions, or a session and the quick timer. The row at the top switches to the other timer.</string>
+    <string name="tour_page3_title">Collection and catalog</string>
+    <string name="tour_page3_text">Load the Tee-Kontor Kiel catalog and add teas to My teas, or share a shop link with UmamiT. Recipes, stock and costs live on the tea.</string>
+    <string name="tour_page4_title">Journal and taste</string>
+    <string name="tour_page4_text">Every session lands in the journal. Rate the tea and the brewing, note the taste of each infusion and keep good times in the recipe.</string>
+    <string name="tour_page5_title">Statistics</string>
+    <string name="tour_page5_text">See what you drink: sessions, kinds, favourite teas, habits, use and cost per litre.</string>
+    <string name="tour_page6_title">Backup and sharing recipes</string>
+    <string name="tour_page6_text">In Settings › Data &amp; backup you save all your data to one file. Share a recipe from ⋮ in the recipe.</string>
+    <string name="tour_skip">Skip</string>
+    <string name="tour_done">Done</string>
+    <string name="tour_page_of" tools:ignore="PluralsCandidate">Page %1$d of %2$d</string>
+</resources>

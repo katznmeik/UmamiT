@@ -32,79 +32,79 @@
     <string name="ui_duration_picker_apply">Übernehmen</string>
     <string name="ui_duration_picker_cancel">Abbrechen</string>
     <!-- Tasting vocabulary labels (08 §4, JRN-04, D-112): group names, then descriptors. -->
-    <string name="ui_descriptor_group_marine">Meer</string>
-    <string name="ui_descriptor_group_vegetal">Gemüse</string>
-    <string name="ui_descriptor_group_sweet">Süß</string>
-    <string name="ui_descriptor_group_roasted_nutty">Geröstet &amp; nussig</string>
-    <string name="ui_descriptor_group_floral">Blumig</string>
-    <string name="ui_descriptor_group_fruity">Fruchtig</string>
-    <string name="ui_descriptor_group_earthy_woody">Erdig &amp; holzig</string>
-    <string name="ui_descriptor_group_spice_herb">Würzig &amp; kräutrig</string>
-    <string name="ui_descriptor_group_mouthfeel">Mundgefühl</string>
-    <string name="ui_descriptor_group_off_note">Fehlnoten</string>
-    <string name="ui_descriptor_marine_algen">Algen</string>
-    <string name="ui_descriptor_marine_nori">Nori</string>
-    <string name="ui_descriptor_marine_kombu">Kombu</string>
-    <string name="ui_descriptor_marine_meeresbrise">Meeresbrise</string>
-    <string name="ui_descriptor_marine_dashi">Dashi / brühig</string>
-    <string name="ui_descriptor_vegetal_spinat">Spinat</string>
-    <string name="ui_descriptor_vegetal_zuckerschote">Zuckerschote</string>
-    <string name="ui_descriptor_vegetal_edamame">Edamame</string>
-    <string name="ui_descriptor_vegetal_spargel">Spargel</string>
-    <string name="ui_descriptor_vegetal_gedaempftes_gemuese">gedämpftes Gemüse</string>
-    <string name="ui_descriptor_vegetal_gemaehtes_gras">frisch gemähtes Gras</string>
-    <string name="ui_descriptor_vegetal_heu">Heu</string>
-    <string name="ui_descriptor_vegetal_artischocke">Artischocke</string>
-    <string name="ui_descriptor_sweet_zuckermais">Zuckermais</string>
-    <string name="ui_descriptor_sweet_esskastanie">Esskastanie</string>
-    <string name="ui_descriptor_sweet_honig">Honig</string>
-    <string name="ui_descriptor_sweet_karamell">Karamell</string>
-    <string name="ui_descriptor_sweet_rohrzucker">Rohrzucker</string>
-    <string name="ui_descriptor_sweet_suesskartoffel">Süßkartoffel</string>
-    <string name="ui_descriptor_sweet_vanille">Vanille</string>
-    <string name="ui_descriptor_roasted_nutty_geroesteter_reis">Gerösteter Reis</string>
-    <string name="ui_descriptor_roasted_nutty_geroestete_nuesse">geröstete Nüsse</string>
-    <string name="ui_descriptor_roasted_nutty_toast">Toast</string>
-    <string name="ui_descriptor_roasted_nutty_kakao">Kakao</string>
-    <string name="ui_descriptor_roasted_nutty_kaffee">Kaffee</string>
-    <string name="ui_descriptor_roasted_nutty_rauch">Rauch</string>
-    <string name="ui_descriptor_floral_orchidee">Orchidee</string>
-    <string name="ui_descriptor_floral_jasmin">Jasmin</string>
-    <string name="ui_descriptor_floral_osmanthus">Osmanthus</string>
-    <string name="ui_descriptor_floral_rose">Rose</string>
-    <string name="ui_descriptor_floral_geissblatt">Geißblatt</string>
-    <string name="ui_descriptor_floral_kirschbluete">Kirschblüte</string>
-    <string name="ui_descriptor_fruity_zitrus">Zitrus</string>
-    <string name="ui_descriptor_fruity_yuzu">Yuzu</string>
-    <string name="ui_descriptor_fruity_steinobst">Steinobst</string>
-    <string name="ui_descriptor_fruity_muskateller">Muskateller</string>
-    <string name="ui_descriptor_fruity_melone">Melone</string>
-    <string name="ui_descriptor_fruity_trockenfruechte">Trockenfrüchte</string>
-    <string name="ui_descriptor_fruity_beeren">Beeren</string>
-    <string name="ui_descriptor_earthy_woody_waldboden">Waldboden</string>
-    <string name="ui_descriptor_earthy_woody_pilze">Pilze</string>
-    <string name="ui_descriptor_earthy_woody_holz">Holz</string>
-    <string name="ui_descriptor_earthy_woody_leder">Leder</string>
-    <string name="ui_descriptor_earthy_woody_kampfer">Kampfer</string>
-    <string name="ui_descriptor_earthy_woody_mineralisch">mineralisch</string>
-    <string name="ui_descriptor_spice_herb_minze">Minze</string>
-    <string name="ui_descriptor_spice_herb_kiefer">Kiefer</string>
-    <string name="ui_descriptor_spice_herb_zimt">Zimt</string>
-    <string name="ui_descriptor_spice_herb_kraeuter">Kräuter</string>
-    <string name="ui_descriptor_mouthfeel_cremig">cremig</string>
-    <string name="ui_descriptor_mouthfeel_seidig">seidig</string>
-    <string name="ui_descriptor_mouthfeel_vollmundig">vollmundig</string>
-    <string name="ui_descriptor_mouthfeel_frisch_herb">frisch-herb</string>
-    <string name="ui_descriptor_mouthfeel_trocknend">trocknend</string>
-    <string name="ui_descriptor_mouthfeel_belegend">belegend</string>
-    <string name="ui_descriptor_mouthfeel_klarer_abgang">klarer Abgang</string>
-    <string name="ui_descriptor_mouthfeel_anhaltende_suesse">anhaltende Süße</string>
-    <string name="ui_descriptor_off_note_abgestanden">abgestanden</string>
-    <string name="ui_descriptor_off_note_flach">flach</string>
-    <string name="ui_descriptor_off_note_zu_bitter">zu bitter</string>
-    <string name="ui_descriptor_off_note_metallisch">metallisch</string>
-    <string name="ui_descriptor_off_note_muffig">muffig</string>
-    <string name="ui_descriptor_off_note_sauer">sauer</string>
+    <string name="ui_descriptor_group_marine" translatable="false">Meer</string>
+    <string name="ui_descriptor_group_vegetal" translatable="false">Gemüse</string>
+    <string name="ui_descriptor_group_sweet" translatable="false">Süß</string>
+    <string name="ui_descriptor_group_roasted_nutty" translatable="false">Geröstet &amp; nussig</string>
+    <string name="ui_descriptor_group_floral" translatable="false">Blumig</string>
+    <string name="ui_descriptor_group_fruity" translatable="false">Fruchtig</string>
+    <string name="ui_descriptor_group_earthy_woody" translatable="false">Erdig &amp; holzig</string>
+    <string name="ui_descriptor_group_spice_herb" translatable="false">Würzig &amp; kräutrig</string>
+    <string name="ui_descriptor_group_mouthfeel" translatable="false">Mundgefühl</string>
+    <string name="ui_descriptor_group_off_note" translatable="false">Fehlnoten</string>
+    <string name="ui_descriptor_marine_algen" translatable="false">Algen</string>
+    <string name="ui_descriptor_marine_nori" translatable="false">Nori</string>
+    <string name="ui_descriptor_marine_kombu" translatable="false">Kombu</string>
+    <string name="ui_descriptor_marine_meeresbrise" translatable="false">Meeresbrise</string>
+    <string name="ui_descriptor_marine_dashi" translatable="false">Dashi / brühig</string>
+    <string name="ui_descriptor_vegetal_spinat" translatable="false">Spinat</string>
+    <string name="ui_descriptor_vegetal_zuckerschote" translatable="false">Zuckerschote</string>
+    <string name="ui_descriptor_vegetal_edamame" translatable="false">Edamame</string>
+    <string name="ui_descriptor_vegetal_spargel" translatable="false">Spargel</string>
+    <string name="ui_descriptor_vegetal_gedaempftes_gemuese" translatable="false">gedämpftes Gemüse</string>
+    <string name="ui_descriptor_vegetal_gemaehtes_gras" translatable="false">frisch gemähtes Gras</string>
+    <string name="ui_descriptor_vegetal_heu" translatable="false">Heu</string>
+    <string name="ui_descriptor_vegetal_artischocke" translatable="false">Artischocke</string>
+    <string name="ui_descriptor_sweet_zuckermais" translatable="false">Zuckermais</string>
+    <string name="ui_descriptor_sweet_esskastanie" translatable="false">Esskastanie</string>
+    <string name="ui_descriptor_sweet_honig" translatable="false">Honig</string>
+    <string name="ui_descriptor_sweet_karamell" translatable="false">Karamell</string>
+    <string name="ui_descriptor_sweet_rohrzucker" translatable="false">Rohrzucker</string>
+    <string name="ui_descriptor_sweet_suesskartoffel" translatable="false">Süßkartoffel</string>
+    <string name="ui_descriptor_sweet_vanille" translatable="false">Vanille</string>
+    <string name="ui_descriptor_roasted_nutty_geroesteter_reis" translatable="false">Gerösteter Reis</string>
+    <string name="ui_descriptor_roasted_nutty_geroestete_nuesse" translatable="false">geröstete Nüsse</string>
+    <string name="ui_descriptor_roasted_nutty_toast" translatable="false">Toast</string>
+    <string name="ui_descriptor_roasted_nutty_kakao" translatable="false">Kakao</string>
+    <string name="ui_descriptor_roasted_nutty_kaffee" translatable="false">Kaffee</string>
+    <string name="ui_descriptor_roasted_nutty_rauch" translatable="false">Rauch</string>
+    <string name="ui_descriptor_floral_orchidee" translatable="false">Orchidee</string>
+    <string name="ui_descriptor_floral_jasmin" translatable="false">Jasmin</string>
+    <string name="ui_descriptor_floral_osmanthus" translatable="false">Osmanthus</string>
+    <string name="ui_descriptor_floral_rose" translatable="false">Rose</string>
+    <string name="ui_descriptor_floral_geissblatt" translatable="false">Geißblatt</string>
+    <string name="ui_descriptor_floral_kirschbluete" translatable="false">Kirschblüte</string>
+    <string name="ui_descriptor_fruity_zitrus" translatable="false">Zitrus</string>
+    <string name="ui_descriptor_fruity_yuzu" translatable="false">Yuzu</string>
+    <string name="ui_descriptor_fruity_steinobst" translatable="false">Steinobst</string>
+    <string name="ui_descriptor_fruity_muskateller" translatable="false">Muskateller</string>
+    <string name="ui_descriptor_fruity_melone" translatable="false">Melone</string>
+    <string name="ui_descriptor_fruity_trockenfruechte" translatable="false">Trockenfrüchte</string>
+    <string name="ui_descriptor_fruity_beeren" translatable="false">Beeren</string>
+    <string name="ui_descriptor_earthy_woody_waldboden" translatable="false">Waldboden</string>
+    <string name="ui_descriptor_earthy_woody_pilze" translatable="false">Pilze</string>
+    <string name="ui_descriptor_earthy_woody_holz" translatable="false">Holz</string>
+    <string name="ui_descriptor_earthy_woody_leder" translatable="false">Leder</string>
+    <string name="ui_descriptor_earthy_woody_kampfer" translatable="false">Kampfer</string>
+    <string name="ui_descriptor_earthy_woody_mineralisch" translatable="false">mineralisch</string>
+    <string name="ui_descriptor_spice_herb_minze" translatable="false">Minze</string>
+    <string name="ui_descriptor_spice_herb_kiefer" translatable="false">Kiefer</string>
+    <string name="ui_descriptor_spice_herb_zimt" translatable="false">Zimt</string>
+    <string name="ui_descriptor_spice_herb_kraeuter" translatable="false">Kräuter</string>
+    <string name="ui_descriptor_mouthfeel_cremig" translatable="false">cremig</string>
+    <string name="ui_descriptor_mouthfeel_seidig" translatable="false">seidig</string>
+    <string name="ui_descriptor_mouthfeel_vollmundig" translatable="false">vollmundig</string>
+    <string name="ui_descriptor_mouthfeel_frisch_herb" translatable="false">frisch-herb</string>
+    <string name="ui_descriptor_mouthfeel_trocknend" translatable="false">trocknend</string>
+    <string name="ui_descriptor_mouthfeel_belegend" translatable="false">belegend</string>
+    <string name="ui_descriptor_mouthfeel_klarer_abgang" translatable="false">klarer Abgang</string>
+    <string name="ui_descriptor_mouthfeel_anhaltende_suesse" translatable="false">anhaltende Süße</string>
+    <string name="ui_descriptor_off_note_abgestanden" translatable="false">abgestanden</string>
+    <string name="ui_descriptor_off_note_flach" translatable="false">flach</string>
+    <string name="ui_descriptor_off_note_zu_bitter" translatable="false">zu bitter</string>
+    <string name="ui_descriptor_off_note_metallisch" translatable="false">metallisch</string>
+    <string name="ui_descriptor_off_note_muffig" translatable="false">muffig</string>
+    <string name="ui_descriptor_off_note_sauer" translatable="false">sauer</string>
     <!-- RatingStars (03 §3.8, JRN-02, D-112): TalkBack reads „Bewertung, 3,5 von 5 Sternen" / „Bewertung, keine". -->
     <string name="ui_rating_label">Bewertung</string>
     <string name="ui_rating_value">%1$s von 5 Sternen</string>
@@ -118,16 +118,16 @@
     <string name="ui_session_rating_brewing_spoken">Zubereitung %1$s von 5</string>
     <string name="ui_session_rating_spoken_separator">", "</string>
     <!-- TasteSlider and TasteRadar (03 §3.8, JRN-03). -->
-    <string name="ui_taste_umami">Umami</string>
-    <string name="ui_taste_sweetness">Süße</string>
-    <string name="ui_taste_bitterness">Bitterkeit</string>
-    <string name="ui_taste_astringency">Adstringenz</string>
-    <string name="ui_taste_body">Körper</string>
-    <string name="ui_taste_aroma">Aroma</string>
-    <string name="ui_taste_roast">Röstung/Malz</string>
-    <string name="ui_taste_acidity">Säure</string>
-    <string name="ui_taste_freshness">Frische</string>
-    <string name="ui_taste_spice">Würze</string>
+    <string name="ui_taste_umami" translatable="false">Umami</string>
+    <string name="ui_taste_sweetness" translatable="false">Süße</string>
+    <string name="ui_taste_bitterness" translatable="false">Bitterkeit</string>
+    <string name="ui_taste_astringency" translatable="false">Adstringenz</string>
+    <string name="ui_taste_body" translatable="false">Körper</string>
+    <string name="ui_taste_aroma" translatable="false">Aroma</string>
+    <string name="ui_taste_roast" translatable="false">Röstung/Malz</string>
+    <string name="ui_taste_acidity" translatable="false">Säure</string>
+    <string name="ui_taste_freshness" translatable="false">Frische</string>
+    <string name="ui_taste_spice" translatable="false">Würze</string>
     <!-- The value of an untouched slider (unset is not 0). -->
     <string name="ui_taste_unset">–</string>
     <string name="ui_taste_not_set">nicht gesetzt</string>

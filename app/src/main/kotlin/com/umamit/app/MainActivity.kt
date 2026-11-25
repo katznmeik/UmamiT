@@ -27,11 +27,14 @@ import com.umamit.app.timer.TimerActiveBrewSource
 import com.umamit.app.timer.TimerScreenRequests
 import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.FsiPromptRepository
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.designsystem.theme.UmamiAppTheme
 import com.umamit.core.model.ThemeMode
+import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.notification.TimerScreenIntents
+import com.umamit.core.timer.reliability.TimerReliability
 import com.umamit.feature.brew.timer.BrewTimer
 import com.umamit.feature.journal.JournalSources
 import dagger.hilt.android.AndroidEntryPoint
@@ -57,6 +60,11 @@ import javax.inject.Inject
  * opens, and the lock-screen flags are set at once, before the first frame. Behind
  * the keyguard with the screen off no frame is drawn until the screen turns on, so
  * the flags cannot wait for the navigation (D-064).
+ *
+ * The timer screens (SCR-05, SCR-07) stay portrait, also over the lock screen (D-136 Q5, build note „Portrait timer"):
+ * while the root reports one on top ([requestTimerOrientation]) the activity asks for portrait, and for the system's
+ * choice again when it leaves; a request to open the timer asks at once, before the lock-screen flags. The activity
+ * handles a rotation itself (`configChanges`), so neither the request nor a turn of the phone re-creates it.
  *
  * A link shared to the app reaches it from [ShareTeaLinkActivity] ([openTeaLink], CAT-17): the
  * shell shows Sammlung › Katalog, which loads it. The timer is never covered for it: while the
@@ -86,6 +94,12 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var settings: SettingsRepository
 
+    @Inject
+    lateinit var reliability: TimerReliability
+
+    @Inject
+    lateinit var fsiPrompted: FsiPromptRepository
+
     private val timerVisible = MutableStateFlow(false)
 
     /** Whether the phone is locked, for the close of the timer over the keyguard (SCR-05, A-17/A-18). */
@@ -104,7 +118,7 @@ class MainActivity : ComponentActivity() {
     /** Links shared to the app (CAT-17); a pending one survives a recreation. */
     private val teaLinkShares = TeaLinkShares()
 
-    /** Recipe files received (PRF-08); kept in a view model, so a copy running during a rotation still arrives. */
+    /** Recipe files received (PRF-08); kept in a view model, so a copy running during a re-creation still arrives. */
     private val receivedRecipesModel: ReceivedRecipesModel by viewModels()
 
     /** Recipe files received (PRF-08); a pending or shown one survives a recreation. */
@@ -129,6 +143,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             openTimerIfAsked(intent)
         } else if (timerRequests.restore(savedInstanceState, intent)) {
+            requestTimerOrientation(timerScreenOnTop = true)
             showTimerOverLockScreen()
         }
         takeTaps(intent, savedInstanceState)
@@ -140,19 +155,11 @@ class MainActivity : ComponentActivity() {
         val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         val themeMode = themeModeState(settings)
+        val fsiPrompt = AndroidFsiPrompt.of(this, reliability, fsiPrompted, lifecycleScope)
         // Seeded with the controller's current alert, so a re-created activity's first frame already knows it (A-07).
         val alertKey = brewTimer.state.map { it.alertKey() }
             .stateIn(lifecycleScope, SharingStarted.Eagerly, brewTimer.state.value.alertKey())
-        lifecycleScope.launch {
-            // A close waiting over the keyguard counts as visible once an alert rings, in the alert's turn (rule 8).
-            combine(brewTimer.state, timerVisible, keyguard.closePending) { state, visible, closePending ->
-                val shown = timerVisibleForFlags(visible, closePending, alerting = state.alertKey() != null)
-                lockScreenFlags(state, timerVisible = shown)
-            }.distinctUntilChanged().collect {
-                setShowWhenLocked(it.showWhenLocked)
-                setTurnScreenOn(it.turnScreenOn)
-            }
-        }
+        followLockScreenFlags(brewTimer.state, timerVisible, keyguard.closePending)
         setContent {
             val mode by themeMode.collectAsStateWithLifecycle()
             UmamiAppTheme(mode ?: ThemeMode.SYSTEM) {
@@ -162,9 +169,11 @@ class MainActivity : ComponentActivity() {
                     journalSources = journalSources,
                     alertKey = alertKey,
                     onboardingCompleted = onboardingCompleted,
+                    fsiPrompt = fsiPrompt,
                     timerRequest = timerRequests.request,
                     onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = ::onTimerVisibleChange,
+                    onTimerScreenOnTopChange = { requestTimerOrientation(it) },
                     keyguard = keyguard,
                     teaLinkShare = teaLinkShares.share,
                     onTakeTeaLinkShare = teaLinkShares::taken,
@@ -258,6 +267,8 @@ class MainActivity : ComponentActivity() {
 
     private fun openTimerIfAsked(intent: Intent?) {
         if (intent == null || !TimerScreenIntents.isOpenTimer(intent)) return
+        // Portrait before the flags: the window shows over the lock screen already upright (D-136 Q5).
+        requestTimerOrientation(timerScreenOnTop = true)
         // A close waiting over the keyguard gives way to the request, as to a new alert: no pop at `ON_STOP` leaves
         // `showWhenLocked` set over the shell. Reported first, so the flags are never cleared in between (rule 8).
         showTimerOverLockScreen()
@@ -322,7 +333,28 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Holds [MainActivity]'s [ReceivedRecipeFiles] over a rotation; their copies run in its scope. */
+/**
+ * The lock-screen flags following the timer's [state], whether the root shows the timer ([timerVisible]) and a close
+ * waiting over the keyguard ([closePending]), for as long as the activity lives (SCR-05, TMR-06). A close waiting over
+ * the keyguard counts as visible once an alert rings, in the alert's turn (rule 8).
+ */
+private fun ComponentActivity.followLockScreenFlags(
+    state: StateFlow<TimerUiState>,
+    timerVisible: StateFlow<Boolean>,
+    closePending: StateFlow<Boolean>,
+) {
+    lifecycleScope.launch {
+        combine(state, timerVisible, closePending) { current, visible, pending ->
+            val shown = timerVisibleForFlags(visible, pending, alerting = current.alertKey() != null)
+            lockScreenFlags(current, timerVisible = shown)
+        }.distinctUntilChanged().collect {
+            setShowWhenLocked(it.showWhenLocked)
+            setTurnScreenOn(it.turnScreenOn)
+        }
+    }
+}
+
+/** Holds [MainActivity]'s [ReceivedRecipeFiles] over a re-creation; their copies run in its scope. */
 class ReceivedRecipesModel : ViewModel() {
     val files = ReceivedRecipeFiles(scope = viewModelScope)
 }

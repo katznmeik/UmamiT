@@ -10,4 +10,6 @@ private const val CAPITAL_SHARP_S = 'ẞ'
  * and `ß` becomes the capital `ẞ` rather than the `SS` that [String.uppercase]
  * produces, so „Große Blätter" reads „GROẞE BLÄTTER".
  */
+// Stays German in both app languages (GEN-13, D-136 item 15): the German locale changes nothing in English text and
+// keeps the ẞ rule for the German tea vocabulary that overlines show in both.
 fun String.germanUppercase(): String = replace(SHARP_S, CAPITAL_SHARP_S).uppercase(Locale.GERMAN)

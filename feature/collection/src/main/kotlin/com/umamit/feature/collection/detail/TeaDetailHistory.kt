@@ -60,13 +60,15 @@ internal const val HISTORY_VISIBLE_ROWS = 5
  * first; the newest [HISTORY_VISIBLE_ROWS], the rest after *Alle … Einträge anzeigen*. A purchase or correction has a
  * *Löschen* that asks first; a brew has none (it leaves only with its journal entry, D-102) and opens its session
  * page through [onOpenSession] (none: the row is not tappable). TalkBack reads each row as one sentence. [onAskDelete]
- * opens [StockEntryDeleteQuestion].
+ * opens [StockEntryDeleteQuestion]. A tap on a purchase or correction row hands its id to [onEdit] („Kauf
+ * bearbeiten" / „Korrektur bearbeiten", which TalkBack names as the row's action; D-136 item 11).
  */
 @Composable
 internal fun StockHistory(
     history: List<StockEntry>,
     onAskDelete: (eventId: String) -> Unit,
     onOpenSession: ((sessionId: String) -> Unit)?,
+    onEdit: (eventId: String) -> Unit = {},
 ) {
     if (history.isEmpty()) return
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -80,6 +82,7 @@ internal fun StockHistory(
                 entry = entry,
                 onDelete = { onAskDelete(entry.id) },
                 onOpen = entry.sessionId?.let { id -> onOpenSession?.let { open -> { open(id) } } },
+                onEdit = { onEdit(entry.id) },
             )
         }
         if (shown.size < history.size) {
@@ -124,24 +127,42 @@ internal fun StockEntryDeleteQuestion(
 }
 
 @Composable
-private fun HistoryRow(entry: StockEntry, onDelete: () -> Unit, onOpen: (() -> Unit)?) {
+private fun HistoryRow(entry: StockEntry, onDelete: () -> Unit, onOpen: (() -> Unit)?, onEdit: () -> Unit) {
     val day = GermanFormat.day(entry.day)
     val description = entry.description(day)
     val openLabel = stringResource(R.string.collection_tea_history_open_session)
+    val editLabel = stringResource(
+        if (entry.kind == StockEntryKind.PURCHASE) {
+            R.string.collection_purchase_edit_title
+        } else {
+            R.string.collection_correction_edit_title
+        },
+    )
     Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = ROW_MIN_HEIGHT),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // One node for TalkBack: its sentence, and for a brew the tap (chevron included) that opens the session.
+        // One node for TalkBack: its sentence, and its tap: a brew's (chevron included) opens the session, a purchase's
+        // or correction's opens its edit sheet (D-136 item 11).
         Row(
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = ROW_MIN_HEIGHT)
                 .then(
-                    if (onOpen != null) {
-                        Modifier.clickable(onClickLabel = openLabel, role = Role.Button, onClick = onOpen)
-                    } else {
-                        Modifier
+                    when {
+                        onOpen != null -> Modifier.clickable(
+                            onClickLabel = openLabel,
+                            role = Role.Button,
+                            onClick = onOpen,
+                        )
+
+                        entry.canDelete -> Modifier.clickable(
+                            onClickLabel = editLabel,
+                            role = Role.Button,
+                            onClick = onEdit,
+                        )
+
+                        else -> Modifier
                     },
                 )
                 .semantics(mergeDescendants = true) { contentDescription = description }

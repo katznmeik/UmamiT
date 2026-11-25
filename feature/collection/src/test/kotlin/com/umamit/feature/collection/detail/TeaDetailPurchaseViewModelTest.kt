@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -114,6 +115,71 @@ class TeaDetailPurchaseViewModelTest {
         assertThat(vm.tea.hasStock).isTrue()
         assertThat(vm.tea.stockGrams).isEqualTo(40.0)
         assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.AVAILABLE)
+    }
+
+    @Test
+    fun `Kauf bearbeiten writes the purchase in place and says it was changed (D-136)`() = runTest {
+        TeaDetailFixture.seed(collection)
+        val vm = viewModel()
+
+        vm.updatePurchase("initial", TeaPurchase(80.0, 1_500, today.minusDays(2)))
+
+        val event = collection.stock.observeEvents(TEA_ID).first().single()
+        assertThat(event.id).isEqualTo("initial")
+        assertThat(event.type).isEqualTo(InventoryEventType.INITIAL)
+        assertThat(event.priceCents).isEqualTo(1_500)
+        assertThat(vm.tea.stockGrams).isEqualTo(80.0)
+        assertThat(withTimeout(1_000) { vm.navigation.first() }).isEqualTo(TeaDetailEvent.PurchaseEdited)
+    }
+
+    @Test
+    fun `Kauf bearbeiten of an entry gone meanwhile is said as a failed change`() = runTest {
+        TeaDetailFixture.seed(collection)
+        val vm = viewModel()
+
+        vm.updatePurchase("gone", TeaPurchase(80.0, null, today))
+
+        assertThat(withTimeout(1_000) { vm.navigation.first() }).isEqualTo(TeaDetailEvent.StockChangeFailed)
+        assertThat(vm.tea.stockGrams).isEqualTo(50.0)
+    }
+
+    @Test
+    fun `Kauf bearbeiten dated after today is refused and nothing is written`() = runTest {
+        TeaDetailFixture.seed(collection)
+        val vm = viewModel()
+
+        vm.updatePurchase("initial", TeaPurchase(80.0, null, today.plusDays(1)))
+
+        assertThat(vm.tea.stockGrams).isEqualTo(50.0)
+        assertThat(collection.stock.observeEvents(TEA_ID).first().single().priceCents).isEqualTo(990)
+    }
+
+    @Test
+    fun `Korrektur bearbeiten writes the signed difference and says it was changed`() = runTest {
+        TeaDetailFixture.seed(collection)
+        collection.stock.correctStock(TEA_ID, 40.0)
+        val vm = viewModel()
+        val correction = collection.stock.observeEvents(TEA_ID).first().single {
+            it.type == InventoryEventType.ADJUSTMENT
+        }
+
+        vm.updateCorrection(correction.id, 5.0, today)
+
+        assertThat(vm.tea.stockGrams).isEqualTo(55.0)
+        assertThat(withTimeout(1_000) { vm.navigation.first() }).isEqualTo(TeaDetailEvent.CorrectionEdited)
+    }
+
+    @Test
+    fun `Korrektur bearbeiten of 0 g or after today writes nothing`() = runTest {
+        TeaDetailFixture.seed(collection)
+        collection.stock.correctStock(TEA_ID, 40.0)
+        val vm = viewModel()
+        val id = collection.stock.observeEvents(TEA_ID).first().single { it.type == InventoryEventType.ADJUSTMENT }.id
+
+        vm.updateCorrection(id, 0.0, today)
+        vm.updateCorrection(id, 5.0, today.plusDays(1))
+
+        assertThat(vm.tea.stockGrams).isEqualTo(40.0)
     }
 
     @Test

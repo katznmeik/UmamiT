@@ -20,7 +20,6 @@ set -uo pipefail
 
 readonly APK="core/timer/build/outputs/apk/androidTest/debug/timer-debug-androidTest.apk"
 readonly PACKAGE="com.umamit.core.timer.test"
-readonly RUNNER="androidx.test.runner.AndroidJUnitRunner"
 readonly TEST_CLASS="com.umamit.core.timer.AccuracyRunTest"
 readonly REPORT_FILES=(accuracy.md accuracy.csv diagnostics.txt)
 
@@ -52,6 +51,16 @@ if ! adb install -r -t -g "$APK"; then
   exit 1
 fi
 
+# The runner the installed test APK declares (core/timer/build.gradle.kts `testInstrumentationRunner`, now
+# GermanLocaleRunner, GEN-13), read from the device so the script follows the build file (#362).
+runner="$(adb shell pm list instrumentation | tr -d '\r' |
+  sed -n "s|^instrumentation:$PACKAGE/\([^ ]*\) .*|\1|p" | head -n 1)"
+if [[ -z "$runner" ]]; then
+  echo "::error::No instrumentation of $PACKAGE on the device after the install (adb shell pm list instrumentation)."
+  exit 1
+fi
+echo "Instrumentation runner: $PACKAGE/$runner"
+
 # Progress in the job log while the run takes its hour: one line per step.
 adb logcat -c || true
 adb logcat -v time -s AccuracyRun:I &
@@ -64,7 +73,7 @@ adb shell am instrument -w \
   -e umamitAccuracySteps "$steps" \
   -e umamitAccuracyVariant "$variant" \
   -e umamitAccuracyInjectDelayMs "$delay" \
-  "$PACKAGE/$RUNNER" | tr -d '\r' | tee "$out/instrumentation.txt"
+  "$PACKAGE/$runner" | tr -d '\r' | tee "$out/instrumentation.txt"
 
 kill "$logcat_pid" 2>/dev/null || true
 adb logcat -d -v time > "$out/logcat.txt" 2>/dev/null || true

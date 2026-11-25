@@ -1,12 +1,12 @@
 package com.umamit.feature.stats.charts
 
 import android.content.res.Resources
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.VolumeFormat
 import com.umamit.feature.stats.R
 import com.umamit.feature.stats.consumptionGrams
 import java.text.NumberFormat
-import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.log10
@@ -41,17 +41,17 @@ enum class ChartUnit {
     }
 }
 
-/** German number helpers shared by the charts. */
+/** Number helpers shared by the charts, in the app's language (GEN-13). */
 internal object ChartNumbers {
     private const val MAX_AXIS_DECIMALS = 1
 
-    /** A quiet axis number: German separators, at most one decimal („1.200", „2,5"). */
-    fun axis(value: Double): String = NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+    /** A quiet axis number, at most one decimal: „1.200", „2,5" (English „1,200", „2.5"). */
+    fun axis(value: Double): String = NumberFormat.getNumberInstance(AppLanguage.current().locale).apply {
         minimumFractionDigits = 0
         maximumFractionDigits = MAX_AXIS_DECIMALS
     }.format(value)
 
-    /** A rating to one decimal with a comma („4,2"). */
+    /** A rating to one decimal: „4,2" (English „4.2"). */
     fun rating(value: Double): String = GermanFormat.gramsOneDecimal(value)
 }
 

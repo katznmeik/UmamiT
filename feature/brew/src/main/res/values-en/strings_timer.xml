@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Timer (SCR-05) -->
+    <string name="brew_timer_quick_title">Quick timer</string>
+    <!-- „Infusion 2 of 4": a position, not a count, so no plural (TMR-02). -->
+    <string name="brew_timer_step_label" tools:ignore="PluralsCandidate">%1$s %2$d of %3$d</string>
+    <string name="brew_timer_step_short">%1$s %2$d/%3$d</string>
+    <string name="brew_timer_meta">%1$d °C · %2$s</string>
+    <string name="brew_timer_ready_detail">%1$s %2$d · %3$s</string>
+    <!-- READY: the session's leaf and water, only what it has (BRW-11, D-097): „4.0 g tea · 250 ml water". -->
+    <string name="brew_timer_leaf">%1$s g tea</string>
+    <string name="brew_timer_water">%1$d ml water</string>
+    <string name="brew_timer_leaf_and_water">%1$s · %2$s</string>
+    <string name="brew_timer_caption_ready">Ready</string>
+    <string name="brew_timer_caption_running">Steeping …</string>
+    <string name="brew_timer_caption_pre_alert">Almost done …</string>
+    <string name="brew_timer_caption_paused">Paused</string>
+    <string name="brew_timer_caption_alert">Pour now!</string>
+    <string name="brew_timer_caption_finished">All infusions done</string>
+    <string name="brew_timer_overtime">+%1$s</string>
+    <string name="brew_timer_overtime_prominent">+%1$s over</string>
+
+    <string name="brew_timer_start">Start</string>
+    <string name="brew_timer_pause">Pause</string>
+    <string name="brew_timer_resume">Resume</string>
+    <string name="brew_timer_poured">Poured</string>
+    <string name="brew_timer_poured_rinse">Poured off</string>
+    <string name="brew_timer_finish">End session</string>
+    <string name="brew_timer_add_step">Another infusion</string>
+
+    <!-- The row for the other timer (v0.3.0, SCR-05, SCR-07, D-098): „Quick timer 2:14", „Tanabata · Infusion 2 · 0:48". -->
+    <string name="brew_timer_other_time">· %1$s</string>
+    <string name="brew_timer_other_paused">· Paused %1$s</string>
+    <string name="brew_timer_other_ready">· ready</string>
+    <string name="brew_timer_other_done">· done</string>
+    <string name="brew_timer_other_alert">· Pour now!</string>
+    <!-- A brew whose alert waits for this brew's „Poured" (D-108). -->
+    <string name="brew_timer_other_held">· waiting</string>
+    <string name="brew_timer_other_step">· %1$s %2$d · %3$s</string>
+    <string name="brew_timer_other_step_paused">· %1$s %2$d · Paused %3$s</string>
+    <string name="brew_timer_other_step_ready">· %1$s %2$d · ready</string>
+    <string name="brew_timer_other_open_quick">Open quick timer</string>
+    <string name="brew_timer_other_open_brew">Open infusion</string>
+    <string name="brew_timer_other_pause_quick">Pause quick timer</string>
+    <string name="brew_timer_other_resume_quick">Resume quick timer</string>
+    <string name="brew_timer_other_pause_brew">Pause infusion</string>
+    <string name="brew_timer_other_resume_brew">Resume infusion</string>
+
+    <!-- Overflow ⋮ (SCR-05) -->
+    <string name="brew_timer_menu_adjust">Adjust session</string>
+    <string name="brew_timer_menu_end_step">End infusion now</string>
+    <string name="brew_timer_menu_skip">Skip step</string>
+    <string name="brew_timer_menu_edit_steps">Edit steps</string>
+    <string name="brew_timer_menu_add_step">Another infusion</string>
+    <string name="brew_timer_menu_finish">End session</string>
+    <string name="brew_timer_menu_discard">Discard session</string>
+    <string name="brew_timer_menu_settings">Timer settings</string>
+
+    <!-- Confirmation (03 §5, TMR-12 AC1, TMR-13) -->
+    <string name="brew_timer_discard_title">Discard session?</string>
+    <string name="brew_timer_discard_text">Nothing will be saved.</string>
+    <string name="brew_timer_discard_confirm">Discard</string>
+    <string name="brew_timer_discard_cancel">Keep brewing</string>
+
+    <!-- Reliability banner (TMR-31) -->
+    <string name="brew_timer_reliability">The timer may be unreliable</string>
+    <!-- The phone's alarm volume at 0 (v0.3.0, TMR-31, D-098). -->
+    <string name="brew_timer_reliability_alarm_volume">Alarm volume is off</string>
+
+    <!-- TalkBack (03 §6, SCR-05) -->
+    <string name="brew_timer_back">Back</string>
+    <string name="brew_timer_more">More options</string>
+    <string name="brew_timer_ring_start">Start infusion</string>
+    <string name="brew_timer_overtime_description">%1$s over</string>
+    <!-- „4 point 0 grams of tea, 250 milliliters of water" (BRW-11): always plural, as the number is spoken in parts. -->
+    <string name="brew_timer_leaf_description" tools:ignore="PluralsCandidate">%1$d point %2$d grams of tea</string>
+    <string name="brew_timer_water_description" tools:ignore="PluralsCandidate">%1$d milliliters of water</string>
+    <string name="brew_timer_leaf_and_water_description">%1$s, %2$s</string>
+    <!-- READY's stock as TalkBack reads it (BRW-11, D-098): „14.5 grams left, low"; the text is the setup's. -->
+    <string name="brew_timer_stock_description">%1$s grams left</string>
+    <string name="brew_timer_stock_low_description">%1$s grams left, low</string>
+    <string name="brew_timer_announce_ready">Ready for %1$s</string>
+    <string name="brew_timer_announce_running">%1$s running</string>
+    <string name="brew_timer_announce_pre_alert">Almost done</string>
+    <string name="brew_timer_announce_ten_seconds">10 seconds left</string>
+    <string name="brew_timer_announce_pre_alert_ten_seconds">Almost done, 10 seconds left</string>
+    <string name="brew_timer_announce_paused">Paused</string>
+    <string name="brew_timer_announce_alert">Pour now!</string>
+    <string name="brew_timer_announce_finished">All infusions done</string>
+</resources>

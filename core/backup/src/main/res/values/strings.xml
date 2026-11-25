@@ -46,55 +46,58 @@
     <string name="recipe_file_vessel_type_chawan">Chawan</string>
     <string name="recipe_file_vessel_type_cold_brew_bottle">Cold-Brew-Flasche</string>
     <string name="recipe_file_vessel_type_other">Andere</string>
-    <!-- The journal CSV (BAK-04, D-130 Q9, Q10): the header row, in BAK-04's column order. -->
-    <string name="csv_header_date">Datum</string>
-    <string name="csv_header_time">Uhrzeit</string>
-    <string name="csv_header_tea">Tee</string>
-    <string name="csv_header_category">Kategorie</string>
-    <string name="csv_header_recipe">Rezept</string>
-    <string name="csv_header_vessel">Gefäß</string>
-    <string name="csv_header_leaf">Blatt (g)</string>
-    <string name="csv_header_water">Wasser (ml)</string>
-    <string name="csv_header_infusions">Aufgüsse</string>
-    <string name="csv_header_duration">Dauer</string>
-    <string name="csv_header_rating_tea">Bewertung Tee</string>
-    <string name="csv_header_rating_brewing">Bewertung Zubereitung</string>
-    <string name="csv_header_cost">Kosten (€)</string>
-    <string name="csv_header_descriptors">Beschreibungen</string>
-    <string name="csv_header_notes">Notizen</string>
-    <string name="csv_header_steps">Aufgüsse im Detail</string>
-    <string name="csv_header_taste_umami">Umami</string>
-    <string name="csv_header_taste_sweetness">Süße</string>
-    <string name="csv_header_taste_bitterness">Bitterkeit</string>
-    <string name="csv_header_taste_astringency">Adstringenz</string>
-    <string name="csv_header_taste_body">Körper</string>
-    <string name="csv_header_taste_aroma">Aroma</string>
-    <string name="csv_header_taste_roast">Röstung/Malz</string>
-    <string name="csv_header_taste_acidity">Säure</string>
-    <string name="csv_header_taste_freshness">Frische</string>
-    <string name="csv_header_taste_spice">Würze</string>
+    <!-- The journal CSV (BAK-04, D-130 Q9, Q10): the header row, in BAK-04's column order. The csv_ strings have no
+         values-en (translatable="false"): the English file's own words are in Kotlin (EnglishJournalCsvWords,
+         GEN-13, D-136 item 15), and it reads the rest from here, the same in both files: the ten taste headers
+         (GEN-13 AC2), csv_celsius and the three separators. -->
+    <string name="csv_header_date" translatable="false">Datum</string>
+    <string name="csv_header_time" translatable="false">Uhrzeit</string>
+    <string name="csv_header_tea" translatable="false">Tee</string>
+    <string name="csv_header_category" translatable="false">Kategorie</string>
+    <string name="csv_header_recipe" translatable="false">Rezept</string>
+    <string name="csv_header_vessel" translatable="false">Gefäß</string>
+    <string name="csv_header_leaf" translatable="false">Blatt (g)</string>
+    <string name="csv_header_water" translatable="false">Wasser (ml)</string>
+    <string name="csv_header_infusions" translatable="false">Aufgüsse</string>
+    <string name="csv_header_duration" translatable="false">Dauer</string>
+    <string name="csv_header_rating_tea" translatable="false">Bewertung Tee</string>
+    <string name="csv_header_rating_brewing" translatable="false">Bewertung Zubereitung</string>
+    <string name="csv_header_cost" translatable="false">Kosten (€)</string>
+    <string name="csv_header_descriptors" translatable="false">Beschreibungen</string>
+    <string name="csv_header_notes" translatable="false">Notizen</string>
+    <string name="csv_header_steps" translatable="false">Aufgüsse im Detail</string>
+    <string name="csv_header_taste_umami" translatable="false">Umami</string>
+    <string name="csv_header_taste_sweetness" translatable="false">Süße</string>
+    <string name="csv_header_taste_bitterness" translatable="false">Bitterkeit</string>
+    <string name="csv_header_taste_astringency" translatable="false">Adstringenz</string>
+    <string name="csv_header_taste_body" translatable="false">Körper</string>
+    <string name="csv_header_taste_aroma" translatable="false">Aroma</string>
+    <string name="csv_header_taste_roast" translatable="false">Röstung/Malz</string>
+    <string name="csv_header_taste_acidity" translatable="false">Säure</string>
+    <string name="csv_header_taste_freshness" translatable="false">Frische</string>
+    <string name="csv_header_taste_spice" translatable="false">Würze</string>
 
     <!-- „Aufgüsse": %1$d poured infusions, %2$d planned („3 von 4"); a cell, no noun to inflect. -->
-    <string name="csv_infusions_of" tools:ignore="PluralsCandidate">%1$d von %2$d</string>
+    <string name="csv_infusions_of" translatable="false" tools:ignore="PluralsCandidate">%1$d von %2$d</string>
     <!-- „Aufgüsse im Detail": a step's temperature (a no-break space before the unit, 05 §7), the rinse's word. -->
-    <string name="csv_celsius">%1$d\u00A0°C</string>
-    <string name="csv_rinse">Spülen</string>
+    <string name="csv_celsius" translatable="false">%1$d\u00A0°C</string>
+    <string name="csv_rinse" translatable="false">Spülen</string>
     <!-- Between a step's temperature and its time („80 °C 1:00"), between the steps, between the descriptors. -->
-    <string name="csv_step_parts_separator">" "</string>
-    <string name="csv_steps_separator">" | "</string>
-    <string name="csv_descriptors_separator">", "</string>
+    <string name="csv_step_parts_separator" translatable="false">" "</string>
+    <string name="csv_steps_separator" translatable="false">" | "</string>
+    <string name="csv_descriptors_separator" translatable="false">", "</string>
 
     <!-- „Kategorie": the short names of BAK-04 and JRN-03 („Grün"). -->
-    <string name="csv_category_green">Grün</string>
-    <string name="csv_category_white">Weiß</string>
-    <string name="csv_category_yellow">Gelb</string>
-    <string name="csv_category_oolong">Oolong</string>
-    <string name="csv_category_black">Schwarz</string>
-    <string name="csv_category_dark">Pu-Erh</string>
-    <string name="csv_category_herbal">Kräuter</string>
-    <string name="csv_category_rooibos">Rotbusch</string>
-    <string name="csv_category_fruit">Früchte</string>
-    <string name="csv_category_other">Sonstige</string>
+    <string name="csv_category_green" translatable="false">Grün</string>
+    <string name="csv_category_white" translatable="false">Weiß</string>
+    <string name="csv_category_yellow" translatable="false">Gelb</string>
+    <string name="csv_category_oolong" translatable="false">Oolong</string>
+    <string name="csv_category_black" translatable="false">Schwarz</string>
+    <string name="csv_category_dark" translatable="false">Pu-Erh</string>
+    <string name="csv_category_herbal" translatable="false">Kräuter</string>
+    <string name="csv_category_rooibos" translatable="false">Rotbusch</string>
+    <string name="csv_category_fruit" translatable="false">Früchte</string>
+    <string name="csv_category_other" translatable="false">Sonstige</string>
 
     <!-- The backup reader (BAK-02 AC2, 05 §8, D-130 Q3): its refusals. -->
     <string name="backup_refused_not_a_backup">Das ist keine UmamiT-Sicherung.</string>

@@ -63,6 +63,7 @@ import kotlin.math.roundToInt
 /** Test tags of SCR-25. */
 object SettingsTags {
     const val ABOUT = "SettingsAbout"
+    const val TOUR = "SettingsTour"
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
     const val CATALOG_REFRESH = "SettingsCatalogRefresh"
@@ -82,6 +83,9 @@ object SettingsTags {
     /** The *Design* row (SET-05, D-114). */
     const val THEME = "SettingsTheme"
 
+    /** The *Sprache* row (SET-35, D-136). */
+    const val LANGUAGE = "SettingsLanguage"
+
     /** The *Lautstärke* slider (SET-27). */
     const val VOLUME = "SettingsVolume"
 }
@@ -96,6 +100,7 @@ internal enum class SettingsDialog {
     ReminderInterval,
     ReminderTime,
     Theme,
+    Language,
 }
 
 /** What the rows of SCR-25 do. */
@@ -134,6 +139,8 @@ class SettingsActions(
      * *Design* dialog closes and whenever the screen shows, both only with no alert playing.
      */
     val handOverTheme: () -> Unit = {},
+    /** SET-35 *Sprache* (GEN-13): handed to Android at once, which re-creates the activity in that language. */
+    val setLanguage: (LanguageChoice) -> Unit = {},
     /** SET-22 *Katalog: Fotos laden*. */
     val setCatalogPhotos: (Boolean) -> Unit = {},
     val testAlert: () -> Unit = {},
@@ -144,6 +151,8 @@ class SettingsActions(
     val openTeaware: () -> Unit = {},
     /** *Daten & Sicherung* (SET-30): SCR-26. */
     val openDataBackup: () -> Unit = {},
+    /** *Einführung* (SET-36): the tour, SCR-33. */
+    val openTour: () -> Unit = {},
     /** *Jetzt aktualisieren* (SET-23). */
     val refreshCatalog: () -> Unit = {},
 )
@@ -161,6 +170,7 @@ fun SettingsRoute(
     modifier: Modifier = Modifier,
     onOpenTeaware: () -> Unit = {},
     onOpenDataBackup: () -> Unit = {},
+    onOpenTour: () -> Unit = {},
     scrollToTopRequest: Int = 0,
     viewModel: SettingsViewModel = hiltViewModel(),
     catalogViewModel: CatalogSettingsViewModel = hiltViewModel(),
@@ -170,6 +180,7 @@ fun SettingsRoute(
     val catalog by catalogViewModel.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val saveFailed by viewModel.saveFailed.collectAsStateWithLifecycle()
+    val language by viewModel.language.collectAsStateWithLifecycle()
     // Read when the *Design* is handed to the system, in the same frame (rule 8).
     val currentAlertKey by rememberUpdatedState(alertKey)
     LifecycleResumeEffect(viewModel) {
@@ -219,23 +230,26 @@ fun SettingsRoute(
             setLowStockReminderTime = { minute -> viewModel.change { it.copy(lowStockReminderTime = minute) } },
             setTheme = viewModel::setTheme,
             handOverTheme = { viewModel.handOverTheme(alerting = { currentAlertKey != null }) },
+            setLanguage = viewModel::setLanguage,
             setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
             openAbout = onOpenAbout,
             openTeaware = onOpenTeaware,
             openDataBackup = onOpenDataBackup,
+            openTour = onOpenTour,
             refreshCatalog = catalogViewModel::refreshNow,
         ),
         modifier = modifier,
         scrollToTopRequest = scrollToTopRequest,
         catalog = catalog,
+        language = language,
     )
 }
 
 /**
- * SCR-25 without state: the reliability card first, then *Darstellung* (D-114), *Timer & Alarm*,
- * *Aufguss & Vorrat*, *Katalog*, *Teegeschirr*, *Daten* (SCR-26) and *Über* (SET-30).
+ * SCR-25 without state: the reliability card first, then *Darstellung* (D-114; *Sprache*, SET-35), *Timer & Alarm*,
+ * *Aufguss & Vorrat*, *Katalog*, *Teegeschirr*, *Daten* (SCR-26), *Hilfe* (SET-36) and *Über* (SET-30).
  */
 @Composable
 fun SettingsScreen(
@@ -248,6 +262,7 @@ fun SettingsScreen(
     saveFailed: Boolean = false,
     scrollToTopRequest: Int = 0,
     catalog: CatalogSettingsState = CatalogSettingsState(),
+    language: LanguageChoice = LanguageChoice.SYSTEM,
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
     // Rule 8: an alert removes an open dialog in its first frame, without animation.
@@ -289,6 +304,12 @@ fun SettingsScreen(
             onClick = { if (!alerting) dialog = SettingsDialog.Theme },
             modifier = Modifier.testTag(SettingsTags.THEME),
         )
+        SettingsRow(
+            title = stringResource(R.string.settings_language),
+            value = stringResource(language.label()),
+            onClick = { if (!alerting) dialog = SettingsDialog.Language },
+            modifier = Modifier.testTag(SettingsTags.LANGUAGE),
+        )
         SectionHeader(title = stringResource(R.string.settings_section_timer), modifier = Modifier.fillMaxWidth())
         TimerSection(settings, actions, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_brewing), modifier = Modifier.fillMaxWidth())
@@ -327,6 +348,14 @@ fun SettingsScreen(
             modifier = Modifier.testTag(SettingsTags.DATA_BACKUP),
             chevron = true,
         )
+        SectionHeader(title = stringResource(R.string.settings_section_help), modifier = Modifier.fillMaxWidth())
+        SettingsRow(
+            title = stringResource(R.string.settings_tour),
+            onClick = actions.openTour,
+            modifier = Modifier.testTag(SettingsTags.TOUR),
+            value = stringResource(R.string.settings_tour_detail),
+            chevron = true,
+        )
         SectionHeader(title = stringResource(R.string.settings_section_about), modifier = Modifier.fillMaxWidth())
         SettingsRow(
             title = stringResource(R.string.settings_about),
@@ -335,7 +364,7 @@ fun SettingsScreen(
             chevron = true,
         )
     }
-    if (!alerting) SettingsDialogs(dialog, settings, actions, onDismiss = { dialog = null })
+    if (!alerting) SettingsDialogs(dialog, settings, actions, language, onDismiss = { dialog = null })
 }
 
 /** The *Timer-Zuverlässigkeit* card (SET-24): one row per check, *Beheben* on a missing one. */

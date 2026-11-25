@@ -148,13 +148,13 @@ class StepsSheetHostTest {
     fun `the scrim and the handle close the sheet`() {
         showHost()
 
-        compose.onNodeWithContentDescription("Close sheet").performClick()
+        compose.onNodeWithContentDescription(SHEET_SCRIM).performClick()
         compose.waitForIdle()
         assertThat(dismissals).isEqualTo(1)
 
         visible = true
         compose.onNodeWithText(title).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Drag handle").performSemanticsAction(SemanticsActions.Dismiss)
+        compose.onNodeWithContentDescription(SHEET_HANDLE).performSemanticsAction(SemanticsActions.Dismiss)
         compose.waitForIdle()
         assertThat(dismissals).isEqualTo(2)
         compose.onNodeWithText(title).assertDoesNotExist()
@@ -164,7 +164,7 @@ class StepsSheetHostTest {
     fun `the handle is a 48 dp touch target`() {
         showHost()
 
-        val handle = compose.onNodeWithContentDescription("Drag handle").fetchSemanticsNode()
+        val handle = compose.onNodeWithContentDescription(SHEET_HANDLE).fetchSemanticsNode()
         val heightDp = handle.boundsInRoot.height / handle.layoutInfo.density.density
         assertThat(heightDp).isAtLeast(48f)
     }
@@ -298,7 +298,7 @@ class StepsSheetHostTest {
         showHost()
         lengthenStep2()
 
-        compose.onNodeWithContentDescription("Close sheet").performClick()
+        compose.onNodeWithContentDescription(SHEET_SCRIM).performClick()
         compose.waitForIdle()
         compose.onNodeWithText(discardTitle).assertIsDisplayed()
 
@@ -477,3 +477,8 @@ class StepsSheetHostTest {
         compose.onNodeWithContentDescription("Vorwarnung, Schritt 2: Automatisch, keine. Ändern").assertExists()
     }
 }
+
+// Compose's own descriptions of the sheet's scrim and Material 3's of its handle (androidx's German translations); the
+// tests run in German (GEN-13, config/test-locale).
+private const val SHEET_SCRIM = "Tabelle schließen"
+private const val SHEET_HANDLE = "Ziehpunkt"

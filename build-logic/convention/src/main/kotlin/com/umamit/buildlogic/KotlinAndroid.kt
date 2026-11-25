@@ -27,7 +27,14 @@ internal fun Project.configureKotlinAndroid(android: CommonExtension) {
         compileOptions.targetCompatibility = JAVA_VERSION
         testOptions.unitTests.isIncludeAndroidResources = true
         configureLint(lint)
+        // GEN-13 (D-136 item 15): every Robolectric test runs in German unless it names a language, whatever
+        // else its qualifiers say (`config/test-locale`: Robolectric's config plugin, found through META-INF/services).
+        sourceSets.getByName("test") {
+            kotlin.directories.add("$rootDir/config/test-locale/kotlin")
+            resources.directories.add("$rootDir/config/test-locale/resources")
+        }
     }
+    dependencies.add("testImplementation", libs.lib("robolectric"))
     configureSpotless()
     configureDetekt(includeDeviceTests = true)
     // AGP 9 has built-in Kotlin support; it registers the `kotlin` extension.
@@ -48,6 +55,7 @@ internal fun Project.configureKotlinAndroid(android: CommonExtension) {
             "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
             "--add-opens=java.base/java.io=ALL-UNNAMED",
         )
+        pinGermanDefaultLocale()
     }
 }
 
@@ -71,4 +79,15 @@ internal fun Project.configureKotlinJvm() {
         description = "Runs this pure module's unit tests (alias of `test`)."
         dependsOn("test")
     }
+    tasks.withType<Test>().configureEach { pinGermanDefaultLocale() }
+}
+
+/**
+ * The JVM's default locale in tests is German whatever the machine's is (GEN-13, D-136 item 15): the app's
+ * formatting follows the current locale, and the tests expect German unless they choose English themselves.
+ * Robolectric tests set it again from their (German, `config/test-locale`) configuration.
+ */
+private fun Test.pinGermanDefaultLocale() {
+    systemProperty("user.language", "de")
+    systemProperty("user.country", "DE")
 }

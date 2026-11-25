@@ -40,6 +40,7 @@ interface GuideRepository {
 /** [GuideRepository] on `catalog.db` and the guide images in `filesDir/catalog/guides/` (D-087). */
 class RoomGuideRepository @Inject constructor(private val dao: CatalogDao, private val photos: CatalogPhotoFiles) :
     GuideRepository {
+    // Stays German in both app languages (GEN-13 AC2, D-136 Q6): the guide's entries are the shop's German texts.
     private val collator: Collator = Collator.getInstance(Locale.GERMAN).apply { strength = Collator.SECONDARY }
 
     override fun observeGuides(): Flow<List<GuideSummary>> = dao.observeGuides().map { guides ->

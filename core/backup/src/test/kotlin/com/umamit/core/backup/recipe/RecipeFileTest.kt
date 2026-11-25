@@ -20,6 +20,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 import java.io.ByteArrayInputStream
+import java.util.Locale
 
 /** The recipe file's writer and reader (PRF-08, 05 §8a, #340): round trips and the shop link. */
 class RecipeFileTest {
@@ -33,6 +34,21 @@ class RecipeFileTest {
         val result = RecipeFile.read(RecipeFile.write(recipe, CREATED_AT))
         assertThat(result).isEqualTo(RecipeFileResult.Valid(recipe, CREATED_AT))
         return (result as RecipeFileResult.Valid).recipe
+    }
+
+    /** GEN-13 (#359): only the share text follows the app language; the file is the same byte for byte. */
+    @Test
+    fun `the file is the same in English as in German`() {
+        val before = Locale.getDefault()
+        val (german, english) = try {
+            Locale.setDefault(Locale.GERMANY)
+            val german = RecipeFile.write(kyusu, CREATED_AT)
+            Locale.setDefault(Locale.US)
+            german to RecipeFile.write(kyusu, CREATED_AT)
+        } finally {
+            Locale.setDefault(before)
+        }
+        assertThat(english).isEqualTo(german)
     }
 
     @Test

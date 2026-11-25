@@ -46,6 +46,7 @@ internal fun SettingsDialogs(
     dialog: SettingsDialog?,
     settings: UserSettings,
     actions: SettingsActions,
+    language: LanguageChoice,
     onDismiss: () -> Unit,
 ) {
     when (dialog) {
@@ -73,6 +74,15 @@ internal fun SettingsDialogs(
         )
 
         SettingsDialog.Theme -> ThemeDialog(settings.theme, actions.setTheme, onDismiss)
+
+        SettingsDialog.Language -> LanguageDialog(
+            selected = language,
+            onSelect = { choice ->
+                onDismiss()
+                if (choice != language) actions.setLanguage(choice)
+            },
+            onDismiss = onDismiss,
+        )
 
         SettingsDialog.AlertLength -> AlertLengthDialog(settings.alertLength, actions.setAlertLength, onDismiss)
 
@@ -225,7 +235,7 @@ internal fun ThemeMode.label(): Int = when (this) {
 }
 
 @Composable
-private fun ChoiceDialog(
+internal fun ChoiceDialog(
     title: String,
     onDismiss: () -> Unit,
     extraButton: @Composable () -> Unit = {},
@@ -247,7 +257,7 @@ private fun ChoiceDialog(
 }
 
 @Composable
-private fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit, detail: String? = null) {
+internal fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit, detail: String? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

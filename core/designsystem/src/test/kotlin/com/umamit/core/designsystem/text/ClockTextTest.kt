@@ -1,7 +1,9 @@
 package com.umamit.core.designsystem.text
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.testlocale.inLocale
 import org.junit.Test
+import java.util.Locale
 
 class ClockTextTest {
 
@@ -33,5 +35,13 @@ class ClockTextTest {
         assertThat(averageRatingText(4.0)).isEqualTo("4,0")
         assertThat(averageRatingText(3.25)).isEqualTo("3,3")
         assertThat(averageRatingText(4.34)).isEqualTo("4,3")
+    }
+
+    @Test
+    fun `in English the clock is the same and ratings have a decimal point`() = inLocale(Locale.US) {
+        assertThat(clockText(599)).isEqualTo("9:59")
+        assertThat(clockText(14_430)).isEqualTo("4:00:30")
+        assertThat(ratingText(4.5f)).isEqualTo("4.5")
+        assertThat(averageRatingText(4.35)).isEqualTo("4.4")
     }
 }

@@ -3,12 +3,13 @@
   The process-death test of the real timer (#42, E3; spec #40 seam 5). The test
   runner runs in its own process of this test APK (targetProcesses), so the
   test survives killing the main process, where the controller, the alarm
-  receiver and the foreground service run as in the app.
+  receiver and the foreground service run as in the app. The runner sets the
+  German app language first (GEN-13, GermanLocaleRunner in sharedAndroidTest).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <instrumentation
-        android:name="androidx.test.runner.AndroidJUnitRunner"
+        android:name="com.umamit.core.timer.GermanLocaleRunner"
         android:targetProcesses="${applicationId}:runner" />
 
     <application android:name="com.umamit.core.timer.TimerTestApplication">

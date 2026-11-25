@@ -24,7 +24,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -224,7 +227,8 @@ class FakeStockRepository internal constructor(private val c: FakeCollection) : 
     /** As on Room: one ADJUSTMENT of the difference at [now], none when the stock is unchanged. */
     override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
         require(newTotalGrams.isFinite() && newTotalGrams >= 0.0) { "A stock total is at least 0 g" }
-        val delta = newTotalGrams - c.eventRows.value.values.filter { it.teaId == teaId }.sumOf { it.deltaGrams }
+        val remaining = c.eventRows.value.values.filter { it.teaId == teaId }.sumOf { it.deltaGrams }
+        val delta = BigDecimal.valueOf(newTotalGrams - remaining).setScale(1, RoundingMode.HALF_UP).toDouble()
         if (abs(delta) < UNCHANGED_GRAMS) return null
         val event = InventoryEvent(
             id = "adjustment-${c.eventRows.value.size + 1}",
@@ -257,6 +261,41 @@ class FakeStockRepository internal constructor(private val c: FakeCollection) : 
         )
         addEvent(event)
         return event
+    }
+
+    /**
+     * As on Room, for the events only (the fake keeps no sessions, so no cost is recomputed): a purchase gets the
+     * grams, price and day; an unknown id or a non-purchase is refused; a future day or no grams throws.
+     */
+    override suspend fun updatePurchase(id: String, grams: Double, priceCents: Long?, purchasedOn: LocalDate): Boolean {
+        require(grams.isFinite() && grams > 0.0) { "A package weighs more than 0 g" }
+        require(!purchasedOn.isAfter(today())) { "A purchase is never in the future" }
+        val stored = c.eventRows.value[id]?.takeIf { it.type.isPackage } ?: return false
+        addEvent(
+            stored.copy(
+                deltaGrams = grams,
+                priceCents = priceCents,
+                occurredAtMillis = editedAt(stored.occurredAtMillis, purchasedOn),
+            ),
+        )
+        return true
+    }
+
+    /** As on Room: a correction gets the signed difference and day; 0 g or a future day throws. */
+    override suspend fun updateCorrection(id: String, signedDeltaGrams: Double, day: LocalDate): Boolean {
+        require(signedDeltaGrams.isFinite() && abs(signedDeltaGrams) >= UNCHANGED_GRAMS) { "A correction is not 0 g" }
+        require(!day.isAfter(today())) { "A correction is never in the future" }
+        val stored = c.eventRows.value[id]?.takeIf { it.type == InventoryEventType.ADJUSTMENT } ?: return false
+        addEvent(stored.copy(deltaGrams = signedDeltaGrams, occurredAtMillis = editedAt(stored.occurredAtMillis, day)))
+        return true
+    }
+
+    private fun today(): LocalDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+
+    private fun editedAt(stored: Long, day: LocalDate): Long = when (day) {
+        Instant.ofEpochMilli(stored).atZone(zone).toLocalDate() -> stored
+        today() -> now
+        else -> day.atTime(LocalTime.NOON).atZone(zone).toInstant().toEpochMilli()
     }
 
     /** The time of the next [correctStock] and [recordPurchase]. */

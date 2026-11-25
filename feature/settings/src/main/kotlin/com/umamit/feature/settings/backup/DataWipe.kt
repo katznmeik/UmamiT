@@ -89,8 +89,8 @@ internal fun WipeDialog(dialog: BackupDialog, state: DataBackupUiState, actions:
                     ConfirmWordField(
                         value = state.confirmText,
                         onValueChange = actions.typeConfirm,
-                        hint = stringResource(R.string.backup_wipe_confirm_hint),
-                        talkBack = stringResource(R.string.backup_wipe_confirm_talkback),
+                        hint = stringResource(R.string.backup_wipe_confirm_hint, state.confirmWords.wipe),
+                        talkBack = stringResource(R.string.backup_wipe_confirm_talkback, state.confirmWords.wipe),
                         tag = DataBackupTags.WIPE_FIELD,
                     )
                 }

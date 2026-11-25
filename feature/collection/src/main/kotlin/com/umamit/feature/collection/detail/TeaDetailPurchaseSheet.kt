@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -31,21 +32,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.data.TeaPurchase
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.domain.input.GermanNumber
+import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberExpandedSheetState
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.editor.DateField
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 
 const val PURCHASE_SHEET_GRAMS_TAG = "purchase_sheet_grams"
 const val PURCHASE_SHEET_PRICE_TAG = "purchase_sheet_price"
 const val PURCHASE_SHEET_DATE_TAG = "purchase_sheet_date"
 const val PURCHASE_SHEET_SAVE_TAG = "purchase_sheet_save"
+const val PURCHASE_SHEET_DELETE_TAG = "purchase_sheet_delete"
 
 /**
  * *Nachkauf erfassen* (INV-03, SCR-09 VORRAT, D-104): the grams bought, an optional price and the day, today by
@@ -55,21 +61,56 @@ const val PURCHASE_SHEET_SAVE_TAG = "purchase_sheet_save"
  * reduce motion) and [onDismissRequest] closes it; *Abbrechen* slides out the same way without saving, and back,
  * the scrim or a drag close it without saving. Like every sheet it never covers an alert: the host removes it in
  * the frame an alert starts (rule 8); its date picker gives way to an alert other than [alertKey]'s.
+ *
+ * With [edited] it is „Kauf bearbeiten" (INV-03, SCR-29, D-136 item 11): the fields start on that purchase's grams,
+ * price and day, and *Speichern* (filled) and *Löschen* (text, error colour) replace *Abbrechen* / *Erfassen*.
+ * *Löschen* slides the sheet out and calls [onDelete], whose host asks first.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PurchaseSheet(
     today: LocalDate,
     alertKey: String?,
     onSave: (TeaPurchase) -> Unit,
     onDismissRequest: () -> Unit,
+    edited: StockEntry? = null,
+    onDelete: () -> Unit = {},
+) {
+    StockSheetFrame(onDismissRequest) { leaving, leave ->
+        PurchaseSheetContent(
+            today = today,
+            alertKey = alertKey,
+            leaving = leaving,
+            edited = edited,
+            onSave = {
+                onSave(it)
+                leave()
+            },
+            onCancel = { if (!leaving) leave() },
+            onDelete = {
+                if (!leaving) {
+                    leave()
+                    onDelete()
+                }
+            },
+        )
+    }
+}
+
+/**
+ * A stock sheet's frame (*Nachkauf erfassen*, „Kauf bearbeiten", „Korrektur bearbeiten"): [content] gets whether the
+ * sheet is on its way out (so a second tap writes nothing twice) and `leave`, which slides it out (not under reduce
+ * motion) and then calls [onDismissRequest]. Back, the scrim or a drag close it at once.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun StockSheetFrame(
+    onDismissRequest: () -> Unit,
+    content: @Composable (leaving: Boolean, leave: () -> Unit) -> Unit,
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
     val sheetState = rememberExpandedSheetState(reduceMotion)
     val scope = rememberCoroutineScope()
-    // Set by *Erfassen* and *Abbrechen*: the sheet is on its way out, so a second tap records nothing twice.
     var leaving by remember { mutableStateOf(false) }
-    // Slides out (not under reduce motion), then the host removes it.
     val leave = {
         leaving = true
         scope.launch { if (!reduceMotion) sheetState.hide() }.invokeOnCompletion { onDismissRequest() }
@@ -80,30 +121,64 @@ internal fun PurchaseSheet(
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        PurchaseSheetContent(
-            today = today,
-            alertKey = alertKey,
-            leaving = leaving,
-            onSave = {
-                onSave(it)
-                leave()
-            },
-            onCancel = { if (!leaving) leave() },
+        content(leaving, leave)
+    }
+}
+
+/**
+ * The stock sheets' buttons: *Abbrechen* and [save] for a new entry; for an edit ([onDelete] set) *Löschen* (text,
+ * error colour) at the start and [save] (filled) at the end.
+ */
+@Composable
+internal fun StockSheetButtons(
+    @StringRes save: Int,
+    saveEnabled: Boolean,
+    saveTag: String,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: (() -> Unit)?,
+    deleteTag: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (onDelete == null) Arrangement.End else Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (onDelete == null) {
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.collection_purchase_cancel)) }
+            Spacer(Modifier.width(UmamiSpacing.XSmall))
+        } else {
+            TextButton(
+                onClick = onDelete,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.testTag(deleteTag),
+            ) {
+                Text(stringResource(R.string.collection_stock_edit_delete))
+            }
+        }
+        PillButton(
+            text = stringResource(save),
+            onClick = onSave,
+            enabled = saveEnabled,
+            modifier = Modifier.testTag(saveTag),
         )
     }
 }
 
+@Suppress("LongParameterList") // the sheet's state and its three actions
 @Composable
 private fun PurchaseSheetContent(
     today: LocalDate,
     alertKey: String?,
     leaving: Boolean,
+    edited: StockEntry?,
     onSave: (TeaPurchase) -> Unit,
     onCancel: () -> Unit,
+    onDelete: () -> Unit,
 ) {
-    var gramsText by rememberSaveable { mutableStateOf("") }
-    var priceText by rememberSaveable { mutableStateOf("") }
-    var date by rememberSaveable { mutableStateOf(today) }
+    var gramsText by rememberSaveable { mutableStateOf(edited?.let { editableGrams(it.deltaGrams) }.orEmpty()) }
+    var priceText by rememberSaveable { mutableStateOf(edited?.priceCents?.let(GermanFormat::editableEuros).orEmpty()) }
+    var date by rememberSaveable { mutableStateOf(edited?.day ?: today) }
     val form = PurchaseForm(gramsText, priceText, date)
     val purchase = form.purchase(today)
     Column(
@@ -115,7 +190,9 @@ private fun PurchaseSheetContent(
             .navigationBarsPadding(),
     ) {
         Text(
-            text = stringResource(R.string.collection_purchase_title),
+            text = stringResource(
+                if (edited == null) R.string.collection_purchase_title else R.string.collection_purchase_edit_title,
+            ),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -150,21 +227,26 @@ private fun PurchaseSheetContent(
             onDateChange = { date = it },
         )
         Spacer(Modifier.height(UmamiSpacing.Small))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(onClick = onCancel) { Text(stringResource(R.string.collection_purchase_cancel)) }
-            Spacer(Modifier.width(UmamiSpacing.XSmall))
-            PillButton(
-                text = stringResource(R.string.collection_purchase_save),
-                onClick = { purchase?.let(onSave) },
-                enabled = purchase != null && !leaving,
-                modifier = Modifier.testTag(PURCHASE_SHEET_SAVE_TAG),
-            )
-        }
+        StockSheetButtons(
+            save = if (edited == null) R.string.collection_purchase_save else R.string.collection_stock_edit_save,
+            saveEnabled = purchase != null && !leaving,
+            saveTag = PURCHASE_SHEET_SAVE_TAG,
+            onSave = { purchase?.let(onSave) },
+            onCancel = onCancel,
+            onDelete = onDelete.takeIf { edited != null },
+            deleteTag = PURCHASE_SHEET_DELETE_TAG,
+        )
     }
+}
+
+/**
+ * Grams for an editable field, to 0,1 g as the field reads them (INV-03): „50", „37,5" in German, „37.5" in English
+ * (GEN-13), with no thousands separators; [GermanNumber] reads either decimal mark. A stored sum's float noise
+ * (−7.300000000000004) opens as „7,3".
+ */
+internal fun editableGrams(grams: Double, language: AppLanguage = AppLanguage.current()): String {
+    val text = BigDecimal.valueOf(grams).setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+    return if (language == AppLanguage.ENGLISH) text else text.replace('.', ',')
 }
 
 /**

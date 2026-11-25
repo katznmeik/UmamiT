@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_title">Your tea journey</string>
+    <string name="stats_empty_title">No stats yet</string>
+    <string name="stats_empty_body">Brew your first tea and your tea journey grows here.</string>
+    <string name="stats_range_30">30 d</string>
+    <string name="stats_range_90">90 d</string>
+    <string name="stats_range_12m">12 mo</string>
+    <string name="stats_range_all">All</string>
+    <string name="stats_range_30_description">Period: 30 days</string>
+    <string name="stats_range_90_description">Period: 90 days</string>
+    <string name="stats_range_12m_description">Period: 12 months</string>
+    <string name="stats_range_all_description">Period: all time</string>
+    <string name="stats_tab_overview">Overview</string>
+    <string name="stats_tab_ratings">Ratings</string>
+    <string name="stats_tab_consumption">Consumption</string>
+    <string name="stats_section_empty">Nothing in this period</string>
+    <string name="stats_range_months">Months</string>
+    <string name="stats_range_months_description">Period: choose months</string>
+    <string name="stats_range_months_chosen_description">Period: %1$s to %2$s</string>
+    <string name="stats_range_span">%1$s–%2$s</string>
+    <string name="stats_range_span_years">%1$s&#160;%2$s–%3$s&#160;%4$s</string>
+    <string name="stats_months_sheet_title">Choose months</string>
+    <string name="stats_months_from">From</string>
+    <string name="stats_months_to">To</string>
+    <string name="stats_months_done">Done</string>
+    <string name="stats_months_earlier">%1$s: earlier month</string>
+    <string name="stats_months_later">%1$s: later month</string>
+    <string name="stats_section_folded_title">%1$s · %2$s</string>
+    <string name="stats_section_folded">collapsed</string>
+    <string name="stats_section_unfolded">expanded</string>
+    <string name="stats_section_unfold">Expand</string>
+    <string name="stats_section_fold">Collapse</string>
+    <string name="stats_ratings_ranking">Tea ranking</string>
+    <string name="stats_ratings_new">Newly discovered</string>
+    <string name="stats_ratings_show_all">Show all (%1$d)</string>
+    <string name="stats_ratings_rank_meta">%1$s ★ · %2$d×</string>
+    <string name="stats_ratings_unrated">not rated</string>
+    <string name="stats_ratings_history">Rating over time</string>
+    <string name="stats_ratings_best_recipe">Best recipe</string>
+    <string name="stats_ratings_none">Nothing rated in this period</string>
+    <string name="stats_ratings_average">Ø %1$s ★</string>
+    <string name="stats_ratings_recipe_item">%1$s %2$s ★</string>
+    <string name="stats_ratings_recipe_separator">" · "</string>
+    <string name="stats_ratings_recipe_unnamed">Recipe</string>
+    <string name="stats_ratings_switch_tea">Tea</string>
+    <string name="stats_ratings_switch_brewing">Brewing</string>
+    <string name="stats_ratings_switch_tea_description">Ranking by tea</string>
+    <string name="stats_ratings_switch_brewing_description">Ranking by brewing</string>
+    <string name="stats_ratings_none_of_kind">No rating of this kind in the period</string>
+    <string name="stats_ratings_best_recipe_by">by brewing</string>
+    <string name="stats_chart_legend_tea">Tea</string>
+    <string name="stats_chart_legend_brewing">Brewing</string>
+    <string name="stats_chart_rating_tea">Tea %1$s</string>
+    <string name="stats_chart_rating_brewing">Brewing %1$s</string>
+    <string name="stats_chart_tooltip_tea">Tea %1$s ★</string>
+    <string name="stats_chart_tooltip_brewing">Brewing %1$s ★</string>
+    <plurals name="stats_overview_sessions_label">
+        <item quantity="one">Session</item>
+        <item quantity="other">Sessions</item>
+    </plurals>
+    <string name="stats_overview_volume_label">Tea</string>
+    <string name="stats_overview_volume_unit_liter">Liters</string>
+    <plurals name="stats_overview_teas_label">
+        <item quantity="one">Tea</item>
+        <item quantity="other">Teas</item>
+    </plurals>
+    <string name="stats_overview_teas_added">%1$s · +%2$d in the period</string>
+    <string name="stats_overview_section_sessions">Sessions</string>
+    <string name="stats_overview_sessions_per_week">Sessions per week</string>
+    <string name="stats_overview_sessions_per_month">Sessions per month</string>
+    <string name="stats_period_week">Wk %1$d</string>
+    <plurals name="stats_overview_days">
+        <item quantity="one">%1$s day</item>
+        <item quantity="other">%1$s days</item>
+    </plurals>
+    <string name="stats_overview_section_streak">Streak</string>
+    <string name="stats_overview_streak">%1$s in a row · longest %2$s · since the start</string>
+    <string name="stats_overview_streak_none">No streak right now</string>
+    <string name="stats_overview_streak_none_longest">No streak right now · longest %1$s</string>
+    <string name="stats_overview_tees">Teas</string>
+    <string name="stats_overview_section_most_brewed">Most brewed</string>
+    <string name="stats_overview_times">%1$d×</string>
+    <string name="stats_open_tea">Open tea</string>
+    <string name="stats_overview_sorten">Varieties</string>
+    <string name="stats_overview_other">Other</string>
+    <string name="stats_overview_section_habits">Habits</string>
+    <string name="stats_overview_day_part">Time of day</string>
+    <string name="stats_overview_weekday">Day of the week</string>
+    <string name="stats_overview_morning">Morning</string>
+    <string name="stats_overview_noon">Noon</string>
+    <string name="stats_overview_afternoon">Afternoon</string>
+    <string name="stats_overview_evening">Evening</string>
+    <string-array name="stats_overview_weekdays_short">
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+        <item>Sun</item>
+    </string-array>
+    <string name="stats_consumption_section_grams">Grams</string>
+    <string name="stats_consumption_section_volume">Tea</string>
+    <string name="stats_consumption_section_money">Spending</string>
+    <string name="stats_consumption_section_drunk">Drunk</string>
+    <string name="stats_consumption_drunk_per_week">Drunk per week</string>
+    <string name="stats_consumption_drunk_per_month">Drunk per month</string>
+    <string name="stats_consumption_no_priced_sessions">No sessions with a price</string>
+    <plurals name="stats_consumption_priced_sessions">
+        <item quantity="one">from %s session with a price</item>
+        <item quantity="other">from %s sessions with a price</item>
+    </plurals>
+    <string name="stats_consumption_cost_per_liter">Avg. %1$s € per liter</string>
+    <string name="stats_consumption_section_running_out">Running out</string>
+    <string name="stats_consumption_in_range">in the period</string>
+    <string name="stats_consumption_grams_per_week">Grams per week</string>
+    <string name="stats_consumption_grams_per_month">Grams per month</string>
+    <string name="stats_consumption_volume_per_week">Tea per week</string>
+    <string name="stats_consumption_volume_per_month">Tea per month</string>
+    <string name="stats_consumption_money_per_week">Spending per week</string>
+    <string name="stats_consumption_money_per_month">Spending per month</string>
+    <string name="stats_consumption_no_purchases">No purchases with a price</string>
+    <string name="stats_consumption_empty">empty</string>
+    <string name="stats_consumption_low">%1$s g · low</string>
+    <plurals name="stats_chart_sessions">
+        <item quantity="one">%1$s session</item>
+        <item quantity="other">%1$s sessions</item>
+    </plurals>
+    <string name="stats_chart_grams">%1$s g</string>
+    <string name="stats_chart_euros">%1$s €</string>
+    <string name="stats_chart_percent">%1$d %%</string>
+    <string name="stats_chart_stars_axis">%1$d ★</string>
+    <string name="stats_chart_stars_value">%1$s ★</string>
+    <string name="stats_chart_no_rating">no rating</string>
+    <string name="stats_chart_no_data">No data.</string>
+</resources>

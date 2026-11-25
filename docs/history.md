@@ -11,6 +11,80 @@
 
 ## Releases and plans
 
+### v0.10.0: rc session #362, rc.1 published (2026-11-24/25)
+
+- **Setup.** Orchestrator on Opus `medium`. The session was assigned `claude/eager-albattani-6m7yn8` and worked on `claude/inspiring-ritchie-8hfw00` as asked. No PO answers had arrived on PR #364.
+- **Fix: GEN-13 AC1, texts without an activity.**
+  - T3 (Opus `medium`): `core:data` `AppLanguageContext` for the catalog, low-stock and backup notifications and their channels, and `stockGramsText(grams, language)`.
+  - T4 (Opus `high`): the timer channel names.
+  - New tests set the process in one language and the app in the other; they were red before the fix.
+- **Jank calibration (D-117).** The eight turn lines were read from three API 36 runs (`b40aef15`, `16a7eab7`, `abf629ce`).
+  - Only *timer → landscape Journal* never exceeded the limit, so it gates now. `TransitionJankTest.rotation()` applies the gate.
+  - It passed at 1.7× on its first gated run (`bd91d48c`).
+  - The other seven stay report-only: 0 frames, NOREF, always over, or flipping around the limit.
+- **Reviews.**
+  - The T3 milestone review: no blocker, three should-fix, plus the duplicate GEN-10.
+  - The T4 timer review: no blocker, no rule-8 risk. Its named question had these numbers: 6 `LocaleManager` lookups per alert post (14 when the service starts at the alert); the `close()` cause is test tooling.
+  - `/review-animations` is user-invoke only. The PO chose to run it and invoked it without a scope, so it has not run yet.
+- **Fix rounds.**
+  - T3 (`1523f2ef`): the stock edit sheets on float noise, the English decimal mark, the confirm word from the hint's resources, one language snapshot per `core:data` text, the full format-specifier check.
+  - T4 (`23ea46e8`): one language source and one lookup per notification (the timer's copy removed); the FSI check off the alert's main-thread path; `BuildConfig.VERSION_CODE`; two English no-break spaces; the `close()` comments.
+  - T3 (`961f1a64`, `99afbbdc`): the app language renumbered to **GEN-13**, and 21 English no-break spaces.
+- **CI.**
+  - Green on `bd91d48c`, `1523f2ef`, `b6f093fb` and `5978b729`.
+  - On `00c3327e`, API 35 failed in every `TransitionJankTest` case behind a launcher ANR window (foreign). API 36 was green on the same code, and the next head was green.
+- **Accuracy.**
+  - All three variants on `b6f093fb` failed before step 1: `scripts/accuracy-run.sh` still named `AndroidJUnitRunner`, but since #358 the `core:timer` APK declares `GermanLocaleRunner`.
+  - A T3 fix (`5978b729`) reads the runner from the device; `stress-instrumented.sh` gets the same fix.
+  - Then all three PASS on `5978b729`.
+- **Release.**
+  - Full local gate PASS, and renders in `docs/design/review/v0.10.0/` (138, light and dark, de and en).
+  - `v0.10.0-rc.1` (100001) from `5978b729`: the first release run failed on a Maven Central HTTP 429 in its unit-test step, and the rerun passed.
+  - APK SHA-256 `7fea0c3b…f7b9`, certificate the same as v0.9.0's.
+
+### v0.10.0: build session 2 (2026-11-24)
+
+- Orchestrator on Opus `medium`; the session was assigned `claude/focused-cannon-n1p2q6` and worked on `claude/inspiring-ritchie-8hfw00` as asked. No PO answers to build session 1's questions had arrived (PR #364 had no comments).
+- **Step 3: #358** (T3, Opus `medium`): `AppLanguage` (`core:common`), locale-aware `GermanFormat` and the other display formatters (German byte for byte), *Sprache* (`AppLocales` around `LocaleManager`), `locales_config.xml`, `localeFilters` de + en, the German test pin (`config/test-locale` Robolectric config plugin; `GermanLocaleRunner` for device tests), `LanguageSwitchDeviceTest`. CI on `43f4e6c6`: Checks and Build green; both emulator jobs failed in every `TransitionJankTest` case that opens the Teeauswahl. A T3 diagnosis found Compose's process-wide animation scale stuck at the emulator's 0 (the setting was written with no window listening); `ComposeAnimationScale` (test only) makes it follow. The run also caught `RuntimeEnvironment.setQualifiers` bypassing the locale pin (`TeaPickerScreenshotTest`, `ShellScreenshotTest`).
+- **Step 4: #360** (T3, Opus `medium`): the CSV follows the app language (English `,`, decimal point, ISO dates; English words in Kotlin, `csv_*` not translatable). **#359 run 1** (T2, Sonnet `medium`): `values-en` for app and eleven non-timer modules, the AC2 vocabulary `translatable="false"`, `TranslationCompletenessTest`, the typed words REPLACE / DELETE, English goldens for six screens. Combined check green; **CI green on all five jobs on `b40aef15`**.
+- **Step 5: #359 run 2** (T3, Opus `medium`): `values-en` for `feature:brew`, `core:timer`, `core:backup` (resources only on the timer path), the English share text (the recipe file unchanged, tested), the completeness check over every module, English goldens for the setup, SCR-05 and SCR-07. Pushed alone after the combined check and the 04 §12 tests (`16a7eab7`). **#361** (T2, Sonnet `medium`): the six-page tour (`TourScreen.kt`), first start welcome → tour → reliability, *Einstellungen* › *Hilfe* › *Einführung*; four settings goldens re-recorded for the new section. CI on `16a7eab7` (run 2 alone): Checks and Build green, both emulator jobs red: German device-test assertions met English (`RecipeShareDeviceTest`, `ProcessDeathTest`, `TimerNotificationsDeviceTest`). A T4 fix (Opus `high`, escalated from #358's T3) found that Android 15/16 drops a process's per-app language when its last activity goes; `AppLanguageContext` makes the timer notifications read the app language from `LocaleManager`, and `GermanLocaleRunner` re-pins German before every test and waits. Combined check and 04 §12 tests green on the merged head; **CI green on all five jobs on `abf629ce`**. The same cause leaves the low-stock reminder, worker-posted catalog notifications and the channel names in the phone's language: an AC1 defect for #362.
+- Not changed: umamit.db v9, `checkManifestPermissions`, the German goldens (except Settings for *Sprache* and *Hilfe*).
+
+### v0.10.0: build session 1 (2026-11-24)
+
+- Orchestrator on Opus `medium`; the session was assigned `claude/kind-brown-eyjcmo` and worked on `claude/inspiring-ritchie-8hfw00` as asked. Draft milestone PR [#364](https://github.com/katznmeik/UmamiT/pull/364) opened (closes #353–#363).
+- **Step 1:**
+  - **#354** (T3, Opus `medium`): `StockRepository.updatePurchase` / `updateCorrection`; edit or delete of a purchase and the session cost recompute in one Room transaction (`InventoryDao.editEvent`, `deleteAndRecost`); SCR-29 rows open „Kauf bearbeiten" / „Korrektur bearbeiten". `StockEditTest` (15 cases). New goldens only. No migration.
+  - **#355** (T3, Opus `medium`, no app code): `docs/plans/v0.10.0-fsi-research.md`. The system package installer sets `USE_FULL_SCREEN_INTENT` to DENIED on every sideloaded install, updates included; from Android 15 that DENIED overrides the user's choice. Claude checked the installer lines on AOSP `main` and `android15-release`. Android 17 / One UI 9 is unverified. Probe steps use the rcs; options A–D go to the PO.
+  - CI on `2d3d9f76`: green on all five jobs.
+- **Step 2:**
+  - **#357** (T4, Opus `high`): design note first, recorded as the D-136 build note „Portrait timer" (`59aecb41`). The first draft left four once-per-path re-creations, so Claude sent it back. The chosen variant lets `MainActivity` handle `orientation|screenLayout|screenSize|smallestScreenSize` itself and asks for portrait while a timer screen is on top, so no path re-creates. Tests: `TimerScreenOnTopTest` (JVM); rotate cases in `TransitionJankTest` and `TimerAlertOverLockScreenTest` (CI only); the new jank lines are report-only.
+  - **#356** (T2, Sonnet `medium`): the SCR-34 sheet (`FsiPrompt.kt`), `fsiPromptedVersionCode` in `core:datastore`, one device-bound backup key, `FsiPromptRepository`.
+  - Merge fix: one `isTimerScreen()`. The combination broke detekt `LongMethod` in `MainActivity.onCreate`; the T4 implementer extracted `followLockScreenFlags` without changing behaviour.
+  - `feature/brew`, `core/timer`, `core/timer-engine` and the schemas are unchanged since `f663318b`.
+  - CI on `97ad2b9b`: Checks and Build green; both emulator jobs failed in #357's four new cases only. Verdicts (T4 implementer): the two alert cases' `ActivityScenario.close()` after an alert never reached DESTROYED (test artefact, close dropped, `tearDown` finishes); `timerFromLandscapeJournal` on API 36 looked for the bar's text, which `ActiveBrewBar` clears (test bug); `rotateWithTimerOnTop` looked for *Schnelltimer* below the fold in the landscape rail (test artefact, not proven). `timerFromLandscapeJournal`, Journal stayed at rotation 0 after back from the timer: the diagnostics added in `f238a673` showed `requested=-1` (released) and `user_rotation=0`. With rotation locked, WindowManager writes the forced portrait into `user_rotation`, an artefact of the rotation stand-in; the test re-applies „held sideways" (`4379b120`). All fixes were in the tests. **CI green on all five jobs on `4379b120`.**
+
+### v0.10.0: specify session (2026-11-24)
+
+- The PO chose a **feedback round** on v0.9.0 (not the D-112 ideas, quick access or M5) and gave five points: edit everything on the tea detail (purchases), the Vollbild-Benachrichtigung reset by every update, a glitchy timer when turning the locked phone, English, a tutorial. Another feedback round follows.
+- Grilled in two rounds of four options: **D-136** Q1–Q9 (every stock event editable, past costs recomputed; research + a reminder sheet; timer screens portrait; English via the per-app language, tea vocabulary stays German; a swipe-through tour; one release v0.10.0; Claude drafts copy, the PO approves). Items 10–16 are Claude's defaults (timer-code release, the recompute rule, SCR-34, portrait mechanism, locale, tour pages).
+- Specs: 02, 03 (new SCR-33, SCR-34), 05 §6, 07, 09 §2/§4, 10, 11, CLAUDE.md rule 4. Spec issue #353, tickets #354–#363 (`needs-triage`), plan `docs/plans/v0.10.0.md`. **The PO approved all of it the same day** („Approve all"); tickets relabelled `ready-for-agent`.
+- The session was assigned `claude/elegant-galileo-46r9pb` and worked on `claude/inspiring-ritchie-8hfw00` as asked.
+
+### v0.9.0: released (2026-11-20)
+
+- **PO approval (2026-11-20, in session):** „All approved" for the rc.2 items that Claude had posted on PR #345 (comments 7036535012 and 7036569672). Both ways of receiving a recipe file worked on rc.2: (a) tapping `<Tee>.umamit-rezept.json` in My Files and (b) sharing it from My Files or a messenger (asked as options). This is recorded in D-134's and D-130's build notes. Everything else on 09 §4 „v0.9.0" and the design review had been approved on rc.1.
+- **Version:** 09 §4 ticked, What's new folded into the main bullets (New, Changed, Fixed), `umamit.version=0.9.0` (90099) in `c7750b45`. CI run 44729897307 green on all five jobs on the first attempt.
+- **Merge:** PR #345 merged into `main` with a merge commit (`f663318b`). CI run 44733973161 went green on attempt 2: the first „Checks" failed at configuration when Maven Central did not serve `kotlin-stdlib:2.4.10`, a transient resolution failure (the other jobs resolved it).
+- **No accuracy runs and no T4 timer review:** the timer diff against `aed2b877` stayed empty (D-130 Q16).
+- **Release:** run 44742421717 with `RELEASE_TOKEN` (D-118) passed on the first attempt.
+  - [`v0.9.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.9.0) is built from `main` `f663318b`, not a pre-release, with the tag on the merge commit and the What's new on the page (D-132).
+  - versionCode 90099, APK SHA-256 `6dd9f74f…4f4b`, the release digest of the downloaded APK.
+  - `scripts/verify-release-apk.sh` on that APK: the signature is valid, the certificate `a500e2c6…2f67` matches `signing/release-cert-sha256.txt`, `com.umamit.app` 0.9.0 / 90099, not debuggable. The APK came through the REST assets API, because `gh release download` uses GraphQL, which is blocked here.
+- **Issues:** the merge closed #333's tickets (#330, #334–#343, #346, #349, #350) and #351, #352; #344 was closed by hand.
+- **Branch:** `claude/inspiring-ritchie-8hfw00` was restarted from `main` (fast-forward). The session was assigned `claude/exciting-franklin-5bibtm` and did not use it.
+- **Final session (Opus `medium` orchestrator, no subagents):** mostly waiting on CI and the release run.
+
 ### v0.9.0: rc.2 round after the PO's check of rc.1 (2026-11-20)
 
 - **The PO's check of `v0.9.0-rc.1`:** everything approved except receiving a recipe file: on One UI 9, neither (a) tapping a `.umamit-rezept` in My Files nor (b) sharing it from My Files or a messenger offered UmamiT; (c) *Rezept importieren* worked. After *Alle Daten löschen* the full-screen alarm and Live notifications stayed allowed, while exact alarms and the battery exemption were off. The PO also did not want the two seed teas that came back after the wipe.
@@ -814,6 +888,10 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-25 | **v0.10.0 rc session (#362):** GEN-13 AC1 fix (texts without an activity in the app language), jank calibration (*timer → landscape Journal* gates), T3 and T4 reviews with two fix rounds, the app language renumbered GEN-13, the accuracy harness follows the test runner; gate, CI and all three accuracy variants PASS on `5978b729`; `v0.10.0-rc.1` (100001) published. Next: the PO's check, then #363. |
+| 2026-11-24 | **v0.10.0 build session 2:** steps 3–5 on PR #364: #358 (app language, formatting), #360 (CSV), #359 runs 1 and 2 (English strings), #361 (tour); a test-only emulator fix for #358 (Compose's animation scale). CI green on `b40aef15` and `abf629ce`; fixes for #358 (Compose's animation scale in the jank test; the per-app language without an activity, T4). |
+| 2026-11-24 | **v0.10.0 build session 1:** draft PR #364; steps 1–2 of the plan: #354 (stock edits, cost recompute), #355 (Vollbild research), #357 (portrait timer, rotation in place; D-136 build note), #356 (Vollbild sheet SCR-34). Verified locally; CI green on step 1 (`2d3d9f76`); on step 2 the four new #357 emulator cases failed first (all test causes), green on `4379b120`. |
+| 2026-11-24 | **v0.10.0 specify session:** the PO chose a feedback round (five points); grilled Q1–Q9 (D-136); specs 02, 03, 05, 07, 09, 10, 11 and CLAUDE.md rule 4 updated; spec #353, tickets #354–#363, plan `docs/plans/v0.10.0.md`; approved by the PO the same day. |
 | 2026-11-18 | **v0.9.0 specify session:** grilled Q1–Q16 (D-130); specs 02, 03, 05, 06, 09, 11 and CLAUDE.md rule 7 updated; spec #333, tickets #334–#344 and #330, `docs/plans/v0.9.0.md`; waiting for the PO's approval. |
 | 2026-11-18 | **v0.8.0 session 6:** the PO approved the whole checklist on rc.2; `umamit.version=0.8.0` (80099); PR #328 merged (`60e07bbe`), CI and all three accuracy variants green on it; [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) released and verified. Next: the v0.9.0 specify session. |
 | 2026-11-17 | **v0.8.0 build session 3:** the PO confirmed the sage alarm (bar static sage too); #325 and #329 built; the T3, T4 and ad-hoc motion reviews with one fix round; the full gate, CI and all three accuracy variants green on `9c0e4225`; `v0.8.0-rc.1` (80001) published with the checklist and the design review. Next: session 4 (the PO's check, merge, final `v0.8.0`). |

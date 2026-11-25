@@ -24,7 +24,10 @@ class SearchQuery(text: String) {
         private val COMBINING_MARKS = Regex("\\p{Mn}+")
         private val WORD_BREAK = Regex("[\\s\\-–/·,()]+")
 
-        /** Lower case without diacritics: „Kōridashi" → „koridashi" (GEN-10). */
+        /**
+         * Lower case without diacritics: „Kōridashi" → „koridashi" (GEN-10). Search folding, not display: German in
+         * both app languages (D-136 item 15), like the German tea names it matches.
+         */
         fun normalized(text: String): String =
             COMBINING_MARKS.replace(Normalizer.normalize(text, Normalizer.Form.NFD), "").lowercase(Locale.GERMAN)
 

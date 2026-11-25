@@ -32,9 +32,9 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
+import com.umamit.core.common.AppLanguage
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.model.TastingLimits
-import java.util.Locale
 import kotlin.math.roundToInt
 
 /** Test tag of the row; the stars are [ratingStarTag] 1 … 5. */
@@ -85,7 +85,7 @@ object RatingCycle {
 
     /** „3,5", „4": the value as TalkBack says it. */
     fun valueText(rating: Double): String =
-        if (rating % 1.0 == 0.0) rating.toInt().toString() else "%.1f".format(Locale.GERMAN, rating)
+        if (rating % 1.0 == 0.0) rating.toInt().toString() else "%.1f".format(AppLanguage.current().locale, rating)
 }
 
 /**
