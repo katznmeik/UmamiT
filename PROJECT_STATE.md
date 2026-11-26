@@ -5,34 +5,25 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-25 (v0.10.0 final session #363: the PO approved rc.1, `/review-animations` approved, PR #364 merged, `v0.10.0` released). **Next:** a specify session for the next release, starting with the tour rework (the PO's choice).
+**Last updated:** 2026-11-26 (specify session for v0.11.0: the grilling round on the tour and the open v0.10.0 points, D-137 proposed, spec #365, tickets #366–#371, plan `docs/plans/v0.11.0.md`, draft PR #372). **Next:** the PO's approval of spec, tickets and plan; then the build session.
 
-## Next: specify the next release (tour rework first)
+## Next: the PO approves v0.11.0's spec, tickets and plan, then the build
 
-- **v0.10.0 is done:** PR #364 merged into `main` (`1933bc15`). [`v0.10.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.10.0) is a full release (versionCode 100099) from `main` `1933bc15`, APK SHA-256 `ed5d151b…142c`, certificate verified (the same as v0.9.0's). All three accuracy variants passed on `1933bc15`: runs 45633063252 (standard), 45633068880 (alongside) and 45633075837 (two-brews). #353–#363 were closed by the merge.
-- **The PO's feedback on the tour (Einführung), as input for the next release** (CLAUDE.md rule 1; recorded in D-136 „Final session", not a decision):
-  - it is too broad: it should be more detailed and describe more features. Today it covers only the obvious, not the harder ones, e.g. adding a new tea without the Katalog;
-  - each page looks quite empty, with little information.
-
-  The PO chose to ship v0.10.0 as approved and rework the tour in the next release, **starting with a grilling round** (questions as selectable options): which features, how many pages, what each page shows (more text, screenshots, steps), the images. Claude drafts no tour copy and picks no features before that round.
-- **`/review-animations` (2026-11-25, run by the PO): approved.** Two tour polish findings go into the tour rework (the PO's choice):
-  - the page dots change colour all at once halfway through a swipe (`TourScreen.kt` `TourDots`); blend by `currentPageOffsetFraction`;
-  - the pill's width snaps when „Weiter" becomes „Fertig"; a fixed minimum width or a short crossfade.
-- **Still open for the PO from v0.10.0** (not answered by the approval; take them into the grilling round):
-  - **the Vollbild probe result** (09 §4 „v0.10.0" item 2): whether the update to rc.1 turned *Vollbild-Benachrichtigungen* off, and what #355's probe steps showed. The item was approved but no data was given; D-136's build notes need it for #355's options B–D;
-  - #355's options B–D for the Vollbild grant (only A, the SCR-34 sheet, is built);
-  - *Überspringen* on the tour's last page (built on all six pages);
-  - English number input: „1,250" is refused and „1.250" reads as 1250 g;
-  - editing an old purchase reprices every past session (INV-08, as specified);
-  - the Vollbild sheet shows on any open in a version while the permission is off and unanswered, not only the first (D-136 item 13);
-  - whether the Galaxy is a foldable; the English wording; *Sprache* closing at once; [Français, English] under *System*.
-- **Next session:** a specify session (Opus `medium`): the grilling round on the tour and the open points above → spec, decision D-137, tickets and plan `docs/plans/v0.11.0.md` (the version is the PO's choice) → the PO's approval. No code before the go.
+- **v0.11.0 specified (2026-11-26, D-137 *Proposed*):** the PO answered Q1–Q16 as options; items 17–30 and all copy (03 SCR-33, SCR-35, SCR-36) are Claude's draft. Spec #365, tickets #366–#371 (no labels yet; the build session sets `ready-for-agent` after the approval), plan `docs/plans/v0.11.0.md`, draft PR #372.
+  - **The tour (SCR-33):** six pages, each with its illustration band, a mock-up with the spot marked, four to six lines and „Mehr dazu" links. The dots blend with the swipe, the button keeps one width, and *Überspringen* is hidden on the last page.
+  - **Anleitungen (ONB-08, SCR-35/SCR-36):** eight topics with numbered steps and 22 mock-ups (invented demo data). They are reached from *Einstellungen* › *Hilfe* › *Anleitungen*, from „Mehr dazu", and from ⋮ *Hilfe* on *Meine Tees*, *Katalog*, Tee, *Rezept bearbeiten*, *Journal*, Session and *Daten & Sicherung*.
+  - **What stays the same:** no timer code, no data change, no new permission.
+- **The v0.10.0 open points (D-137 Q1–Q2, Q13–Q16):**
+  - The Vollbild grant is still lost on updates, but the SCR-34 sheet appears and *Erlauben* works. The PO wants no hassle beyond an easy fix, and there is none, so the outcome is option A. #355 stays closed.
+  - The English number input, the repricing (INV-08), the sheet's repeat and the four small items (English wording, *Sprache* closing at once, foldable, [Français, English]) stay as built. The PO flagged none; whether the Galaxy is a foldable stays unreported.
+- **Waiting:** the PO's approval of spec #365 (including the copy), tickets #366–#371 and the plan. No code before it (CLAUDE.md rule 1). After the approval the build session sets D-137 to *Accepted (PO)* for what the PO approved.
+- **Next session:** the build session (Opus `medium` orchestrator), started by the PO with `/implement-spec #365`.
 - **Open (not blocking):**
   - **The launcher ANR on the API 35 emulator:** on `main` `1933bc15` every `TransitionJankTest` case failed twice behind „Application Not Responding: com.google.android.apps.nexuslauncher" (the same tree passed on the PR head); the third run was green. The `ForeignAnrDialog` handler logged nothing for it (0 lines in job 139316775975), so it does not catch the launcher's ANR on API 35: a harness gap for a later ticket.
   - `ReceiveRecipeDeviceTest` no longer proves grant enforcement; the phone check covered it on v0.9.0 rc.2.
 - **Release dispatch hiccup (2026-11-25):** `workflow_dispatch` of `release.yml` answered HTTP 500/502 four times with no run created; the fifth try queued it. Check the runs list before retrying, so nothing is dispatched twice.
 - **Still true:** umamit.db v9 (no migration in v0.10.0); the network has three uses (D-135); `checkManifestPermissions` passes unchanged.
-- **Branch:** `claude/inspiring-ritchie-8hfw00`, restarted from `main` `1933bc15` after the v0.10.0 merge; no open PR. The v0.10.0 sessions were assigned other branches (the final session `claude/intelligent-knuth-3fje0d`) and did not use them. A new session with another assigned branch works here directly.
+- **Branch:** `claude/inspiring-ritchie-8hfw00`, restarted from `main` `1933bc15` after the v0.10.0 merge; draft PR #372 (v0.11.0). The v0.10.0 sessions were assigned other branches (the final session `claude/intelligent-knuth-3fje0d`) and did not use them. A new session with another assigned branch works here directly.
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
   - **Worktrees:** never remove an agent worktree while a Gradle build runs: `spotlessCheck` scans `.claude/worktrees/` and fails on a vanished path (2026-11-17). Brief each implementer to `git reset --hard <branch head>` first (a local, unpushed head works too). Remove worktrees with `git worktree remove --force --force`, then `rm -rf`, `git worktree prune`, and delete the `worktree-agent-*` branch.
@@ -72,13 +63,13 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.10.0** (stock edits, Vollbild sheet, portrait timer, English, tour; D-136) **released 2026-11-25** (100099, from `main` `1933bc15`); the next release is to be specified, starting with the tour rework (the PO, 2026-11-25); M5 / 1.0 postponed until the PO's go |
+| Current milestone | **v0.11.0** (the tour reworked, D-137) specified 2026-11-26, waiting for the PO's approval; before it **v0.10.0** (stock edits, Vollbild sheet, portrait timer, English, tour; D-136) **released 2026-11-25** (100099, from `main` `1933bc15`); the next release is to be specified, starting with the tour rework (the PO, 2026-11-25); M5 / 1.0 postponed until the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00`, restarted from `main` `1933bc15` after the v0.10.0 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none |
+| Open PR | #372 (draft, v0.11.0) |
 | Latest APK | [`v0.10.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.10.0) (full release, versionCode 100099, from `main` `1933bc15`, APK SHA-256 `ed5d151b…142c`, certificate verified); earlier: rc [`v0.10.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.10.0-rc.1) (pre-release, versionCode 100001, from `5978b729`, APK SHA-256 `7fea0c3b…f7b9`, certificate verified); before it [`v0.9.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.9.0) (full release, versionCode 90099, from `main` `f663318b`, APK SHA-256 `6dd9f74f…4f4b`, certificate verified); earlier: rc [`v0.9.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.9.0-rc.2) (pre-release, versionCode 90002, from `f243d7fd`, APK SHA-256 `83935b9a…c31b`, certificate verified); rc [`v0.9.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.9.0-rc.1) (pre-release, versionCode 90001, from `8cfa6a91`, APK SHA-256 `dd961af8…e852`, certificate verified); [`v0.8.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0) (full release, versionCode 80099, from `main` `60e07bbe`, APK SHA-256 `b67a6901…2016`, certificate verified); earlier: rc [`v0.8.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0-rc.2) (pre-release, 80002, from `95da6ad5`, APK SHA-256 `b0396be0…7f79`, certificate verified); rc [`v0.8.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.8.0-rc.1) (pre-release, 80001, from `9c0e4225`, certificate verified); [`v0.7.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2) (full release, versionCode 70299, from `main` `c5f19e8e`, APK SHA-256 `efc2cca6…20fa`, certificate verified); earlier: rc [`v0.7.2-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.2-rc.1) (pre-release, 70201, from `a8f78d4f`, certificate verified); [`v0.7.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1) (full release, versionCode 70199, from `main` `6192bff5`, certificate verified); rc [`v0.7.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.2) (pre-release, 70102, from `e57861e0`); rc [`v0.7.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.1-rc.1) (pre-release, 70101, from `3fe102c0`); [`v0.7.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0) (full release, versionCode 70099, from `main` `f3582466`, certificate verified); rc [`v0.7.0-rc.3`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.3) (pre-release, 70003, from `73907f6d`); rc [`v0.7.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.2) (pre-release, 70002, from `ccc57917`); rc [`v0.7.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.7.0-rc.1) (pre-release, 70001, from `e37d4631`); [`v0.6.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1) (full release, versionCode 60199, from `main` `22b84788`, certificate verified); rc [`v0.6.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.1-rc.1) (pre-release, 60101, from `62657833`); [`v0.6.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.6.0) (60099); [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) (50199); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (50099) |
-| Decision numbers | Up to **D-136** used; the next free is **D-137** |
+| Decision numbers | Up to **D-137** used (proposed); the next free is **D-138** |
 
 ## Working agreements in effect
 
@@ -94,8 +85,8 @@
 
 ## Waiting on the PO
 
-1. **The next release:** the grilling round on the tour rework and the open v0.10.0 points (in the next specify session).
-2. **v0.10.0 questions:** the open points in „Next" (for the grilling round), including the Vollbild probe result.
+1. **v0.11.0:** approve spec #365 (including the copy in 03 SCR-33, SCR-35, SCR-36), tickets #366–#371 and `docs/plans/v0.11.0.md`, or ask for changes.
+2. **Then:** type `/implement-spec #365` in the build session (user-invoke-only skill).
 3. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 4. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 5. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
