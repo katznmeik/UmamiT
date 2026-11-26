@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-26 (v0.11.0 build session: #366–#369 built, verified and pushed to PR #372; CI on the head is the gate, see below). **Next:** the rc session (#370).
+**Last updated:** 2026-11-26 (v0.11.0 build session: #366–#369 built, verified and pushed to PR #372; CI green on all five jobs on the code head `17e9c75d`). **Next:** the rc session (#370).
 
 ## Next: the rc session for v0.11.0 (#370)
 
@@ -13,13 +13,14 @@
   - `b0f6ab7e` #366 the mock-up kit and the tour's six mock-ups (T3); CI green on all five jobs.
   - `be015ef9` #367 the Anleitungen SCR-35/SCR-36, eight topics, 16 more mock-ups, `HowToNamesTest` (T2); CI green (API 35 needed one rerun: Maven could not resolve `junit:4.13.2`).
   - `566500e2` #368 the tour rework (T2): „Mehr dazu" handled inside `feature:onboarding`, so `app` is unchanged by it.
-  - `17e9c75d` #369 the entry points (T2): `app` `HowToNav.kt`, ⋮ *Hilfe* on seven screens, *Einstellungen* › *Hilfe* › *Anleitungen*.
+  - `17e9c75d` #369 the entry points (T2): `app` `HowToNav.kt`, ⋮ *Hilfe* on seven screens, *Einstellungen* › *Hilfe* › *Anleitungen*. CI green on all five jobs (run 45802219586).
   - `git diff 1933bc15` is empty for `feature/brew`, `core/timer`, `core/timer-engine`, `core/database`, `core/backup` and every manifest; no timer path change, so no T4 review.
 - **For the PO (asked in the build session's last message, not decided; D-137 build notes):**
   - the mock-ups' legibility: labels are small (a 16 sp label shows at about 6 dp in the tour frame); bigger needs a bigger frame (item 19);
   - „Mehr dazu" with the Anleitung's full title (as built) or SCR-33's short names;
-  - the „Tipp" / „Tip" label above an Anleitung's tip (new copy).
-- **For the milestone review in #370 (seen in the goldens, not fixed):** in M-CATALOG-TEA the step badge covers the price line; in M-CATALOG-MENU and M-MYTEAS-MENU the drawn menu clips the segment chip („Mein…").
+  - the „Tipp" / „Tip" label above an Anleitung's tip (new copy);
+  - two placements the implementer chose: a session page still in progress has no ⋮ and so no *Hilfe*; the tea and recipe screens opened from the setup (⋮ *Tee ansehen*) do get *Hilfe*.
+- **For the milestone review in #370 (seen in the goldens, not fixed):** in M-CATALOG-TEA the step badge covers the price line; in M-CATALOG-MENU and M-MYTEAS-MENU the drawn menu clips the segment chip („Mein…"), and M-CATALOG-MENU should show the *Katalog* segment selected (check).
 - **The rc session (#370):** the T3 milestone review; `/review-animations` (the PO types it; scope: the SCR-33 tour's dots, button and „Mehr dazu" hand-over, SCR-35/SCR-36, the ⋮ *Hilfe* menus); renders light and dark, de and en in `docs/design/review/v0.11.0/`; What's new `docs/whats-new/v0.11.0.md`; the full local gate on the rc commit; `v0.11.0-rc.1` (110001).
 - **Open (not blocking):**
   - **The launcher ANR on the API 35 emulator:** on `main` `1933bc15` every `TransitionJankTest` case failed twice behind „Application Not Responding: com.google.android.apps.nexuslauncher" (the same tree passed on the PR head); the third run was green. The `ForeignAnrDialog` handler logged nothing for it (0 lines in job 139316775975), so it does not catch the launcher's ANR on API 35: a harness gap for a later ticket.
@@ -39,6 +40,9 @@
   - **Release APK download:** `gh release download` fails here (it uses GraphQL, which is blocked); `gh api -H "Accept: application/octet-stream" repos/katznmeik/UmamiT/releases/assets/<id>` works (2026-11-20).
   - **Maven resolution hiccup:** a „Checks" job can fail at configuration with „Could not find org.jetbrains.kotlin:…" for an artifact that exists (Maven Central, 2026-11-20, on `main`); rerun the failed job once.
   - **Artifacts:** CI artifacts (full logcat) cannot be downloaded here (the blob host is blocked by the proxy); job logs work with `gh api …/actions/jobs/<id>/logs`.
+  - **CI status by API:** `gh api repos/katznmeik/UmamiT/actions/runs/<id>` and `…/runs/<id>/jobs` (GET) work for run and job status; a background `until` loop on them replaces polling by hand (2026-11-26).
+  - **Copy check:** the build session compared 03's copy with `strings.xml` by a scratchpad script (lost with the container): every table cell of SCR-33/SCR-35/SCR-36 by text, and each topic's Intro/steps/Tipp against `howto_<n>_intro`/`_step<k>`/`_tip` by key, quotes „…“ and no-break spaces normalised. Write it again if copy changes (2026-11-26).
+  - **Robolectric SDK 35 jar:** not fetched in the build session's container; the full local gate (`:core:timer` tests) needs it (`docs/plans/v0.4.0-resume.md` §3).
   - **Environment:** the mirror init script lives in the session scratchpad and `gw.sh` passes it with `--init-script`. It has to be written again in a new container: a `maven { name = 'gcsMirror' }` made first (`remove` + `addFirst`) in `pluginManagement`, `dependencyResolutionManagement` and every `buildscript` (`beforeSettings` and `settingsEvaluated`), URL rewrites only on project repositories. Written so on 2026-11-16 (sessions 9 and 10), it worked first time; in `beforeSettings` reach the settings' buildscript as `mirrorFirst(s.buildscript.repositories)` (a `s.buildscript { … }` closure fails, 2026-11-17). The three timer test tasks take ≈ 8½ min cold.
 
 - **Environment:** Maven Central answered HTTP 429 on 2026-11-11 and 2026-11-12; a local Gradle

@@ -11,6 +11,17 @@
 
 ## Releases and plans
 
+### v0.11.0: build session, #366–#369 (2026-11-26)
+
+- **Setup.** Orchestrator on Opus `medium`, started by the PO with `/implement-spec #365`. The session was assigned `claude/adoring-goldberg-x08zku` and worked on `claude/inspiring-ritchie-8hfw00` as asked. Tickets #366–#371 labelled `ready-for-agent`; the mirror init script rebuilt.
+- **Specify session (same day, before):** the PO's tour feedback grilled into D-137 Q1–Q16; spec #365, tickets #366–#371, plan `docs/plans/v0.11.0.md`, draft PR #372; the PO approved all („Approve all").
+- **Build** (D-137 build notes for each):
+  - `b0f6ab7e` #366 the mock-up kit and six tour mock-ups (T3).
+  - `be015ef9` #367 the Anleitungen, eight topics, 16 more mock-ups (T2); sent back once so German quotes close with “ as everywhere in the app.
+  - `566500e2` #368 the tour rework (T2); sent back once so the button fits all four labels, not only the current language's two.
+  - `17e9c75d` #369 the entry points (T2), in parallel with #368 in its own worktree; „Mehr dazu" stays inside `feature:onboarding`, so the two did not overlap.
+- **Verification:** per ticket the diff, the copy against 03 by script (every topic text key by key, de and en), goldens looked at, and the cross-module check on the merged head. CI green on all five jobs on `b0f6ab7e`, `be015ef9` (one API 35 rerun: Maven could not resolve `junit:4.13.2`) and `17e9c75d`. Protected modules and manifests unchanged against `1933bc15`.
+
 ### v0.10.0: released (2026-11-25)
 
 - **Setup.** The final session (#363) was assigned `claude/intelligent-knuth-3fje0d` and worked on `claude/inspiring-ritchie-8hfw00` as asked.
@@ -901,6 +912,8 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-26 | **v0.11.0 build session:** #366–#369 built (mock-up kit, eight Anleitungen, the tour rework, ⋮ *Hilfe* on seven screens), each verified and CI green on `17e9c75d`; D-137 build notes; three questions for the PO. Next: the rc session (#370). |
+| 2026-11-26 | **v0.11.0 specify session:** D-137 Q1–Q16, spec #365, tickets #366–#371, plan, draft PR #372; approved by the PO. |
 | 2026-11-25 | **v0.10.0 final session (#363):** the PO approved rc.1 and ran `/review-animations` (approved; two tour findings deferred); the tour feedback recorded for the next release; PR #364 merged (`1933bc15`), all three accuracy variants PASS, `v0.10.0` (100099) released and verified. Next: a specify session, tour rework first. |
 | 2026-11-25 | **v0.10.0 rc session (#362):** GEN-13 AC1 fix (texts without an activity in the app language), jank calibration (*timer → landscape Journal* gates), T3 and T4 reviews with two fix rounds, the app language renumbered GEN-13, the accuracy harness follows the test runner; gate, CI and all three accuracy variants PASS on `5978b729`; `v0.10.0-rc.1` (100001) published. Next: the PO's check, then #363. |
 | 2026-11-24 | **v0.10.0 build session 2:** steps 3–5 on PR #364: #358 (app language, formatting), #360 (CSV), #359 runs 1 and 2 (English strings), #361 (tour); a test-only emulator fix for #358 (Compose's animation scale). CI green on `b40aef15` and `abf629ce`; fixes for #358 (Compose's animation scale in the jank test; the per-app language without an activity, T4). |
