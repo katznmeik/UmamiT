@@ -11,6 +11,14 @@
 
 ## Releases and plans
 
+### v0.11.0: rc session, #370 (2026-11-26)
+
+- **Setup.** Orchestrator on Opus `medium`; assigned `claude/dreamy-shannon-qjyv00`, worked on `claude/inspiring-ritchie-8hfw00` as asked. Mirror init script, `gw.sh`/`gate.sh` and the Robolectric SDK 35 jar rebuilt; the container restarted once mid-session, with the scratchpad and `~/.m2` intact.
+- **PO answers** (as options): the four build questions (as built; mock-up size judged on the Galaxy), four review points, the collection menu below the segment row, and two `/review-animations` findings, all recorded in D-137.
+- **Fixes:** `bf4a0992` mock-up kit (T3), `2391a6ab` topic title and tour scroll (T2), `1e9153a1` tour fades (T2); each diff read, goldens looked at, the full local gate on `df439e23` and `1e9153a1`.
+- **CI:** `savedSheetInAndOut` (API 36) needed two reruns on `df439e23`; the reference-derived allowance dropped, the sheet did not change.
+- **Release:** `v0.11.0-rc.1` (110001) from `1e9153a1`, APK and certificate verified by download.
+
 ### v0.11.0: build session, #366–#369 (2026-11-26)
 
 - **Setup.** Orchestrator on Opus `medium`, started by the PO with `/implement-spec #365`. The session was assigned `claude/adoring-goldberg-x08zku` and worked on `claude/inspiring-ritchie-8hfw00` as asked. Tickets #366–#371 labelled `ready-for-agent`; the mirror init script rebuilt.
@@ -912,6 +920,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-26 | **v0.11.0 rc session:** T3 review and `/review-animations` findings fixed after the PO's answers (D-137), renders, What's new, full local gate; `v0.11.0-rc.1` (110001) from `1e9153a1`. Next: the PO's checklist, then the final session (#371). |
 | 2026-11-26 | **v0.11.0 build session:** #366–#369 built (mock-up kit, eight Anleitungen, the tour rework, ⋮ *Hilfe* on seven screens), each verified and CI green on `17e9c75d`; D-137 build notes; three questions for the PO. Next: the rc session (#370). |
 | 2026-11-26 | **v0.11.0 specify session:** D-137 Q1–Q16, spec #365, tickets #366–#371, plan, draft PR #372; approved by the PO. |
 | 2026-11-25 | **v0.10.0 final session (#363):** the PO approved rc.1 and ran `/review-animations` (approved; two tour findings deferred); the tour feedback recorded for the next release; PR #364 merged (`1933bc15`), all three accuracy variants PASS, `v0.10.0` (100099) released and verified. Next: a specify session, tour rework first. |
