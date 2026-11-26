@@ -64,6 +64,7 @@ import kotlin.math.roundToInt
 object SettingsTags {
     const val ABOUT = "SettingsAbout"
     const val TOUR = "SettingsTour"
+    const val HOWTOS = "SettingsHowTos"
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
     const val CATALOG_REFRESH = "SettingsCatalogRefresh"
@@ -153,6 +154,8 @@ class SettingsActions(
     val openDataBackup: () -> Unit = {},
     /** *Einführung* (SET-36): the tour, SCR-33. */
     val openTour: () -> Unit = {},
+    /** *Anleitungen* (SET-36): the list of the eight Anleitungen, SCR-35. */
+    val openHowTos: () -> Unit = {},
     /** *Jetzt aktualisieren* (SET-23). */
     val refreshCatalog: () -> Unit = {},
 )
@@ -171,6 +174,7 @@ fun SettingsRoute(
     onOpenTeaware: () -> Unit = {},
     onOpenDataBackup: () -> Unit = {},
     onOpenTour: () -> Unit = {},
+    onOpenHowTos: () -> Unit = {},
     scrollToTopRequest: Int = 0,
     viewModel: SettingsViewModel = hiltViewModel(),
     catalogViewModel: CatalogSettingsViewModel = hiltViewModel(),
@@ -238,6 +242,7 @@ fun SettingsRoute(
             openTeaware = onOpenTeaware,
             openDataBackup = onOpenDataBackup,
             openTour = onOpenTour,
+            openHowTos = onOpenHowTos,
             refreshCatalog = catalogViewModel::refreshNow,
         ),
         modifier = modifier,
@@ -354,6 +359,13 @@ fun SettingsScreen(
             onClick = actions.openTour,
             modifier = Modifier.testTag(SettingsTags.TOUR),
             value = stringResource(R.string.settings_tour_detail),
+            chevron = true,
+        )
+        SettingsRow(
+            title = stringResource(R.string.settings_howtos),
+            onClick = actions.openHowTos,
+            modifier = Modifier.testTag(SettingsTags.HOWTOS),
+            value = stringResource(R.string.settings_howtos_detail),
             chevron = true,
         )
         SectionHeader(title = stringResource(R.string.settings_section_about), modifier = Modifier.fillMaxWidth())

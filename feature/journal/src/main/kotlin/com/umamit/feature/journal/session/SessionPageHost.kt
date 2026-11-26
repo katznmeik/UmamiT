@@ -15,6 +15,7 @@ package com.umamit.feature.journal.session
  *   above the page; back returns.
  * @property alertKey the alert playing now, or null: the ⋮ menu and the delete question give way to another
  *   (rule 8).
+ * @property onOpenHelp ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitung *Journal und Geschmack*, above the page.
  */
 class SessionPageHost(
     val onBack: () -> Unit,
@@ -24,4 +25,5 @@ class SessionPageHost(
     val onEdit: (sessionId: String) -> Unit = {},
     val onOpenCatalog: (catalogKey: String) -> Unit = {},
     val alertKey: String? = null,
+    val onOpenHelp: () -> Unit = {},
 )

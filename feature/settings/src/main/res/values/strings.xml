@@ -203,6 +203,8 @@
     <string name="settings_section_help">Hilfe</string>
     <string name="settings_tour">Einführung</string>
     <string name="settings_tour_detail">Die wichtigsten Funktionen in sechs Seiten</string>
+    <string name="settings_howtos">Anleitungen</string>
+    <string name="settings_howtos_detail">Schritt für Schritt: acht Themen</string>
     <string name="settings_section_about">Über</string>
     <string name="settings_about">Über UmamiT</string>
     <string name="about_title">Über</string>

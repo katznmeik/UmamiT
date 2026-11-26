@@ -1,6 +1,7 @@
 package com.umamit.feature.collection.detail
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -46,6 +47,7 @@ class TeaDetailCatalogMenuTest {
     private val sessions = FakeSessions(collection, settings)
     private val archive = FakeTeaArchive(sessions)
     private val openedCatalog = mutableListOf<String>()
+    private var helpOpened = 0
 
     private fun show(inCatalog: Boolean = true) {
         runBlocking { TeaDetailFixture.seed(collection) }
@@ -60,6 +62,7 @@ class TeaDetailCatalogMenuTest {
                         onArchived = {},
                         onDeleted = {},
                         onOpenCatalog = { openedCatalog += it },
+                        onOpenHelp = { helpOpened++ },
                     ),
                     viewModel = viewModel {
                         TeaDetailViewModel(
@@ -99,6 +102,22 @@ class TeaDetailCatalogMenuTest {
 
         assertThat(openedCatalog).containsExactly(CATALOG_KEY)
         // The menu closed with the tap.
+        compose.onNodeWithText("Favorit").assertDoesNotExist()
+    }
+
+    /** ⋮ *Hilfe* (SCR-36 „Entry points"): the last item, below *Löschen*, for an archived tea too. */
+    @Test
+    fun `the menu ends with Hilfe, whose tap opens the Anleitung`() {
+        show()
+
+        openMenu()
+        val help = compose.onNodeWithTag(TEA_DETAIL_HELP_TAG)
+        help.assertIsDisplayed()
+        assertThat(help.getBoundsInRoot().top).isGreaterThan(compose.onNodeWithText("Löschen").getBoundsInRoot().top)
+        help.performClick()
+        compose.waitForIdle()
+
+        assertThat(helpOpened).isEqualTo(1)
         compose.onNodeWithText("Favorit").assertDoesNotExist()
     }
 

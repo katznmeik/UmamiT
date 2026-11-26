@@ -47,6 +47,7 @@ import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
+import com.umamit.feature.onboarding.howto.HowToTopic
 import com.umamit.feature.settings.backup.ImportedBackup
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -361,7 +362,9 @@ internal fun UmamitRoot(
                 onImportedBackupChange = { backupImport.imported = it },
             )
         }
-    CompositionLocalProvider(LocalPhotoViewer provides photoViewer) {
+    // The Anleitungen (SCR-35, SCR-36) above the shell or the timer, for every screen's ⋮ *Hilfe* (HowToNav.kt).
+    val howTo = rememberHowToOpener(navigateAbove)
+    CompositionLocalProvider(LocalPhotoViewer provides photoViewer, LocalHowTo provides howTo) {
         Box(modifier) {
             NavHost(
                 navController = navController,
@@ -409,6 +412,7 @@ internal fun UmamitRoot(
                 }
                 composable<OnboardingRoute> { onboardingScreen(finishSetup) }
                 composable<TourRoute> { settings.tour(dropUnlessResumed { navController.popBackStack() }) }
+                howToRoutes(navController, howTo)
                 composable<TimerRoute> { timerEntry ->
                     val route = timerEntry.toRoute<TimerRoute>()
                     LeavingTimerGuard(leaving, closeTimer) {
@@ -511,6 +515,7 @@ internal fun UmamitRoot(
                                 }
                             },
                             onArchived = { archivedTea = it },
+                            openHelp = howTo.topic(HowToTopic.StockAndCost),
                         ),
                     )
                 }
@@ -674,6 +679,7 @@ private fun NavGraphBuilder.setupEditorRoutes(
                 onClose = dropUnlessResumed { navController.popBackStack() },
                 onDone = { closeIfOnTop() },
                 alertKey = alert,
+                onOpenHelp = LocalHowTo.current.topic(HowToTopic.Recipes),
             ),
         )
     }
@@ -694,6 +700,7 @@ private fun setupTeaHost(
     openEditor: (Any) -> Unit,
     openCatalog: (String) -> Unit,
     onArchived: (ArchivedTea) -> Unit,
+    openHelp: () -> Unit,
 ): TeaDetailHost {
     val teaId = entry.toRoute<SetupTeaRoute>().teaId
     val onTop = { navController.isOnTop(entry) }
@@ -713,6 +720,7 @@ private fun setupTeaHost(
         onEditRecipe = { recipeId -> if (resumed()) openEditor(SetupRecipeEditorRoute(teaId, recipeId)) },
         onAddRecipe = { if (resumed()) openEditor(SetupRecipeEditorRoute(teaId)) },
         onOpenCatalog = { key -> if (resumed()) openCatalog(key) },
+        onOpenHelp = openHelp,
     )
 }
 

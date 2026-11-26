@@ -16,6 +16,7 @@ package com.umamit.feature.collection.detail
  *   JRN-09); null where the detail has none (above the setup), where the button is hidden.
  * @property onOpenCatalog ⋮ *Im Katalog ansehen* (D-114 Q10): the tea's catalog page (SCR-21) by its catalog key,
  *   above the detail; back returns.
+ * @property onOpenHelp ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitung *Vorrat und Kosten*, above the detail.
  */
 class TeaDetailHost(
     val onBack: () -> Unit,
@@ -29,4 +30,5 @@ class TeaDetailHost(
     val onOpenSession: ((sessionId: String) -> Unit)? = null,
     val onShowAllSessions: (() -> Unit)? = null,
     val onOpenCatalog: (catalogKey: String) -> Unit = {},
+    val onOpenHelp: () -> Unit = {},
 )

@@ -65,6 +65,7 @@ fun SessionPageRoute(
             delete = viewModel::delete,
             edit = { currentHost.onEdit(it) },
             openCatalog = { currentHost.onOpenCatalog(it) },
+            openHelp = { currentHost.onOpenHelp() },
             setRating = viewModel::setRating,
             setBrewingRating = viewModel::setBrewingRating,
             setTaste = viewModel.infusionTasting::setTaste,

@@ -54,6 +54,7 @@ import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.GermanFormat
+import com.umamit.core.ui.HelpOverflowAction
 import com.umamit.core.ui.alertCovers
 import com.umamit.feature.settings.R
 import com.umamit.feature.settings.SwitchRow
@@ -90,6 +91,8 @@ class DataBackupActions(
     val confirmWipe: () -> Unit = {},
     val dismissDialog: () -> Unit = {},
     val messageShown: () -> Unit = {},
+    /** ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitung *Daten und Sicherung*. */
+    val openHelp: () -> Unit = {},
 )
 
 /**
@@ -103,6 +106,7 @@ fun DataBackupRoute(
     onImportFinish: (ImportedBackup) -> Unit,
     alertKey: String?,
     modifier: Modifier = Modifier,
+    onOpenHelp: () -> Unit = {},
     viewModel: DataBackupViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -169,7 +173,9 @@ fun DataBackupRoute(
             confirmWipe = viewModel::confirmWipe,
             dismissDialog = viewModel::dismissDialog,
             messageShown = viewModel::messageShown,
+            openHelp = onOpenHelp,
         ),
+        alertKey = alertKey,
     )
 }
 
@@ -187,6 +193,7 @@ fun DataBackupScreen(
     actions: DataBackupActions,
     modifier: Modifier = Modifier,
     zone: ZoneId = ZoneId.systemDefault(),
+    alertKey: String? = null,
 ) {
     val snackbar = remember { SnackbarHostState() }
     val message = state.message?.let { stringResource(it) }
@@ -201,6 +208,7 @@ fun DataBackupScreen(
         ScreenScaffold(
             title = stringResource(R.string.backup_title),
             navigationIcon = { BackAction(onBack) },
+            actions = { HelpOverflowAction(actions.openHelp, alertKey) },
             verticalArrangement = Arrangement.Top,
         ) {
             if (state.saveFailed) {

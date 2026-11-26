@@ -32,13 +32,21 @@ internal class SettingsHost(
     val onOpenDataBackup: () -> Unit = {},
     /** *Einführung* (SET-36): the tour, SCR-33. */
     val onOpenTour: () -> Unit = {},
+    /** *Anleitungen* (SET-36): the list of the eight Anleitungen, SCR-35. */
+    val onOpenHowTos: () -> Unit = {},
 )
 
 /**
  * What *Daten & Sicherung* (SCR-26) gets from its host: [onImported] after a finished import (Start with its
  * snackbar, BAK-02 AC6); no dialog stays over the alert [alertKey] (rule 8).
  */
-internal class DataBackupHost(val onBack: () -> Unit, val onImported: (ImportedBackup) -> Unit, val alertKey: String?)
+internal class DataBackupHost(
+    val onBack: () -> Unit,
+    val onImported: (ImportedBackup) -> Unit,
+    val alertKey: String?,
+    /** ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitung *Daten und Sicherung*. */
+    val onOpenHelp: () -> Unit = {},
+)
 
 /**
  * What *Teegeschirr* (SCR-13) gets from its host: [archived] is the vessel the editor above just archived,
@@ -115,6 +123,7 @@ internal class SettingsScreens(
             onOpenTeaware = host.onOpenTeaware,
             onOpenDataBackup = host.onOpenDataBackup,
             onOpenTour = host.onOpenTour,
+            onOpenHowTos = host.onOpenHowTos,
         )
     },
     val about: @Composable (AboutHost) -> Unit = { host ->
@@ -150,6 +159,7 @@ internal class SettingsScreens(
             onBack = host.onBack,
             onImportFinish = host.onImported,
             alertKey = host.alertKey,
+            onOpenHelp = host.onOpenHelp,
         )
     },
     /** „Sicherung eingespielt · …“ · *Rückgängig machen* in the shell's snackbar queue (03 SCR-26). */

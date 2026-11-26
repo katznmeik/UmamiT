@@ -168,6 +168,8 @@
     <string name="settings_section_help">Help</string>
     <string name="settings_tour">Introduction</string>
     <string name="settings_tour_detail">The main features in six pages</string>
+    <string name="settings_howtos">How-tos</string>
+    <string name="settings_howtos_detail">Step by step: eight topics</string>
     <string name="settings_section_about">About</string>
     <string name="settings_about">About UmamiT</string>
     <string name="about_title">About</string>

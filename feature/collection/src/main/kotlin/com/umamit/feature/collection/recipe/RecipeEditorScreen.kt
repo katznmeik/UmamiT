@@ -47,12 +47,15 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.EditorScaffold
+import com.umamit.core.ui.HelpOverflowAction
 import com.umamit.core.ui.fadeInOnArrival
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
+import com.umamit.core.designsystem.R as DsR
 
 /** Test tags of SCR-12. */
 object RecipeEditorTags {
+    const val HELP = "RecipeEditorHelp"
     const val NAME = "RecipeEditorName"
     const val METHOD = "RecipeEditorMethod"
     const val VESSEL = "RecipeEditorVessel"
@@ -96,6 +99,7 @@ fun RecipeEditorRoute(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     alertKey: String? = null,
+    onOpenHelp: () -> Unit = {},
     viewModel: RecipeEditorViewModel = hiltViewModel(),
     sharer: RecipeSharer = rememberRecipeSharer(),
 ) {
@@ -121,6 +125,7 @@ fun RecipeEditorRoute(
             delete = viewModel::delete,
             share = viewModel::share,
             messageShown = viewModel::messageShown,
+            openHelp = onOpenHelp,
             close = onClose,
         ),
         modifier = modifier,
@@ -137,6 +142,8 @@ class RecipeEditorActions(
     /** ⋮ *Rezept teilen* (PRF-08). */
     val share: () -> Unit = {},
     val messageShown: () -> Unit = {},
+    /** ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitung *Rezepte*. */
+    val openHelp: () -> Unit = {},
     /** Leaves the editor without saving. */
     val close: () -> Unit = {},
 )
@@ -189,7 +196,16 @@ fun RecipeEditorScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         menu = {
             if (ready != null && !ready.isNew) {
-                EditorMenu(ready, alertKey, onShare = actions.share, onDelete = askDelete::open)
+                EditorMenu(
+                    ready,
+                    alertKey,
+                    onShare = actions.share,
+                    onDelete = askDelete::open,
+                    onHelp = actions.openHelp,
+                )
+            } else if (ready != null) {
+                // A new recipe has nothing to share or delete: its ⋮ holds only *Hilfe* (SCR-36 „Entry points").
+                HelpOverflowAction(actions.openHelp, alertKey)
             }
         },
     ) { padding ->
@@ -249,7 +265,13 @@ fun RecipeEditorScreen(
  * greyed out for the tea's last recipe (PRF-01) and the running brew's (E15, D-101 F12).
  */
 @Composable
-private fun EditorMenu(state: RecipeEditorUiState.Ready, alertKey: String?, onShare: () -> Unit, onDelete: () -> Unit) {
+private fun EditorMenu(
+    state: RecipeEditorUiState.Ready,
+    alertKey: String?,
+    onShare: () -> Unit,
+    onDelete: () -> Unit,
+    onHelp: () -> Unit,
+) {
     val menu = rememberAlertGate(alertKey)
     Box {
         IconButton(onClick = menu::open, modifier = Modifier.testTag(RecipeEditorTags.MORE)) {
@@ -277,6 +299,14 @@ private fun EditorMenu(state: RecipeEditorUiState.Ready, alertKey: String?, onSh
                     menu.close()
                     onDelete()
                 },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(DsR.string.ds_help)) },
+                onClick = {
+                    menu.close()
+                    onHelp()
+                },
+                modifier = Modifier.testTag(RecipeEditorTags.HELP),
             )
         }
     }

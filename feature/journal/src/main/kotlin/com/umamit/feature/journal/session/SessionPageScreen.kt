@@ -57,6 +57,7 @@ const val SESSION_BREW_AGAIN_TAG = "session_brew_again"
 const val SESSION_RESTORE_TAG = "session_restore"
 const val SESSION_MENU_TAG = "session_menu"
 const val SESSION_EDIT_TAG = "session_edit"
+const val SESSION_MENU_HELP_TAG = "session_menu_help"
 const val SESSION_MENU_TEA_TAG = "session_menu_tea"
 const val SESSION_MENU_CATALOG_TAG = "session_menu_catalog"
 
@@ -77,6 +78,8 @@ class SessionPageActions(
     val edit: (sessionId: String) -> Unit = {},
     /** ⋮ *Im Katalog ansehen* (D-114 Q11): the tea's catalog page (SCR-21) by its catalog key. */
     val openCatalog: (catalogKey: String) -> Unit = {},
+    /** ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitung *Journal und Geschmack*. */
+    val openHelp: () -> Unit = {},
     /** A tap on the stars (JRN-02): the new rating, null for none; saved at once. */
     val setRating: (Double?) -> Unit = {},
     /** A tap on the *Zubereitung* stars (JRN-02, D-117): as [setRating], its own column. */
@@ -147,6 +150,7 @@ fun SessionPageScreen(
                         onOpenCatalog = page.catalogKey?.let { key -> { actions.openCatalog(key) } },
                         onEdit = { actions.edit(page.sessionId) },
                         onDelete = deleteAsk::open,
+                        onHelp = actions.openHelp,
                     )
                 }
             },
@@ -196,6 +200,7 @@ private fun SessionMenu(
     onOpenCatalog: (() -> Unit)?,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onHelp: () -> Unit,
 ) {
     val menu = rememberAlertGate(alertKey)
     Box {
@@ -241,6 +246,14 @@ private fun SessionMenu(
                     menu.close()
                     onDelete()
                 },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(DsR.string.ds_help)) },
+                onClick = {
+                    menu.close()
+                    onHelp()
+                },
+                modifier = Modifier.testTag(SESSION_MENU_HELP_TAG),
             )
         }
     }
