@@ -212,7 +212,7 @@ images in 03 SCR-33.
   view).
 - AC3: „Mehr dazu" opens the Anleitung; back returns to the same tour page,
   also during the first start.
-- AC4: the page dots blend with the swipe; *Weiter* and *Fertig* have one
+- AC4: the page dots' colour blends with the swipe; *Weiter* and *Fertig* have one
   fixed width in both languages (D-137 Q12).
 
 **ONB-08 — Anleitungen** `Must` (v0.11.0, [D-137](10-open-questions-and-decisions.md#d-137))

@@ -2291,8 +2291,8 @@ ONB-07, [D-136](10-open-questions-and-decisions.md#d-136) Q7/Q9, [D-137](10-open
   the first start.
 
 At the bottom, fixed: the page dots, then *Weiter* (filled), on the last page
-*Fertig*. The dots **blend** with the swipe (colour and width follow
-`currentPageOffsetFraction`), and the button keeps **one width** that fits
+*Fertig*. The dots **blend** with the swipe (the colour follows
+`currentPageOffsetFraction`) — the dots stay one size, as built — and the button keeps **one width** that fits
 the longest of *Weiter*/*Fertig*/*Next*/*Done*, so only its text changes
 (D-137 Q12). *Überspringen* (text button, top right) on every page **except
 the last** (D-137 Q11). Swiping works both ways; back on page 1 leaves like
@@ -2380,8 +2380,8 @@ description. Font 2.0 works (the mock-ups keep their size, the text wraps).
 The Anleitungen keep no read state.
 
 **Mock-ups** (D-137 item 19): a phone-shaped frame (rounded corners,
-hairline outline, the theme's paper or, for the timer, the timer's own dark
-surface) with a simplified, scaled-down copy of the screen: the real top bar
+hairline outline, the theme's paper; the timer mock-ups use the timer's own
+surface, which follows *Design* like the timer since v0.8.0, D-128) with a simplified, scaled-down copy of the screen: the real top bar
 title, the rows that matter and blank bars for the rest. Built from
 `core:designsystem`/`core:ui` components where they exist, drawn simplified
 otherwise (06 §3). The **marker** is a matcha ring around the spot, plus the
@@ -2398,7 +2398,7 @@ follow the language („5.0 g").
 | Mock-up | Screen, marked spot | TalkBack (de) | TalkBack (en) |
 |---|---|---|---|
 | M-START | Start, *Aufguss starten* | Bild: Start mit „Aufguss starten" | Picture: Start with “Start brewing” |
-| M-TWO | Timer (dark), the other timer's row under the band | Bild: Timer mit der Zeile zum zweiten Timer | Picture: timer with the row for the second timer |
+| M-TWO | Timer, the other timer's row under the band | Bild: Timer mit der Zeile zum zweiten Timer | Picture: timer with the row for the second timer |
 | M-MYTEAS-MENU | *Meine Tees*, ⋮ open, *Tee ohne Katalog hinzufügen* | Bild: Meine Tees mit geöffnetem Menü | Picture: My teas with the menu open |
 | M-SORTE | *Sorte wählen*, the row Sencha | Bild: Sorte wählen | Picture: Choose variety |
 | M-TEA-NEW | *Neuer Tee*, the *Kauf* section | Bild: Neuer Tee, Abschnitt Kauf | Picture: New tea, Purchase section |
@@ -2411,7 +2411,7 @@ follow the language („5.0 g").
 | M-STEPS | *Rezept bearbeiten*, a step's kind menu | Bild: Schritte eines Rezepts | Picture: a recipe's steps |
 | M-RECEIVE | *Rezept übernehmen*, *Für welchen Tee?* | Bild: Rezept übernehmen | Picture: Take over recipe |
 | M-SETUP | *Neue Session*, *Gefäß* | Bild: Neue Session mit Gefäß | Picture: New session with vessel |
-| M-TIMER-MENU | Timer (dark), ⋮ open, *Schritte bearbeiten* | Bild: Timer mit geöffnetem Menü | Picture: timer with the menu open |
+| M-TIMER-MENU | Timer, ⋮ open, *Schritte bearbeiten* | Bild: Timer mit geöffnetem Menü | Picture: timer with the menu open |
 | M-SAVED | *Gespeichert im Journal*, the stars | Bild: Gespeichert im Journal mit Sternen | Picture: Saved to the journal with stars |
 | M-SESSION | session page, stars and *Geschmack hinzufügen* | Bild: Session mit Bewertung und Geschmack | Picture: session with rating and taste |
 | M-STATS | Statistik › *Verbrauch*, cost per litre | Bild: Statistik, Verbrauch | Picture: Statistics, use |

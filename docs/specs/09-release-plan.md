@@ -497,7 +497,7 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 
 ### v0.11.0 — The tour reworked ([D-137](10-open-questions-and-decisions.md#d-137))
 
-- [ ] `v0.11.0-rc.1` installs over `v0.10.0` without losing data (umamit.db stays v9). Record whether *Vollbild-Benachrichtigungen* is off after the update; if it is, the „Vollbild-Alarm wieder erlauben" sheet appears and *Erlauben* turns it on (D-137 Q1, as built).
+- [ ] `v0.11.0-rc.1` installs over `v0.10.0` without losing data (umamit.db stays v9). If Android turned the full-screen alarm off with the update, the „Vollbild-Alarm wieder erlauben" sheet appears and *Erlauben* turns it on (SCR-34 as built, D-137 Q1/Q2).
 - [ ] **Tour:** *Einstellungen* › *Hilfe* › *Einführung*: six pages, each with its illustration, a mock-up with the spot marked, four to six lines and its „Mehr dazu" links; the dots blend while swiping; *Weiter* and *Fertig* keep the same width; the last page shows only *Fertig*. A „Mehr dazu" link opens the Anleitung and back returns to the same page.
 - [ ] **Tour at first start:** after *Alle Daten löschen* (backup first) the tour sits between the welcome and the reliability page; „Mehr dazu" and back return to the tour; *Überspringen* goes on to the reliability page.
 - [ ] **Anleitungen:** *Einstellungen* › *Hilfe* › *Anleitungen* lists the eight topics; each reads right, its steps match the app (try *Tee ohne Katalog* and *Tee per Shop-Link* by following the steps), and the mock-ups look like the real screens.
