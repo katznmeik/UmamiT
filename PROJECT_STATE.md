@@ -5,18 +5,18 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-26 (specify session for v0.11.0: the grilling round on the tour and the open v0.10.0 points, D-137 (Q1–Q16 accepted, the rest proposed), spec #365, tickets #366–#371, plan `docs/plans/v0.11.0.md`, draft PR #372). **Next:** the PO's approval of spec, tickets and plan; then the build session.
+**Last updated:** 2026-11-26 (specify session for v0.11.0: the grilling round, D-137, spec #365, tickets #366–#371, plan `docs/plans/v0.11.0.md`, draft PR #372; **the PO approved all** the same day). **Next:** the build session, started by the PO with `/implement-spec #365`.
 
-## Next: the PO approves v0.11.0's spec, tickets and plan, then the build
+## Next: build v0.11.0 (approved 2026-11-26)
 
-- **v0.11.0 specified (2026-11-26, D-137):** the PO answered Q1–Q16 as options; items 17–30 and all copy (03 SCR-33, SCR-35, SCR-36) are Claude's draft. Spec #365, tickets #366–#371 (no labels yet; the build session sets `ready-for-agent` after the approval), plan `docs/plans/v0.11.0.md`, draft PR #372.
+- **v0.11.0 specified (2026-11-26, D-137):** the PO answered Q1–Q16 as options and approved the spec (items 17–30 and all copy in 03 SCR-33, SCR-35, SCR-36), the tickets and the plan („Approve all"). Spec #365, tickets #366–#371 (no labels yet; the build session sets `ready-for-agent`), plan `docs/plans/v0.11.0.md`, draft PR #372.
   - **The tour (SCR-33):** six pages, each with its illustration band, a mock-up with the spot marked, four to six lines and „Mehr dazu" links. The dots blend with the swipe, the button keeps one width, and *Überspringen* is hidden on the last page.
   - **Anleitungen (ONB-08, SCR-35/SCR-36):** eight topics with numbered steps and 22 mock-ups (invented demo data). They are reached from *Einstellungen* › *Hilfe* › *Anleitungen*, from „Mehr dazu", and from ⋮ *Hilfe* on *Meine Tees*, *Katalog*, Tee, *Rezept bearbeiten*, *Journal*, Session and *Daten & Sicherung*.
   - **What stays the same:** no timer code, no data change, no new permission.
 - **The v0.10.0 open points (D-137 Q1–Q2, Q13–Q16):**
   - The Vollbild grant is still lost on updates, but the SCR-34 sheet appears and *Erlauben* works. The PO wants no hassle beyond an easy fix, and there is none, so the outcome is option A. #355 stays closed.
   - The English number input, the repricing (INV-08), the sheet's repeat and the four small items (English wording, *Sprache* closing at once, foldable, [Français, English]) stay as built. The PO flagged none; whether the Galaxy is a foldable stays unreported.
-- **Waiting:** the PO's approval of spec #365 (including the copy), tickets #366–#371 and the plan. No code before it (CLAUDE.md rule 1). After the approval the build session sets D-137 to *Accepted (PO)* for what the PO approved.
+- **Approved:** D-137 is *Accepted (PO, 2026-11-26)* in full. The build may start (CLAUDE.md rule 1); the go of D-038 is in effect.
 - **Next session:** the build session (Opus `medium` orchestrator), started by the PO with `/implement-spec #365`.
 - **Open (not blocking):**
   - **The launcher ANR on the API 35 emulator:** on `main` `1933bc15` every `TransitionJankTest` case failed twice behind „Application Not Responding: com.google.android.apps.nexuslauncher" (the same tree passed on the PR head); the third run was green. The `ForeignAnrDialog` handler logged nothing for it (0 lines in job 139316775975), so it does not catch the launcher's ANR on API 35: a harness gap for a later ticket.
@@ -63,7 +63,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.11.0** (the tour reworked, D-137) specified 2026-11-26, waiting for the PO's approval; before it **v0.10.0** (stock edits, Vollbild sheet, portrait timer, English, tour; D-136) **released 2026-11-25** (100099, from `main` `1933bc15`); the next release is to be specified, starting with the tour rework (the PO, 2026-11-25); M5 / 1.0 postponed until the PO's go |
+| Current milestone | **v0.11.0** (the tour reworked, D-137) specified and approved 2026-11-26, build next; before it **v0.10.0** (stock edits, Vollbild sheet, portrait timer, English, tour; D-136) **released 2026-11-25** (100099, from `main` `1933bc15`); the next release is to be specified, starting with the tour rework (the PO, 2026-11-25); M5 / 1.0 postponed until the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00`, restarted from `main` `1933bc15` after the v0.10.0 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -85,8 +85,8 @@
 
 ## Waiting on the PO
 
-1. **v0.11.0:** approve spec #365 (including the copy in 03 SCR-33, SCR-35, SCR-36), tickets #366–#371 and `docs/plans/v0.11.0.md`, or ask for changes.
-2. **Then:** type `/implement-spec #365` in the build session (user-invoke-only skill).
+1. **v0.11.0 build:** type `/implement-spec #365` in the build session (user-invoke-only skill).
+2. **Later:** the rc.1 checklist (09 §4 „v0.11.0") and the design review.
 3. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 4. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 5. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.

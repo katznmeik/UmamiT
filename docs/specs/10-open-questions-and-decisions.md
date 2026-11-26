@@ -324,7 +324,7 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-137"></a>
-### D-137 — v0.11.0: the tour reworked into a short tour with mock-ups plus eight Anleitungen under *Hilfe*; the v0.10.0 open points closed (ONB-07, ONB-08, SET-36, TMR-31; 03 SCR-08, SCR-09, SCR-12, SCR-19, SCR-15, SCR-16, SCR-25, SCR-26, SCR-33, SCR-35, SCR-36; 09 §2, §4 „v0.11.0"; 11; amends D-136 Q7/Q9 and items 13 and 16, closes #355's options B–D) · *Accepted (PO, 2026-11-26)*: the PO's answers Q1–Q16 below (specify session, asked as options) · *Proposed*: items 17–30, all copy in 03 SCR-33, SCR-35 and SCR-36, spec #365, tickets #366–#371 and `docs/plans/v0.11.0.md` wait for the PO's approval
+### D-137 — v0.11.0: the tour reworked into a short tour with mock-ups plus eight Anleitungen under *Hilfe*; the v0.10.0 open points closed (ONB-07, ONB-08, SET-36, TMR-31; 03 SCR-08, SCR-09, SCR-12, SCR-19, SCR-15, SCR-16, SCR-25, SCR-26, SCR-33, SCR-35, SCR-36; 09 §2, §4 „v0.11.0"; 11; amends D-136 Q7/Q9 and items 13 and 16, closes #355's options B–D) · *Accepted (PO, 2026-11-26)*: the PO's answers Q1–Q16 below (specify session, asked as options); the spec #365 (including Claude's items 17–30 and all copy in 03 SCR-33, SCR-35 and SCR-36), its tickets #366–#371 and `docs/plans/v0.11.0.md` approved by the PO the same day (specify session, „Approve all")
 
 **What the PO reported (final session #363, 2026-11-25, recorded in D-136 „Final session"):** the Einführung is too broad; it should be more detailed and describe more features, also the harder ones (e.g. adding a tea without the Katalog); each page looks quite empty, with little information. `/review-animations` found two tour polish items (the dots, the pill's width).
 
@@ -8909,7 +8909,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
-| 2026-11-26 | D-137: v0.11.0 specified from the PO's tour feedback (Q1–Q16): a six-page tour with mock-ups and „Mehr dazu", eight Anleitungen under *Hilfe* and in five screens' ⋮ menus, the two tour polish findings, *Überspringen* hidden on the last page; #355 closed with option A; the other v0.10.0 points stay as built. Q1–Q16 accepted (PO); items 17–30, copy, spec #365, tickets #366–#371 and the plan proposed. |
+| 2026-11-26 | D-137: v0.11.0 specified from the PO's tour feedback (Q1–Q16): a six-page tour with mock-ups and „Mehr dazu", eight Anleitungen under *Hilfe* and in five screens' ⋮ menus, the two tour polish findings, *Überspringen* hidden on the last page; #355 closed with option A; the other v0.10.0 points stay as built. Q1–Q16 accepted (PO); the PO approved spec #365 (items 17–30 and the copy), tickets #366–#371 and the plan the same day. |
 | 2026-11-24 | D-136: v0.10.0 specified from the PO's feedback on v0.9.0 (Q1–Q9): every stock event editable with past costs recomputed, a Vollbild-Alarm sheet after an update plus research, the timer screens in portrait, English as a second language, a six-page tour; the PO approved spec #353, tickets #354–#363 and the plan the same day. |
 | 2026-11-20 | D-134 build notes: on `v0.9.0-rc.2` ways (a) and (b) both offered UmamiT and opened „Rezept übernehmen"; the PO approved rc.2 (final session #344). |
 | 2026-11-20 | D-135: no seed teas and no seed vessels from v0.9.0-rc.2 on; a fresh install and *Alle Daten löschen* start empty with the existing empty states; existing data stays; the seed photo download goes, three network uses (Q1–Q6). |
