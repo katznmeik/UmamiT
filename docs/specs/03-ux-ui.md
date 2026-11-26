@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-11-24 (D-136 (v0.10.0): SCR-01 tour step, SCR-05/SCR-07 portrait, SCR-25 *Sprache* and *Hilfe*, SCR-29 edit sheets, new SCR-33 tour and SCR-34 Vollbild sheet; 2026-11-20: D-134/D-135: SCR-12 file name, onboarding seed photo line, SCR-26 fresh start; 2026-11-19: v0.9.0, D-131 build notes: SCR-26 *Alle Daten löschen* as built; 2026-11-18: v0.9.0, D-130: SCR-26 *Daten & Sicherung* in full, SCR-08 ⋮ *Rezept importieren*, SCR-12 ⋮ *Rezept teilen*, the new SCR-32 *Rezept übernehmen*, their messages in §5; 2026-11-17: v0.8.0-rc.2, D-129: the picker's hand-over to the setup on SCR-03; v0.8.0, D-128: the wording list in §3.7 and all German copy, the timer in the light theme in §3.1, SCR-05 and SCR-07, `TasteInfo` and the taste sets in §3.8, SCR-05, SCR-09, SCR-10 and SCR-16, the setup's titles on SCR-04, the anchored ⋮ in §2.2, refresh progress on SCR-25, SCR-26 planned for v0.9.0; 2026-11-14: v0.7.1, D-117: two ratings on SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18 and §3.8, transitions without stale frames in §3.6; v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SESSIONS, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal aufgießen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-11-26 (D-137 (v0.11.0): SCR-33 reworked, new SCR-35 *Anleitungen* and SCR-36 *Anleitung* with copy, mock-ups, demo data and entry points, SCR-25 *Hilfe*, ⋮ *Hilfe* on SCR-08, SCR-09, SCR-12, SCR-15, SCR-16, SCR-19, SCR-26; 2026-11-24: D-136 (v0.10.0): SCR-01 tour step, SCR-05/SCR-07 portrait, SCR-25 *Sprache* and *Hilfe*, SCR-29 edit sheets, new SCR-33 tour and SCR-34 Vollbild sheet; 2026-11-20: D-134/D-135: SCR-12 file name, onboarding seed photo line, SCR-26 fresh start; 2026-11-19: v0.9.0, D-131 build notes: SCR-26 *Alle Daten löschen* as built; 2026-11-18: v0.9.0, D-130: SCR-26 *Daten & Sicherung* in full, SCR-08 ⋮ *Rezept importieren*, SCR-12 ⋮ *Rezept teilen*, the new SCR-32 *Rezept übernehmen*, their messages in §5; 2026-11-17: v0.8.0-rc.2, D-129: the picker's hand-over to the setup on SCR-03; v0.8.0, D-128: the wording list in §3.7 and all German copy, the timer in the light theme in §3.1, SCR-05 and SCR-07, `TasteInfo` and the taste sets in §3.8, SCR-05, SCR-09, SCR-10 and SCR-16, the setup's titles on SCR-04, the anchored ⋮ in §2.2, refresh progress on SCR-25, SCR-26 planned for v0.9.0; 2026-11-14: v0.7.1, D-117: two ratings on SCR-06, SCR-08, SCR-09, SCR-15, SCR-16, SCR-18 and §3.8, transitions without stale frames in §3.6; v0.7.0-rc.3, D-115 Amendment 2: SCR-18 volume instead of cups (TEE, € pro Liter), SCR-09 € pro Liter, SCR-25 *Tassengröße* removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: SCR-18 reworked, SCR-08 *Knapp* chip, SCR-25 *Tassengröße*, SCR-09 cups by volume; v0.7.0, D-115: SCR-18 Statistik; 2026-11-12: v0.6.1, D-114: SCR-05 taste per infusion, SCR-07 chips, SCR-09 and SCR-16 ⋮, SCR-16 GESCHMACK per infusion and folding, SCR-19 no kind and „N Tees", SCR-25 *Darstellung*, SCR-28 photo viewer; 2026-11-11: v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SESSIONS, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal aufgießen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -1123,6 +1123,8 @@ filter chips; sort; rows per TEA-08; adding a tea in Sammlung's ⋮ menu:
 *Tee hinzufügen* until v0.4.0-rc.1, [D-102](10-open-questions-and-decisions.md#d-102)).
 Empty: „Noch keine Tees · Im Katalog stöbern".
 
+**v0.11.0 ([D-137](10-open-questions-and-decisions.md#d-137)):** ⋮ gains the item *Hilfe* (SCR-36 „Entry points").
+
 v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)) replaces the M1
 placeholder („Deine Sammlung folgt bald …", D-069):
 - **Rows** (`TeaListItem`): cover, serif name, secondary name, Sorte, the
@@ -1189,6 +1191,8 @@ teas (INV-09): a filled button when the stock is *Knapp* or *Leer*, otherwise
 a text link with an external-link icon; it opens the shop page of the size
 bought last. Overflow: Favorit, Aus Katalog zurücksetzen, Archivieren,
 Löschen.
+
+**v0.11.0 ([D-137](10-open-questions-and-decisions.md#d-137)):** ⋮ gains the item *Hilfe* (SCR-36 „Entry points").
 
 v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - **Top:** hero photo, names, Sorte chip, umami meter, and a `StatTriplet`
@@ -1378,6 +1382,8 @@ recipe.
 Fields per PRF-03/04 incl. *Vorwarnung* selector; step list with drag
 handles; *Als Standard*.
 
+**v0.11.0 ([D-137](10-open-questions-and-decisions.md#d-137)):** ⋮ gains the item *Hilfe* (SCR-36 „Entry points").
+
 v0.4.0 (D-100):
 - **Fields:** name, method, vessel (sets the water and scales the leaf,
   WARE-03; favourites first, archived hidden, „(archiviert)" for the
@@ -1470,6 +1476,8 @@ Serif „Journal", search „Tees, Notizen, …", filter icon; day-grouped rows
 „55 °C · 1:00 · 3 Aufgüsse", rating, and the time of day on the right
 („09:12"); in-progress session pinned. Empty: „Deine erste Tasse wartet."
 
+**v0.11.0 ([D-137](10-open-questions-and-decisions.md#d-137)):** ⋮ gains the item *Hilfe* (SCR-36 „Entry points").
+
 M1 (minimal, D-061): read-only, without search, filter and rating. The
 in-progress session sits under „LÄUFT GERADE" and opens the timer. An early
 finish reads „2 von 3 Aufgüssen". A session belongs to the local day of its
@@ -1513,6 +1521,8 @@ v0.6.0 ([D-112](10-open-questions-and-decisions.md#d-112)):
 Hero, tea (link), date/time, method, vessel, leaf/water/ratio, step table
 (geplant / tatsächlich / °C), rating, radar, descriptors, notes, photos.
 Actions: *Notizen hinzufügen*/*Bearbeiten*, *So nochmal aufgießen*, *Löschen*.
+
+**v0.11.0 ([D-137](10-open-questions-and-decisions.md#d-137)):** ⋮ gains the item *Hilfe* (SCR-36 „Entry points").
 
 v0.4.0 (D-100):
 - **Content:** the tea (a tap opens SCR-09), date and time, method, vessel,
@@ -1917,6 +1927,8 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   match at all: „Kein Tee passt zu deiner Suche und den Filtern." · *Filter
   zurücksetzen*.
 
+**v0.11.0 ([D-137](10-open-questions-and-decisions.md#d-137)):** ⋮ gains the item *Hilfe* (SCR-36 „Entry points").
+
 „Rezept prüfen" is a badge of the row, not a filter (CAT-10). Overflow:
 *Katalog aktualisieren*, and from v0.2.1 *Link einfügen* (CAT-17, D-094);
 from v0.3.0 *Alle einklappen* and *Alle ausklappen* (only in a grouped view,
@@ -2147,11 +2159,16 @@ tokens (§3.6); reduce motion: they appear at once.
   current screen; the app's texts switch at once (GEN-13).
 - A new section **Hilfe** above *Über* with one row **Einführung** („Die
   wichtigsten Funktionen in sechs Seiten"), which opens SCR-33 (SET-36).
+- **v0.11.0 ([D-137](10-open-questions-and-decisions.md#d-137)):** *Hilfe* gains a second row **Anleitungen** („Schritt für
+  Schritt: acht Themen" / „Step by step: eight topics") below *Einführung*,
+  which opens SCR-35 (SET-36, ONB-08).
 
 ### SCR-26 Daten & Sicherung
 
 Planned before v0.9.0 as the device-backup explanation and *Alle Daten löschen*, neither built until v0.9.0 ([D-131](10-open-questions-and-decisions.md#d-131)). From
 v0.9.0 (BAK-01, BAK-02, BAK-04, BAK-06, SET-20; [D-128](10-open-questions-and-decisions.md#d-128) Q4–Q8, [D-130](10-open-questions-and-decisions.md#d-130)), top to bottom:
+
+**v0.11.0 ([D-137](10-open-questions-and-decisions.md#d-137)):** ⋮ gains the item *Hilfe* (SCR-36 „Entry points").
 
 - **SICHERUNG** (overline)
   - Line „Letzte Sicherung: 3. Nov. 2026 · 12 neue Sessions" or „Noch keine
@@ -2259,31 +2276,66 @@ Tees' ⋮ *Rezept importieren*.
 - TalkBack: the summary reads as one block; the tea choice is a radio
   group.
 
-### SCR-33 Einführung (tour, v0.10.0)
+### SCR-33 Einführung (tour; v0.10.0, reworked in v0.11.0)
 
-ONB-07, [D-136](10-open-questions-and-decisions.md#d-136) Q7/Q9. A full-screen pager of six pages in the washi theme
-(light or dark per *Design*). Each page: the illustration at the top (the
-existing asset, cropped and paper-matched as on its own screen), a title
-(display sans, headline) and two short lines of body text. Below: page dots,
-then *Weiter* (filled), on the last page *Fertig*. *Überspringen* (text
-button) top right on every page except the last. Swiping works both ways;
-back on page 1 leaves like *Überspringen*. Draft copy (Claude's; the PO
-reviews it with the spec):
+ONB-07, [D-136](10-open-questions-and-decisions.md#d-136) Q7/Q9, [D-137](10-open-questions-and-decisions.md#d-137) Q5–Q12 and items 19–22. A full-screen pager of six pages in the washi theme
+(light or dark per *Design*). **From v0.11.0** each page, top to bottom:
 
-| # | Image | Titel (de) | Text (de) | Title (en) | Text (en) |
-|---|---|---|---|---|---|
-| 1 | A3 | Start und Timer | Tippe einen Tee unter *Zuletzt aufgegossen* an oder starte eine *Neue Session*. Der Timer führt dich durch jeden Aufguss, mit Vorwarnung und Alarm. | Start and timer | Tap a tea under *Recently brewed* or start a *New session*. The timer guides you through every infusion, with a pre-alert and an alarm. |
-| 2 | A13 | Zwei Timer und Schnelltimer | Zwei Timer laufen gleichzeitig: zwei Sessions oder eine Session und der Schnelltimer. Die Zeile oben wechselt zum anderen Timer. | Two timers and quick timer | Two timers can run at once: two sessions, or a session and the quick timer. The row at the top switches to the other timer. |
-| 3 | A8 | Sammlung und Katalog | Lade den Katalog von Tee-Kontor Kiel und nimm Tees in *Meine Tees* auf, oder teile einen Shop-Link mit UmamiT. Rezepte, Vorrat und Kosten pflegst du am Tee. | Collection and catalog | Load the Tee-Kontor Kiel catalog and add teas to *My teas*, or share a shop link with UmamiT. Recipes, stock and costs live on the tea. |
-| 4 | A6 | Journal und Geschmack | Jede Session landet im Journal. Bewerte Tee und Zubereitung, halte Geschmack pro Aufguss fest und übernimm gute Zeiten ins Rezept. | Journal and taste | Every session lands in the journal. Rate the tea and the brewing, note the taste of each infusion and keep good times in the recipe. |
-| 5 | A9 | Statistik | Sieh, was du trinkst: Sessions, Sorten, Lieblingstees, Gewohnheiten, Verbrauch und Kosten pro Liter. | Statistics | See what you drink: sessions, kinds, favourite teas, habits, use and cost per litre. |
-| 6 | A5 | Sicherung und Rezepte teilen | Unter *Einstellungen › Daten & Sicherung* sicherst du alle Daten in eine Datei. Ein Rezept teilst du über ⋮ im Rezept. | Backup and sharing recipes | In *Settings › Data & backup* you save all your data to one file. Share a recipe from ⋮ in the recipe. |
+- the illustration as a band (about 96 dp high, cropped and paper-matched as
+  on Start);
+- a **mock-up** (SCR-36 „Mock-ups"; at most 200 dp high, centred) of the
+  area's screen with the spot marked;
+- the title (display sans, headline) and the body (four to six lines);
+- one text link per matching Anleitung, „Mehr dazu: <Thema>" / „More:
+  <topic>", which opens SCR-36; back returns to the same page, also during
+  the first start.
 
-The in-app names in *italics* use the strings the app shows in that
-language (the build checks them against `strings.xml`). Buttons: *Weiter* /
-*Next*, *Fertig* / *Done*, *Überspringen* / *Skip*. TalkBack: each page is
-one heading plus its text; the dots read „Seite 2 von 6" / „Page 2 of 6".
-At font 2.0 the text scrolls inside the page and the buttons stay in view.
+At the bottom, fixed: the page dots, then *Weiter* (filled), on the last page
+*Fertig*. The dots **blend** with the swipe (colour and width follow
+`currentPageOffsetFraction`), and the button keeps **one width** that fits
+the longest of *Weiter*/*Fertig*/*Next*/*Done*, so only its text changes
+(D-137 Q12). *Überspringen* (text button, top right) on every page **except
+the last** (D-137 Q11). Swiping works both ways; back on page 1 leaves like
+*Überspringen*, on a later page it goes to the page before. The content
+scrolls at font 2.0; the dots and the button stay in view. TalkBack: per page
+the title as a heading, the body, the mock-up's description, the links; the
+dots read „Seite 2 von 6" / „Page 2 of 6".
+
+Copy (Claude's draft, D-137; the PO reviews it with the spec). The in-app
+names in *italics* use the strings the app shows in that language (the build
+checks them against `strings.xml`).
+
+| # | Image | Mock-up (marked spot) | Mehr dazu |
+|---|---|---|---|
+| 1 | A3 | M-START: Start, *Aufguss starten* marked | *Aufgießen im Detail*, *Zuverlässiger Alarm* |
+| 2 | A13 | M-TWO: the timer with the other timer's row under the band marked | *Aufgießen im Detail* |
+| 3 | A8 | M-MYTEAS-MENU: *Meine Tees* with ⋮ open, *Tee ohne Katalog hinzufügen* marked | *Tee ohne Katalog*, *Tee per Shop-Link*, *Rezepte* |
+| 4 | A6 | M-SESSION: a session page, the stars and *Geschmack hinzufügen* marked | *Journal und Geschmack* |
+| 5 | A9 | M-STATS: Statistik › *Verbrauch*, the cost per litre marked | *Vorrat und Kosten* |
+| 6 | A5 | M-DATA: *Daten & Sicherung*, *Sicherung erstellen* marked | *Daten und Sicherung*, *Rezepte* |
+
+| # | Titel (de) | Text (de) |
+|---|---|---|
+| 1 | Start und Timer | Tippe auf *Aufguss starten*, wähle einen Tee und prüfe in *Neue Session* Gefäß, Blätter und Wasser. Der Timer führt dich durch jeden Aufguss, mit Vorwarnung und Alarm, auch bei gesperrtem Bildschirm. Ein Tipp auf einen Tee unter *Zuletzt aufgegossen* startet ihn wie beim letzten Mal. |
+| 2 | Zwei Timer und Schnelltimer | Zwei Timer laufen gleichzeitig: zwei Sessions oder eine Session und der *Schnelltimer*, z. B. für eine zweite Kanne. Die Leiste über der Navigation zeigt beide, und im Timer wechselt die Zeile unter dem Bild zum anderen. Der Schnelltimer braucht keinen Tee: Dauer antippen, *Start*. |
+| 3 | Sammlung und Katalog | In der *Sammlung* stehen deine Tees mit Rezepten, Vorrat und Kosten. Tees von Tee-Kontor Kiel holst du aus dem *Katalog* oder per Shop-Link. Jeden anderen Tee legst du über ⋮ › *Tee ohne Katalog hinzufügen* an. Jeder Tee kann mehrere Rezepte haben. |
+| 4 | Journal und Geschmack | Jede Session landet von selbst im *Journal*. Bewerte *Tee* und *Zubereitung* mit Sternen, halte den Geschmack jedes Aufgusses mit Reglern und Beschreibungen fest und übernimm gute Zeiten ins Rezept. *So nochmal aufgießen* wiederholt eine Session. |
+| 5 | Statistik | Die *Statistik* zeigt, was du trinkst: Sessions, Sorten und Lieblingstees, deine Gewohnheiten über den Tag, den Verbrauch und was ein Liter kostet. Oben wählst du den Zeitraum. Die Kosten kommen aus den Käufen, die du am Tee erfasst. |
+| 6 | Sicherung und Rezepte teilen | Deine Daten liegen nur auf dem Handy. Unter *Einstellungen* › *Daten & Sicherung* sicherst du alles in eine Datei und spielst sie wieder ein. Ein Rezept teilst du im Rezept über ⋮ › *Rezept teilen*. Wer die Datei bekommt, übernimmt es mit einem Tipp. |
+
+| # | Title (en) | Text (en) |
+|---|---|---|
+| 1 | Start and timer | Tap *Start brewing*, pick a tea and check vessel, leaf and water in *New session*. The timer guides you through every infusion, with a pre-alert and an alarm, even when the screen is locked. A tap on a tea under *Recently brewed* starts it like last time. |
+| 2 | Two timers and quick timer | Two timers can run at once: two sessions, or a session and the *Quick timer*, e.g. for a second pot. The bar above the navigation shows both, and in the timer the row below the picture switches to the other one. The quick timer needs no tea: tap the duration, *Start*. |
+| 3 | Collection and catalog | Your teas live in the *Collection*, with recipes, stock and costs. Get teas from Tee-Kontor Kiel from the *Catalog* or by a shop link. Add any other tea with ⋮ › *Add a tea without the catalog*. Each tea can have several recipes. |
+| 4 | Journal and taste | Every session lands in the *Journal* by itself. Rate the *Tea* and the *Brewing* with stars, note the taste of each infusion with sliders and descriptors, and keep good times in the recipe. *Brew this again* repeats a session. |
+| 5 | Statistics | *Statistics* shows what you drink: sessions, varieties and favorite teas, your habits over the day, use and what a liter costs. Pick the time range at the top. Costs come from the purchases you log on the tea. |
+| 6 | Backup and sharing recipes | Your data stays on your phone. In *Settings* › *Data & backup* you save everything to one file and restore it. Share a recipe from ⋮ › *Share recipe* in the recipe. Whoever gets the file takes it over with one tap. |
+
+Buttons: *Weiter* / *Next*, *Fertig* / *Done*, *Überspringen* / *Skip*.
+v0.10.0's two-line copy is replaced; its strings `tour_page{1..6}_*` are
+rewritten in both languages (English in American spelling, as the rest of
+the app: „favorite", „liter").
 
 ### SCR-34 Vollbild-Alarm wieder erlauben (sheet, v0.10.0)
 
@@ -2297,6 +2349,194 @@ erscheint der Alarm bei gesperrtem Bildschirm nur als Benachrichtigung." /
 alarm shows only as a notification when the screen is locked." Buttons
 *Erlauben* / *Allow* (filled, opens the system page) and *Später* / *Later*.
 Shown at most once per versionCode.
+
+### SCR-35 Anleitungen (list, v0.11.0)
+
+ONB-08, [D-137](10-open-questions-and-decisions.md#d-137) Q5, Q7. From *Einstellungen* › *Hilfe* › *Anleitungen* („Schritt für
+Schritt: acht Themen" / „Step by step: eight topics") and from ⋮ *Hilfe* on
+*Meine Tees*. Top bar ← and the title „Anleitungen" / „How-tos". One row per
+topic (title and a one-line summary), in this order; a tap opens SCR-36.
+
+| # | Titel (de) | Zeile (de) | Title (en) | Line (en) |
+|---|---|---|---|---|
+| 1 | Tee ohne Katalog hinzufügen | Für Tees aus anderen Läden oder Geschenke | Add a tea without the catalog | For teas from other shops or gifts |
+| 2 | Tee per Shop-Link hinzufügen | Einen Tee von Tee-Kontor Kiel direkt laden | Add a tea from a shop link | Load one Tee-Kontor Kiel tea directly |
+| 3 | Vorrat und Kosten | Käufe, Bestand und was ein Liter kostet | Stock and cost | Purchases, stock and what a liter costs |
+| 4 | Rezepte | Eigene Rezepte, Schritte, teilen und übernehmen | Recipes | Your own recipes, steps, sharing and receiving |
+| 5 | Aufgießen im Detail | Gefäß, Schritte ändern, zwei Timer, Schnelltimer | Brewing in detail | Vessel, changing steps, two timers, quick timer |
+| 6 | Journal und Geschmack | Bewerten, Geschmack, Zeiten ins Rezept | Journal and taste | Ratings, taste, times into the recipe |
+| 7 | Daten und Sicherung | Sichern, einspielen, CSV, alles löschen | Data and backup | Back up, restore, CSV, delete all |
+| 8 | Zuverlässiger Alarm | Damit der Alarm immer klingelt | A reliable alarm | So the alarm always rings |
+
+### SCR-36 Anleitung (one topic, v0.11.0)
+
+ONB-08, [D-137](10-open-questions-and-decisions.md#d-137) Q9 and items 19, 23, 26. Top bar ← and the topic's title. A scrolling
+page: a short intro (body), then numbered steps (the number in a small matcha
+circle, the text beside it); a step marked „[M-…]" below shows that mock-up
+under its text, its marker carrying the step's number. The page ends with a
+„Tipp" line where one is given. TalkBack: the title as a heading, the intro,
+each step („Schritt 2 von 5: …" / „Step 2 of 5: …"), each mock-up's
+description. Font 2.0 works (the mock-ups keep their size, the text wraps).
+The Anleitungen keep no read state.
+
+**Mock-ups** (D-137 item 19): a phone-shaped frame (rounded corners,
+hairline outline, the theme's paper or, for the timer, the timer's own dark
+surface) with a simplified, scaled-down copy of the screen: the real top bar
+title, the rows that matter and blank bars for the rest. Built from
+`core:designsystem`/`core:ui` components where they exist, drawn simplified
+otherwise (06 §3). The **marker** is a matcha ring around the spot, plus the
+step's number badge in an Anleitung. Static, not tappable, follows *Design*
+and the app language. One TalkBack description per mock-up (table below).
+
+**Demo data** (invented; never a shop name, text or photo, CLAUDE.md rule 3):
+teas „Morgentau" (Sencha), „Nebelhang" (Gyokuro) and „Herbstfeuer"
+(Genmaicha); the vessel „Kleine Kyusu" (200 ml); 5,0 g · 150 ml · 70 °C ·
+1:00; „38 g übrig"; „12,40 € / 100 g"; „ca. 1,60 € pro Liter". Photos are the
+type leaf on paper. Tea and vessel names stay as written in English; numbers
+follow the language („5.0 g").
+
+| Mock-up | Screen, marked spot | TalkBack (de) | TalkBack (en) |
+|---|---|---|---|
+| M-START | Start, *Aufguss starten* | Bild: Start mit „Aufguss starten" | Picture: Start with “Start brewing” |
+| M-TWO | Timer (dark), the other timer's row under the band | Bild: Timer mit der Zeile zum zweiten Timer | Picture: timer with the row for the second timer |
+| M-MYTEAS-MENU | *Meine Tees*, ⋮ open, *Tee ohne Katalog hinzufügen* | Bild: Meine Tees mit geöffnetem Menü | Picture: My teas with the menu open |
+| M-SORTE | *Sorte wählen*, the row Sencha | Bild: Sorte wählen | Picture: Choose variety |
+| M-TEA-NEW | *Neuer Tee*, the *Kauf* section | Bild: Neuer Tee, Abschnitt Kauf | Picture: New tea, Purchase section |
+| M-CATALOG-MENU | *Katalog*, ⋮ open, *Link einfügen* | Bild: Katalog mit geöffnetem Menü | Picture: Catalog with the menu open |
+| M-CATALOG-TEA | a catalog tea, *In Sammlung aufnehmen* | Bild: Katalog-Tee mit „In Sammlung aufnehmen" | Picture: catalog tea with “Add to collection” |
+| M-ADD-SHEET | the sheet *In Sammlung aufnehmen*, *Aufnehmen* | Bild: Blatt „In Sammlung aufnehmen" | Picture: “Add to collection” sheet |
+| M-STOCK | tea detail, *Vorrat* with the cost lines | Bild: Tee, Abschnitt Vorrat | Picture: tea, Stock section |
+| M-HISTORY | the Vorrat history, a *Kauf* row | Bild: Vorrat-Verlauf mit einem Kauf | Picture: stock history with a purchase |
+| M-RECIPES | tea detail, *Rezepte* with *Rezept hinzufügen* | Bild: Tee, Abschnitt Rezepte | Picture: tea, Recipes section |
+| M-STEPS | *Rezept bearbeiten*, a step's kind menu | Bild: Schritte eines Rezepts | Picture: a recipe's steps |
+| M-RECEIVE | *Rezept übernehmen*, *Für welchen Tee?* | Bild: Rezept übernehmen | Picture: Take over recipe |
+| M-SETUP | *Neue Session*, *Gefäß* | Bild: Neue Session mit Gefäß | Picture: New session with vessel |
+| M-TIMER-MENU | Timer (dark), ⋮ open, *Schritte bearbeiten* | Bild: Timer mit geöffnetem Menü | Picture: timer with the menu open |
+| M-SAVED | *Gespeichert im Journal*, the stars | Bild: Gespeichert im Journal mit Sternen | Picture: Saved to the journal with stars |
+| M-SESSION | session page, stars and *Geschmack hinzufügen* | Bild: Session mit Bewertung und Geschmack | Picture: session with rating and taste |
+| M-STATS | Statistik › *Verbrauch*, cost per litre | Bild: Statistik, Verbrauch | Picture: Statistics, use |
+| M-SETTINGS-DATA | *Einstellungen*, *Daten & Sicherung* | Bild: Einstellungen | Picture: Settings |
+| M-DATA | *Daten & Sicherung*, *Sicherung erstellen* | Bild: Daten & Sicherung | Picture: Data & backup |
+| M-RELIABILITY | *Einstellungen*, the card *Timer-Zuverlässigkeit* with *Beheben* | Bild: Timer-Zuverlässigkeit | Picture: Timer reliability |
+| M-BANNER | Start with the banner *Der Timer ist eventuell unzuverlässig* | Bild: Start mit Hinweis zum Timer | Picture: Start with the timer notice |
+
+The timer mock-ups are drawn in `feature:onboarding`; nothing in
+`feature:brew` changes (D-137 item 24).
+
+**Entry points** (D-137 Q10, item 23): *Einstellungen* › *Hilfe* ›
+*Anleitungen* (SCR-35); the tour's „Mehr dazu" (SCR-33); a ⋮ item *Hilfe* /
+*Help*, placed last, or just above *Einstellungen* where the menu ends with it:
+
+| Screen | ⋮ *Hilfe* opens |
+|---|---|
+| SCR-08 *Meine Tees* | SCR-35, the list |
+| SCR-19 *Katalog* | 2 *Tee per Shop-Link hinzufügen* |
+| SCR-09 Tee | 3 *Vorrat und Kosten* |
+| SCR-12 *Rezept bearbeiten* (also a new recipe, whose ⋮ then holds only *Hilfe*) | 4 *Rezepte* |
+| SCR-15 *Journal* and SCR-16 Session | 6 *Journal und Geschmack* |
+| SCR-26 *Daten & Sicherung* (a new ⋮ with this one item) | 7 *Daten und Sicherung* |
+
+No setup or timer screen gets the item (rule 8). Back from SCR-36 returns to
+the screen it was opened from.
+
+**Copy** (Claude's draft, D-137; the PO reviews it with the spec). Arrows „›"
+are menu paths; *italics* are the app's own strings in that language.
+
+#### 1 Tee ohne Katalog hinzufügen / Add a tea without the catalog
+
+| # | de | en |
+|---|---|---|
+| Intro | Für Tees, die nicht im Katalog von Tee-Kontor Kiel stehen, z. B. aus einem anderen Laden oder ein Geschenk. | For teas that are not in the Tee-Kontor Kiel catalog, e.g. from another shop or a gift. |
+| 1 [M-MYTEAS-MENU] | Öffne *Sammlung* › *Meine Tees* und tippe auf ⋮ › *Tee ohne Katalog hinzufügen*. | Open *Collection* › *My teas* and tap ⋮ › *Add a tea without the catalog*. |
+| 2 [M-SORTE] | Wähle unter *Sorte wählen* die Sorte, z. B. Sencha. Passt keine, nimm *Andere / unbekannt*. Die Sorte bringt ein passendes Standardrezept mit. | Under *Choose variety*, pick the variety, e.g. Sencha. If none fits, take *Andere / unbekannt*. The variety brings a matching default recipe. |
+| 3 | Gib unter *Neuer Tee* einen Namen ein. Alles andere ist freiwillig: Herkunft, Händler, Frische und Notizen. | Enter a name under *New tea*. Everything else is optional: origin, vendor, freshness and notes. |
+| 4 [M-TEA-NEW] | Trag unter *Kauf* *Packung* und *Preis* ein, dann zählt UmamiT Vorrat und Kosten mit. | Enter *Package* and *Price* under *Purchase*, and UmamiT keeps track of stock and cost. |
+| 5 | Tippe *Speichern*. Ein Foto fügst du danach am Tee mit *+ Foto* hinzu. | Tap *Save*. Add a photo afterwards on the tea with *+ Photo*. |
+
+#### 2 Tee per Shop-Link hinzufügen / Add a tea from a shop link
+
+| # | de | en |
+|---|---|---|
+| Intro | So holst du einen Tee von Tee-Kontor Kiel, ohne den ganzen Katalog zu laden. | Get one tea from Tee-Kontor Kiel without loading the whole catalog. |
+| 1 | Öffne die Seite des Tees im Browser, tippe dort auf Teilen und wähle UmamiT. | Open the tea's page in the browser, tap Share there and pick UmamiT. |
+| 2 [M-CATALOG-MENU] | Oder kopiere den Link, tippe in *Sammlung* › *Katalog* auf ⋮ › *Link einfügen* und dann *Tee laden*. | Or copy the link, tap ⋮ › *Paste link* in *Collection* › *Catalog*, then *Load tea*. |
+| 3 [M-CATALOG-TEA] | UmamiT lädt nur diese eine Seite und zeigt den Tee. Tippe *In Sammlung aufnehmen*. | UmamiT loads only that one page and shows the tea. Tap *Add to collection*. |
+| 4 [M-ADD-SHEET] | Wähle die *Packung*, prüfe *Preis* und *Kaufdatum* und tippe *Aufnehmen*. | Pick the *Package*, check *Price* and *Purchase date*, and tap *Add*. |
+| 5 | Ist der Tee schon in deiner Sammlung, heißt das Blatt *Nachkauf erfassen* und bucht einen Nachkauf. | If the tea is already in your collection, the sheet reads *Log a repurchase* and logs one. |
+| Tipp | Den ganzen Katalog lädst du in *Katalog* mit ⋮ › *Katalog aktualisieren*. | Load the whole catalog in *Catalog* with ⋮ › *Update catalog*. |
+
+#### 3 Vorrat und Kosten / Stock and cost
+
+| # | de | en |
+|---|---|---|
+| Intro | UmamiT zieht bei jeder Session die Blätter vom Vorrat ab und rechnet aus, was dein Tee kostet. | UmamiT takes the leaf of every session off your stock and works out what your tea costs. |
+| 1 [M-STOCK] | Öffne den Tee in *Meine Tees*. Unter *Vorrat* steht, wie viel noch da ist, darunter der Preis je 100 g und was ein Liter kostet. | Open the tea in *My teas*. *Stock* shows how much is left, and below it the price per 100 g and what a liter costs. |
+| 2 | Neu gekauft? Tippe *Nachkauf erfassen* und trag Menge, Preis und Kaufdatum ein. | Bought more? Tap *Log a repurchase* and enter amount, price and purchase date. |
+| 3 | Stimmt der Bestand nicht, tippe *Bestand korrigieren* und gib an, was noch da ist. 0 g heißt: der Tee ist leer. | If the stock is off, tap *Correct stock* and enter what is left. 0 g means the tea is empty. |
+| 4 [M-HISTORY] | Verschrieben? Tippe darunter im Verlauf einen *Kauf* oder *Bestand korrigiert* an, ändere ihn und tippe *Speichern*. Die Kosten früherer Sessions rechnen sich neu. | A typo? Tap a *Purchase* or *Stock corrected* row in the history below, change it and tap *Save*. The costs of earlier sessions are worked out again. |
+| 5 | Unter *Einstellungen* › *Aufguss & Vorrat* stellst du ein, ab wann ein Tee knapp ist (*Knapp ab*) und wann die *Vorrats-Erinnerung* kommt. *Bestand abziehen* schaltet das Abziehen ab. | In *Settings* › *Brewing & stock* you set when a tea runs low (*Low from*) and when the *Stock reminder* comes. *Deduct stock* turns the deduction off. |
+
+#### 4 Rezepte / Recipes
+
+| # | de | en |
+|---|---|---|
+| Intro | Jeder Tee hat ein Standardrezept und bis zu zehn Rezepte insgesamt. | Each tea has a default recipe and up to ten recipes in all. |
+| 1 [M-RECIPES] | Öffne den Tee und tippe unter *Rezepte* auf *Rezept hinzufügen* oder auf den Stift neben einem Rezept. | Open the tea and tap *Add recipe* under *Recipes*, or the pencil next to a recipe. |
+| 2 | Leg Methode, Gefäß, Blätter, Wasser, Temperatur und Vorwarnung fest. *Als Standard* macht es zum Rezept, mit dem der Tee startet. | Set the method, vessel, leaf, water, temperature and pre-alert. *As default* makes it the recipe the tea starts with. |
+| 3 [M-STEPS] | Jeder Schritt hat Dauer und Temperatur. Über seine Art wählst du *Aufguss*, *Spülen* oder *Aufschlagen*; *Aufguss hinzufügen* hängt einen an. Dann *Speichern*. | Each step has a duration and a temperature. Its kind is *Infusion*, *Rinse* or *Whisk*; *Add infusion* adds one. Then *Save*. |
+| 4 | Teilen: in einem gespeicherten Rezept ⋮ › *Rezept teilen*. Das schickt einen Text und eine Rezeptdatei. | Sharing: in a saved recipe, ⋮ › *Share recipe*. It sends a text and a recipe file. |
+| 5 [M-RECEIVE] | Empfangen: tippe die Datei an, teile sie mit UmamiT oder nimm *Meine Tees* › ⋮ › *Rezept importieren*. Unter *Rezept übernehmen* wählst du den Tee. | Receiving: tap the file, share it with UmamiT or use *My teas* › ⋮ › *Import recipe*. In *Take over recipe* you pick the tea. |
+| Tipp | Nach einer Session bietet UmamiT *Zeiten ins Rezept übernehmen* an, wenn du anders aufgegossen hast. | After a session UmamiT offers *Save times to the recipe* when you brewed differently. |
+
+#### 5 Aufgießen im Detail / Brewing in detail
+
+| # | de | en |
+|---|---|---|
+| Intro | Vom ersten Tipp bis zum letzten Aufguss, und was du unterwegs ändern kannst. | From the first tap to the last infusion, and what you can change on the way. |
+| 1 | Tippe auf Start auf *Aufguss starten* und wähle einen Tee. Ein Tee unter *Zuletzt aufgegossen* geht direkt zum Timer, mit den Werten vom letzten Mal. | On Start, tap *Start brewing* and pick a tea. A tea under *Recently brewed* goes straight to the timer, with last time's values. |
+| 2 [M-SETUP] | Wähle in *Neue Session* das *Gefäß*: Wasser und Blätter passen sich an. *Verhältnis halten* hält das Verhältnis, wenn du eins änderst. Dann *Session starten*. | In *New session*, pick the *Vessel*: water and leaf follow. *Keep ratio* keeps the ratio when you change one. Then *Start session*. |
+| 3 | Im Timer: *Start*, nach dem Alarm *Abgegossen*. Der nächste Aufguss wartet, bis du ihn startest. | In the timer: *Start*, and after the alarm *Poured*. The next infusion waits until you start it. |
+| 4 [M-TIMER-MENU] | Unterwegs ändern: ⋮ › *Schritte bearbeiten* oder *Weiterer Aufguss*. Am Ende speichert *Session beenden* alles im Journal. | Change it on the way: ⋮ › *Edit steps* or *Another infusion*. At the end, *End session* saves it all to the journal. |
+| 5 [M-TWO] | Zwei Timer: starte währenddessen eine zweite Session oder den *Schnelltimer*. Die Zeile unter dem Bild zeigt den anderen Timer, ein Tipp wechselt hin. | Two timers: meanwhile, start a second session or the *Quick timer*. The row below the picture shows the other timer; a tap switches to it. |
+| 6 | Der *Schnelltimer* auf Start braucht keinen Tee: Dauer antippen, *Start*. | The *Quick timer* on Start needs no tea: tap the duration, *Start*. |
+| Tipp | Deine Gefäße pflegst du unter *Einstellungen* › *Teegeschirr*. | Manage your vessels in *Settings* › *Teaware*. |
+
+#### 6 Journal und Geschmack / Journal and taste
+
+| # | de | en |
+|---|---|---|
+| Intro | Jede Session landet von selbst im Journal. So hältst du fest, wie sie war. | Every session lands in the journal by itself. This is how you note how it was. |
+| 1 [M-SAVED] | Nach *Session beenden* erscheint *Gespeichert im Journal*: vergib Sterne für *Tee* und *Zubereitung*. | After *End session*, *Saved to the journal* appears: give stars for *Tea* and *Brewing*. |
+| 2 | Schon im Timer öffnet die Schaltfläche „Geschmack · 1. Aufguss" nach dem Abgießen die Regler für diesen Aufguss. | Already in the timer, the button “Taste · Infusion 1” opens the sliders for that infusion after pouring off. |
+| 3 [M-SESSION] | Später öffnest du die Session im *Journal*. Mit *Geschmack hinzufügen* stellst du die Regler pro Aufguss ein, mit *+ Beschreibung* wählst du passende Begriffe. | Later, open the session in the *Journal*. *Add taste* sets the sliders per infusion; *+ Descriptor* adds matching words. |
+| 4 | Waren deine Zeiten anders als im Rezept? *Zeiten ins Rezept übernehmen* speichert sie. | Were your times different from the recipe? *Save times to the recipe* keeps them. |
+| 5 | ⋮ › *Bearbeiten* korrigiert Datum, Mengen und Zeiten; der Vorrat passt sich an. | ⋮ › *Edit* corrects date, amounts and times; the stock follows. |
+| 6 | *So nochmal aufgießen* startet eine neue Session mit genau diesen Werten. | *Brew this again* starts a new session with exactly these values. |
+
+#### 7 Daten und Sicherung / Data and backup
+
+| # | de | en |
+|---|---|---|
+| Intro | Deine Daten liegen nur auf dem Handy. Eine Sicherung bringt sie auf ein neues Gerät oder zurück. | Your data stays on your phone. A backup takes it to a new phone or brings it back. |
+| 1 [M-SETTINGS-DATA] | Öffne *Einstellungen* › *Daten & Sicherung*. | Open *Settings* › *Data & backup*. |
+| 2 [M-DATA] | *Sicherung erstellen* schreibt Tees, Journal, Fotos und Einstellungen in eine Datei. Du wählst, wo sie liegt, z. B. in deiner Cloud. | *Create backup* writes teas, journal, photos and settings to one file. You choose where it goes, e.g. your cloud. |
+| 3 | *An Sicherung erinnern* meldet sich, wenn seit der letzten Sicherung viele Sessions dazugekommen sind. | *Remind me to back up* speaks up when many sessions have been added since the last backup. |
+| 4 | *Sicherung einspielen* ersetzt alle Daten durch die Datei; du bestätigst mit ERSETZEN. Eine Weile danach geht noch *Import rückgängig machen*. | *Restore backup* replaces all data with the file; you confirm with REPLACE. For a while afterwards, *Undo restore* is still there. |
+| 5 | *Journal als CSV* gibt dein Journal als Tabelle aus. | *Journal as CSV* exports your journal as a table. |
+| 6 | *Alle Daten löschen* setzt die App zurück, bestätigt mit LÖSCHEN. Sichere vorher! | *Delete all data* resets the app, confirmed with DELETE. Back up first! |
+| Tipp | Während ein Timer läuft, gehen Einspielen und Löschen nicht. | While a timer runs, restoring and deleting are not possible. |
+
+#### 8 Zuverlässiger Alarm / A reliable alarm
+
+| # | de | en |
+|---|---|---|
+| Intro | Damit der Alarm auch bei gesperrtem Bildschirm und nach langem Warten klingelt. | So the alarm rings even with the screen locked and after a long wait. |
+| 1 [M-RELIABILITY] | Oben in *Einstellungen* zeigt *Timer-Zuverlässigkeit*, ob alles bereit ist. Bei einem markierten Punkt öffnet *Beheben* die passende Systemseite. | At the top of *Settings*, *Timer reliability* shows whether all is set. For a marked item, *Fix* opens the right system page. |
+| 2 | Wichtig sind *Benachrichtigungen*, *Vollbild-Alarm*, *Akku: Uneingeschränkt* und *Exakte Alarme*. | What matters: *Notifications*, *Full-screen alarm*, *Battery: Unrestricted* and *Exact alarms*. |
+| 3 | Nach einem App-Update schaltet Android den Vollbild-Alarm oft ab. UmamiT fragt dann mit *Vollbild-Alarm wieder erlauben*: tippe *Erlauben*. | After an app update Android often turns the full-screen alarm off. UmamiT then asks with *Allow the full-screen alarm again*: tap *Allow*. |
+| 4 [M-BANNER] | Steht auf Start *Der Timer ist eventuell unzuverlässig*, tippe *Beheben*. | If Start shows *The timer may be unreliable*, tap *Fix*. |
+| 5 | Unter *Timer & Alarm* spielt *Alarm testen* Vorwarnung und Alarm. *Bei „Nicht stören" klingeln* lässt den Alarm auch bei „Nicht stören" durch. | In *Timer & alarm*, *Test alarm* plays the pre-alert and the alarm. *Ring under “Do Not Disturb”* lets the alarm through in Do Not Disturb. |
+| Tipp | Auf Samsung-Handys schalte das automatische Neustarten über Nacht aus (Gerätewartung): nach einem Neustart klingelt der Alarm erst nach dem Entsperren. | On Samsung phones, turn off the automatic overnight restart (device care): after a restart the alarm rings only once the phone is unlocked. |
 
 ### SCR-27 Über
 

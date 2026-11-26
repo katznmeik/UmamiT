@@ -222,8 +222,8 @@ SCR-36): *Tee ohne Katalog*, *Tee per Shop-Link*, *Vorrat und Kosten*,
 *Rezepte*, *Aufgießen im Detail*, *Journal und Geschmack*, *Daten und
 Sicherung*, *Zuverlässiger Alarm*. Opened from *Einstellungen* › *Hilfe* ›
 *Anleitungen*, from the tour's „Mehr dazu" (ONB-07) and from the ⋮ item
-*Hilfe* on Sammlung, Tee, Rezept bearbeiten, Journal, Session and Daten &
-Sicherung (03 SCR-36 „Entry points").
+*Hilfe* on *Meine Tees*, *Katalog*, Tee, Rezept bearbeiten, Journal, Session and
+Daten & Sicherung (03 SCR-36 „Entry points").
 - AC1: every in-app name quoted in a step is the string the app shows in
   that language (a unit test checks them against the resources).
 - AC2: the mock-ups use invented demo data only, never shop texts or photos
