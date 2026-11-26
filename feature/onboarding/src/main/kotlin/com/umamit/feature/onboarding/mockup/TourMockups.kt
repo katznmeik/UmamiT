@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -92,6 +93,15 @@ internal fun StartMockup() {
  */
 @Composable
 internal fun TwoTimersMockup() {
+    TimerMockupScreen(otherTimerRow = true)
+}
+
+/**
+ * The timer screen of M-TWO and M-TIMER-MENU on its own surface: the band, ← and ⋮, the seal, the tea and the ring;
+ * [otherTimerRow] adds the other timer's row (marked), [overlay] draws on top (an open menu).
+ */
+@Composable
+internal fun TimerMockupScreen(otherTimerRow: Boolean, overlay: @Composable BoxScope.() -> Unit = {}) {
     TimerTheme(reduceMotion = UmamiTheme.reduceMotion) {
         MockupScreen {
             Box(Modifier.fillMaxSize()) {
@@ -103,14 +113,15 @@ internal fun TwoTimersMockup() {
                     MockupIcon(UmamiIcons.ArrowBack)
                     MockupIcon(UmamiIcons.MoreVert)
                 }
-                TimerColumn()
+                TimerColumn(otherTimerRow)
+                overlay()
             }
         }
     }
 }
 
 @Composable
-private fun TimerColumn() {
+private fun TimerColumn(otherTimerRow: Boolean) {
     val tea = MockupDemo.morgentau
     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(SEAL_TOP))
@@ -124,23 +135,7 @@ private fun TimerColumn() {
             Icon(painterResource(UmamiIcons.Leaf), null, tint = tea.color())
         }
         MockupGap(height = UmamiSpacing.XSmall)
-        Row(
-            Modifier.mockupMarker().padding(horizontal = UmamiSpacing.XSmall, vertical = UmamiSpacing.XXSmall),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
-        ) {
-            Icon(painterResource(UmamiIcons.Timer), null, Modifier.size(18.dp), MaterialTheme.colorScheme.onSurface)
-            Text(
-                "${stringResource(DsR.string.ds_choose_timer_quick)}  ${MockupDemo.steepTime()}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                stringResource(R.string.mockup_timer_action_pause),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
+        if (otherTimerRow) OtherTimerRow()
         MockupGap(height = UmamiSpacing.XSmall)
         Text(
             stringResource(tea.name),
@@ -163,7 +158,29 @@ private fun TimerColumn() {
     }
 }
 
-/** M-MYTEAS-MENU: *Sammlung* › *Meine Tees* with the demo teas and ⋮ open, *Tee ohne Katalog hinzufügen* marked. */
+/** The other timer's row under the band (marked): the quick timer's clock and *Pause*. */
+@Composable
+private fun OtherTimerRow() {
+    Row(
+        Modifier.mockupMarker().padding(horizontal = UmamiSpacing.XSmall, vertical = UmamiSpacing.XXSmall),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
+    ) {
+        Icon(painterResource(UmamiIcons.Timer), null, Modifier.size(18.dp), MaterialTheme.colorScheme.onSurface)
+        Text(
+            "${stringResource(DsR.string.ds_choose_timer_quick)}  ${MockupDemo.steepTime()}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            stringResource(R.string.mockup_timer_action_pause),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+/** M-MYTEAS-MENU:*Sammlung* › *Meine Tees* with the demo teas and ⋮ open, *Tee ohne Katalog hinzufügen* marked. */
 @Composable
 internal fun MyTeasMenuMockup() {
     Box(Modifier.fillMaxSize()) {

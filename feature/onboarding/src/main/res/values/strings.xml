@@ -105,7 +105,158 @@
     <string name="mockup_description_start">Bild: Start mit „Aufguss starten“</string>
     <string name="mockup_description_two">Bild: Timer mit der Zeile zum zweiten Timer</string>
     <string name="mockup_description_my_teas_menu">Bild: Meine Tees mit geöffnetem Menü</string>
+    <string name="mockup_description_sorte">Bild: Sorte wählen</string>
+    <string name="mockup_description_tea_new">Bild: Neuer Tee, Abschnitt Kauf</string>
+    <string name="mockup_description_catalog_menu">Bild: Katalog mit geöffnetem Menü</string>
+    <string name="mockup_description_catalog_tea">Bild: Katalog-Tee mit „In Sammlung aufnehmen“</string>
+    <string name="mockup_description_add_sheet">Bild: Blatt „In Sammlung aufnehmen“</string>
+    <string name="mockup_description_stock">Bild: Tee, Abschnitt Vorrat</string>
+    <string name="mockup_description_history">Bild: Vorrat-Verlauf mit einem Kauf</string>
+    <string name="mockup_description_recipes">Bild: Tee, Abschnitt Rezepte</string>
+    <string name="mockup_description_steps">Bild: Schritte eines Rezepts</string>
+    <string name="mockup_description_receive">Bild: Rezept übernehmen</string>
+    <string name="mockup_description_setup">Bild: Neue Session mit Gefäß</string>
+    <string name="mockup_description_timer_menu">Bild: Timer mit geöffnetem Menü</string>
+    <string name="mockup_description_saved">Bild: Gespeichert im Journal mit Sternen</string>
     <string name="mockup_description_session">Bild: Session mit Bewertung und Geschmack</string>
     <string name="mockup_description_stats">Bild: Statistik, Verbrauch</string>
+    <string name="mockup_description_settings_data">Bild: Einstellungen</string>
     <string name="mockup_description_data">Bild: Daten &amp; Sicherung</string>
+    <string name="mockup_description_reliability">Bild: Timer-Zuverlässigkeit</string>
+    <string name="mockup_description_banner">Bild: Start mit Hinweis zum Timer</string>
+
+    <!-- Anleitungen (SCR-35, SCR-36, ONB-08, D-137): the screens' own strings. -->
+    <string name="howto_list_title">Anleitungen</string>
+    <string name="howto_step_description" tools:ignore="PluralsCandidate">Schritt %1$d von %2$d: %3$s</string>
+    <string name="howto_tip_label">Tipp</string>
+
+    <!-- The eight topics, word for word from 03 SCR-35/SCR-36 (italics are the plain text). -->
+    <!-- Topic 1. -->
+    <string name="howto_1_title">Tee ohne Katalog hinzufügen</string>
+    <string name="howto_1_line">Für Tees aus anderen Läden oder Geschenke</string>
+    <string name="howto_1_intro">Für Tees, die nicht im Katalog von Tee-Kontor Kiel stehen, z. B. aus einem anderen Laden oder ein Geschenk.</string>
+    <string name="howto_1_step1">Öffne Sammlung › Meine Tees und tippe auf ⋮ › Tee ohne Katalog hinzufügen.</string>
+    <string name="howto_1_step2">Wähle unter Sorte wählen die Sorte, z. B. Sencha. Passt keine, nimm Andere / unbekannt. Die Sorte bringt ein passendes Standardrezept mit.</string>
+    <string name="howto_1_step3">Gib unter Neuer Tee einen Namen ein. Alles andere ist freiwillig: Herkunft, Händler, Frische und Notizen.</string>
+    <string name="howto_1_step4">Trag unter Kauf Packung und Preis ein, dann zählt UmamiT Vorrat und Kosten mit.</string>
+    <string name="howto_1_step5">Tippe Speichern. Ein Foto fügst du danach am Tee mit + Foto hinzu.</string>
+    <!-- Topic 2. -->
+    <string name="howto_2_title">Tee per Shop-Link hinzufügen</string>
+    <string name="howto_2_line">Einen Tee von Tee-Kontor Kiel direkt laden</string>
+    <string name="howto_2_intro">So holst du einen Tee von Tee-Kontor Kiel, ohne den ganzen Katalog zu laden.</string>
+    <string name="howto_2_step1">Öffne die Seite des Tees im Browser, tippe dort auf Teilen und wähle UmamiT.</string>
+    <string name="howto_2_step2">Oder kopiere den Link, tippe in Sammlung › Katalog auf ⋮ › Link einfügen und dann Tee laden.</string>
+    <string name="howto_2_step3">UmamiT lädt nur diese eine Seite und zeigt den Tee. Tippe In Sammlung aufnehmen.</string>
+    <string name="howto_2_step4">Wähle die Packung, prüfe Preis und Kaufdatum und tippe Aufnehmen.</string>
+    <string name="howto_2_step5">Ist der Tee schon in deiner Sammlung, heißt das Blatt Nachkauf erfassen und bucht einen Nachkauf.</string>
+    <string name="howto_2_tip">Den ganzen Katalog lädst du in Katalog mit ⋮ › Katalog aktualisieren.</string>
+    <!-- Topic 3. -->
+    <string name="howto_3_title">Vorrat und Kosten</string>
+    <string name="howto_3_line">Käufe, Bestand und was ein Liter kostet</string>
+    <string name="howto_3_intro">UmamiT zieht bei jeder Session die Blätter vom Vorrat ab und rechnet aus, was dein Tee kostet.</string>
+    <string name="howto_3_step1">Öffne den Tee in Meine Tees. Unter Vorrat steht, wie viel noch da ist, darunter der Preis je 100 g und was ein Liter kostet.</string>
+    <string name="howto_3_step2">Neu gekauft? Tippe Nachkauf erfassen und trag Menge, Preis und Kaufdatum ein.</string>
+    <string name="howto_3_step3">Stimmt der Bestand nicht, tippe Bestand korrigieren und gib an, was noch da ist. 0 g heißt: der Tee ist leer.</string>
+    <string name="howto_3_step4">Verschrieben? Tippe darunter im Verlauf einen Kauf oder Bestand korrigiert an, ändere ihn und tippe Speichern. Die Kosten früherer Sessions rechnen sich neu.</string>
+    <string name="howto_3_step5">Unter Einstellungen › Aufguss &amp; Vorrat stellst du ein, ab wann ein Tee knapp ist (Knapp ab) und wann die Vorrats-Erinnerung kommt. Bestand abziehen schaltet das Abziehen ab.</string>
+    <!-- Topic 4. -->
+    <string name="howto_4_title">Rezepte</string>
+    <string name="howto_4_line">Eigene Rezepte, Schritte, teilen und übernehmen</string>
+    <string name="howto_4_intro">Jeder Tee hat ein Standardrezept und bis zu zehn Rezepte insgesamt.</string>
+    <string name="howto_4_step1">Öffne den Tee und tippe unter Rezepte auf Rezept hinzufügen oder auf den Stift neben einem Rezept.</string>
+    <string name="howto_4_step2">Leg Methode, Gefäß, Blätter, Wasser, Temperatur und Vorwarnung fest. Als Standard macht es zum Rezept, mit dem der Tee startet.</string>
+    <string name="howto_4_step3">Jeder Schritt hat Dauer und Temperatur. Über seine Art wählst du Aufguss, Spülen oder Aufschlagen; Aufguss hinzufügen hängt einen an. Dann Speichern.</string>
+    <string name="howto_4_step4">Teilen: in einem gespeicherten Rezept ⋮ › Rezept teilen. Das schickt einen Text und eine Rezeptdatei.</string>
+    <string name="howto_4_step5">Empfangen: tippe die Datei an, teile sie mit UmamiT oder nimm Meine Tees › ⋮ › Rezept importieren. Unter Rezept übernehmen wählst du den Tee.</string>
+    <string name="howto_4_tip">Nach einer Session bietet UmamiT Zeiten ins Rezept übernehmen an, wenn du anders aufgegossen hast.</string>
+    <!-- Topic 5. -->
+    <string name="howto_5_title">Aufgießen im Detail</string>
+    <string name="howto_5_line">Gefäß, Schritte ändern, zwei Timer, Schnelltimer</string>
+    <string name="howto_5_intro">Vom ersten Tipp bis zum letzten Aufguss, und was du unterwegs ändern kannst.</string>
+    <string name="howto_5_step1">Tippe auf Start auf Aufguss starten und wähle einen Tee. Ein Tee unter Zuletzt aufgegossen geht direkt zum Timer, mit den Werten vom letzten Mal.</string>
+    <string name="howto_5_step2">Wähle in Neue Session das Gefäß: Wasser und Blätter passen sich an. Verhältnis halten hält das Verhältnis, wenn du eins änderst. Dann Session starten.</string>
+    <string name="howto_5_step3">Im Timer: Start, nach dem Alarm Abgegossen. Der nächste Aufguss wartet, bis du ihn startest.</string>
+    <string name="howto_5_step4">Unterwegs ändern: ⋮ › Schritte bearbeiten oder Weiterer Aufguss. Am Ende speichert Session beenden alles im Journal.</string>
+    <string name="howto_5_step5">Zwei Timer: starte währenddessen eine zweite Session oder den Schnelltimer. Die Zeile unter dem Bild zeigt den anderen Timer, ein Tipp wechselt hin.</string>
+    <string name="howto_5_step6">Der Schnelltimer auf Start braucht keinen Tee: Dauer antippen, Start.</string>
+    <string name="howto_5_tip">Deine Gefäße pflegst du unter Einstellungen › Teegeschirr.</string>
+    <!-- Topic 6. -->
+    <string name="howto_6_title">Journal und Geschmack</string>
+    <string name="howto_6_line">Bewerten, Geschmack, Zeiten ins Rezept</string>
+    <string name="howto_6_intro">Jede Session landet von selbst im Journal. So hältst du fest, wie sie war.</string>
+    <string name="howto_6_step1">Nach Session beenden erscheint Gespeichert im Journal: vergib Sterne für Tee und Zubereitung.</string>
+    <string name="howto_6_step2">Schon im Timer öffnet die Schaltfläche „Geschmack · 1. Aufguss“ nach dem Abgießen die Regler für diesen Aufguss.</string>
+    <string name="howto_6_step3">Später öffnest du die Session im Journal. Mit Geschmack hinzufügen stellst du die Regler pro Aufguss ein, mit + Beschreibung wählst du passende Begriffe.</string>
+    <string name="howto_6_step4">Waren deine Zeiten anders als im Rezept? Zeiten ins Rezept übernehmen speichert sie.</string>
+    <string name="howto_6_step5">⋮ › Bearbeiten korrigiert Datum, Mengen und Zeiten; der Vorrat passt sich an.</string>
+    <string name="howto_6_step6">So nochmal aufgießen startet eine neue Session mit genau diesen Werten.</string>
+    <!-- Topic 7. -->
+    <string name="howto_7_title">Daten und Sicherung</string>
+    <string name="howto_7_line">Sichern, einspielen, CSV, alles löschen</string>
+    <string name="howto_7_intro">Deine Daten liegen nur auf dem Handy. Eine Sicherung bringt sie auf ein neues Gerät oder zurück.</string>
+    <string name="howto_7_step1">Öffne Einstellungen › Daten &amp; Sicherung.</string>
+    <string name="howto_7_step2">Sicherung erstellen schreibt Tees, Journal, Fotos und Einstellungen in eine Datei. Du wählst, wo sie liegt, z. B. in deiner Cloud.</string>
+    <string name="howto_7_step3">An Sicherung erinnern meldet sich, wenn seit der letzten Sicherung viele Sessions dazugekommen sind.</string>
+    <string name="howto_7_step4">Sicherung einspielen ersetzt alle Daten durch die Datei; du bestätigst mit ERSETZEN. Eine Weile danach geht noch Import rückgängig machen.</string>
+    <string name="howto_7_step5">Journal als CSV gibt dein Journal als Tabelle aus.</string>
+    <string name="howto_7_step6">Alle Daten löschen setzt die App zurück, bestätigt mit LÖSCHEN. Sichere vorher!</string>
+    <string name="howto_7_tip">Während ein Timer läuft, gehen Einspielen und Löschen nicht.</string>
+    <!-- Topic 8. -->
+    <string name="howto_8_title">Zuverlässiger Alarm</string>
+    <string name="howto_8_line">Damit der Alarm immer klingelt</string>
+    <string name="howto_8_intro">Damit der Alarm auch bei gesperrtem Bildschirm und nach langem Warten klingelt.</string>
+    <string name="howto_8_step1">Oben in Einstellungen zeigt Timer-Zuverlässigkeit, ob alles bereit ist. Bei einem markierten Punkt öffnet Beheben die passende Systemseite.</string>
+    <string name="howto_8_step2">Wichtig sind Benachrichtigungen, Vollbild-Alarm, Akku: Uneingeschränkt und Exakte Alarme.</string>
+    <string name="howto_8_step3">Nach einem App-Update schaltet Android den Vollbild-Alarm oft ab. UmamiT fragt dann mit Vollbild-Alarm wieder erlauben: tippe Erlauben.</string>
+    <string name="howto_8_step4">Steht auf Start Der Timer ist eventuell unzuverlässig, tippe Beheben.</string>
+    <string name="howto_8_step5">Unter Timer &amp; Alarm spielt Alarm testen Vorwarnung und Alarm. Bei „Nicht stören“ klingeln lässt den Alarm auch bei „Nicht stören“ durch.</string>
+    <string name="howto_8_tip">Auf Samsung-Handys schalte das automatische Neustarten über Nacht aus (Gerätewartung): nach einem Neustart klingelt der Alarm erst nach dem Entsperren.</string>
+
+    <!-- More copies for the Anleitungen's mock-ups (SCR-36), named mockup_<source key>. -->
+    <string name="mockup_sorte_picker_title">Sorte wählen</string>
+    <string name="mockup_sorte_other" translatable="false">Andere / unbekannt</string>
+    <string name="mockup_tea_editor_title_new">Neuer Tee</string>
+    <string name="mockup_tea_editor_section_purchase">Kauf</string>
+    <string name="mockup_tea_editor_package">Packung</string>
+    <string name="mockup_tea_editor_price">Preis</string>
+    <string name="mockup_collection_catalog_paste_link">Link einfügen</string>
+    <string name="mockup_catalog_tea_add">In Sammlung aufnehmen</string>
+    <string name="mockup_catalog_add_title">In Sammlung aufnehmen</string>
+    <string name="mockup_catalog_add_package">Packung</string>
+    <string name="mockup_catalog_add_price">Preis</string>
+    <string name="mockup_catalog_add_date">Kaufdatum</string>
+    <string name="mockup_catalog_add_save">Aufnehmen</string>
+    <string name="mockup_collection_tea_cost_price">%1$s € / 100 g</string>
+    <string name="mockup_collection_tea_section_stock">Vorrat</string>
+    <string name="mockup_collection_tea_stock">%1$s g übrig</string>
+    <string name="mockup_collection_tea_stock_purchase">Nachkauf erfassen</string>
+    <string name="mockup_collection_tea_stock_correct">Bestand korrigieren</string>
+    <string name="mockup_collection_tea_cost_recipe">ca. %1$s € pro Liter (Rezept)</string>
+    <string name="mockup_collection_tea_history_purchase">Kauf</string>
+    <string name="mockup_collection_tea_history_correction">Bestand korrigiert</string>
+    <string name="mockup_collection_tea_history_brew">Aufgegossen</string>
+    <string name="mockup_collection_tea_section_recipes">Rezepte</string>
+    <string name="mockup_collection_tea_recipe_add">Rezept hinzufügen</string>
+    <string name="mockup_collection_tea_recipe_default">Standard</string>
+    <string name="mockup_recipe_editor_title_edit">Rezept bearbeiten</string>
+    <string name="mockup_recipe_step_kind_infusion">Aufguss</string>
+    <string name="mockup_recipe_step_kind_rinse">Spülen</string>
+    <string name="mockup_recipe_step_kind_whisk">Aufschlagen</string>
+    <string name="mockup_recipe_step_add">Aufguss hinzufügen</string>
+    <string name="mockup_receive_recipe_title">Rezept übernehmen</string>
+    <string name="mockup_receive_recipe_which_tea">Für welchen Tee?</string>
+    <string name="mockup_brew_setup_title">Neue Session</string>
+    <string name="mockup_brew_setup_vessel">Gefäß</string>
+    <string name="mockup_brew_setup_leaf">Blätter</string>
+    <string name="mockup_brew_setup_water">Wasser</string>
+    <string name="mockup_brew_setup_start">Session starten</string>
+    <string name="mockup_brew_setup_ratio_lock">Verhältnis halten</string>
+    <string name="mockup_brew_timer_menu_edit_steps">Schritte bearbeiten</string>
+    <string name="mockup_brew_timer_menu_add_step">Weiterer Aufguss</string>
+    <string name="mockup_journal_saved_title">Gespeichert im Journal</string>
+    <string name="mockup_settings_title">Einstellungen</string>
+    <string name="mockup_settings_data_backup">Daten &amp; Sicherung</string>
+    <string name="mockup_settings_reliability_title">Timer-Zuverlässigkeit</string>
+    <string name="mockup_settings_fix">Beheben</string>
+    <string name="mockup_home_reliability">Der Timer ist eventuell unzuverlässig</string>
 </resources>
