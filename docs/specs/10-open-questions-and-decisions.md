@@ -408,7 +408,9 @@ personal data or shop content).
 **The T3 milestone review's findings (rc session, 2026-11-26).** No code defect; the copy of SCR-33/35/36 matches 03 in both languages (212 cells). Two spec deviations are fixed: M-SAVED's 5th star was clipped, so the demo ratings did not show (label width); the SCR-36 top-bar title was cut to one line at font 2.0 (it now wraps, with a font-2.0 golden of a long title). Four points the spec left open went to the PO as options · *Accepted (PO, 2026-11-26)*:
 
 - **Step badge:** outside the ring, left of the spot at its vertical centre, inside the frame; it covered text in most Anleitung mock-ups (e.g. M-CATALOG-TEA's price).
-- **Drawn ⋮ menu:** narrower, at the right as on the phone; the selected segment stays readable with its ✓ (M-MYTEAS-MENU, M-CATALOG-MENU, which showed *Katalog* hidden).
+- **Drawn ⋮ menu:** narrower, at the right as on the phone; the selected segment stays readable with its ✓ (M-MYTEAS-MENU, M-CATALOG-MENU, which showed *Katalog* hidden). As built (fix round, asked again and accepted by the PO): anchored under the ⋮ the menu still hid *Katalog*, so on *Sammlung* it opens at the right just below the segment row; at most 190 dp wide, a long item wraps; one shared drawn menu (`MockupOverflowMenu`) for all mock-ups.
+- **Badge, as built:** left of the ring, else right, else above the spot's right end; full-width rows (M-SAVED, M-SESSION) put it below (`mockupMarker(badgeBelow = true)`).
+- **Top bar of SCR-36:** the title wraps up to three lines and the bar grows (`HowTo_ShopLink_*_font2_0`).
 - **Back from „Mehr dazu":** returns to the same scroll position, not only the same page.
 - **M-HISTORY:** the purchase reads „+100 g · 12,40 €", matching the demo price.
 

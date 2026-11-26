@@ -2390,8 +2390,9 @@ title, the rows that matter and blank bars for the rest. Built from
 otherwise (06 §3). The **marker** is a matcha ring around the spot, plus the
 step's number badge in an Anleitung, set **outside the ring** (left of the
 spot at its vertical centre, kept inside the frame) so it covers no text. A
-drawn ⋮ menu sits at the **right**, as on the phone, and leaves the selected
-*Meine Tees* / *Katalog* segment (with its ✓) readable (D-137 rc-session
+drawn ⋮ menu sits at the **right**, as on the phone; on *Sammlung* it opens
+just below the segment row, so the selected *Meine Tees* / *Katalog* segment
+(with its ✓) stays readable (D-137 rc-session
 review answers). Static, not tappable, follows *Design*
 and the app language. One TalkBack description per mock-up (table below).
 
