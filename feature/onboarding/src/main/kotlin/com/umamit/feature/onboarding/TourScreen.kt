@@ -190,7 +190,7 @@ private fun TourArtImage(art: TourArt) {
 
 /** A3 as on Start: edge to edge, cropped to its band, the paper matched to the theme (no text on it). */
 @Composable
-private fun BandImage(@DrawableRes res: Int, ratio: Float) {
+internal fun BandImage(@DrawableRes res: Int, ratio: Float) {
     Image(
         painter = painterResource(res),
         contentDescription = null,
@@ -215,7 +215,7 @@ private fun VignetteImage(@DrawableRes res: Int) {
  * night one, so on the light theme it becomes ink on washi through a colour matrix (03 §3.1), as on the timer.
  */
 @Composable
-private fun TimerBandImage() {
+internal fun TimerBandImage() {
     val background = MaterialTheme.colorScheme.background
     val ink = MaterialTheme.colorScheme.onSurface
     val filter = if (UmamiTheme.isDark) null else remember(background, ink) { inkOnWashi(background, ink) }
@@ -277,7 +277,7 @@ private val DOT_SIZE = 8.dp
 private val DOT_GAP = 8.dp
 
 /** A3's band as on Start: 3.43 : 1 (1536 × 448). */
-private const val HOME_HEADER_RATIO = 3.43f
+internal const val HOME_HEADER_RATIO = 3.43f
 
 /** A13's band, a little taller than A3's: 2 : 1 of the 1536 × 822 painting, centre-cropped. */
 private const val TIMER_BAND_RATIO = 2f

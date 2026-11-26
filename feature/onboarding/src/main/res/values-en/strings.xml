@@ -54,4 +54,42 @@
     <string name="tour_skip">Skip</string>
     <string name="tour_done">Done</string>
     <string name="tour_page_of" tools:ignore="PluralsCandidate">Page %1$d of %2$d</string>
+    <!-- Mock-ups (SCR-36 „Mock-ups", D-137 item 19). -->
+    <string name="mockup_home_start_brew">Start brewing</string>
+    <string name="mockup_home_start_brew_subtitle">Pick a tea and go</string>
+    <string name="mockup_home_recent">Recently brewed</string>
+    <string name="mockup_timer_text_running">Steeping …</string>
+    <string name="mockup_timer_action_pause">Pause</string>
+    <!-- The timer's line under the tea: the temperature, then feature:brew's brew_timer_step_label for an infusion. -->
+    <string name="mockup_timer_temperature_step" tools:ignore="PluralsCandidate">%1$s · Infusion %2$d of %3$d</string>
+    <string name="mockup_collection_title">Collection</string>
+    <string name="mockup_collection_segment_my_teas">My teas</string>
+    <string name="mockup_collection_segment_catalog">Catalog</string>
+    <string name="mockup_my_teas_add_without_catalog">Add a tea without the catalog</string>
+    <string name="mockup_my_teas_stock_left">%1$s g left</string>
+    <string name="mockup_session_vessel">Vessel</string>
+    <string name="mockup_session_leaf">Leaf</string>
+    <string name="mockup_session_water">Water</string>
+    <string name="mockup_session_rating">Rating</string>
+    <string name="mockup_journal_rating_tea">Tea</string>
+    <string name="mockup_journal_rating_brewing">Brewing</string>
+    <string name="mockup_session_taste">Taste</string>
+    <string name="mockup_session_taste_add">Add taste</string>
+    <string name="mockup_stats_title">Your tea journey</string>
+    <string name="mockup_stats_tab_overview">Overview</string>
+    <string name="mockup_stats_tab_ratings">Ratings</string>
+    <string name="mockup_stats_tab_consumption">Consumption</string>
+    <string name="mockup_stats_consumption_section_drunk">Drunk</string>
+    <string name="mockup_stats_consumption_cost_per_liter">Avg. %1$s € per liter</string>
+    <string name="mockup_backup_title">Data &amp; backup</string>
+    <string name="mockup_backup_section_backup">Backup</string>
+    <string name="mockup_backup_create">Create backup</string>
+
+    <!-- TalkBack, one description per mock-up (SCR-36 table). -->
+    <string name="mockup_description_start">Picture: Start with “Start brewing”</string>
+    <string name="mockup_description_two">Picture: timer with the row for the second timer</string>
+    <string name="mockup_description_my_teas_menu">Picture: My teas with the menu open</string>
+    <string name="mockup_description_session">Picture: session with rating and taste</string>
+    <string name="mockup_description_stats">Picture: Statistics, use</string>
+    <string name="mockup_description_data">Picture: Data &amp; backup</string>
 </resources>

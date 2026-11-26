@@ -60,4 +60,52 @@
     <string name="tour_skip">Überspringen</string>
     <string name="tour_done">Fertig</string>
     <string name="tour_page_of" tools:ignore="PluralsCandidate">Seite %1$d von %2$d</string>
+    <!-- Mock-ups (SCR-36 „Mock-ups", D-137 item 19): copies of other modules' strings, named mockup_<source key>, so
+         the mock-ups show the real names without depending on those modules (06 §3). Keep them equal to the source. -->
+    <string name="mockup_home_start_brew">Aufguss starten</string>
+    <string name="mockup_home_start_brew_subtitle">Tee wählen und los</string>
+    <string name="mockup_home_recent">Zuletzt aufgegossen</string>
+    <string name="mockup_timer_text_running">Zieht …</string>
+    <string name="mockup_timer_action_pause">Pause</string>
+    <!-- The timer's line under the tea: the temperature, then feature:brew's brew_timer_step_label for an infusion. -->
+    <string name="mockup_timer_temperature_step" tools:ignore="PluralsCandidate">%1$s · Aufguss %2$d von %3$d</string>
+    <string name="mockup_collection_title">Sammlung</string>
+    <string name="mockup_collection_segment_my_teas">Meine Tees</string>
+    <string name="mockup_collection_segment_catalog">Katalog</string>
+    <string name="mockup_my_teas_add_without_catalog">Tee ohne Katalog hinzufügen</string>
+    <string name="mockup_my_teas_stock_left">%1$s g übrig</string>
+    <string name="mockup_session_vessel">Gefäß</string>
+    <string name="mockup_session_leaf">Blätter</string>
+    <string name="mockup_session_water">Wasser</string>
+    <string name="mockup_session_rating">Bewertung</string>
+    <string name="mockup_journal_rating_tea">Tee</string>
+    <string name="mockup_journal_rating_brewing">Zubereitung</string>
+    <string name="mockup_session_taste">Geschmack</string>
+    <string name="mockup_session_taste_add">Geschmack hinzufügen</string>
+    <string name="mockup_stats_title">Deine Tee-Reise</string>
+    <string name="mockup_stats_tab_overview">Überblick</string>
+    <string name="mockup_stats_tab_ratings">Bewertungen</string>
+    <string name="mockup_stats_tab_consumption">Verbrauch</string>
+    <string name="mockup_stats_consumption_section_drunk">Getrunken</string>
+    <string name="mockup_stats_consumption_cost_per_liter">Ø %1$s € pro Liter</string>
+    <string name="mockup_backup_title">Daten &amp; Sicherung</string>
+    <string name="mockup_backup_section_backup">Sicherung</string>
+    <string name="mockup_backup_create">Sicherung erstellen</string>
+
+    <!-- Demo data (SCR-36 „Demo data"): invented names, the same in both languages. -->
+    <string name="mockup_demo_tea_morgentau" translatable="false">Morgentau</string>
+    <string name="mockup_demo_tea_nebelhang" translatable="false">Nebelhang</string>
+    <string name="mockup_demo_tea_herbstfeuer" translatable="false">Herbstfeuer</string>
+    <string name="mockup_demo_sorte_sencha" translatable="false">Sencha</string>
+    <string name="mockup_demo_sorte_gyokuro" translatable="false">Gyokuro</string>
+    <string name="mockup_demo_sorte_genmaicha" translatable="false">Genmaicha</string>
+    <string name="mockup_demo_vessel" translatable="false">Kleine Kyusu</string>
+
+    <!-- TalkBack, one description per mock-up (SCR-36 table). -->
+    <string name="mockup_description_start">Bild: Start mit „Aufguss starten“</string>
+    <string name="mockup_description_two">Bild: Timer mit der Zeile zum zweiten Timer</string>
+    <string name="mockup_description_my_teas_menu">Bild: Meine Tees mit geöffnetem Menü</string>
+    <string name="mockup_description_session">Bild: Session mit Bewertung und Geschmack</string>
+    <string name="mockup_description_stats">Bild: Statistik, Verbrauch</string>
+    <string name="mockup_description_data">Bild: Daten &amp; Sicherung</string>
 </resources>
