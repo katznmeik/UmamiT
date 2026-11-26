@@ -73,15 +73,10 @@ internal fun SetupMockup() {
 @Composable
 internal fun TimerMenuMockup() {
     TimerMockupScreen(otherTimerRow = false) {
-        MockupMenu(
-            Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = MENU_TOP, end = UmamiSpacing.XXSmall)
-                .widthIn(max = MENU_MAX_WIDTH),
-        ) {
+        MockupOverflowMenu {
             MockupMenuItem(stringResource(R.string.mockup_brew_timer_menu_edit_steps), Modifier.mockupMarker())
             MockupMenuItem(stringResource(R.string.mockup_brew_timer_menu_add_step))
-            MockupMenuBar(MENU_BAR)
+            MockupMenuBar(MOCKUP_MENU_BAR_MEDIUM)
         }
     }
 }
@@ -109,18 +104,18 @@ internal fun SavedMockup() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             MockupGap()
-            Column(Modifier.mockupMarker()) {
+            Column(Modifier.mockupMarker(badgeBelow = true)) {
                 RatingStars(
                     value = TEA_RATING,
                     onChange = {},
                     label = stringResource(R.string.mockup_journal_rating_tea),
-                    labelWidth = LABEL_WIDTH,
+                    labelWidth = RATING_LABEL_WIDTH,
                 )
                 RatingStars(
                     value = BREWING_RATING,
                     onChange = {},
                     label = stringResource(R.string.mockup_journal_rating_brewing),
-                    labelWidth = LABEL_WIDTH,
+                    labelWidth = RATING_LABEL_WIDTH,
                 )
             }
             MockupGap()
@@ -133,11 +128,7 @@ private const val TEA_RATING = 4.0
 private const val BREWING_RATING = 4.5
 private val SWITCH_WIDTH = 40.dp
 private val SWITCH_HEIGHT = 22.dp
-private val MENU_TOP = 44.dp
-private val MENU_MAX_WIDTH = 280.dp
-private val MENU_BAR = 110.dp
 private val SAVED_TOP = 72.dp
 private val SAVED_ICON = 40.dp
-private val LABEL_WIDTH = 110.dp
 private val BAR_LONG = 220.dp
 private val BAR_MEDIUM = 160.dp
