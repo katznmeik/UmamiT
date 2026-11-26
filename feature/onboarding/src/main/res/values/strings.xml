@@ -46,17 +46,18 @@
 
     <!-- Einführung (SCR-33, ONB-07, D-136): the tour. -->
     <string name="tour_page1_title">Start und Timer</string>
-    <string name="tour_page1_text">Tippe einen Tee unter Zuletzt aufgegossen an oder starte eine Neue Session. Der Timer führt dich durch jeden Aufguss, mit Vorwarnung und Alarm.</string>
+    <string name="tour_page1_text">Tippe auf Aufguss starten, wähle einen Tee und prüfe in Neue Session Gefäß, Blätter und Wasser. Der Timer führt dich durch jeden Aufguss, mit Vorwarnung und Alarm, auch bei gesperrtem Bildschirm. Ein Tipp auf einen Tee unter Zuletzt aufgegossen startet ihn wie beim letzten Mal.</string>
     <string name="tour_page2_title">Zwei Timer und Schnelltimer</string>
-    <string name="tour_page2_text">Zwei Timer laufen gleichzeitig: zwei Sessions oder eine Session und der Schnelltimer. Die Zeile oben wechselt zum anderen Timer.</string>
+    <string name="tour_page2_text">Zwei Timer laufen gleichzeitig: zwei Sessions oder eine Session und der Schnelltimer, z. B. für eine zweite Kanne. Die Leiste über der Navigation zeigt beide, und im Timer wechselt die Zeile unter dem Bild zum anderen. Der Schnelltimer braucht keinen Tee: Dauer antippen, Start.</string>
     <string name="tour_page3_title">Sammlung und Katalog</string>
-    <string name="tour_page3_text">Lade den Katalog von Tee-Kontor Kiel und nimm Tees in Meine Tees auf, oder teile einen Shop-Link mit UmamiT. Rezepte, Vorrat und Kosten pflegst du am Tee.</string>
+    <string name="tour_page3_text">In der Sammlung stehen deine Tees mit Rezepten, Vorrat und Kosten. Tees von Tee-Kontor Kiel holst du aus dem Katalog oder per Shop-Link. Jeden anderen Tee legst du über ⋮ › Tee ohne Katalog hinzufügen an. Jeder Tee kann mehrere Rezepte haben.</string>
     <string name="tour_page4_title">Journal und Geschmack</string>
-    <string name="tour_page4_text">Jede Session landet im Journal. Bewerte Tee und Zubereitung, halte Geschmack pro Aufguss fest und übernimm gute Zeiten ins Rezept.</string>
+    <string name="tour_page4_text">Jede Session landet von selbst im Journal. Bewerte Tee und Zubereitung mit Sternen, halte den Geschmack jedes Aufgusses mit Reglern und Beschreibungen fest und übernimm gute Zeiten ins Rezept. So nochmal aufgießen wiederholt eine Session.</string>
     <string name="tour_page5_title">Statistik</string>
-    <string name="tour_page5_text">Sieh, was du trinkst: Sessions, Sorten, Lieblingstees, Gewohnheiten, Verbrauch und Kosten pro Liter.</string>
+    <string name="tour_page5_text">Die Statistik zeigt, was du trinkst: Sessions, Sorten und Lieblingstees, deine Gewohnheiten über den Tag, den Verbrauch und was ein Liter kostet. Oben wählst du den Zeitraum. Die Kosten kommen aus den Käufen, die du am Tee erfasst.</string>
     <string name="tour_page6_title">Sicherung und Rezepte teilen</string>
-    <string name="tour_page6_text">Unter Einstellungen › Daten &amp; Sicherung sicherst du alle Daten in eine Datei. Ein Rezept teilst du über ⋮ im Rezept.</string>
+    <string name="tour_page6_text">Deine Daten liegen nur auf dem Handy. Unter Einstellungen › Daten &amp; Sicherung sicherst du alles in eine Datei und spielst sie wieder ein. Ein Rezept teilst du im Rezept über ⋮ › Rezept teilen. Wer die Datei bekommt, übernimmt es mit einem Tipp.</string>
+    <string name="tour_more">Mehr dazu: %1$s</string>
     <string name="tour_skip">Überspringen</string>
     <string name="tour_done">Fertig</string>
     <string name="tour_page_of" tools:ignore="PluralsCandidate">Seite %1$d von %2$d</string>

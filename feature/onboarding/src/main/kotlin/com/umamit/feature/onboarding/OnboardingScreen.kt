@@ -65,6 +65,7 @@ import com.umamit.core.timer.reliability.ReliabilityStatus
 import com.umamit.core.timer.reliability.samsungAutoRestartIntents
 import com.umamit.core.timer.reliability.startFirstIntent
 import com.umamit.core.ui.rememberReliabilityFixAction
+import com.umamit.feature.onboarding.howto.HowToTopic
 
 /** The pages of SCR-01: welcome (ONB-01), the tour (ONB-07, SCR-33), reliability (ONB-02), catalog (ONB-03). */
 enum class OnboardingPage { Welcome, Tour, Reliability, Catalog }
@@ -82,6 +83,9 @@ object TourTags {
     const val DOTS = "TourDots"
 
     fun page(index: Int) = "TourPage_$index"
+
+    /** The „Mehr dazu" link to [topic]. */
+    fun more(topic: HowToTopic) = "TourMore_${topic.name}"
 }
 
 /** The setup page's rows (ONB-02), in its order; exact alarms are always granted and not shown here. */
