@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -154,6 +155,8 @@ fun TourRoute(onClose: () -> Unit, modifier: Modifier = Modifier) {
 fun TourScreen(onFinish: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Modifier, initialPage: Int = 0) {
     val pagerState = rememberPagerState(initialPage = initialPage) { TOUR_PAGE_COUNT }
     var openTopic by rememberSaveable { mutableStateOf<HowToTopic?>(null) }
+    // One scroll position per page, above the early return: „Mehr dazu" swaps the pager out, and back returns to it.
+    val scrollStates = List(TOUR_PAGE_COUNT) { rememberScrollState() }
     val topic = openTopic
     if (topic != null) {
         BackHandler { openTopic = null }
@@ -194,7 +197,7 @@ fun TourScreen(onFinish: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Mo
                 modifier = Modifier.weight(1f).fillMaxWidth().testTag(TourTags.PAGER),
                 beyondViewportPageCount = 0,
                 key = { it },
-            ) { index -> TourPage(index, onOpenTopic = { openTopic = it }) }
+            ) { index -> TourPage(index, scrollStates[index], onOpenTopic = { openTopic = it }) }
             TourDots(pagerState)
             PillButton(
                 text = stringResource(if (last) R.string.tour_done else R.string.onboarding_next),
@@ -240,12 +243,12 @@ private fun rememberTourButtonWidth(): Dp {
  * scrolling together.
  */
 @Composable
-private fun TourPage(index: Int, onOpenTopic: (HowToTopic) -> Unit) {
+private fun TourPage(index: Int, scrollState: ScrollState, onOpenTopic: (HowToTopic) -> Unit) {
     val page = TOUR_PAGES[index]
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .testTag(TourTags.page(index)),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

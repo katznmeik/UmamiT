@@ -772,12 +772,9 @@ private fun TabHost(
                     onImportRecipe = collection.importRecipe,
                     // ⋮ *Hilfe*: the list on *Meine Tees*, the shop-link Anleitung on *Katalog* (SCR-36).
                     onOpenHelp = { shown ->
-                        if (shown ==
-                            CollectionSegment.Catalog
-                        ) {
-                            howTo.openTopic(HowToTopic.ShopLink)
-                        } else {
-                            howTo.openList()
+                        when (shown) {
+                            CollectionSegment.Catalog -> howTo.openTopic(HowToTopic.ShopLink)
+                            else -> howTo.openList()
                         }
                     },
                     myTeasContent = { modifier, scrollToTop -> myTeas(modifier, scrollToTop, openTea) },
