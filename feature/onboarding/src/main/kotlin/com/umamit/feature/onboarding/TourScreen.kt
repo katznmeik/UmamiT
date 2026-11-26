@@ -5,6 +5,10 @@ import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
@@ -49,6 +53,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -58,6 +63,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -148,8 +154,9 @@ fun TourRoute(onClose: () -> Unit, modifier: Modifier = Modifier) {
  * The six-page pager: each page's art band, mock-up, title, text and „Mehr dazu" links scroll inside the page, so at
  * a large font scale the dots and the button stay in view. [onFinish] is *Fertig* on the last page, [onSkip]
  * *Überspringen* (not on the last page) and back on the first page; back on another page returns to the one before.
- * A „Mehr dazu" link shows its Anleitung (SCR-36) in place of the pager, which keeps its page; ← and back return to
- * that page. The buttons scroll with the calm tokens (reduce motion: at once, 03 §3.6).
+ * A „Mehr dazu" link fades its Anleitung (SCR-36) in over the pager, which keeps its page; ← and back fade back to
+ * that page. *Überspringen* fades out with the swipe to the last page.
+ * The buttons scroll with the calm tokens (reduce motion: at once, 03 §3.6).
  */
 @Composable
 fun TourScreen(onFinish: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Modifier, initialPage: Int = 0) {
@@ -157,12 +164,6 @@ fun TourScreen(onFinish: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Mo
     var openTopic by rememberSaveable { mutableStateOf<HowToTopic?>(null) }
     // One scroll position per page, above the early return: „Mehr dazu" swaps the pager out, and back returns to it.
     val scrollStates = List(TOUR_PAGE_COUNT) { rememberScrollState() }
-    val topic = openTopic
-    if (topic != null) {
-        BackHandler { openTopic = null }
-        HowToTopicScreen(topic = topic, onBack = { openTopic = null }, modifier = modifier)
-        return
-    }
     val scope = rememberCoroutineScope()
     val motion = UmamiTheme.motion
     val goTo: (Int) -> Unit = { target ->
@@ -174,10 +175,39 @@ fun TourScreen(onFinish: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Mo
             }
         }
     }
-    BackHandler { if (pagerState.currentPage == 0) onSkip() else goTo(pagerState.currentPage - 1) }
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    // The pager, its page and the scroll positions live above the AnimatedContent, so the fade back finds them as left.
+    BackHandler(enabled = openTopic != null) { openTopic = null }
+    BackHandler(enabled = openTopic == null) {
+        if (pagerState.currentPage == 0) onSkip() else goTo(pagerState.currentPage - 1)
+    }
+    AnimatedContent(
+        targetState = openTopic,
+        modifier = modifier,
+        transitionSpec = { fadeIn(motion.fade()) togetherWith fadeOut(motion.exitFade()) },
+        label = "tourTopic",
+    ) { topic ->
+        if (topic != null) {
+            HowToTopicScreen(topic = topic, onBack = { openTopic = null })
+        } else {
+            TourPager(pagerState, scrollStates, goTo, onFinish, onSkip, onOpenTopic = { openTopic = it })
+        }
+    }
+}
+
+@Composable
+private fun TourPager(
+    pagerState: PagerState,
+    scrollStates: List<ScrollState>,
+    goTo: (Int) -> Unit,
+    onFinish: () -> Unit,
+    onSkip: () -> Unit,
+    onOpenTopic: (HowToTopic) -> Unit,
+) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             val last = pagerState.currentPage == TOUR_PAGE_COUNT - 1
+            // On the settled last page *Überspringen* is gone for good (D-137 Q11): no click, nothing for TalkBack.
+            val skipGone = pagerState.settledPage == TOUR_PAGE_COUNT - 1
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -185,11 +215,17 @@ fun TourScreen(onFinish: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Mo
                     .padding(horizontal = UmamiSpacing.Small),
                 horizontalArrangement = Arrangement.End,
             ) {
-                // Hidden on the last page (D-137 Q11); the row keeps its height so the page does not jump.
-                if (!last) {
-                    TextButton(onClick = onSkip, modifier = Modifier.testTag(TourTags.SKIP)) {
-                        Text(stringResource(R.string.tour_skip), style = MaterialTheme.typography.labelLarge)
-                    }
+                // Fades out with the swipe to the last page, in the draw phase; the row keeps its height.
+                TextButton(
+                    onClick = if (skipGone) ({}) else onSkip,
+                    modifier = Modifier
+                        .graphicsLayer {
+                            val position = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                            alpha = ((TOUR_PAGE_COUNT - 1) - position).coerceIn(0f, 1f)
+                        }
+                        .then(if (skipGone) Modifier.clearAndSetSemantics {} else Modifier.testTag(TourTags.SKIP)),
+                ) {
+                    Text(stringResource(R.string.tour_skip), style = MaterialTheme.typography.labelLarge)
                 }
             }
             HorizontalPager(
@@ -197,7 +233,7 @@ fun TourScreen(onFinish: () -> Unit, onSkip: () -> Unit, modifier: Modifier = Mo
                 modifier = Modifier.weight(1f).fillMaxWidth().testTag(TourTags.PAGER),
                 beyondViewportPageCount = 0,
                 key = { it },
-            ) { index -> TourPage(index, scrollStates[index], onOpenTopic = { openTopic = it }) }
+            ) { index -> TourPage(index, scrollStates[index], onOpenTopic = onOpenTopic) }
             TourDots(pagerState)
             PillButton(
                 text = stringResource(if (last) R.string.tour_done else R.string.onboarding_next),
