@@ -2289,7 +2289,8 @@ ONB-07, [D-136](10-open-questions-and-decisions.md#d-136) Q7/Q9, [D-137](10-open
 - one text link per matching Anleitung, „Mehr dazu: <Thema>" / „More:
   <topic>" with the Anleitung's **full title** as in SCR-35 (the table below
   names the topics short; D-137 rc-session answers), which opens SCR-36; back
-  returns to the same page, also during the first start.
+  returns to the same page at the same scroll position, also during the
+  first start.
 
 At the bottom, fixed: the page dots, then *Weiter* (filled), on the last page
 *Fertig*. The dots **blend** with the swipe (the colour follows
@@ -2387,13 +2388,18 @@ surface, which follows *Design* like the timer since v0.8.0, D-128) with a simpl
 title, the rows that matter and blank bars for the rest. Built from
 `core:designsystem`/`core:ui` components where they exist, drawn simplified
 otherwise (06 §3). The **marker** is a matcha ring around the spot, plus the
-step's number badge in an Anleitung. Static, not tappable, follows *Design*
+step's number badge in an Anleitung, set **outside the ring** (left of the
+spot at its vertical centre, kept inside the frame) so it covers no text. A
+drawn ⋮ menu sits at the **right**, as on the phone, and leaves the selected
+*Meine Tees* / *Katalog* segment (with its ✓) readable (D-137 rc-session
+review answers). Static, not tappable, follows *Design*
 and the app language. One TalkBack description per mock-up (table below).
 
 **Demo data** (invented; never a shop name, text or photo, CLAUDE.md rule 3):
 teas „Morgentau" (Sencha), „Nebelhang" (Gyokuro) and „Herbstfeuer"
 (Genmaicha); the vessel „Kleine Kyusu" (200 ml); 5,0 g · 150 ml · 70 °C ·
-1:00; „38 g übrig"; „12,40 € / 100 g"; „ca. 1,60 € pro Liter". Photos are the
+1:00; „38 g übrig"; „12,40 € / 100 g" (a purchase in the history: „+100 g ·
+12,40 €"); „ca. 1,60 € pro Liter". Photos are the
 type leaf on paper. Tea and vessel names stay as written in English; numbers
 follow the language („5.0 g").
 

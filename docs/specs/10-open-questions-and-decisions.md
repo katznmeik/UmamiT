@@ -405,6 +405,13 @@ personal data or shop content).
 - **„Tipp" / „Tip" label:** kept, as built; 03 SCR-36 says so.
 - **Hilfe placements:** both accepted as built: no ⋮ (and no *Hilfe*) on a session still in progress; *Hilfe* on the tea and recipe screens reached through ⋮ *Tee ansehen*.
 
+**The T3 milestone review's findings (rc session, 2026-11-26).** No code defect; the copy of SCR-33/35/36 matches 03 in both languages (212 cells). Two spec deviations are fixed: M-SAVED's 5th star was clipped, so the demo ratings did not show (label width); the SCR-36 top-bar title was cut to one line at font 2.0 (it now wraps, with a font-2.0 golden of a long title). Four points the spec left open went to the PO as options · *Accepted (PO, 2026-11-26)*:
+
+- **Step badge:** outside the ring, left of the spot at its vertical centre, inside the frame; it covered text in most Anleitung mock-ups (e.g. M-CATALOG-TEA's price).
+- **Drawn ⋮ menu:** narrower, at the right as on the phone; the selected segment stays readable with its ✓ (M-MYTEAS-MENU, M-CATALOG-MENU, which showed *Katalog* hidden).
+- **Back from „Mehr dazu":** returns to the same scroll position, not only the same page.
+- **M-HISTORY:** the purchase reads „+100 g · 12,40 €", matching the demo price.
+
 <a id="d-136"></a>
 ### D-136 — v0.10.0: the PO's feedback on v0.9.0: every stock event editable with past costs recomputed, the Vollbild-Alarm after an update, the timer in portrait, English as a second language, a tour (INV-03, INV-08, ONB-02, ONB-07, GEN-13, TMR-31, SET-35, SET-36, NFR-COMP-02; 03 SCR-01, SCR-05, SCR-07, SCR-25, SCR-29, SCR-33, SCR-34; 05 §6; 09 §2, §4 „v0.10.0"; CLAUDE.md rule 4; amends the German-only UI of CLAUDE.md rule 4, INV-08's cost fixed at completion for edited purchases, NFR-COMP-02 for the timer screens) · *Accepted (PO, 2026-11-24)*: the PO's answers Q1–Q9 below; the spec #353 (including Claude's items 10–16 and the tour copy in 03 SCR-33), its tickets #354–#363 and `docs/plans/v0.10.0.md` approved by the PO on 2026-11-24 (specify session, „Approve all")
 
