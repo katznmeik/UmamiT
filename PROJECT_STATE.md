@@ -5,24 +5,27 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-26 (specify session for v0.11.0: the grilling round, D-137, spec #365, tickets #366–#371, plan `docs/plans/v0.11.0.md`, draft PR #372; **the PO approved all** the same day). **Next:** the build session, started by the PO with `/implement-spec #365`.
+**Last updated:** 2026-11-26 (v0.11.0 build session: #366–#369 built, verified and pushed to PR #372; CI on the head is the gate, see below). **Next:** the rc session (#370).
 
-## Next: build v0.11.0 (approved 2026-11-26)
+## Next: the rc session for v0.11.0 (#370)
 
-- **v0.11.0 specified (2026-11-26, D-137):** the PO answered Q1–Q16 as options and approved the spec (items 17–30 and all copy in 03 SCR-33, SCR-35, SCR-36), the tickets and the plan („Approve all"). Spec #365, tickets #366–#371 (no labels yet; the build session sets `ready-for-agent`), plan `docs/plans/v0.11.0.md`, draft PR #372.
-  - **The tour (SCR-33):** six pages, each with its illustration band, a mock-up with the spot marked, four to six lines and „Mehr dazu" links. The dots blend with the swipe, the button keeps one width, and *Überspringen* is hidden on the last page.
-  - **Anleitungen (ONB-08, SCR-35/SCR-36):** eight topics with numbered steps and 22 mock-ups (invented demo data). They are reached from *Einstellungen* › *Hilfe* › *Anleitungen*, from „Mehr dazu", and from ⋮ *Hilfe* on *Meine Tees*, *Katalog*, Tee, *Rezept bearbeiten*, *Journal*, Session and *Daten & Sicherung*.
-  - **What stays the same:** no timer code, no data change, no new permission.
-- **The v0.10.0 open points (D-137 Q1–Q2, Q13–Q16):**
-  - The Vollbild grant is still lost on updates, but the SCR-34 sheet appears and *Erlauben* works. The PO wants no hassle beyond an easy fix, and there is none, so the outcome is option A. #355 stays closed.
-  - The English number input, the repricing (INV-08), the sheet's repeat and the four small items (English wording, *Sprache* closing at once, foldable, [Français, English]) stay as built. The PO flagged none; whether the Galaxy is a foldable stays unreported.
-- **Approved:** D-137 is *Accepted (PO, 2026-11-26)* in full. The build may start (CLAUDE.md rule 1); the go of D-038 is in effect.
-- **Next session:** the build session (Opus `medium` orchestrator), started by the PO with `/implement-spec #365`.
+- **Built (2026-11-26, build session, D-137 build notes for #366–#369):** four commits on `claude/inspiring-ritchie-8hfw00`, each verified by the orchestrator (diff, copy against 03 by script, goldens looked at, the cross-module check on the merged head) before the next built on it:
+  - `b0f6ab7e` #366 the mock-up kit and the tour's six mock-ups (T3); CI green on all five jobs.
+  - `be015ef9` #367 the Anleitungen SCR-35/SCR-36, eight topics, 16 more mock-ups, `HowToNamesTest` (T2); CI green (API 35 needed one rerun: Maven could not resolve `junit:4.13.2`).
+  - `566500e2` #368 the tour rework (T2): „Mehr dazu" handled inside `feature:onboarding`, so `app` is unchanged by it.
+  - `17e9c75d` #369 the entry points (T2): `app` `HowToNav.kt`, ⋮ *Hilfe* on seven screens, *Einstellungen* › *Hilfe* › *Anleitungen*.
+  - `git diff 1933bc15` is empty for `feature/brew`, `core/timer`, `core/timer-engine`, `core/database`, `core/backup` and every manifest; no timer path change, so no T4 review.
+- **For the PO (asked in the build session's last message, not decided; D-137 build notes):**
+  - the mock-ups' legibility: labels are small (a 16 sp label shows at about 6 dp in the tour frame); bigger needs a bigger frame (item 19);
+  - „Mehr dazu" with the Anleitung's full title (as built) or SCR-33's short names;
+  - the „Tipp" / „Tip" label above an Anleitung's tip (new copy).
+- **For the milestone review in #370 (seen in the goldens, not fixed):** in M-CATALOG-TEA the step badge covers the price line; in M-CATALOG-MENU and M-MYTEAS-MENU the drawn menu clips the segment chip („Mein…").
+- **The rc session (#370):** the T3 milestone review; `/review-animations` (the PO types it; scope: the SCR-33 tour's dots, button and „Mehr dazu" hand-over, SCR-35/SCR-36, the ⋮ *Hilfe* menus); renders light and dark, de and en in `docs/design/review/v0.11.0/`; What's new `docs/whats-new/v0.11.0.md`; the full local gate on the rc commit; `v0.11.0-rc.1` (110001).
 - **Open (not blocking):**
   - **The launcher ANR on the API 35 emulator:** on `main` `1933bc15` every `TransitionJankTest` case failed twice behind „Application Not Responding: com.google.android.apps.nexuslauncher" (the same tree passed on the PR head); the third run was green. The `ForeignAnrDialog` handler logged nothing for it (0 lines in job 139316775975), so it does not catch the launcher's ANR on API 35: a harness gap for a later ticket.
   - `ReceiveRecipeDeviceTest` no longer proves grant enforcement; the phone check covered it on v0.9.0 rc.2.
 - **Release dispatch hiccup (2026-11-25):** `workflow_dispatch` of `release.yml` answered HTTP 500/502 four times with no run created; the fifth try queued it. Check the runs list before retrying, so nothing is dispatched twice.
-- **Still true:** umamit.db v9 (no migration in v0.10.0); the network has three uses (D-135); `checkManifestPermissions` passes unchanged.
+- **Still true:** umamit.db v9 (no migration in v0.10.0 or v0.11.0); the network has three uses (D-135); `checkManifestPermissions` passes unchanged.
 - **Branch:** `claude/inspiring-ritchie-8hfw00`, restarted from `main` `1933bc15` after the v0.10.0 merge; draft PR #372 (v0.11.0). The v0.10.0 sessions were assigned other branches (the final session `claude/intelligent-knuth-3fje0d`) and did not use them. A new session with another assigned branch works here directly.
 - **Session facts still true:**
   - **CI:** a new push cancels the PR's running CI (concurrency group), so only the head is gated. Push a group of verified steps, then let one run finish before the next push; a docs-only push skips the build jobs, so push docs after a green code run. `gh` is for search only here (except `gh api …/actions/jobs/<id>/logs`, which worked for a job log): check CI with the GitHub MCP tools (`pull_request_read` `get_check_runs`, `actions_get`, `actions_run_trigger` `rerun_failed_jobs`).
@@ -63,7 +66,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.11.0** (the tour reworked, D-137) specified and approved 2026-11-26, build next; before it **v0.10.0** (stock edits, Vollbild sheet, portrait timer, English, tour; D-136) **released 2026-11-25** (100099, from `main` `1933bc15`); the next release is to be specified, starting with the tour rework (the PO, 2026-11-25); M5 / 1.0 postponed until the PO's go |
+| Current milestone | **v0.11.0** (the tour reworked, D-137) specified and approved 2026-11-26; built 2026-11-26 (#366–#369 on PR #372), the rc session (#370) next; before it **v0.10.0** (stock edits, Vollbild sheet, portrait timer, English, tour; D-136) **released 2026-11-25** (100099, from `main` `1933bc15`); the next release is to be specified, starting with the tour rework (the PO, 2026-11-25); M5 / 1.0 postponed until the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00`, restarted from `main` `1933bc15` after the v0.10.0 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -85,8 +88,8 @@
 
 ## Waiting on the PO
 
-1. **v0.11.0 build:** type `/implement-spec #365` in the build session (user-invoke-only skill).
-2. **Later:** the rc.1 checklist (09 §4 „v0.11.0") and the design review.
+1. **v0.11.0 build questions:** the mock-ups' legibility, the „Mehr dazu" link text, the „Tipp" label (see „Next"). Answers in a session or on PR #372; the rc can be built without them.
+2. **Later:** `/review-animations` in the rc session, then the rc.1 checklist (09 §4 „v0.11.0") and the design review.
 3. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 4. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 5. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
