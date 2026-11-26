@@ -97,4 +97,8 @@ class HowToScreenshotTest(private val dark: Boolean) {
     @Test
     @Config(qualifiers = TALLER_PAGE)
     fun stockAndCostAtFont2() = compose.captureHowTo("HowTo", HowToTopic.StockAndCost, dark, fontScale = 2f)
+
+    @Test
+    @Config(qualifiers = TALLER_PAGE)
+    fun shopLinkAtFont2() = compose.captureHowTo("HowTo", HowToTopic.ShopLink, dark, fontScale = 2f)
 }

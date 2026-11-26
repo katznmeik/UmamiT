@@ -33,12 +33,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.feature.onboarding.R
 import com.umamit.feature.onboarding.mockup.HelpMockup
 import com.umamit.feature.onboarding.mockup.HelpMockupSize
+
+private const val TITLE_MAX_LINES = 3
 
 /**
  * One Anleitung (SCR-36; ONB-08): ← and the topic's title, then a scrolling page with the intro, the numbered steps
@@ -57,11 +60,13 @@ fun HowToTopicScreen(topic: HowToTopic, onBack: () -> Unit, modifier: Modifier =
                     Text(
                         stringResource(topic.title),
                         modifier = Modifier.semantics { heading() },
-                        maxLines = 1,
+                        maxLines = TITLE_MAX_LINES,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = { BackButton(onBack) },
+                // The bar grows with a wrapping title instead of clipping it at font 2.0 (SCR-36).
+                expandedHeight = Dp.Unspecified,
             )
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(

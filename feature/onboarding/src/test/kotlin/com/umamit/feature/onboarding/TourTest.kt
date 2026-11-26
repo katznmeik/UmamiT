@@ -3,6 +3,7 @@ package com.umamit.feature.onboarding
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -17,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -91,6 +93,27 @@ class TourTest {
         compose.onNodeWithText("Sammlung und Katalog").assertIsDisplayed()
         compose.onNodeWithTag(TourTags.DOTS).assertContentDescriptionEquals("Seite 3 von 6")
         assertThat(skipped).isEqualTo(0)
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h600dp-xhdpi")
+    fun `back from Mehr dazu keeps the page's scroll position`() {
+        // Font 2.0 on a short screen makes the page scroll, so the last link starts below the fold.
+        RuntimeEnvironment.setFontScale(2f)
+        show()
+        toPage(2)
+        val link = compose.onNodeWithTag(TourTags.more(HowToTopic.Recipes))
+        link.assertIsNotDisplayed()
+        link.performScrollTo().assertIsDisplayed()
+
+        link.performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(HowToTags.TOPIC).assertIsDisplayed()
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(TourTags.DOTS).assertContentDescriptionEquals("Seite 3 von 6")
+        compose.onNodeWithTag(TourTags.more(HowToTopic.Recipes)).assertIsDisplayed()
     }
 
     @Test
