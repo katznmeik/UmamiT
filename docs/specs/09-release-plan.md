@@ -504,6 +504,7 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 - [ ] **⋮ *Hilfe*:** Sammlung (both segments), a tea, *Rezept bearbeiten*, Journal, a session and *Daten & Sicherung* each open the right Anleitung (Sammlung the list); setup and timer have no such item.
 - [ ] Both languages: the tour and the Anleitungen in English (*Sprache* › *English*), the in-app names as the app shows them.
 - [ ] Font 2.0 and TalkBack spot checks of a tour page and an Anleitung, light and dark.
+- [ ] **Mock-up size:** the mock-ups' labels are legible enough on the Galaxy (tour and an Anleitung); if not, say so and a bigger frame goes into rc.2 (D-137 rc-session answers).
 - [ ] The rc's PR shows CI green (Claude); the final: the accuracy report shows all three variants passed (Claude, §4a).
 - [ ] **The PO approved the whole checklist and the design review.**
 

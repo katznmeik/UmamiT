@@ -398,6 +398,13 @@ personal data or shop content).
 - **Goldens:** besides the open menus, every *Daten & Sicherung* golden and `RecipeEditor_new` changed, because their top bars gain the new ⋮.
 - **Tests:** `HowToNavigationTest` (eight entry points and back) uses stand-in screens that call the host's `onOpenHelp`; the real ⋮ items are covered by each feature's own tests.
 
+**The PO's answers to the build questions (rc session, 2026-11-26, asked as options)** · *Accepted (PO, 2026-11-26)*:
+
+- **Mock-up size:** decided after rc.1: the PO judges the mock-ups' legibility on the Galaxy (09 §4 „v0.11.0"); a bigger frame would be a change for rc.2 through the process.
+- **„Mehr dazu" text:** the Anleitung's full title, as built; 03 SCR-33 says so.
+- **„Tipp" / „Tip" label:** kept, as built; 03 SCR-36 says so.
+- **Hilfe placements:** both accepted as built: no ⋮ (and no *Hilfe*) on a session still in progress; *Hilfe* on the tea and recipe screens reached through ⋮ *Tee ansehen*.
+
 <a id="d-136"></a>
 ### D-136 — v0.10.0: the PO's feedback on v0.9.0: every stock event editable with past costs recomputed, the Vollbild-Alarm after an update, the timer in portrait, English as a second language, a tour (INV-03, INV-08, ONB-02, ONB-07, GEN-13, TMR-31, SET-35, SET-36, NFR-COMP-02; 03 SCR-01, SCR-05, SCR-07, SCR-25, SCR-29, SCR-33, SCR-34; 05 §6; 09 §2, §4 „v0.10.0"; CLAUDE.md rule 4; amends the German-only UI of CLAUDE.md rule 4, INV-08's cost fixed at completion for edited purchases, NFR-COMP-02 for the timer screens) · *Accepted (PO, 2026-11-24)*: the PO's answers Q1–Q9 below; the spec #353 (including Claude's items 10–16 and the tour copy in 03 SCR-33), its tickets #354–#363 and `docs/plans/v0.10.0.md` approved by the PO on 2026-11-24 (specify session, „Approve all")
 

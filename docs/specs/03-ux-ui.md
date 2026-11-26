@@ -2287,8 +2287,9 @@ ONB-07, [D-136](10-open-questions-and-decisions.md#d-136) Q7/Q9, [D-137](10-open
   area's screen with the spot marked;
 - the title (display sans, headline) and the body (four to six lines);
 - one text link per matching Anleitung, „Mehr dazu: <Thema>" / „More:
-  <topic>", which opens SCR-36; back returns to the same page, also during
-  the first start.
+  <topic>" with the Anleitung's **full title** as in SCR-35 (the table below
+  names the topics short; D-137 rc-session answers), which opens SCR-36; back
+  returns to the same page, also during the first start.
 
 At the bottom, fixed: the page dots, then *Weiter* (filled), on the last page
 *Fertig*. The dots **blend** with the swipe (the colour follows
@@ -2374,7 +2375,8 @@ ONB-08, [D-137](10-open-questions-and-decisions.md#d-137) Q9 and items 19, 23, 2
 page: a short intro (body), then numbered steps (the number in a small matcha
 circle, the text beside it); a step marked „[M-…]" below shows that mock-up
 under its text, its marker carrying the step's number. The page ends with a
-„Tipp" line where one is given. TalkBack: the title as a heading, the intro,
+„Tipp" line where one is given: a small primary-coloured label *Tipp* / *Tip*
+above the tip's text (D-137 rc-session answers). TalkBack: the title as a heading, the intro,
 each step („Schritt 2 von 5: …" / „Step 2 of 5: …"), each mock-up's
 description. Font 2.0 works (the mock-ups keep their size, the text wraps).
 The Anleitungen keep no read state.
