@@ -2297,7 +2297,10 @@ At the bottom, fixed: the page dots, then *Weiter* (filled), on the last page
 `currentPageOffsetFraction`) — the dots stay one size, as built — and the button keeps **one width** that fits
 the longest of *Weiter*/*Fertig*/*Next*/*Done*, so only its text changes
 (D-137 Q12). *Überspringen* (text button, top right) on every page **except
-the last** (D-137 Q11). Swiping works both ways; back on page 1 leaves like
+the last** (D-137 Q11); between pages 5 and 6 its opacity follows the swipe
+(like the dots' colour), and it is not tappable once page 6 has settled. A
+„Mehr dazu" topic fades in and out with the app's screen fade, as when it is
+opened from ⋮ *Hilfe* (D-137 `/review-animations` answers). Swiping works both ways; back on page 1 leaves like
 *Überspringen*, on a later page it goes to the page before. The content
 scrolls at font 2.0; the dots and the button stay in view. TalkBack: per page
 the title as a heading, the body, the mock-up's description, the links; the

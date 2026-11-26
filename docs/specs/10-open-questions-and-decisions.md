@@ -411,6 +411,11 @@ personal data or shop content).
 - **Drawn ⋮ menu:** narrower, at the right as on the phone; the selected segment stays readable with its ✓ (M-MYTEAS-MENU, M-CATALOG-MENU, which showed *Katalog* hidden). As built (fix round, asked again and accepted by the PO): anchored under the ⋮ the menu still hid *Katalog*, so on *Sammlung* it opens at the right just below the segment row; at most 190 dp wide, a long item wraps; one shared drawn menu (`MockupOverflowMenu`) for all mock-ups.
 - **Badge, as built:** left of the ring, else right, else above the spot's right end; full-width rows (M-SAVED, M-SESSION) put it below (`mockupMarker(badgeBelow = true)`).
 - **Top bar of SCR-36:** the title wraps up to three lines and the bar grows (`HowTo_ShopLink_*_font2_0`).
+
+**`/review-animations` (typed by the PO, rc session, 2026-11-26).** Scope: the SCR-33 tour, SCR-35/SCR-36, the ⋮ *Hilfe* items. Passed: the dots (colour in the draw phase, follows the finger), *Weiter*'s page scroll (`motion.standard()`, interruptible, instant under reduce motion), the fixed-width button's instant label swap, the static mock-ups, the menus (Material 3 from the anchor) and the root's fade for the Anleitungen. Two findings, put to the PO as options · *Accepted (PO, 2026-11-26)*:
+
+- **„Mehr dazu" in the tour** cut to SCR-36 and back; it now fades with the root's screen tokens (`motion.fade()` in, `motion.exitFade()` out), as from ⋮ *Hilfe*.
+- ***Überspringen*** switched at the swipe's half-way point and could flicker during a held drag; its opacity now follows `currentPage + currentPageOffsetFraction` in the draw phase, and it is not tappable (and hidden from TalkBack) once page 6 has settled.
 - **Back from „Mehr dazu":** returns to the same scroll position, not only the same page.
 - **M-HISTORY:** the purchase reads „+100 g · 12,40 €", matching the demo price.
 
