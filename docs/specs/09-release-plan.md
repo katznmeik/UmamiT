@@ -504,6 +504,8 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 - [ ] **⋮ *Hilfe*:** Sammlung (both segments), a tea, *Rezept bearbeiten*, Journal, a session and *Daten & Sicherung* each open the right Anleitung (Sammlung the list); setup and timer have no such item.
 - [ ] Both languages: the tour and the Anleitungen in English (*Sprache* › *English*), the in-app names as the app shows them.
 - [ ] Font 2.0 and TalkBack spot checks of a tour page and an Anleitung, light and dark.
+- [ ] **rc-session fixes (D-137):** in the Anleitungen the step number sits beside the marked spot, not on it (look at topics 1, 2, 4 and 6: is the badge clear enough where it touches a menu or a second ring?); the open ⋮ menus in the Sammlung mock-ups leave the selected segment readable; „Tee per Shop-Link hinzufügen" wraps in the top bar at font 2.0.
+- [ ] **Tour motion (D-137 `/review-animations`):** „Mehr dazu" fades to the Anleitung and back (not a cut), and back returns to the same scroll position; swiping slowly from page 5 to 6, *Überspringen* fades with the finger and does not flicker when you hold half-way; on page 6 it is gone. (The tests run with reduce motion, so this is the only check of the fades.)
 - [ ] **Mock-up size:** the mock-ups' labels are legible enough on the Galaxy (tour and an Anleitung); if not, say so and a bigger frame goes into rc.2 (D-137 rc-session answers).
 - [ ] The rc's PR shows CI green (Claude); the final: the accuracy report shows all three variants passed (Claude, §4a).
 - [ ] **The PO approved the whole checklist and the design review.**

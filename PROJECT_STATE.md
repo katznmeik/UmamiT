@@ -88,7 +88,7 @@
 
 ## Waiting on the PO
 
-1. **v0.11.0-rc.1:** install it over v0.10.0 and work through the 09 §4 „v0.11.0" checklist (including the new mock-up size item) and the design review (`docs/design/review/v0.11.0/README.md`); approve both in a session or on PR #372, or name what to change for rc.2.
+1. **v0.11.0-rc.1:** install it over v0.10.0 and work through the 09 §4 „v0.11.0" checklist (including the new items: mock-up size, the badge where it touches a menu or a second ring (topics 1, 2, 4, 6), the tour fades) and the design review (`docs/design/review/v0.11.0/README.md`); approve both in a session or on PR #372, or name what to change for rc.2.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.

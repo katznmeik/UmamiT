@@ -2392,7 +2392,8 @@ title, the rows that matter and blank bars for the rest. Built from
 `core:designsystem`/`core:ui` components where they exist, drawn simplified
 otherwise (06 §3). The **marker** is a matcha ring around the spot, plus the
 step's number badge in an Anleitung, set **outside the ring** (left of the
-spot at its vertical centre, kept inside the frame) so it covers no text. A
+spot at its vertical centre, kept inside the frame) so it does not cover the
+marked spot; where a menu is drawn open it may touch the list behind it. A
 drawn ⋮ menu sits at the **right**, as on the phone; on *Sammlung* it opens
 just below the segment row, so the selected *Meine Tees* / *Katalog* segment
 (with its ✓) stays readable (D-137 rc-session

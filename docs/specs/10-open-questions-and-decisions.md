@@ -409,15 +409,18 @@ personal data or shop content).
 
 - **Step badge:** outside the ring, left of the spot at its vertical centre, inside the frame; it covered text in most Anleitung mock-ups (e.g. M-CATALOG-TEA's price).
 - **Drawn ⋮ menu:** narrower, at the right as on the phone; the selected segment stays readable with its ✓ (M-MYTEAS-MENU, M-CATALOG-MENU, which showed *Katalog* hidden). As built (fix round, asked again and accepted by the PO): anchored under the ⋮ the menu still hid *Katalog*, so on *Sammlung* it opens at the right just below the segment row; at most 190 dp wide, a long item wraps; one shared drawn menu (`MockupOverflowMenu`) for all mock-ups.
-- **Badge, as built:** left of the ring, else right, else above the spot's right end; full-width rows (M-SAVED, M-SESSION) put it below (`mockupMarker(badgeBelow = true)`).
+- **Back from „Mehr dazu":** returns to the same scroll position, not only the same page.
+- **M-HISTORY:** the purchase reads „+100 g · 12,40 €", matching the demo price.
+
+**As built in the fix round (Claude, not decided by the PO):**
+
+- **Badge fallbacks:** left of the ring as decided; where there is no room there, right of it, else above the spot's right end; full-width rows (M-SAVED, M-SESSION) put it below (`mockupMarker(badgeBelow = true)`). In the two collection menu mock-ups the badge, left of the menu item, covers part of the „Sencha" line of the list behind the menu; in M-SESSION it sits below on the *Geschmack hinzufügen* chevron, near the second ring. **For the PO** with the rc.1 check (an rc.2 change if wanted).
 - **Top bar of SCR-36:** the title wraps up to three lines and the bar grows (`HowTo_ShopLink_*_font2_0`).
 
 **`/review-animations` (typed by the PO, rc session, 2026-11-26).** Scope: the SCR-33 tour, SCR-35/SCR-36, the ⋮ *Hilfe* items. Passed: the dots (colour in the draw phase, follows the finger), *Weiter*'s page scroll (`motion.standard()`, interruptible, instant under reduce motion), the fixed-width button's instant label swap, the static mock-ups, the menus (Material 3 from the anchor) and the root's fade for the Anleitungen. Two findings, put to the PO as options · *Accepted (PO, 2026-11-26)*:
 
 - **„Mehr dazu" in the tour** cut to SCR-36 and back; it now fades with the root's screen tokens (`motion.fade()` in, `motion.exitFade()` out), as from ⋮ *Hilfe*.
 - ***Überspringen*** switched at the swipe's half-way point and could flicker during a held drag; its opacity now follows `currentPage + currentPageOffsetFraction` in the draw phase, and it is not tappable (and hidden from TalkBack) once page 6 has settled.
-- **Back from „Mehr dazu":** returns to the same scroll position, not only the same page.
-- **M-HISTORY:** the purchase reads „+100 g · 12,40 €", matching the demo price.
 
 <a id="d-136"></a>
 ### D-136 — v0.10.0: the PO's feedback on v0.9.0: every stock event editable with past costs recomputed, the Vollbild-Alarm after an update, the timer in portrait, English as a second language, a tour (INV-03, INV-08, ONB-02, ONB-07, GEN-13, TMR-31, SET-35, SET-36, NFR-COMP-02; 03 SCR-01, SCR-05, SCR-07, SCR-25, SCR-29, SCR-33, SCR-34; 05 §6; 09 §2, §4 „v0.10.0"; CLAUDE.md rule 4; amends the German-only UI of CLAUDE.md rule 4, INV-08's cost fixed at completion for edited purchases, NFR-COMP-02 for the timer screens) · *Accepted (PO, 2026-11-24)*: the PO's answers Q1–Q9 below; the spec #353 (including Claude's items 10–16 and the tour copy in 03 SCR-33), its tickets #354–#363 and `docs/plans/v0.10.0.md` approved by the PO on 2026-11-24 (specify session, „Approve all")
