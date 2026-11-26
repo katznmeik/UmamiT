@@ -92,32 +92,7 @@ internal fun TeaNewMockup() {
 /** M-CATALOG-MENU: *Katalog* with ⋮ open, *Link einfügen* marked. */
 @Composable
 internal fun CatalogMenuMockup() {
-    Box(Modifier.fillMaxSize()) {
-        MockupScreen {
-            MockupTopBar(title = stringResource(R.string.mockup_collection_title), menu = true)
-            MockupGap(height = UmamiSpacing.XSmall)
-            MockupSegments(catalog = true)
-            MockupGap(height = UmamiSpacing.XSmall)
-            MockupDemo.teas.forEach { tea ->
-                TeaListItem(
-                    title = stringResource(tea.name),
-                    meta = stringResource(tea.sorte),
-                    onClick = {},
-                    placeholderColor = tea.color(),
-                )
-            }
-        }
-        MockupMenu(
-            Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = MENU_TOP, end = UmamiSpacing.XXSmall)
-                .widthIn(max = MENU_MAX_WIDTH),
-        ) {
-            MockupMenuBar(MENU_BAR_LONG)
-            MockupMenuItem(stringResource(R.string.mockup_collection_catalog_paste_link), Modifier.mockupMarker())
-            MockupMenuBar(MENU_BAR_MEDIUM)
-        }
-    }
+    CollectionMenuMockup(catalog = true, item = stringResource(R.string.mockup_collection_catalog_paste_link))
 }
 
 /** M-CATALOG-TEA: a catalog tea (demo), *In Sammlung aufnehmen* marked. */
@@ -188,10 +163,6 @@ internal fun AddSheetMockup() {
 
 private val LEAF_ICON = 20.dp
 private val SHORT_BAR = 80.dp
-private val MENU_TOP = 44.dp
-private val MENU_MAX_WIDTH = 280.dp
-private val MENU_BAR_LONG = 150.dp
-private val MENU_BAR_MEDIUM = 110.dp
 private val BAR_LONG = 220.dp
 private val BAR_MEDIUM = 160.dp
 private val BAR_SHORT = 100.dp

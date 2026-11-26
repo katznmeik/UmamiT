@@ -65,7 +65,8 @@ val MOCKUP_SCREEN_HEIGHT = 520.dp
  * screen and scaled down to [size]. The font scale inside is fixed at 1, so the mock-up keeps its size at font 2.0.
  *
  * The **marker**: each spot the content tags with [Modifier.mockupMarker] gets a matcha ring, drawn at full size over
- * the scaled content; with [markerNumber] (an Anleitung's step) the first ring carries a number badge.
+ * the scaled content; with [markerNumber] (an Anleitung's step) the first ring gets a number badge beside it,
+ * outside the ring.
  *
  * Static: a layer on top takes every touch, so nothing inside reacts (a swipe still reaches the pager around it).
  * TalkBack reads [description] and nothing of the content.
@@ -120,18 +121,21 @@ fun HelpMockup(id: HelpMockupId, size: HelpMockupSize, modifier: Modifier = Modi
 
 /**
  * Tags the spot the mock-up marks; [HelpMockup] draws a matcha ring around it. Several spots get one ring each; the
- * number badge goes on the topmost.
+ * number badge goes beside the topmost. [badgeBelow] puts the badge below a spot as wide as the screen instead of
+ * above it, where the row above has text at its end.
  */
-fun Modifier.mockupMarker(): Modifier = this then MockupMarkerElement
+fun Modifier.mockupMarker(badgeBelow: Boolean = false): Modifier = this then MockupMarkerElement(badgeBelow)
 
-private data object MockupMarkerElement : ModifierNodeElement<MockupMarkerNode>() {
-    override fun create() = MockupMarkerNode()
+private data class MockupMarkerElement(val badgeBelow: Boolean) : ModifierNodeElement<MockupMarkerNode>() {
+    override fun create() = MockupMarkerNode(badgeBelow)
 
-    override fun update(node: MockupMarkerNode) = Unit
+    override fun update(node: MockupMarkerNode) {
+        node.badgeBelow = badgeBelow
+    }
 }
 
 /** Reports its spot's coordinates to the enclosing [HelpMockup] (through [LocalMockupMarkers]). */
-private class MockupMarkerNode :
+private class MockupMarkerNode(var badgeBelow: Boolean) :
     Modifier.Node(),
     GlobalPositionAwareModifierNode,
     CompositionLocalConsumerModifierNode {
@@ -140,7 +144,10 @@ private class MockupMarkerNode :
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
         val target = currentValueOf(LocalMockupMarkers) ?: return
         markers = target
-        if (target.spots[this] !== coordinates) target.spots[this] = coordinates
+        val spot = target.spots[this]
+        if (spot?.coordinates !== coordinates || spot.badgeBelow != badgeBelow) {
+            target.spots[this] = MarkerSpot(coordinates, badgeBelow)
+        }
     }
 
     override fun onDetach() {
@@ -151,8 +158,11 @@ private class MockupMarkerNode :
 
 /** The spots reported by the content. */
 internal class MockupMarkers {
-    val spots = mutableStateMapOf<Any, LayoutCoordinates>()
+    val spots = mutableStateMapOf<Any, MarkerSpot>()
 }
+
+/** A marked spot and where its badge prefers to go. */
+internal class MarkerSpot(val coordinates: LayoutCoordinates, val badgeBelow: Boolean)
 
 @Suppress("CompositionLocalAllowlist") // the frame tells the markers inside its content where to report
 internal val LocalMockupMarkers = staticCompositionLocalOf<MockupMarkers?> { null }
@@ -176,23 +186,20 @@ private fun MarkerOverlay(markers: MockupMarkers, number: Int?, modifier: Modifi
                 val overlay = holder[0] ?: return@drawBehind
                 if (!overlay.isAttached) return@drawBehind
                 val spots = markers.spots.values
-                    .filter { it.isAttached }
-                    .map { overlay.localBoundingBoxOf(it, clipBounds = false) }
-                    .sortedWith(compareBy({ it.top }, { it.left }))
-                spots.forEach { drawRing(it) }
+                    .filter { it.coordinates.isAttached }
+                    .map { overlay.localBoundingBoxOf(it.coordinates, clipBounds = false) to it.badgeBelow }
+                    .sortedWith(compareBy({ it.first.top }, { it.first.left }))
+                spots.forEach { drawRing(it.first) }
                 val first = spots.firstOrNull()
                 if (number != null && first != null) {
-                    drawBadge(first, number.toString(), measurer, badgeStyle)
+                    drawBadge(first.first, first.second, number.toString(), measurer, badgeStyle)
                 }
             },
     )
 }
 
 private fun DrawScope.drawRing(spot: Rect) {
-    val gap = RING_GAP.toPx()
-    // Kept inside the frame, so a spot at the screen's edge does not draw over the outline.
-    val inset = RING_STROKE.toPx()
-    val ring = spot.inflate(gap).intersect(Rect(inset, inset, size.width - inset, size.height - inset))
+    val ring = ringRect(spot)
     val radius = minOf(RING_CORNER.toPx(), ring.height / 2)
     drawRoundRect(
         color = MATCHA,
@@ -203,19 +210,41 @@ private fun DrawScope.drawRing(spot: Rect) {
     )
 }
 
-private fun DrawScope.drawBadge(spot: Rect, text: String, measurer: TextMeasurer, style: TextStyle) {
-    val gap = RING_GAP.toPx()
+/** The ring around [spot]: [RING_GAP] outside it, kept inside the frame so it does not draw over the outline. */
+private fun DrawScope.ringRect(spot: Rect): Rect {
+    val inset = RING_STROKE.toPx()
+    return spot.inflate(RING_GAP.toPx()).intersect(Rect(inset, inset, size.width - inset, size.height - inset))
+}
+
+private fun DrawScope.drawBadge(spot: Rect, below: Boolean, text: String, measurer: TextMeasurer, style: TextStyle) {
     val radius = BADGE_SIZE.toPx() / 2
-    // On the ring's top-left corner, kept inside the frame.
-    val center = Offset(
-        x = (spot.left - gap).coerceIn(radius, size.width - radius),
-        y = (spot.top - gap).coerceIn(radius, size.height - radius),
-    )
+    val center = badgeCenter(ringRect(spot), radius, below)
     drawCircle(MATCHA, radius, center)
     val layout = measurer.measure(text, style)
     drawText(
         layout,
         topLeft = center - Offset(layout.size.width / 2f, layout.size.height / 2f),
+    )
+}
+
+/**
+ * Where the step badge goes (SCR-36, D-137): outside the [ring], so it covers no text. Left of the ring at its
+ * vertical centre; where there is no room on the left (the spot at the frame's left edge), right of it, else above
+ * its right end (a spot as wide as the screen; text, set from the start, ends first there), else below it; [below]
+ * (or no room above) takes below first. Always kept inside the frame.
+ */
+private fun DrawScope.badgeCenter(ring: Rect, radius: Float, below: Boolean): Offset {
+    val offset = radius + BADGE_GAP.toPx() + RING_STROKE.toPx() / 2
+    val edge = RING_STROKE.toPx() + radius
+    val center = when {
+        ring.left - offset >= edge -> Offset(ring.left - offset, ring.center.y)
+        ring.right + offset <= size.width - edge -> Offset(ring.right + offset, ring.center.y)
+        !below && ring.top - offset >= edge -> Offset(ring.right - radius, ring.top - offset)
+        else -> Offset(ring.right - radius, ring.bottom + offset)
+    }
+    return Offset(
+        x = center.x.coerceIn(edge, size.width - edge),
+        y = center.y.coerceIn(edge, size.height - edge),
     )
 }
 
@@ -225,4 +254,5 @@ private val RING_GAP = 2.dp
 private val RING_STROKE = 2.dp
 private val RING_CORNER = 8.dp
 private val BADGE_SIZE = 18.dp
+private val BADGE_GAP = 2.dp
 private val BADGE_TEXT_SIZE = 11.sp

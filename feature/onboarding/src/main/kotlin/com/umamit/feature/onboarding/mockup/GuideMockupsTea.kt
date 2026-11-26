@@ -197,7 +197,9 @@ internal fun RecipesMockup() {
 }
 
 private const val PURCHASE_GRAMS = 100
-private const val PURCHASE_CENTS = 1_890L
+
+/** One package at the demo price: „+100 g · 12,40 €". */
+private const val PURCHASE_CENTS = MockupDemo.PRICE_CENTS_PER_100_G
 private const val BREW_GRAMS = 5
 private const val CORRECTION_GRAMS = 15
 private const val MINUS = "−"

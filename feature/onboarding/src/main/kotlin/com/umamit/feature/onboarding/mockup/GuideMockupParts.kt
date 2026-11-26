@@ -28,6 +28,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.feature.onboarding.R
@@ -63,7 +64,37 @@ internal fun MockupField(label: String, modifier: Modifier = Modifier, value: St
     }
 }
 
-/** *Meine Tees* | *Katalog* as a segmented row; [catalog] selects the second. */
+/**
+ * *Sammlung* with *Meine Tees* or *Katalog* ([catalog]) selected, the demo teas and the ⋮ menu open at the right
+ * with [item] marked between two blank items (M-MYTEAS-MENU, M-CATALOG-MENU). The menu opens just below the
+ * segments, so the selected one stays readable (D-137).
+ */
+@Composable
+internal fun CollectionMenuMockup(catalog: Boolean, item: String) {
+    Box(Modifier.fillMaxSize()) {
+        MockupScreen {
+            MockupTopBar(title = stringResource(R.string.mockup_collection_title), menu = true)
+            MockupGap(height = UmamiSpacing.XSmall)
+            MockupSegments(catalog = catalog)
+            MockupGap(height = UmamiSpacing.XSmall)
+            MockupDemo.teas.forEach { tea ->
+                TeaListItem(
+                    title = stringResource(tea.name),
+                    meta = stringResource(tea.sorte),
+                    onClick = {},
+                    placeholderColor = tea.color(),
+                )
+            }
+        }
+        MockupOverflowMenu(top = COLLECTION_MENU_TOP) {
+            MockupMenuBar(MOCKUP_MENU_BAR_LONG)
+            MockupMenuItem(item, Modifier.mockupMarker())
+            MockupMenuBar(MOCKUP_MENU_BAR_MEDIUM)
+        }
+    }
+}
+
+/** *Meine Tees* | *Katalog* as a segmented row; [catalog] selects the second, which shows a ✓ as in the app. */
 @Composable
 internal fun MockupSegments(catalog: Boolean, modifier: Modifier = Modifier) {
     Row(
@@ -90,11 +121,14 @@ private fun RowScope.MockupSegment(@StringRes text: Int, selected: Boolean) {
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            stringResource(text),
-            style = MaterialTheme.typography.labelLarge,
-            color = with(MaterialTheme.colorScheme) { if (selected) onSecondaryContainer else onSurface },
-        )
+        val color = with(MaterialTheme.colorScheme) { if (selected) onSecondaryContainer else onSurface }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
+        ) {
+            if (selected) Icon(painterResource(UmamiIcons.Check), null, Modifier.size(SEGMENT_CHECK), tint = color)
+            Text(stringResource(text), style = MaterialTheme.typography.labelLarge, color = color)
+        }
     }
 }
 
@@ -164,6 +198,11 @@ internal fun MockupListRow(
     }
 }
 
+internal val SEGMENT_HEIGHT = 36.dp
+private val SEGMENT_CHECK = 18.dp
+
+/** Below the top bar, the gap and the segments: the collection's ⋮ menu leaves the segments uncovered. */
+private val COLLECTION_MENU_TOP = TOP_BAR_HEIGHT + UmamiSpacing.XSmall + SEGMENT_HEIGHT + UmamiSpacing.XXSmall
 private val HERO_HEIGHT = 84.dp
 private val HERO_LEAF = 36.dp
 private const val HERO_ALPHA = 0.25f

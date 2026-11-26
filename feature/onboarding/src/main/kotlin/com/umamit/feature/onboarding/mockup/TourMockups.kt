@@ -180,83 +180,13 @@ private fun OtherTimerRow() {
     }
 }
 
-/** M-MYTEAS-MENU:*Sammlung* › *Meine Tees* with the demo teas and ⋮ open, *Tee ohne Katalog hinzufügen* marked. */
+/** M-MYTEAS-MENU: *Sammlung* › *Meine Tees* with the demo teas and ⋮ open, *Tee ohne Katalog hinzufügen* marked. */
 @Composable
 internal fun MyTeasMenuMockup() {
-    Box(Modifier.fillMaxSize()) {
-        MockupScreen {
-            MockupTopBar(title = stringResource(R.string.mockup_collection_title), menu = true)
-            MockupGap(height = UmamiSpacing.XSmall)
-            Segments()
-            MockupGap(height = UmamiSpacing.XSmall)
-            MockupDemo.teas.forEach { MockupTeaRow(it) }
-        }
-        MockupMenu(
-            Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = MENU_TOP, end = UmamiSpacing.XXSmall)
-                .widthIn(max = MENU_MAX_WIDTH),
-        ) {
-            MockupMenuBar(MENU_BAR_LONG)
-            MockupMenuItem(stringResource(R.string.mockup_my_teas_add_without_catalog), Modifier.mockupMarker())
-            MockupMenuBar(MENU_BAR_MEDIUM)
-        }
-    }
-}
-
-/** *Meine Tees* | *Katalog*, the first selected, as a segmented row. */
-@Composable
-private fun Segments() {
-    Row(
-        Modifier
-            .padding(horizontal = UmamiSpacing.Medium)
-            .fillMaxWidth()
-            .height(SEGMENT_HEIGHT)
-            .border(UmamiSpacing.Hairline, MaterialTheme.colorScheme.outline, CircleShape),
-    ) {
-        Box(
-            Modifier
-                .weight(1f)
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.secondaryContainer, SEGMENT_LEFT_SHAPE),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                stringResource(R.string.mockup_collection_segment_my_teas),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-        }
-        Box(Modifier.weight(1f).fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                stringResource(R.string.mockup_collection_segment_catalog),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
-}
-
-@Composable
-private fun MockupTeaRow(tea: DemoTea) {
-    TeaListItem(
-        title = stringResource(tea.name),
-        meta = stringResource(tea.sorte),
-        onClick = {},
-        placeholderColor = tea.color(),
-    )
+    CollectionMenuMockup(catalog = false, item = stringResource(R.string.mockup_my_teas_add_without_catalog))
 }
 
 private const val INFUSIONS = 3
 private const val RING_PROGRESS = 0.2f
 private val SEAL_TOP = 64.dp
 private val SEAL_SIZE = 56.dp
-private val MENU_TOP = 44.dp
-private val MENU_MAX_WIDTH = 280.dp
-private val MENU_BAR_LONG = 150.dp
-private val MENU_BAR_MEDIUM = 110.dp
-internal val SEGMENT_HEIGHT = 36.dp
-private val SEGMENT_LEFT_SHAPE = RoundedCornerShape(
-    topStartPercent = 50,
-    bottomStartPercent = 50,
-)

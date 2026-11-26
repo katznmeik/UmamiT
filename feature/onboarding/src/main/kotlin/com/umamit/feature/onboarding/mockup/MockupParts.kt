@@ -3,6 +3,7 @@ package com.umamit.feature.onboarding.mockup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -10,9 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -114,10 +117,34 @@ fun MockupMenu(modifier: Modifier = Modifier, items: @Composable ColumnScope.() 
     }
 }
 
-/** One menu item with its text. */
+/**
+ * The open ⋮ menu at the top right, as on the phone (D-137): at most [MOCKUP_MENU_MAX_WIDTH] wide, so a long item
+ * wraps instead of reaching across the screen; it opens at [top].
+ */
+@Composable
+fun BoxScope.MockupOverflowMenu(
+    modifier: Modifier = Modifier,
+    top: Dp = MOCKUP_MENU_TOP,
+    items: @Composable ColumnScope.() -> Unit,
+) {
+    MockupMenu(
+        modifier
+            .align(Alignment.TopEnd)
+            .padding(top = top, end = UmamiSpacing.XXSmall)
+            .widthIn(max = MOCKUP_MENU_MAX_WIDTH),
+        items,
+    )
+}
+
+/** One menu item with its text; a long one wraps to a second line. */
 @Composable
 fun MockupMenuItem(text: String, modifier: Modifier = Modifier) {
-    Box(modifier.height(MENU_ITEM_HEIGHT).padding(horizontal = UmamiSpacing.Small), Alignment.CenterStart) {
+    Box(
+        modifier
+            .heightIn(min = MENU_ITEM_HEIGHT)
+            .padding(horizontal = UmamiSpacing.Small, vertical = UmamiSpacing.XXSmall),
+        Alignment.CenterStart,
+    ) {
         Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
     }
 }
@@ -136,8 +163,18 @@ fun MockupGap(modifier: Modifier = Modifier, height: Dp = UmamiSpacing.Small) {
     Spacer(modifier.height(height))
 }
 
-private val TOP_BAR_HEIGHT = 56.dp
+internal val TOP_BAR_HEIGHT = 56.dp
 private val ICON_SLOT = 40.dp
 private val BAR_HEIGHT = 10.dp
 private val MENU_ITEM_HEIGHT = 40.dp
 private val MENU_ELEVATION = 3.dp
+
+/** Where a drawn ⋮ menu opens: just under the top bar's ⋮. */
+val MOCKUP_MENU_TOP = 44.dp
+
+/** The widest a drawn ⋮ menu gets on the [MOCKUP_SCREEN_WIDTH] screen. */
+val MOCKUP_MENU_MAX_WIDTH = 190.dp
+
+/** A long and a medium blank menu item, both within [MOCKUP_MENU_MAX_WIDTH]. */
+val MOCKUP_MENU_BAR_LONG = 150.dp
+val MOCKUP_MENU_BAR_MEDIUM = 110.dp

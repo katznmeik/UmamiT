@@ -68,7 +68,7 @@ internal fun SessionMockup() {
             DetailRow(stringResource(R.string.mockup_session_water), MockupDemo.water())
         }
         SectionHeader(stringResource(R.string.mockup_session_rating))
-        Column(Modifier.padding(horizontal = UmamiSpacing.XSmall).mockupMarker()) {
+        Column(Modifier.padding(horizontal = UmamiSpacing.XSmall).mockupMarker(badgeBelow = true)) {
             RatingStars(
                 value = TEA_RATING,
                 onChange = {},
@@ -249,7 +249,9 @@ private const val PERIOD_COUNT = 5
 private val CHART_LEVELS = listOf(0.7f, 0.3f, 0.6f, 0.2f, 0.5f, 0.9f, 0.4f, 0.75f, 0.35f, 0.15f)
 private val HERO_HEIGHT = 72.dp
 private val HERO_LEAF = 36.dp
-private val RATING_LABEL_WIDTH = 64.dp
+
+/** The star rows' label width (M-SESSION, M-SAVED): all five stars fit beside „Zubereitung" / „Brewing". */
+internal val RATING_LABEL_WIDTH = 64.dp
 private val PERIOD_BAR = 20.dp
 private val BIG_VALUE_WIDTH = 90.dp
 private val BIG_VALUE_HEIGHT = 24.dp
