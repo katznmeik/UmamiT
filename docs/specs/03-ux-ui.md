@@ -305,6 +305,15 @@ Spacing 4/8/12/16/24/32/48 dp; side margin 20 dp; cards 16 dp radius;
 primary card 12 dp; pills fully rounded; circular thumbnails in lists; flat
 design with hairlines instead of shadows.
 
+**Edge rule (v0.12.0, [D-138](10-open-questions-and-decisions.md#d-138)).**
+Every piece of content keeps at least 16 dp to the left and right screen
+edge, on every screen, in both languages and at font 2.0. The 20 dp side
+margin stays the norm; 16 dp is the minimum, not a new margin. Only
+pictures, dividers and sideways-scrolling rows may run to the edge. A
+sideways-scrolling chip row fades out over about 24 dp on the side that has
+more content (the screen's background, static) instead of cutting a pill
+hard; scrolled to its end, the last pill keeps the side margin.
+
 ### 3.4 Iconography
 
 Material Symbols Outlined, weight 300; custom line icons for kyusu, houhin,
@@ -608,6 +617,18 @@ brühig", and „brühige Fülle" / „Brühe" in the Umami slider's info (08 §
   timer's fade (§3.6). The hold is presentation only: an alert, the question
   „Welchen Timer beenden?" and a refused start show at once. Back on Start,
   the card and the bar are there.
+- **Header and cards as one block (v0.12.0, [D-138](10-open-questions-and-decisions.md#d-138)).**
+  The header picture keeps its height; the *Aufguss starten* card (or
+  *Aufguss fortsetzen*) sits over the picture's lower edge, overlapping it
+  by about a third of the card's height, so the lists start higher.
+  *Schnelltimer* is a second, lighter card below it (until v0.11.0 a text
+  button): full width, `surface` with a hairline outline, the same radius
+  and height as *Aufguss starten*, the clock icon in the accent colour,
+  the title *Schnelltimer* and the line „Nur die Zeit, ohne Tee" (English:
+  „Just the time, no tea"). TalkBack reads title and line as one button. At
+  font 2.0 both cards grow in height and stay stacked. The exact overlap
+  and the gap between the cards come from the audit's render (D-138
+  item 18). What the two cards do is unchanged.
 - Reliability banner (TMR-31) at top when needed.
 - Active session replaces the card with *Aufguss fortsetzen* + live countdown.
   Only a brew session does (v0.3.0, D-098): a quick timer alone leaves
@@ -1124,6 +1145,10 @@ filter chips; sort; rows per TEA-08; adding a tea in Sammlung's ⋮ menu:
 Empty: „Noch keine Tees · Im Katalog stöbern".
 
 **v0.11.0 ([D-137](10-open-questions-and-decisions.md#d-137)):** ⋮ gains the item *Hilfe* (SCR-36 „Entry points").
+
+**v0.12.0 ([D-138](10-open-questions-and-decisions.md#d-138)):** the filter
+row keeps its sideways scroll and fades at the edge instead of cutting a
+pill hard (§3.3 „Edge rule"); the same holds for *Katalog*.
 
 v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)) replaces the M1
 placeholder („Deine Sammlung folgt bald …", D-069):

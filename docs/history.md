@@ -11,6 +11,13 @@
 
 ## Releases and plans
 
+### v0.12.0: specify session (2026-11-27)
+
+- The PO chose a **UI visual refinement** (their own answer; not a feedback round, the D-112 ideas, quick access or M5) and reopened none of the v0.10.0 points (closed by D-137).
+- Grilled in four rounds of options: **D-138** Q1–Q14 (the PO's list plus an audit; every screen; all four kinds of change; the timer screens visually; the audit first in its own session, every finding with before/after pictures, the PO picks, one release; on Start the button overlaps the picture and *Schnelltimer* is a lighter card; the filter row fades at the edge; at least 16 dp to the edge; v0.12.0). Items 15–24 are Claude's defaults, proposed.
+- Specs: 03 §3.3 „Edge rule", SCR-02, SCR-08; 09 §2/§4; 10. Spec issue #373, tickets #374–#379 (`needs-triage`), plan `docs/plans/v0.12.0.md`, draft PR #PRNUM. Stopped at the PO's approval.
+- The session was assigned `claude/blissful-maxwell-mu999f` and worked on `claude/inspiring-ritchie-8hfw00` as asked.
+
 ### v0.11.0: released (2026-11-27)
 
 - **Setup.** The final session (#371) was assigned `claude/wonderful-einstein-qfl9hz` and worked on `claude/inspiring-ritchie-8hfw00` as asked. Mirror init script, `gw.sh`/`gate.sh` and the Robolectric SDK 35 jar rebuilt; no local gate (the only code change was the version string; the gate passed on `1e9153a1`).
@@ -932,6 +939,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-27 | **v0.12.0 specify session:** D-138 Q1–Q14 (UI visual refinement: Start, the edge rule and fade, a design audit with before/after pictures), spec #373, tickets #374–#379, plan, draft PR #PRNUM; waiting for the PO's approval. |
 | 2026-11-26 | **v0.11.0 rc session:** T3 review and `/review-animations` findings fixed after the PO's answers (D-137), renders, What's new, full local gate; `v0.11.0-rc.1` (110001) from `1e9153a1`. Next: the PO's checklist, then the final session (#371). |
 | 2026-11-26 | **v0.11.0 build session:** #366–#369 built (mock-up kit, eight Anleitungen, the tour rework, ⋮ *Hilfe* on seven screens), each verified and CI green on `17e9c75d`; D-137 build notes; three questions for the PO. Next: the rc session (#370). |
 | 2026-11-26 | **v0.11.0 specify session:** D-137 Q1–Q16, spec #365, tickets #366–#371, plan, draft PR #372; approved by the PO. |
