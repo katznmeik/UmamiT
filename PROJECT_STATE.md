@@ -5,14 +5,14 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-27 (v0.12.0 specify session: the PO chose a UI visual refinement, D-138; spec #373, tickets #374–#379, plan, draft PR #380). **Next:** the PO approves the spec, tickets and plan; then the audit session (#374, #375).
+**Last updated:** 2026-11-27 (v0.12.0 specify session: the PO chose a UI visual refinement, D-138; spec #373, tickets #374–#379, plan, draft PR #380, all approved by the PO). **Next:** the audit session (#374), then the triage with the PO (#375).
 
-## Next: the PO approves v0.12.0's spec, then the audit session
+## Next: the v0.12.0 audit session (#374), then the triage (#375)
 
 - **v0.12.0 is specified (2026-11-27, D-138): a UI visual refinement.** Plan: [`docs/plans/v0.12.0.md`](docs/plans/v0.12.0.md).
   - **The PO's answers (Q1–Q14, accepted):** on Start *Aufguss starten* overlaps the header picture and *Schnelltimer* becomes a second, lighter card; sideways filter rows fade at the edge; at least 16 dp to the screen edge everywhere (fixed without asking per case); a design audit of every screen in its own session, every finding with before/after pictures, picked by the PO in a triage; everything picked ships in v0.12.0; the timer screens may change, visuals only; the PO's own points are built with the audit picks.
-  - **Proposed, not yet approved (items 15–24):** what stays fixed (tokens and typeface, navigation, wording, illustrations; the PO answered „no preference"); 16 dp as a minimum beside the 20 dp side margin; the Schnelltimer card's line „Nur die Zeit, ohne Tee" / „Just the time, no tea"; the overlap and fade values; the risk tiers; the audit's method; the tickets.
-  - **Waiting for the PO:** approval of spec #373, tickets #374–#379 (`needs-triage`) and the plan. No ticket starts before it (rule 1).
+  - **Claude's defaults, approved with the spec (items 15–24):** what stays fixed (tokens and typeface, navigation, wording, illustrations; the PO answered „no preference"); 16 dp as a minimum beside the 20 dp side margin; the Schnelltimer card's line „Nur die Zeit, ohne Tee" / „Just the time, no tea"; the overlap and fade values; the risk tiers; the audit's method; the tickets.
+  - **Approved by the PO (2026-11-27, „Approve all"):** spec #373, tickets #374–#379 (`ready-for-agent`) and the plan.
 - **Next session: the audit** (#374: read-only, findings file and pictures, no app code pushed), then the triage with the PO (#375). The build comes after the triage, started by the PO with `/implement-spec #373`.
 - **v0.11.0 is out (2026-11-27):** [`v0.11.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.11.0), versionCode 110099, from `main` `32626ef8`; details in `docs/history.md`.
 - **The v0.10.0 points are closed:** D-137 Q1/Q2 and Q13–Q15 answered them (2026-11-26), and the PO reopened none (D-138 Q2). The earlier list here was stale.
@@ -64,7 +64,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.12.0** (UI visual refinement, D-138): specified 2026-11-27, waiting for the PO's approval of spec #373, tickets and plan; before it **v0.11.0** (the tour reworked, D-137) **released 2026-11-27** (110099, from `main` `32626ef8`); before it **v0.10.0** (D-136) released 2026-11-25 (100099); M5 / 1.0 postponed until the PO's go |
+| Current milestone | **v0.12.0** (UI visual refinement, D-138): specified and approved 2026-11-27 (spec #373, tickets #374–#379, plan); next the audit (#374); before it **v0.11.0** (the tour reworked, D-137) **released 2026-11-27** (110099, from `main` `32626ef8`); before it **v0.10.0** (D-136) released 2026-11-25 (100099); M5 / 1.0 postponed until the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/inspiring-ritchie-8hfw00`, restarted from `main` `32626ef8` after the v0.11.0 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -86,7 +86,7 @@
 
 ## Waiting on the PO
 
-1. **v0.12.0:** approve spec #373, tickets #374–#379 and `docs/plans/v0.12.0.md` (or name changes), including Claude's items 15–24 of D-138 and the Schnelltimer card's line. Later: the pick in the triage (#375).
+1. **v0.12.0:** nothing now. After the audit: the pick of the findings in the triage (#375), from before/after pictures, and the approval of the pick tickets.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.

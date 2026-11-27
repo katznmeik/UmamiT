@@ -14,8 +14,8 @@
 ### v0.12.0: specify session (2026-11-27)
 
 - The PO chose a **UI visual refinement** (their own answer; not a feedback round, the D-112 ideas, quick access or M5) and reopened none of the v0.10.0 points (closed by D-137).
-- Grilled in four rounds of options: **D-138** Q1–Q14 (the PO's list plus an audit; every screen; all four kinds of change; the timer screens visually; the audit first in its own session, every finding with before/after pictures, the PO picks, one release; on Start the button overlaps the picture and *Schnelltimer* is a lighter card; the filter row fades at the edge; at least 16 dp to the edge; v0.12.0). Items 15–24 are Claude's defaults, proposed.
-- Specs: 03 §3.3 „Edge rule", SCR-02, SCR-08; 09 §2/§4; 10. Spec issue #373, tickets #374–#379 (`needs-triage`), plan `docs/plans/v0.12.0.md`, draft PR #380. Stopped at the PO's approval.
+- Grilled in four rounds of options: **D-138** Q1–Q14 (the PO's list plus an audit; every screen; all four kinds of change; the timer screens visually; the audit first in its own session, every finding with before/after pictures, the PO picks, one release; on Start the button overlaps the picture and *Schnelltimer* is a lighter card; the filter row fades at the edge; at least 16 dp to the edge; v0.12.0). Items 15–24 are Claude's defaults.
+- Specs: 03 §3.3 „Edge rule", SCR-02, SCR-08; 09 §2/§4; 10. Spec issue #373, tickets #374–#379 (`needs-triage`), plan `docs/plans/v0.12.0.md`, draft PR #380. **The PO approved all of it the same day** („Approve all"); tickets relabelled `ready-for-agent`.
 - The session was assigned `claude/blissful-maxwell-mu999f` and worked on `claude/inspiring-ritchie-8hfw00` as asked.
 
 ### v0.11.0: released (2026-11-27)
@@ -924,7 +924,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Topic | Agreed |
 |---|---|
-| 2026-11-27 | **v0.12.0 specify session:** D-138 Q1–Q14 (UI visual refinement: Start, the edge rule and fade, a design audit with before/after pictures), spec #373, tickets #374–#379, plan, draft PR #380; waiting for the PO's approval. |
+| 2026-11-27 | **v0.12.0 specify session:** D-138 Q1–Q14 (UI visual refinement: Start, the edge rule and fade, a design audit with before/after pictures), spec #373, tickets #374–#379, plan, draft PR #380; approved by the PO. Next: the audit session (#374, #375). |
 | 2026-11-27 | **v0.11.0 final session (#371):** the PO approved rc.1 (checklist and design review, no change); PR #372 merged (`32626ef8`), CI and all three accuracy variants PASS, `v0.11.0` (110099) released and verified. Next: the PO picks the next release (specify session). |
 | Start | 2026-10-22 09:05 Europe/Berlin via a scheduled task in session `session_01TEa8Scj1c19uHy7ruNYZYJ`; `/implement-spec` on spec #6 (tickets #8–#17) |
 | Parallelism | At most **2** implementer subagents at a time |
