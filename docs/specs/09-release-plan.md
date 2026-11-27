@@ -508,7 +508,7 @@ font 2.0); there is no rc.2, and the final follows the PO's OK on them.
 - [x] **Tour motion (D-137 `/review-animations`):** „Mehr dazu" fades to the Anleitung and back (not a cut), and back returns to the same scroll position; swiping slowly from page 5 to 6, *Überspringen* fades with the finger and does not flicker when you hold half-way; on page 6 it is gone. (The tests run with reduce motion, so this is the only check of the fades.)
 - [x] **Mock-up size:** the mock-ups' labels are legible enough on the Galaxy (tour and an Anleitung); if not, say so and a bigger frame goes into rc.2 (D-137 rc-session answers).
 - [x] The rc's PR shows CI green (Claude).
-- [ ] The final: the accuracy report shows all three variants passed on the merge commit (Claude, §4a).
+- [x] The final: the accuracy report shows all three variants passed on the merge commit (Claude, §4a): `32626ef8`, runs 45970868449 (standard), 45970872602 (alongside), 45970877153 (two-brews).
 - [x] **The PO approved the whole checklist and the design review:** rc.1 (2026-11-27, final session #371, in session); nothing fails, no change named (so the step badge and the mock-up size stay as built, D-137 „Final session").
 
 ### M5 — 1.0 (postponed: starts only on the PO's go, D-128)
