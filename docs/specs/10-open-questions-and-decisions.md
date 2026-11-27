@@ -422,6 +422,8 @@ personal data or shop content).
 - **„Mehr dazu" in the tour** cut to SCR-36 and back; it now fades with the root's screen tokens (`motion.fade()` in, `motion.exitFade()` out), as from ⋮ *Hilfe*.
 - ***Überspringen*** switched at the swipe's half-way point and could flicker during a held drag; its opacity now follows `currentPage + currentPageOffsetFraction` in the draw phase, and it is not tappable (and hidden from TalkBack) once page 6 has settled.
 
+**Final session (#371, 2026-11-27), the PO's approval.** the PO approved all of 09 §4 „v0.11.0" and the design review on rc.1 (in session) and named no change. So the step badge (including the fix round's fallbacks, which stay Claude's as-built choice, not a PO decision) and the mock-up size are kept as built: no bigger frame, no rc.2.
+
 <a id="d-136"></a>
 ### D-136 — v0.10.0: the PO's feedback on v0.9.0: every stock event editable with past costs recomputed, the Vollbild-Alarm after an update, the timer in portrait, English as a second language, a tour (INV-03, INV-08, ONB-02, ONB-07, GEN-13, TMR-31, SET-35, SET-36, NFR-COMP-02; 03 SCR-01, SCR-05, SCR-07, SCR-25, SCR-29, SCR-33, SCR-34; 05 §6; 09 §2, §4 „v0.10.0"; CLAUDE.md rule 4; amends the German-only UI of CLAUDE.md rule 4, INV-08's cost fixed at completion for edited purchases, NFR-COMP-02 for the timer screens) · *Accepted (PO, 2026-11-24)*: the PO's answers Q1–Q9 below; the spec #353 (including Claude's items 10–16 and the tour copy in 03 SCR-33), its tickets #354–#363 and `docs/plans/v0.10.0.md` approved by the PO on 2026-11-24 (specify session, „Approve all")
 
