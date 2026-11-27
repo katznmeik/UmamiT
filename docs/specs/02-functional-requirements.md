@@ -1,6 +1,6 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-11-24 (D-136 (v0.10.0): GEN-13, ONB-07, TMR-31 sheet, INV-03 edit, INV-08 recompute, SET-35, SET-36; 2026-11-20: D-134/D-135 (v0.9.0-rc.2): PRF-08 file name and type, GEN-01 three uses, ONB-06 removed, CAT-15, WARE-06, SET-33; 2026-11-19: v0.9.0, D-131 build notes: SET-33 as built; 2026-11-18: v0.9.0, D-130: GEN-01 (d) a received recipe's shop link on a tap, PRF-08, BAK-01, BAK-02, BAK-04, BAK-06 in full, SET-20 a switch; 2026-11-17: v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
+> Status: **Draft v0.2** · Last updated: 2026-11-26 (D-137 (v0.11.0): ONB-07 reworked, ONB-08 *Anleitungen*, SET-36; 2026-11-24: D-136 (v0.10.0): GEN-13, ONB-07, TMR-31 sheet, INV-03 edit, INV-08 recompute, SET-35, SET-36; 2026-11-20: D-134/D-135 (v0.9.0-rc.2): PRF-08 file name and type, GEN-01 three uses, ONB-06 removed, CAT-15, WARE-06, SET-33; 2026-11-19: v0.9.0, D-131 build notes: SET-33 as built; 2026-11-18: v0.9.0, D-130: GEN-01 (d) a received recipe's shop link on a tap, PRF-08, BAK-01, BAK-02, BAK-04, BAK-06 in full, SET-20 a switch; 2026-11-17: v0.8.0, D-128: „Session" and „Aufguss" wording in GEN-04 and all German copy, taste sets and the slider info in JRN-03, *Geschmacksprofil* in TEA-02, the timer follows *Design* in SET-05, refresh progress in SET-23, the BRW-06 guard of #313; v0.9.0 planned: BAK-01, BAK-02, BAK-04, BAK-06, PRF-08; 2026-11-14: v0.7.1, D-117: two ratings Tee and Zubereitung in JRN-02, JRN-08, JRN-09, TEA-08, TEA-11, TEA-13, INS-02; v0.7.0-rc.3, D-115 Amendment 2: no cups, volume instead: INV-08 € pro Liter, INS-01, INS-05, SET-34 removed; 2026-11-13: v0.7.0-rc.2, D-115 Amendment 1: INS-01–INS-08 reworked, INV-08 cups by volume, SET-34 *Tassengröße*, v0.7.1 note at JRN-02, D-116; v0.7.0, Statistik: INS-01–INS-08, D-115; 2026-11-12: v0.6.1, the PO's feedback on v0.6.0: TMR-22 chips, JRN-03 and JRN-05 per infusion, JRN-09, JRN-10 ⋮, TEA-05 viewer, TEA-13 ⋮, CAT-07 „N Tees", CAT-10 no kind, SET-05, SET-30, D-114; 2026-11-11: v0.6.0, the journal: JRN-02–JRN-11, PRF-07,
 > TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18 retired, D-112;
 > 2026-10-31: M3 in two releases,
 > v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
@@ -196,15 +196,42 @@ onboarding shows no „Teefotos werden geladen …" line.
 Shown until completed; reachable again via Einstellungen › Über ›
 *Einrichtung erneut zeigen*.
 
-**ONB-07 — Tour** `Must` (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136))
+**ONB-07 — Tour** `Must` (v0.10.0, [D-136](10-open-questions-and-decisions.md#d-136); reworked in v0.11.0, [D-137](10-open-questions-and-decisions.md#d-137))
 Six swipe-through pages after the welcome (ONB-01) and before the
 reliability page (ONB-02), on the first start and after *Alle Daten löschen*
 (SET-33); again from *Einstellungen* › *Hilfe* › *Einführung* (SET-36).
-Copy and images in 03 SCR-33.
-- AC1: *Überspringen* on every page goes to the next onboarding step (first
-  start) or back to the settings; back on the first page does the same.
-- AC2: TalkBack reads each page's title and text; the pages work at font
-  2.0 (text scrolls, buttons stay in view).
+From v0.11.0 each page shows its illustration, a mock-up of the area's
+screen with the spot marked, a title, four to six lines of text and one
+„Mehr dazu" link per matching Anleitung (ONB-08). Copy, mock-ups and
+images in 03 SCR-33.
+- AC1: *Überspringen* on every page but the last goes to the next
+  onboarding step (first start) or back to the settings; back on the first
+  page does the same. The last page shows only *Fertig* (D-137 Q11).
+- AC2: TalkBack reads each page's title, text, the mock-up's description
+  and the links; the pages work at font 2.0 (text scrolls, buttons stay in
+  view).
+- AC3: „Mehr dazu" opens the Anleitung; back returns to the same tour page,
+  also during the first start.
+- AC4: the page dots' colour blends with the swipe; *Weiter* and *Fertig* have one
+  fixed width in both languages (D-137 Q12).
+
+**ONB-08 — Anleitungen** `Must` (v0.11.0, [D-137](10-open-questions-and-decisions.md#d-137))
+Eight how-to topics, each a scrolling page with a short intro and numbered
+steps naming the app's own labels, the key steps with a mock-up (03 SCR-35,
+SCR-36): *Tee ohne Katalog*, *Tee per Shop-Link*, *Vorrat und Kosten*,
+*Rezepte*, *Aufgießen im Detail*, *Journal und Geschmack*, *Daten und
+Sicherung*, *Zuverlässiger Alarm*. Opened from *Einstellungen* › *Hilfe* ›
+*Anleitungen*, from the tour's „Mehr dazu" (ONB-07) and from the ⋮ item
+*Hilfe* on *Meine Tees*, *Katalog*, Tee, Rezept bearbeiten, Journal, Session and
+Daten & Sicherung (03 SCR-36 „Entry points").
+- AC1: every in-app name quoted in a step is the string the app shows in
+  that language (a unit test checks them against the resources).
+- AC2: the mock-ups use invented demo data only, never shop texts or photos
+  (CLAUDE.md rule 3), and follow *Design* and the app language.
+- AC3: TalkBack reads the intro, each step and each mock-up's description;
+  font 2.0 works.
+- AC4: no setup or timer screen gains an entry point; the timer modules are
+  unchanged.
 
 ---
 
@@ -2048,7 +2075,7 @@ Performance: NFR-PERF-06 (500 ms for 10 000 sessions).
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Aufguss & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
 | SET-34 | ~~Tassengröße~~ **removed in rc.3 (D-115 A2)**: the setting, its row and dialog are gone; Statistik and the tea detail count volume (INV-08, INS-05). Until rc.2 (D-115 A1, R2–R3): 50–500 ml in 10 ml steps, **150 ml** (`cupSizeMl`, retired, 05 §6) | — | — |
 | SET-35 | Sprache (*Darstellung*; v0.10.0, D-136): System · Deutsch · English (GEN-13), through Android's per-app language | System | Must |
-| SET-36 | Einführung (*Hilfe*; v0.10.0, D-136): opens the tour (ONB-07, SCR-33) | — | Must |
+| SET-36 | *Hilfe* (v0.10.0, D-136; v0.11.0, D-137): *Einführung* opens the tour (ONB-07, SCR-33); *Anleitungen* opens the topic list (ONB-08, SCR-35) | — | Must |
 | SET-28 | Vorrats-Erinnerung (INV-11, in *Aufguss & Vorrat*; a switch „Tägliche Vorrats-Erinnerung" in v0.3.0, D-098; from v0.5.0 *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich · Aus*, D-108) | Täglich | Should |
 | SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is not *Aus*; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Aufguss anlassen | an | Must |

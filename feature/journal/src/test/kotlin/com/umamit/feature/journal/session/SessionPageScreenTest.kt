@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -69,6 +70,7 @@ class SessionPageScreenTest {
     private val openedTeas = mutableListOf<String>()
     private val brewedAgain = mutableListOf<String>()
     private var deleted = 0
+    private var helpOpened = 0
 
     /** Whether the page is composed; set to false, it is left as when back or an alert takes the screen. */
     private val onScreen = mutableStateOf(true)
@@ -132,6 +134,7 @@ class SessionPageScreenTest {
                             onBrewAgain = { brewedAgain += it },
                             onDeleted = { deleted++ },
                             onOpenCatalog = { openedCatalog += it },
+                            onOpenHelp = { helpOpened++ },
                         ),
                         viewModel = viewModel,
                         heroViewModel = heroViewModel(sessions, PAST),
@@ -247,6 +250,23 @@ class SessionPageScreenTest {
     private fun openMenu() {
         compose.onNodeWithTag(SESSION_MENU_TAG).performClick()
         compose.waitForIdle()
+    }
+
+    /** ⋮ *Hilfe* (SCR-36 „Entry points"): the last item, below *Löschen*; its tap hands over and closes the menu. */
+    @Test
+    fun `the menu ends with Hilfe, whose tap opens the Anleitung`() {
+        show()
+
+        openMenu()
+        val help = compose.onNodeWithTag(SESSION_MENU_HELP_TAG)
+        help.assertIsDisplayed()
+        val below = help.getBoundsInRoot().top > compose.onNodeWithText("Löschen").getBoundsInRoot().top
+        assertThat(below).isTrue()
+        help.performClick()
+        compose.waitForIdle()
+
+        assertThat(helpOpened).isEqualTo(1)
+        compose.onNodeWithTag(SESSION_MENU_HELP_TAG).assertDoesNotExist()
     }
 
     /** ⋮ (D-114 Q11): *Tee ansehen* and *Im Katalog ansehen* above *Bearbeiten* and *Löschen*; a tap hands over. */

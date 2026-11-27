@@ -32,7 +32,8 @@ import java.time.LocalDate
  * app restart. [teaRequest] shows the list with *Tee* set to a tea and the search and every other filter cleared (the
  * tea detail's *Alle anzeigen*, TEA-13); it is applied once per request ([JournalTeaRequest.token]), so the user's
  * later changes to the filter stand. [alerting]: an alert plays, so the filter sheet gives way (rule 8); [alertKey] is
- * that alert (null: none), which the ⋮ menu gives way to unless it was opened in it (D-058).
+ * that alert (null: none), which the ⋮ menu gives way to unless it was opened in it (D-058). [onOpenHelp] is ⋮ *Hilfe*
+ * (SCR-36 „Entry points").
  */
 @Composable
 fun JournalRoute(
@@ -45,6 +46,7 @@ fun JournalRoute(
     teaRequest: JournalTeaRequest? = null,
     alerting: Boolean = false,
     alertKey: String? = null,
+    onOpenHelp: () -> Unit = {},
 ) {
     val sessionsFlow = remember(sources) { sources.journal.observeSessions() }
     val sessions by sessionsFlow.collectAsStateWithLifecycle(initialValue = sources.lastSessions)
@@ -101,6 +103,7 @@ fun JournalRoute(
         alerting = alerting,
         teaNameFallback = teaNameFallback,
         alertKey = alertKey,
+        onOpenHelp = onOpenHelp,
     )
 }
 

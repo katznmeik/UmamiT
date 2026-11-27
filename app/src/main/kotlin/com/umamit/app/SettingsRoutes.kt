@@ -3,6 +3,7 @@ package com.umamit.app
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.umamit.feature.onboarding.howto.HowToTopic
 
 /**
  * Registers the settings [S] (the root's `TimerSettingsRoute`, a tab's `SettingsRoute`) and the four screens opened
@@ -10,6 +11,7 @@ import androidx.navigation.compose.composable
  */
 internal inline fun <reified S : Any> NavGraphBuilder.settingsRoutes(settings: SettingsScreens, nav: SettingsNav) {
     composable<S> {
+        val howTo = LocalHowTo.current
         settings.screen(
             SettingsHost(
                 onBack = dropUnlessResumed(block = nav.back),
@@ -19,15 +21,18 @@ internal inline fun <reified S : Any> NavGraphBuilder.settingsRoutes(settings: S
                 onOpenTeaware = dropUnlessResumed { nav.open(TeawareRoute) },
                 onOpenDataBackup = dropUnlessResumed { nav.open(DataBackupRoute) },
                 onOpenTour = dropUnlessResumed(block = nav.openTour),
+                onOpenHowTos = dropUnlessResumed(block = howTo.openList),
             ),
         )
     }
     composable<DataBackupRoute> {
+        val howTo = LocalHowTo.current
         settings.dataBackup(
             DataBackupHost(
                 onBack = dropUnlessResumed(block = nav.back),
                 onImported = nav.backupImported,
                 alertKey = nav.alertKey(),
+                onOpenHelp = howTo.topic(HowToTopic.DataAndBackup),
             ),
         )
     }

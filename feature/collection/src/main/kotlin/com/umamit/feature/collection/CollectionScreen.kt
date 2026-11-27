@@ -15,6 +15,7 @@ import com.umamit.core.designsystem.component.OverflowSettingsAction
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.ui.rememberAlertGate
+import com.umamit.core.designsystem.R as DsR
 
 /**
  * Sammlung (SCR-08 / SCR-19): the segmented control [ Meine Tees | Katalog ] at the top and the
@@ -28,7 +29,9 @@ import com.umamit.core.ui.rememberAlertGate
  * *Katalog aktualisieren* ([onRefreshCatalog], SCR-19, CAT-07) and *Link einfügen*
  * ([onPasteLink], a tea from a shop link, CAT-17), and while the catalog shows a view whose *Sorte* groups fold
  * ([onFoldCatalog] not null, D-098) *Alle einklappen* (`true`) and *Alle ausklappen* (`false`). The menu gives way to
- * an alert it was not opened in ([alertKey], the alert playing now; rule 8, D-058).
+ * an alert it was not opened in ([alertKey], the alert playing now; rule 8, D-058). Both segments end the menu with
+ * *Hilfe* ([onOpenHelp], given the segment shown: *Meine Tees* opens the list of Anleitungen, *Katalog* the one on
+ * shop links; SCR-36 „Entry points", D-137 Q10), just above *Einstellungen*.
  */
 @Composable
 fun CollectionScreen(
@@ -45,6 +48,7 @@ fun CollectionScreen(
     onAddFromCatalog: () -> Unit = {},
     onAddWithoutCatalog: () -> Unit = {},
     onImportRecipe: () -> Unit = {},
+    onOpenHelp: (CollectionSegment) -> Unit = {},
     alertKey: String? = null,
 ) {
     val menu = rememberAlertGate(alertKey)
@@ -55,7 +59,8 @@ fun CollectionScreen(
     val addFromCatalogLabel = stringResource(R.string.my_teas_add_from_catalog)
     val addWithoutCatalogLabel = stringResource(R.string.my_teas_add_without_catalog)
     val importRecipeLabel = stringResource(R.string.my_teas_import_recipe)
-    val menuItems = if (segment == CollectionSegment.Catalog) {
+    val helpLabel = stringResource(DsR.string.ds_help)
+    val ownItems = if (segment == CollectionSegment.Catalog) {
         buildList {
             add(OverflowItem(refreshLabel, onRefreshCatalog))
             add(OverflowItem(pasteLabel, onPasteLink))
@@ -71,6 +76,7 @@ fun CollectionScreen(
             OverflowItem(importRecipeLabel, onImportRecipe),
         )
     }
+    val menuItems = ownItems + OverflowItem(helpLabel) { onOpenHelp(segment) }
     ScreenScaffold(
         title = stringResource(R.string.collection_title),
         modifier = modifier,

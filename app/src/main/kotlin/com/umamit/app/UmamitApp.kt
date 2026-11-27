@@ -84,6 +84,7 @@ import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.journal.session.SessionEditorHost
 import com.umamit.feature.journal.session.SessionPageHost
+import com.umamit.feature.onboarding.howto.HowToTopic
 import com.umamit.feature.settings.backup.ImportedBackup
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
@@ -678,6 +679,8 @@ private fun TabHost(
 ) {
     val motion = UmamiTheme.motion
     val openSettings = { navController.navigate(SettingsRoute) }
+    // ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitungen open above the shell, back returns here.
+    val howTo = LocalHowTo.current
     NavHost(
         navController = navController,
         startDestination = tab.root,
@@ -705,6 +708,7 @@ private fun TabHost(
                 // An alert plays: the filter sheet and the ⋮ menu give way (rule 8, D-058).
                 alerting = alertKey != null,
                 alertKey = alertKey,
+                onOpenHelp = howTo.topic(HowToTopic.JournalAndTaste),
             )
         }
         // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal aufgießen* opens the setup
@@ -722,6 +726,7 @@ private fun TabHost(
                     // ⋮ *Im Katalog ansehen* (D-114 Q11): the catalog tea in this stack; back returns to the page.
                     onOpenCatalog = resumedOnly { key: String -> navController.navigate(CatalogTeaRoute(key)) },
                     alertKey = alertKey,
+                    onOpenHelp = howTo.topic(HowToTopic.JournalAndTaste),
                 ),
             )
         }
@@ -765,6 +770,13 @@ private fun TabHost(
                     },
                     // ⋮ *Rezept importieren* (PRF-08, D-130 Q14): the system file picker, then SCR-32.
                     onImportRecipe = collection.importRecipe,
+                    // ⋮ *Hilfe*: the list on *Meine Tees*, the shop-link Anleitung on *Katalog* (SCR-36).
+                    onOpenHelp = { shown ->
+                        when (shown) {
+                            CollectionSegment.Catalog -> howTo.openTopic(HowToTopic.ShopLink)
+                            else -> howTo.openList()
+                        }
+                    },
                     myTeasContent = { modifier, scrollToTop -> myTeas(modifier, scrollToTop, openTea) },
                     // The ⋮ menu gives way to an alert (rule 8, D-058).
                     alertKey = alertKey,
@@ -802,6 +814,7 @@ private fun TabHost(
                     onShowAllSessions = dropUnlessResumed { collection.showInJournal(teaId) },
                     // ⋮ *Im Katalog ansehen* (D-114 Q10): the catalog tea in this stack; back returns to the detail.
                     onOpenCatalog = resumedOnly { key: String -> navController.navigate(CatalogTeaRoute(key)) },
+                    onOpenHelp = howTo.topic(HowToTopic.StockAndCost),
                 ),
             )
         }
@@ -813,6 +826,7 @@ private fun TabHost(
                     onClose = dropUnlessResumed { navController.popBackStack() },
                     onDone = { closeIfOnTop() },
                     alertKey = alertKey,
+                    onOpenHelp = howTo.topic(HowToTopic.Recipes),
                 ),
             )
         }

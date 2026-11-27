@@ -64,6 +64,7 @@ import com.umamit.core.ui.rememberAlertGate
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.feature.collection.R
 import java.time.LocalDate
+import com.umamit.core.designsystem.R as DsR
 
 /** The detail's scrolling content (SCR-09). */
 const val TEA_DETAIL_TAG = "tea_detail"
@@ -79,6 +80,9 @@ const val TEA_DETAIL_EDIT_TAG = "tea_detail_edit"
 
 /** ⋮ *Im Katalog ansehen* (D-114 Q10). */
 const val TEA_DETAIL_CATALOG_TAG = "tea_detail_catalog"
+
+/** ⋮ *Hilfe* (SCR-36 „Entry points"). */
+const val TEA_DETAIL_HELP_TAG = "tea_detail_help"
 
 /** ⋮ *Aus Katalog zurücksetzen*'s confirmation (PRF-06). */
 const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
@@ -120,6 +124,8 @@ class TeaDetailActions(
     val setLowStockGrams: (grams: Int?) -> Unit = {},
     val showAllSessions: (() -> Unit)? = null,
     val openCatalog: (catalogKey: String) -> Unit = {},
+    /** ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitung on stock and cost. */
+    val openHelp: () -> Unit = {},
 )
 
 /**
@@ -513,6 +519,14 @@ private fun ColumnScope.TeaMenu(
         close()
         onDelete()
     }
+    DropdownMenuItem(
+        text = { Text(stringResource(DsR.string.ds_help)) },
+        onClick = {
+            close()
+            actions.openHelp()
+        },
+        modifier = Modifier.testTag(TEA_DETAIL_HELP_TAG),
+    )
 }
 
 /** A ⋮ item; [blocked] greys it out with „Erst die Session beenden" (E15). */

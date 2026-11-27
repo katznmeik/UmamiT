@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
 import com.umamit.core.designsystem.component.EmptyState
+import com.umamit.core.designsystem.component.OverflowItem
 import com.umamit.core.designsystem.component.OverflowSettingsAction
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
@@ -62,6 +63,7 @@ import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.SessionRatings
 import com.umamit.core.ui.rememberAlertGate
 import java.io.File
+import com.umamit.core.designsystem.R as DsR
 
 private const val TITLE_MAX_LINES = 2
 private val ThumbnailSize = 48.dp
@@ -84,6 +86,7 @@ const val JOURNAL_LIST_TAG = "journal_list"
  * @param teaNameFallback the name of the filtered tea when it has no finished session (so it is no sheet option).
  * @param thumbnail loads a tea's cover photo; tests pass a placeholder.
  * @param onOpenSession a past entry's tap: its session page (SCR-16) by the session's id.
+ * @param onOpenHelp ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitung *Journal und Geschmack*, above *Einstellungen*.
  */
 @Composable
 fun JournalScreen(
@@ -100,13 +103,22 @@ fun JournalScreen(
     teaNameFallback: String? = null,
     listChange: Int = 0,
     alertKey: String? = null,
+    onOpenHelp: () -> Unit = {},
 ) {
     val menu = rememberAlertGate(alertKey)
+    val helpItems = listOf(OverflowItem(stringResource(DsR.string.ds_help), onOpenHelp))
     ScreenScaffold(
         title = stringResource(R.string.journal_title),
         modifier = modifier,
         actions = {
-            OverflowSettingsAction(onOpenSettings, menu.shown, menu.keepsPopup, menu::open, menu::close)
+            OverflowSettingsAction(
+                onOpenSettings,
+                menu.shown,
+                menu.keepsPopup,
+                menu::open,
+                menu::close,
+                items = helpItems,
+            )
         },
         scrollable = false,
         verticalArrangement = Arrangement.Top,

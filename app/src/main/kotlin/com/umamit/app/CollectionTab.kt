@@ -55,6 +55,7 @@ internal class CollectionStackScreens(
                 onSave = { _ -> it.onDone() },
                 onDelete = it.onDone,
                 alertKey = it.alertKey,
+                onOpenHelp = it.onOpenHelp,
             )
         },
     val receiveRecipe: @Composable (ReceiveRecipeHost) -> Unit = { ReceiveRecipeRoute(it) },
@@ -80,9 +81,14 @@ internal class TeaEditorHost(
 /**
  * What the recipe editor (SCR-12) gets from the Sammlung stack: [onClose] for ✕ and back, [onDone] after *Speichern*
  * or *Löschen*; either returns to the tea's detail. Its menus and dialogs give way to another alert than
- * [alertKey] (rule 8).
+ * [alertKey] (rule 8). [onOpenHelp] is ⋮ *Hilfe* (SCR-36 „Entry points"): the Anleitung *Rezepte*.
  */
-internal class RecipeEditorHost(val onClose: () -> Unit, val onDone: () -> Unit, val alertKey: String? = null)
+internal class RecipeEditorHost(
+    val onClose: () -> Unit,
+    val onDone: () -> Unit,
+    val alertKey: String? = null,
+    val onOpenHelp: () -> Unit = {},
+)
 
 /**
  * What the Sammlung tab's collection screens get from the shell: the [screens], [onArchivedChange] for the tea

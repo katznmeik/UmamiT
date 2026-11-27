@@ -20,6 +20,8 @@ import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
+import com.umamit.feature.onboarding.howto.HowToTags
+import com.umamit.feature.onboarding.howto.HowToTopic
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -260,6 +262,24 @@ class OnboardingTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Damit der Timer zuverlässig klingelt").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Mehr dazu during the first start returns to the same tour page`() {
+        show()
+        compose.onNodeWithText("Los geht's").performClick()
+        compose.onNodeWithTag(TourTags.NEXT).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(TourTags.more(HowToTopic.Brewing)).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(HowToTags.TOPIC).assertIsDisplayed()
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Zwei Timer und Schnelltimer").assertIsDisplayed()
+        compose.onNodeWithTag(TourTags.DOTS).assertContentDescriptionEquals("Seite 2 von 6")
+        compose.onNodeWithText("Damit der Timer zuverlässig klingelt").assertDoesNotExist()
     }
 
     @Test

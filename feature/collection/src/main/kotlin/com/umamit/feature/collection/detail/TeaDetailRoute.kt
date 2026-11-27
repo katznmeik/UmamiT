@@ -93,6 +93,7 @@ fun TeaDetailRoute(
             setLowStockGrams = viewModel::setLowStockGrams,
             showAllSessions = host.onShowAllSessions,
             openCatalog = host.onOpenCatalog,
+            openHelp = host.onOpenHelp,
         ),
         modifier = modifier,
         alertKey = host.alertKey,

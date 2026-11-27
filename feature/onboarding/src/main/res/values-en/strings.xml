@@ -40,18 +40,207 @@
 
     <!-- Einführung (SCR-33, ONB-07, D-136): the tour. -->
     <string name="tour_page1_title">Start and timer</string>
-    <string name="tour_page1_text">Tap a tea under Recently brewed or start a New session. The timer guides you through every infusion, with a pre-alert and an alarm.</string>
+    <string name="tour_page1_text">Tap Start brewing, pick a tea and check vessel, leaf and water in New session. The timer guides you through every infusion, with a pre-alert and an alarm, even when the screen is locked. A tap on a tea under Recently brewed starts it like last time.</string>
     <string name="tour_page2_title">Two timers and quick timer</string>
-    <string name="tour_page2_text">Two timers can run at once: two sessions, or a session and the quick timer. The row at the top switches to the other timer.</string>
+    <string name="tour_page2_text">Two timers can run at once: two sessions, or a session and the Quick timer, e.g. for a second pot. The bar above the navigation shows both, and in the timer the row below the picture switches to the other one. The quick timer needs no tea: tap the duration, Start.</string>
     <string name="tour_page3_title">Collection and catalog</string>
-    <string name="tour_page3_text">Load the Tee-Kontor Kiel catalog and add teas to My teas, or share a shop link with UmamiT. Recipes, stock and costs live on the tea.</string>
+    <string name="tour_page3_text">Your teas live in the Collection, with recipes, stock and costs. Get teas from Tee-Kontor Kiel from the Catalog or by a shop link. Add any other tea with ⋮ › Add a tea without the catalog. Each tea can have several recipes.</string>
     <string name="tour_page4_title">Journal and taste</string>
-    <string name="tour_page4_text">Every session lands in the journal. Rate the tea and the brewing, note the taste of each infusion and keep good times in the recipe.</string>
+    <string name="tour_page4_text">Every session lands in the Journal by itself. Rate the Tea and the Brewing with stars, note the taste of each infusion with sliders and descriptors, and keep good times in the recipe. Brew this again repeats a session.</string>
     <string name="tour_page5_title">Statistics</string>
-    <string name="tour_page5_text">See what you drink: sessions, kinds, favourite teas, habits, use and cost per litre.</string>
+    <string name="tour_page5_text">Statistics shows what you drink: sessions, varieties and favorite teas, your habits over the day, use and what a liter costs. Pick the time range at the top. Costs come from the purchases you log on the tea.</string>
     <string name="tour_page6_title">Backup and sharing recipes</string>
-    <string name="tour_page6_text">In Settings › Data &amp; backup you save all your data to one file. Share a recipe from ⋮ in the recipe.</string>
+    <string name="tour_page6_text">Your data stays on your phone. In Settings › Data &amp; backup you save everything to one file and restore it. Share a recipe from ⋮ › Share recipe in the recipe. Whoever gets the file takes it over with one tap.</string>
+    <string name="tour_more">More: %1$s</string>
     <string name="tour_skip">Skip</string>
     <string name="tour_done">Done</string>
     <string name="tour_page_of" tools:ignore="PluralsCandidate">Page %1$d of %2$d</string>
+    <!-- Mock-ups (SCR-36 „Mock-ups", D-137 item 19). -->
+    <string name="mockup_home_start_brew">Start brewing</string>
+    <string name="mockup_home_start_brew_subtitle">Pick a tea and go</string>
+    <string name="mockup_home_recent">Recently brewed</string>
+    <string name="mockup_timer_text_running">Steeping …</string>
+    <string name="mockup_timer_action_pause">Pause</string>
+    <!-- The timer's line under the tea: the temperature, then feature:brew's brew_timer_step_label for an infusion. -->
+    <string name="mockup_timer_temperature_step" tools:ignore="PluralsCandidate">%1$s · Infusion %2$d of %3$d</string>
+    <string name="mockup_collection_title">Collection</string>
+    <string name="mockup_collection_segment_my_teas">My teas</string>
+    <string name="mockup_collection_segment_catalog">Catalog</string>
+    <string name="mockup_my_teas_add_without_catalog">Add a tea without the catalog</string>
+    <string name="mockup_my_teas_stock_left">%1$s g left</string>
+    <string name="mockup_session_vessel">Vessel</string>
+    <string name="mockup_session_leaf">Leaf</string>
+    <string name="mockup_session_water">Water</string>
+    <string name="mockup_session_rating">Rating</string>
+    <string name="mockup_journal_rating_tea">Tea</string>
+    <string name="mockup_journal_rating_brewing">Brewing</string>
+    <string name="mockup_session_taste">Taste</string>
+    <string name="mockup_session_taste_add">Add taste</string>
+    <string name="mockup_stats_title">Your tea journey</string>
+    <string name="mockup_stats_tab_overview">Overview</string>
+    <string name="mockup_stats_tab_ratings">Ratings</string>
+    <string name="mockup_stats_tab_consumption">Consumption</string>
+    <string name="mockup_stats_consumption_section_drunk">Drunk</string>
+    <string name="mockup_stats_consumption_cost_per_liter">Avg. %1$s € per liter</string>
+    <string name="mockup_backup_title">Data &amp; backup</string>
+    <string name="mockup_backup_section_backup">Backup</string>
+    <string name="mockup_backup_create">Create backup</string>
+
+    <!-- TalkBack, one description per mock-up (SCR-36 table). -->
+    <string name="mockup_description_start">Picture: Start with “Start brewing”</string>
+    <string name="mockup_description_two">Picture: timer with the row for the second timer</string>
+    <string name="mockup_description_my_teas_menu">Picture: My teas with the menu open</string>
+    <string name="mockup_description_sorte">Picture: Choose variety</string>
+    <string name="mockup_description_tea_new">Picture: New tea, Purchase section</string>
+    <string name="mockup_description_catalog_menu">Picture: Catalog with the menu open</string>
+    <string name="mockup_description_catalog_tea">Picture: catalog tea with “Add to collection”</string>
+    <string name="mockup_description_add_sheet">Picture: “Add to collection” sheet</string>
+    <string name="mockup_description_stock">Picture: tea, Stock section</string>
+    <string name="mockup_description_history">Picture: stock history with a purchase</string>
+    <string name="mockup_description_recipes">Picture: tea, Recipes section</string>
+    <string name="mockup_description_steps">Picture: a recipe\'s steps</string>
+    <string name="mockup_description_receive">Picture: Take over recipe</string>
+    <string name="mockup_description_setup">Picture: New session with vessel</string>
+    <string name="mockup_description_timer_menu">Picture: timer with the menu open</string>
+    <string name="mockup_description_saved">Picture: Saved to the journal with stars</string>
+    <string name="mockup_description_session">Picture: session with rating and taste</string>
+    <string name="mockup_description_stats">Picture: Statistics, use</string>
+    <string name="mockup_description_settings_data">Picture: Settings</string>
+    <string name="mockup_description_data">Picture: Data &amp; backup</string>
+    <string name="mockup_description_reliability">Picture: Timer reliability</string>
+    <string name="mockup_description_banner">Picture: Start with the timer notice</string>
+
+    <!-- Anleitungen (SCR-35, SCR-36, ONB-08, D-137): the screens' own strings. -->
+    <string name="howto_list_title">How-tos</string>
+    <string name="howto_step_description" tools:ignore="PluralsCandidate">Step %1$d of %2$d: %3$s</string>
+    <string name="howto_tip_label">Tip</string>
+
+    <!-- The eight topics, word for word from 03 SCR-35/SCR-36 (italics are the plain text). -->
+    <!-- Topic 1. -->
+    <string name="howto_1_title">Add a tea without the catalog</string>
+    <string name="howto_1_line">For teas from other shops or gifts</string>
+    <string name="howto_1_intro">For teas that are not in the Tee-Kontor Kiel catalog, e.g. from another shop or a gift.</string>
+    <string name="howto_1_step1">Open Collection › My teas and tap ⋮ › Add a tea without the catalog.</string>
+    <string name="howto_1_step2">Under Choose variety, pick the variety, e.g. Sencha. If none fits, take Andere / unbekannt. The variety brings a matching default recipe.</string>
+    <string name="howto_1_step3">Enter a name under New tea. Everything else is optional: origin, vendor, freshness and notes.</string>
+    <string name="howto_1_step4">Enter Package and Price under Purchase, and UmamiT keeps track of stock and cost.</string>
+    <string name="howto_1_step5">Tap Save. Add a photo afterwards on the tea with + Photo.</string>
+    <!-- Topic 2. -->
+    <string name="howto_2_title">Add a tea from a shop link</string>
+    <string name="howto_2_line">Load one Tee-Kontor Kiel tea directly</string>
+    <string name="howto_2_intro">Get one tea from Tee-Kontor Kiel without loading the whole catalog.</string>
+    <string name="howto_2_step1">Open the tea\'s page in the browser, tap Share there and pick UmamiT.</string>
+    <string name="howto_2_step2">Or copy the link, tap ⋮ › Paste link in Collection › Catalog, then Load tea.</string>
+    <string name="howto_2_step3">UmamiT loads only that one page and shows the tea. Tap Add to collection.</string>
+    <string name="howto_2_step4">Pick the Package, check Price and Purchase date, and tap Add.</string>
+    <string name="howto_2_step5">If the tea is already in your collection, the sheet reads Log a repurchase and logs one.</string>
+    <string name="howto_2_tip">Load the whole catalog in Catalog with ⋮ › Update catalog.</string>
+    <!-- Topic 3. -->
+    <string name="howto_3_title">Stock and cost</string>
+    <string name="howto_3_line">Purchases, stock and what a liter costs</string>
+    <string name="howto_3_intro">UmamiT takes the leaf of every session off your stock and works out what your tea costs.</string>
+    <string name="howto_3_step1">Open the tea in My teas. Stock shows how much is left, and below it the price per 100 g and what a liter costs.</string>
+    <string name="howto_3_step2">Bought more? Tap Log a repurchase and enter amount, price and purchase date.</string>
+    <string name="howto_3_step3">If the stock is off, tap Correct stock and enter what is left. 0 g means the tea is empty.</string>
+    <string name="howto_3_step4">A typo? Tap a Purchase or Stock corrected row in the history below, change it and tap Save. The costs of earlier sessions are worked out again.</string>
+    <string name="howto_3_step5">In Settings › Brewing &amp; stock you set when a tea runs low (Low from) and when the Stock reminder comes. Deduct stock turns the deduction off.</string>
+    <!-- Topic 4. -->
+    <string name="howto_4_title">Recipes</string>
+    <string name="howto_4_line">Your own recipes, steps, sharing and receiving</string>
+    <string name="howto_4_intro">Each tea has a default recipe and up to ten recipes in all.</string>
+    <string name="howto_4_step1">Open the tea and tap Add recipe under Recipes, or the pencil next to a recipe.</string>
+    <string name="howto_4_step2">Set the method, vessel, leaf, water, temperature and pre-alert. As default makes it the recipe the tea starts with.</string>
+    <string name="howto_4_step3">Each step has a duration and a temperature. Its kind is Infusion, Rinse or Whisk; Add infusion adds one. Then Save.</string>
+    <string name="howto_4_step4">Sharing: in a saved recipe, ⋮ › Share recipe. It sends a text and a recipe file.</string>
+    <string name="howto_4_step5">Receiving: tap the file, share it with UmamiT or use My teas › ⋮ › Import recipe. In Take over recipe you pick the tea.</string>
+    <string name="howto_4_tip">After a session UmamiT offers Save times to the recipe when you brewed differently.</string>
+    <!-- Topic 5. -->
+    <string name="howto_5_title">Brewing in detail</string>
+    <string name="howto_5_line">Vessel, changing steps, two timers, quick timer</string>
+    <string name="howto_5_intro">From the first tap to the last infusion, and what you can change on the way.</string>
+    <string name="howto_5_step1">On Start, tap Start brewing and pick a tea. A tea under Recently brewed goes straight to the timer, with last time\'s values.</string>
+    <string name="howto_5_step2">In New session, pick the Vessel: water and leaf follow. Keep ratio keeps the ratio when you change one. Then Start session.</string>
+    <string name="howto_5_step3">In the timer: Start, and after the alarm Poured. The next infusion waits until you start it.</string>
+    <string name="howto_5_step4">Change it on the way: ⋮ › Edit steps or Another infusion. At the end, End session saves it all to the journal.</string>
+    <string name="howto_5_step5">Two timers: meanwhile, start a second session or the Quick timer. The row below the picture shows the other timer; a tap switches to it.</string>
+    <string name="howto_5_step6">The Quick timer on Start needs no tea: tap the duration, Start.</string>
+    <string name="howto_5_tip">Manage your vessels in Settings › Teaware.</string>
+    <!-- Topic 6. -->
+    <string name="howto_6_title">Journal and taste</string>
+    <string name="howto_6_line">Ratings, taste, times into the recipe</string>
+    <string name="howto_6_intro">Every session lands in the journal by itself. This is how you note how it was.</string>
+    <string name="howto_6_step1">After End session, Saved to the journal appears: give stars for Tea and Brewing.</string>
+    <string name="howto_6_step2">Already in the timer, the button “Taste · Infusion 1” opens the sliders for that infusion after pouring off.</string>
+    <string name="howto_6_step3">Later, open the session in the Journal. Add taste sets the sliders per infusion; + Descriptor adds matching words.</string>
+    <string name="howto_6_step4">Were your times different from the recipe? Save times to the recipe keeps them.</string>
+    <string name="howto_6_step5">⋮ › Edit corrects date, amounts and times; the stock follows.</string>
+    <string name="howto_6_step6">Brew this again starts a new session with exactly these values.</string>
+    <!-- Topic 7. -->
+    <string name="howto_7_title">Data and backup</string>
+    <string name="howto_7_line">Back up, restore, CSV, delete all</string>
+    <string name="howto_7_intro">Your data stays on your phone. A backup takes it to a new phone or brings it back.</string>
+    <string name="howto_7_step1">Open Settings › Data &amp; backup.</string>
+    <string name="howto_7_step2">Create backup writes teas, journal, photos and settings to one file. You choose where it goes, e.g. your cloud.</string>
+    <string name="howto_7_step3">Remind me to back up speaks up when many sessions have been added since the last backup.</string>
+    <string name="howto_7_step4">Restore backup replaces all data with the file; you confirm with REPLACE. For a while afterwards, Undo restore is still there.</string>
+    <string name="howto_7_step5">Journal as CSV exports your journal as a table.</string>
+    <string name="howto_7_step6">Delete all data resets the app, confirmed with DELETE. Back up first!</string>
+    <string name="howto_7_tip">While a timer runs, restoring and deleting are not possible.</string>
+    <!-- Topic 8. -->
+    <string name="howto_8_title">A reliable alarm</string>
+    <string name="howto_8_line">So the alarm always rings</string>
+    <string name="howto_8_intro">So the alarm rings even with the screen locked and after a long wait.</string>
+    <string name="howto_8_step1">At the top of Settings, Timer reliability shows whether all is set. For a marked item, Fix opens the right system page.</string>
+    <string name="howto_8_step2">What matters: Notifications, Full-screen alarm, Battery: Unrestricted and Exact alarms.</string>
+    <string name="howto_8_step3">After an app update Android often turns the full-screen alarm off. UmamiT then asks with Allow the full-screen alarm again: tap Allow.</string>
+    <string name="howto_8_step4">If Start shows The timer may be unreliable, tap Fix.</string>
+    <string name="howto_8_step5">In Timer &amp; alarm, Test alarm plays the pre-alert and the alarm. Ring under “Do Not Disturb” lets the alarm through in Do Not Disturb.</string>
+    <string name="howto_8_tip">On Samsung phones, turn off the automatic overnight restart (device care): after a restart the alarm rings only once the phone is unlocked.</string>
+
+    <!-- More copies for the Anleitungen's mock-ups (SCR-36), named mockup_<source key>. -->
+    <string name="mockup_sorte_picker_title">Choose variety</string>
+    <string name="mockup_tea_editor_title_new">New tea</string>
+    <string name="mockup_tea_editor_section_purchase">Purchase</string>
+    <string name="mockup_tea_editor_package">Package</string>
+    <string name="mockup_tea_editor_price">Price</string>
+    <string name="mockup_collection_catalog_paste_link">Paste link</string>
+    <string name="mockup_catalog_tea_add">Add to collection</string>
+    <string name="mockup_catalog_add_title">Add to collection</string>
+    <string name="mockup_catalog_add_package">Package</string>
+    <string name="mockup_catalog_add_price">Price</string>
+    <string name="mockup_catalog_add_date">Purchase date</string>
+    <string name="mockup_catalog_add_save">Add</string>
+    <string name="mockup_collection_tea_cost_price">%1$s € / 100 g</string>
+    <string name="mockup_collection_tea_section_stock">Stock</string>
+    <string name="mockup_collection_tea_stock">%1$s g left</string>
+    <string name="mockup_collection_tea_stock_purchase">Log a repurchase</string>
+    <string name="mockup_collection_tea_stock_correct">Correct stock</string>
+    <string name="mockup_collection_tea_cost_recipe">approx. %1$s € per liter (recipe)</string>
+    <string name="mockup_collection_tea_history_purchase">Purchase</string>
+    <string name="mockup_collection_tea_history_correction">Stock corrected</string>
+    <string name="mockup_collection_tea_history_brew">Brewed</string>
+    <string name="mockup_collection_tea_section_recipes">Recipes</string>
+    <string name="mockup_collection_tea_recipe_add">Add recipe</string>
+    <string name="mockup_collection_tea_recipe_default">Default</string>
+    <string name="mockup_recipe_editor_title_edit">Edit recipe</string>
+    <string name="mockup_recipe_step_kind_infusion">Infusion</string>
+    <string name="mockup_recipe_step_kind_rinse">Rinse</string>
+    <string name="mockup_recipe_step_kind_whisk">Whisk</string>
+    <string name="mockup_recipe_step_add">Add infusion</string>
+    <string name="mockup_receive_recipe_title">Take over recipe</string>
+    <string name="mockup_receive_recipe_which_tea">For which tea?</string>
+    <string name="mockup_brew_setup_title">New session</string>
+    <string name="mockup_brew_setup_vessel">Vessel</string>
+    <string name="mockup_brew_setup_leaf">Leaf</string>
+    <string name="mockup_brew_setup_water">Water</string>
+    <string name="mockup_brew_setup_start">Start session</string>
+    <string name="mockup_brew_setup_ratio_lock">Keep ratio</string>
+    <string name="mockup_brew_timer_menu_edit_steps">Edit steps</string>
+    <string name="mockup_brew_timer_menu_add_step">Another infusion</string>
+    <string name="mockup_journal_saved_title">Saved to the journal</string>
+    <string name="mockup_settings_title">Settings</string>
+    <string name="mockup_settings_data_backup">Data &amp; backup</string>
+    <string name="mockup_settings_reliability_title">Timer reliability</string>
+    <string name="mockup_settings_fix">Fix</string>
+    <string name="mockup_home_reliability">The timer may be unreliable</string>
 </resources>

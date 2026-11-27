@@ -1,5 +1,7 @@
 package com.umamit.feature.collection
 
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -30,6 +32,7 @@ class CollectionScreenTest {
     private var withoutCatalog = 0
     private var imports = 0
     private val folds = mutableListOf<Boolean>()
+    private val helps = mutableListOf<CollectionSegment>()
 
     private fun show(segment: CollectionSegment, foldable: Boolean = false) {
         compose.setContent {
@@ -45,12 +48,33 @@ class CollectionScreenTest {
                     onAddFromCatalog = { fromCatalog++ },
                     onAddWithoutCatalog = { withoutCatalog++ },
                     onImportRecipe = { imports++ },
+                    onOpenHelp = { helps += it },
                 )
             }
         }
     }
 
     private fun openMenu() = compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+
+    /** ⋮ *Hilfe* (SCR-36 „Entry points"): the last item above *Einstellungen*, on both segments. */
+    private fun assertMenuEndsWithHelp(segment: CollectionSegment) {
+        show(segment)
+        openMenu()
+        val help = compose.onNodeWithText("Hilfe")
+        help.assertIsDisplayed()
+        val settingsTop = compose.onNodeWithText("Einstellungen").getBoundsInRoot().top
+        assertThat(help.getBoundsInRoot().top).isLessThan(settingsTop)
+        help.performClick()
+        compose.waitForIdle()
+        assertThat(helps).containsExactly(segment)
+        compose.onNodeWithText("Hilfe").assertDoesNotExist()
+    }
+
+    @Test
+    fun theMeineTeesMenuEndsWithHilfeAboveEinstellungen() = assertMenuEndsWithHelp(CollectionSegment.MyTeas)
+
+    @Test
+    fun theCatalogMenuEndsWithHilfeAboveEinstellungen() = assertMenuEndsWithHelp(CollectionSegment.Catalog)
 
     @Test
     fun theCatalogMenuOffersKatalogAktualisieren() {

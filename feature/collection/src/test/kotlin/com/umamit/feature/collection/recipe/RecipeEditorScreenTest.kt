@@ -58,6 +58,7 @@ class RecipeEditorScreenTest {
     private val saved = mutableListOf<String>()
     private var closed = 0
     private var deleted = 0
+    private var helpOpened = 0
     private var alertKey by mutableStateOf<String?>(null)
     private val shared = mutableListOf<SharedRecipe>()
     private var sharer = RecipeSharer { recipe ->
@@ -94,6 +95,7 @@ class RecipeEditorScreenTest {
                     onClose = { closed++ },
                     onSave = { saved += it },
                     onDelete = { deleted++ },
+                    onOpenHelp = { helpOpened++ },
                     alertKey = alertKey,
                     sharer = sharer,
                     viewModel = viewModel {
@@ -255,6 +257,34 @@ class RecipeEditorScreenTest {
         assertThat(deleted).isEqualTo(1)
         assertThat(runBlocking { collection.recipes.getRecipe("kyusu") }).isNull()
         assertThat(runBlocking { collection.recipes.getRecipe("kalt") }!!.isDefault).isTrue()
+    }
+
+    /** ⋮ *Hilfe* (SCR-36 „Entry points"): the last item of a stored recipe's menu. */
+    @Test
+    fun `a stored recipe's menu ends with Hilfe, whose tap opens the Anleitung`() {
+        show()
+        compose.onNodeWithTag(RecipeEditorTags.MORE).performClick()
+        compose.onNodeWithTag(RecipeEditorTags.DELETE).assertIsDisplayed()
+        compose.onNodeWithTag(RecipeEditorTags.HELP).performClick()
+        compose.waitForIdle()
+
+        assertThat(helpOpened).isEqualTo(1)
+        compose.onNodeWithTag(RecipeEditorTags.HELP).assertDoesNotExist()
+    }
+
+    /** A new recipe has nothing to share or delete: its ⋮ holds only *Hilfe*. */
+    @Test
+    fun `a new recipe's menu holds only Hilfe`() {
+        show(recipeId = null)
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Rezept teilen").assertDoesNotExist()
+        compose.onNodeWithText("Rezept löschen").assertDoesNotExist()
+        compose.onNodeWithText("Hilfe").performClick()
+        compose.waitForIdle()
+
+        assertThat(helpOpened).isEqualTo(1)
     }
 
     @Test
